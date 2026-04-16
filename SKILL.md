@@ -1,6 +1,6 @@
 ---
 name: pge
-description: Use when repo-internal work spans multiple rounds and the main risks are scope drift, role mixing, weak review, stale execution state, unclear handoffs, or isolated skeletons. Best fit when a governing plan already exists and the work needs bounded delivery, independent acceptance, and explicit convergence across rounds.
+description: Use when repo-internal work spans multiple rounds and the main risks are scope drift, role mixing, weak review, stale execution state, unclear handoffs, or isolated skeletons. Best fit when an upstream plan or current slice already exists and the work needs bounded delivery, independent acceptance, and explicit convergence across rounds.
 ---
 
 # PGE

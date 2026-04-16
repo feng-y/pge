@@ -11,7 +11,7 @@ PGE separates the upstream planning layer from the execution harness layer:
 - **Upstream layer:** strategy, long-term architecture intent, project plan, exec-plan, and phase intent live outside PGE.
 - **PGE layer:** current phase contract, current task contract, bounded execution, independent acceptance, and progress / handoff state live inside PGE.
 
-Use PGE when the upstream plan already exists or the current phase boundary is clear enough to freeze into an execution contract.
+Use PGE when the upstream plan already exists or the current phase boundary is clear enough to freeze into an execution contract. If the incoming plan is still too large, split it into the current phase or slice before entering the PGE loop.
 
 ## When to use PGE
 
@@ -38,6 +38,8 @@ Use this skill when:
 ```
 
 PGE expects an upstream plan, blueprint, or exec-plan as input. It does not host the overall plan; it consumes that upstream artifact and freezes the current round into execution contracts.
+
+If the incoming plan is still too large, an optional upstream init/decomposition step may split it into the current phase or slice before entering PGE. That decomposition lives outside PGE and is not a standing PGE role.
 
 The upstream plan should define enough current-scope intent for PGE to freeze:
 - Current phase contract (what this phase delivers, what it does NOT deliver)
