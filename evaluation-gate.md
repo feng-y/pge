@@ -1,10 +1,10 @@
 # Evaluation Gate
 
-Use this file when evaluating whether the current task is actually complete under both the blueprint and the current task slice.
+Use this file when Evaluator performs independent acceptance on whether the current task is actually complete under both the blueprint and the current task slice.
 
-## Independent evaluation
+## Independent acceptance
 
-Evaluator reviews the deliverable against both the task contract and the governing plan, not the Generator’s self-description.
+Evaluator reviews the deliverable against both the task contract and the governing plan, not the Generator’s self-description or self-judged completion.
 
 Evaluator checks:
 - task completion,
@@ -99,7 +99,7 @@ If blocking issues remain, the flow is:
 1. Evaluator records blocking issues against the current contract and blueprint.
 2. Generator addresses only those issues or asks for contract clarification.
 3. If the issues expose blueprint ambiguity or task/plan conflict, escalate to Main / Scheduler.
-4. Evaluator reviews again after the issue is corrected or governance decision is made.
+4. Evaluator reviews again after the issue is corrected or routing decision is made.
 5. Repeat until one of these is true:
    - **Pass**
    - **Block**

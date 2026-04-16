@@ -1,6 +1,6 @@
 # Phase Contract
 
-Use this file when freezing the current phase and shaping the current task as a plan-faithful execution slice.
+Use this file when Planner freezes the current phase and shapes the current task as a bounded, plan-faithful execution slice.
 
 ## Phase contract
 
@@ -33,7 +33,7 @@ Each task must include:
 11. **Required validation evidence**
 12. **Ambiguity stop rule**
 
-A task contract is not an independent mini-spec. It is the current-round slice of the blueprint and must preserve the plan’s quality and validation requirements instead of weakening them.
+A task contract is not an independent mini-spec. It is the current-round slice of the blueprint that Planner freezes for Generator, and it must preserve the plan’s quality and validation requirements instead of weakening them.
 
 ## Unacceptable task shapes
 
@@ -60,7 +60,7 @@ Prefer tasks like:
 - define one canonical invariant,
 - produce one handoff-ready artifact with an explicit seam.
 
-A good task is **small enough to verify**, **not so fragmented that it becomes bookkeeping**, and **still faithful to the plan’s quality bar**.
+A good task is **small enough to verify**, **not so fragmented that it becomes bookkeeping**, **explicit about the deliverable and minimum verification**, and **still faithful to the plan’s quality bar**.
 
 ## Boundary rules
 
