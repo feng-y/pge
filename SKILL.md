@@ -40,7 +40,7 @@ Own orchestration only.
 - dispatch the current task contract,
 - maintain `progress.md`,
 - collect evaluation results,
-- choose whether to continue, retry, shrink and retry, return to Planner for contract repair, or converge,
+- route whether to continue, retry, shrink and retry, return to Planner for contract repair, or converge,
 - route unresolved ambiguity, conflict, or deviation to the right lane.
 
 Main / Scheduler does **not**:
@@ -142,7 +142,7 @@ If another round is needed, the next round must be:
 Read the supporting files based on what you need:
 
 - [phase-contract.md](./phase-contract.md) — phase contract, task contract, acceptable vs unacceptable task shapes, anti-overreach, anti-isolated-skeleton rules
-- [evaluation-gate.md](./evaluation-gate.md) — independent evaluation, multi-round evaluation, scoring, verdicts, and evaluation anti-patterns
+- [evaluation-gate.md](./evaluation-gate.md) — independent acceptance, multi-round evaluation, scoring, verdicts, and evaluation anti-patterns
 - [progress-md.md](./progress-md.md) — what `progress.md` should record, what it must not become, and when Main / Scheduler updates it
 
 ## Guardrails
@@ -177,8 +177,8 @@ A task is also not complete if:
 - current progress,
 - current worklist,
 - no-touch boundary,
-- blueprint governance decision,
-- accepted or rejected deviations,
+- convergence routing outcome,
+- accepted deviations or escalation outcome,
 - `progress.md` update.
 
 ### Planner output

@@ -2,7 +2,7 @@
 
 Use this file when maintaining state across multiple rounds.
 
-`progress.md` is owned by Main / Scheduler, kept short, and updated by whichever role just produced the relevant state.
+`progress.md` is the canonical state file for Main / Scheduler. Keep it short. Generator and Evaluator append execution and evaluation state when they produce new results.
 
 ## What `progress.md` should record
 
@@ -15,7 +15,7 @@ Use this file when maintaining state across multiple rounds.
 - validation evidence status,
 - unresolved plan/task conflicts,
 - open blockers,
-- latest governance decision by Main / Scheduler,
+- latest routing decision by Main / Scheduler,
 - next planned step.
 
 ## What `progress.md` should not become
@@ -27,7 +27,7 @@ Do **not** turn `progress.md` into:
 - a backlog dump,
 - a pseudo-plan for future phases.
 
-Its job is to preserve the current execution and governance state across rounds.
+Its job is to preserve the current execution and routing state across rounds.
 
 ## Update points
 
@@ -35,7 +35,7 @@ Main / Scheduler should update `progress.md` at these points:
 1. after blueprint alignment,
 2. after the Generator returns the current deliverable,
 3. after each evaluation round,
-4. after governance decides continue / retry / shrink / return to Planner / handoff.
+4. after Main / Scheduler routes continue / retry / shrink / return to Planner / handoff.
 
 ## Mandatory updates by role
 
@@ -109,7 +109,7 @@ Example for ESCALATE:
 
 **Do NOT skip this step.** Main / Scheduler needs this to make decisions.
 
-### Main / Scheduler (after governance decision)
+### Main / Scheduler (after routing decision)
 
 After receiving task completion or evaluation notifications:
 
@@ -117,24 +117,24 @@ After receiving task completion or evaluation notifications:
 2. If `progress.md` is stale (doesn't match execution reality):
    - Update it yourself
    - Remind the responsible agent to update next time
-3. After making a governance decision, record:
+3. After making a routing decision, record:
    - continue / retry / shrink / return to Planner / converge,
    - reason for the decision,
    - whether any deviation was accepted or rejected.
 
 Example:
 ```markdown
-- Governance: RETURN TO PLANNER
+- Routing: RETURN TO PLANNER
   - Reason: current task slice weakens plan-level validation requirement
   - Deviation accepted: no
 ```
 
 **Why this matters:**
-`progress.md` is the source of truth for multi-session collaboration and governance state.
+`progress.md` is the source of truth for multi-session collaboration and routing state.
 Stale progress causes confusion, duplicate work, and blueprint drift.
 
 ## Why this matters
 
 Without `progress.md`, state leaks back into conversational memory and each round risks reopening settled context.
 
-A good `progress.md` lets the next round start from confirmed execution state, evidence state, and governance state instead of re-inflated discussion.
+A good `progress.md` lets the next round start from confirmed execution state, evidence state, and routing state instead of re-inflated discussion.
