@@ -1,6 +1,6 @@
 # Phase Contract
 
-Use this file when freezing the current phase and shaping the current task.
+Use this file when freezing the current phase and shaping the current task as a plan-faithful execution slice.
 
 ## Phase contract
 
@@ -9,11 +9,13 @@ Freeze the current phase in terms of:
 - boundary,
 - non-goals,
 - completion criteria,
+- quality bar,
+- validation expectations,
 - handoff seam,
 - anti-overreach rule,
 - anti-isolated-skeleton rule.
 
-A good phase contract defines what this phase must settle now and what it must leave for later.
+A good phase contract defines what this phase must settle now, what quality level it must achieve now, and what it must leave for later.
 
 ## Task contract
 
@@ -22,10 +24,16 @@ Each task must include:
 2. **Why this belongs to the current phase**
 3. **Boundary**
 4. **Deliverable**
-5. **Minimal verification**
+5. **Validation baseline**
 6. **Non-goals**
 7. **Handoff / seam**
 8. **Blockers / needs confirmation**
+9. **Plan fidelity**
+10. **Quality bar**
+11. **Required validation evidence**
+12. **Ambiguity stop rule**
+
+A task contract is not an independent mini-spec. It is the current-round slice of the blueprint and must preserve the plan’s quality and validation requirements instead of weakening them.
 
 ## Unacceptable task shapes
 
@@ -36,19 +44,23 @@ Reject tasks like:
 - “make a first pass and refine later”
 - “just get something working”
 - “prepare for future extensibility”
+- a slice that omits validation required by the plan
+- a slice that weakens the plan’s quality bar to make the round easier
+- a slice that expects Generator to resolve blueprint ambiguity
+- a slice that can be functionally complete while still violating plan intent
 
-These are too vague, too expansion-prone, or too detached from verification.
+These are too vague, too expansion-prone, too detached from verification, or too willing to shift blueprint decisions into generation.
 
 ## Acceptable task shapes
 
 Prefer tasks like:
 - freeze one semantic contract needed in this phase,
 - add one boundary guard,
-- introduce one compat layer with minimal verification,
+- introduce one compat layer with explicit validation evidence,
 - define one canonical invariant,
 - produce one handoff-ready artifact with an explicit seam.
 
-A good task is **small enough to verify** but **not so fragmented that it becomes bookkeeping**.
+A good task is **small enough to verify**, **not so fragmented that it becomes bookkeeping**, and **still faithful to the plan’s quality bar**.
 
 ## Boundary rules
 
@@ -57,3 +69,6 @@ Do not pull implementation detail, API design, class structure, exception flow, 
 
 ### Anti-isolated-skeleton
 Do not leave only names, folders, placeholders, or abstract shells. The current phase must stand on its own **and** show where the next phase attaches.
+
+### Ambiguity stop rule
+If high-quality execution depends on interpreting an incomplete, conflicting, or ambiguous blueprint decision, stop and return to Planner through Main / Scheduler instead of letting Generator guess.
