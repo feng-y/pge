@@ -9,7 +9,9 @@ A lightweight execution skill for repo-internal multi-round work.
 
 This skill keeps phase work small, real, and handoff-ready. It separates scheduling, planning, generation, and evaluation without turning the work into a heavy framework.
 
-**Core principle:** treat the phase contract as the execution blueprint. Planner freezes the current phase and task contract as a bounded, plan-faithful slice; Generator builds only that slice with a concrete deliverable and minimum required verification; Evaluator independently accepts or blocks against the contract and evidence; Main / Scheduler only orchestrates routing, progress, and convergence so the loop stays aligned without turning orchestration into hidden architecture or review.
+PGE is not the plan host. It consumes an upstream plan, blueprint, or exec-plan, freezes the current scope into execution contracts, and runs the current-round execution loop.
+
+**Core principle:** treat the current phase contract as the execution blueprint for this round. Planner freezes the current phase and task contract as a bounded, plan-faithful slice; Generator builds only that slice with a concrete deliverable and minimum required verification; Evaluator independently accepts or blocks against the contract and evidence; Main / Scheduler only orchestrates routing, progress, and convergence so the loop stays aligned without turning orchestration into hidden architecture or review.
 
 ## What this skill is for
 
@@ -33,6 +35,8 @@ Do **not** use this skill for:
 
 Use **3 working roles plus 1 orchestration layer**.
 
+Upstream planning stays outside PGE. Inside PGE, these roles own only the current-scope execution loop.
+
 ### Main / Scheduler (orchestration layer)
 Own orchestration only.
 - receive the user request or the last confirmed state,
@@ -48,7 +52,7 @@ Main / Scheduler does **not**:
 - author the task contract,
 - generate the deliverable,
 - perform the independent acceptance,
-- act as the default planner, architect, reviewer, or governance content owner,
+- act as the default planner, architect, reviewer, or content owner,
 - silently weaken the contract when the process gets busy.
 
 ### Planner
@@ -91,7 +95,7 @@ Own independent acceptance against the task contract and phase contract.
 - inspect validation evidence,
 - detect deviations, ambiguity, and quality shortfalls,
 - apply blocking pressure until the acceptance verdict is stable,
-- escalate governance questions to Main / Scheduler.
+- escalate unresolved plan/task questions to Main / Scheduler.
 
 Evaluator does **not**:
 - resolve plan/task conflicts locally,
@@ -106,10 +110,10 @@ This is a temporary support role, not a standing role.
 ## Execution loop
 
 ### Round 0 — Contract freeze
-Planner freezes the current phase and task contract as a bounded, plan-faithful slice of the blueprint.
+Planner freezes the current phase and task contract as a bounded, plan-faithful slice of the upstream blueprint.
 Main / Scheduler records the agreed round state in `progress.md`, dispatches the slice, and routes unresolved ambiguity back to Planner instead of judging contract content itself.
 
-If the plan is incomplete, ambiguous, or in conflict with high-quality execution, stop and return to Planner for contract repair instead of letting Generator guess.
+If the upstream plan is incomplete, ambiguous, or in conflict with high-quality execution for the current round, stop and return to Planner for contract repair instead of letting Generator guess.
 
 ### Round 1 — Bounded execution
 Generator executes the current task contract and returns the named deliverable, minimum required validation evidence, and explicit unverified areas.

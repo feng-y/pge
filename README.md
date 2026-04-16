@@ -2,6 +2,17 @@
 
 A lightweight execution skill for repo-internal multi-round work that needs clear phase contracts, verifiable task contracts, and separated planning/generation/evaluation.
 
+PGE is not the plan host. It consumes an external plan, blueprint, or exec-plan and turns the current scope into bounded execution contracts, independent evaluation, and stable cross-round progress state.
+
+## Positioning
+
+PGE separates the upstream planning layer from the execution harness layer:
+
+- **Upstream layer:** strategy, long-term architecture intent, project plan, exec-plan, and phase intent live outside PGE.
+- **PGE layer:** current phase contract, current task contract, bounded execution, independent acceptance, and progress / handoff state live inside PGE.
+
+Use PGE when the upstream plan already exists or the current phase boundary is clear enough to freeze into an execution contract.
+
 ## When to use PGE
 
 Use this skill when:
@@ -26,7 +37,9 @@ Use this skill when:
 /pge path/to/plan.md
 ```
 
-The plan is the governing execution blueprint for the current phase. It should define:
+PGE expects an upstream plan, blueprint, or exec-plan as input. It does not host the overall plan; it consumes that upstream artifact and freezes the current round into execution contracts.
+
+The upstream plan should define enough current-scope intent for PGE to freeze:
 - Current phase contract (what this phase delivers, what it does NOT deliver)
 - Task breakdown or slices with acceptance criteria
 - Boundary constraints (no-touch zones)
@@ -92,14 +105,14 @@ PGE uses **3 working roles plus 1 orchestration layer**:
 
 ### 1. Contract + blueprint compliance check (MANDATORY)
 
-Evaluator must verify both the current contract and the governing blueprint before scoring:
-- Read the contract document and governing plan
+Evaluator must verify both the current contract and the upstream blueprint before scoring:
+- Read the contract document and upstream plan
 - Verify all contract-defined fields/interfaces exist
 - Check that the task slice and implementation remain faithful to blueprint intent
 - If contract, task, and blueprint point in different directions, escalate to Main / Scheduler
 - Missing required contract elements → immediate BLOCK
 
-**Why:** Prevents downstream integration failures and prevents a task from appearing complete while still undermining the governing plan.
+**Why:** Prevents downstream integration failures and prevents a task from appearing complete while still undermining the upstream plan.
 
 ### 2. Orchestration-aligned progress updates
 
