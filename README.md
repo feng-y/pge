@@ -38,30 +38,30 @@ The plan is the governing execution blueprint for the current phase. It should d
 PGE uses **3 working roles plus 1 orchestration layer**:
 
 ### Main / Scheduler (orchestration layer)
-- Owns execution governance
-- Treats the plan as the governing blueprint for the current round
-- Maintains `progress.md` as the source of truth for current execution and governance state
+- Owns orchestration for the current round
+- Treats the plan as the execution blueprint for the current round
+- Maintains `progress.md` as the source of truth for current execution state
 - Collects evaluation results
-- Decides ambiguity, conflict, deviation, and completion outcomes
+- Handles scheduling, dispatch, state tracking, and convergence routing
 
 ### Planner
-- Owns the goal-and-constraint definition surface for the current round
+- Owns the phase and task contract shaping surface for the current round
 - Freezes the current phase contract as a plan-faithful task slice
-- When starting from a short prompt, expands it into an ambitious spec while staying at product context and high-level technical design
-- Preserves plan-level quality and validation requirements in that slice without overcommitting detailed implementation
+- Shapes the current task contract so it stays bounded, verifiable, and aligned with the phase boundary
+- Preserves plan-level quality and validation requirements without overcommitting detailed implementation
+- Preserves the handoff seam, enforces anti-overreach, and avoids over-fragmentation
 
 ### Generator
-- Owns the constrained delivery surface for the current round
-- Executes the assigned task contract one bounded feature / sprint slice at a time
+- Owns bounded execution for the current round
+- Executes the assigned task contract one bounded slice at a time
 - Returns deliverable + validation evidence + explicit unverified areas
 - May self-evaluate before handoff, but self-checks do not replace independent evaluation
 
 ### Evaluator
-- Owns the independent acceptance and correction surface for the current round
+- Owns independent acceptance for the current round
 - Performs independent review against both the task slice and the blueprint
-- Exercises the real application like a user where applicable (UI / API / data), not just the Generator summary
-- Verifies contract compliance and validation evidence
-- Enforces thresholds on product depth, functionality, design, and code quality
+- Verifies contract compliance, validation evidence, and completion conditions
+- Blocks completion when required evidence or contract fidelity is missing
 - Escalates plan/task/implementation conflicts to Main / Scheduler
 - Scores and provides verdict
 
@@ -69,8 +69,8 @@ PGE uses **3 working roles plus 1 orchestration layer**:
 
 1. **Round 0 — Blueprint alignment**
    - Planner freezes the current phase and task as a plan-faithful slice
-   - If the plan is incomplete, ambiguous, or in conflict with high-quality execution, Main / Scheduler returns it to Planner for blueprint repair
-   - Main / Scheduler records blueprint and governance state in `progress.md`
+   - If the plan is incomplete, ambiguous, or in conflict with high-quality execution, Main / Scheduler routes it back to Planner for blueprint repair
+   - Main / Scheduler records the current round state in `progress.md`
 
 2. **Round 1 — Generate**
    - Generator executes the current task slice
@@ -84,9 +84,9 @@ PGE uses **3 working roles plus 1 orchestration layer**:
    - If plan/task/implementation conflict appears, Evaluator escalates to Main / Scheduler
    - Evaluation may take multiple rounds until the verdict is stable
 
-4. **Round 3 — Governance decision**
-   - Main / Scheduler decides: continue / retry / shrink and retry / return to Planner / converge
-   - Main / Scheduler updates `progress.md` with the latest governance decision
+4. **Round 3 — Convergence routing**
+   - Main / Scheduler routes: continue / retry / shrink and retry / return to Planner / converge
+   - Main / Scheduler updates `progress.md` with the latest routing decision
 
 ## Key improvements (2026-04-16)
 
@@ -101,9 +101,9 @@ Evaluator must verify both the current contract and the governing blueprint befo
 
 **Why:** Prevents downstream integration failures and prevents a task from appearing complete while still undermining the governing plan.
 
-### 2. Governance-aligned progress updates
+### 2. Orchestration-aligned progress updates
 
-`progress.md` is owned by Main / Scheduler and should reflect current execution and governance state.
+`progress.md` is owned by Main / Scheduler and should reflect current execution and routing state.
 
 After generation, `progress.md` should show the latest deliverable, evidence status, and whether anything remains unverified:
 ```markdown
@@ -114,16 +114,16 @@ After generation, `progress.md` should show the latest deliverable, evidence sta
   - Status: Awaiting evaluation
 ```
 
-After evaluation, `progress.md` should show the verdict, blueprint/task alignment, evidence sufficiency, and whether Main / Scheduler must decide anything:
+After evaluation, `progress.md` should show the verdict, blueprint/task alignment, evidence sufficiency, and whether Main / Scheduler must route any follow-up action:
 ```markdown
 - [x] Task 2: FeatureTableMeta ✅ PASS
   - Task slice satisfied: yes
   - Blueprint fidelity preserved: yes
   - Evidence sufficient: yes
-  - Governance action needed: no
+  - Follow-up routing needed: no
 ```
 
-**Why:** Prevents progress/code desync and keeps the team aligned on evidence state, blueprint fidelity, and governance state across rounds.
+**Why:** Prevents progress/code desync and keeps the team aligned on evidence state, blueprint fidelity, and routing state across rounds.
 
 ## Supporting files
 
@@ -160,7 +160,7 @@ User: /pge docs/exec-plans/data-loading/featuretable-phase1a-registration-plan.m
 
 Round 0:
   Planner → Freezes a blueprint-faithful slice (registration only, no load/parse)
-  Main → Records current blueprint and governance state in progress.md
+  Main → Records current round state in progress.md
 
 Round 1 (Task 1):
   Generator → Creates IDENTITY_CONTRACT.md + validation evidence
@@ -202,8 +202,8 @@ Convergence:
 - Current progress
 - Current worklist
 - No-touch boundary
-- Blueprint governance decision
-- Accepted or rejected deviations
+- Routing decision
+- Accepted deviations or escalation outcome
 - `progress.md` update
 
 ### Planner output
