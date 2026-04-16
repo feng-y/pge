@@ -14,6 +14,37 @@ Evaluator checks:
 - whether the output remains phase-bounded,
 - whether the output avoided becoming an isolated skeleton.
 
+## Contract compliance check (MANDATORY)
+
+Before scoring any task, Evaluator MUST verify contract compliance:
+
+1. **Locate the contract document**
+   - Usually Task 1 deliverable (e.g., IDENTITY_CONTRACT.md, contract.md)
+   - Read the full contract to understand requirements
+
+2. **Verify current task against contract**
+   - All fields defined in contract exist in implementation
+   - All interfaces defined in contract are exposed
+   - Types match contract specifications
+   - No contract requirements are missing
+
+3. **If contract requirements are missing**
+   - BLOCK immediately with score 0/10
+   - List missing requirements clearly
+   - Do NOT proceed to other evaluation criteria
+
+**Example:**
+- Contract defines: "FeatureTableMeta must include dataset_key field"
+- Implementation missing dataset_key → BLOCK (0/10)
+- Reason: "Missing dataset_key field required by IDENTITY_CONTRACT.md"
+
+**Why this matters:**
+This prevents downstream tasks from failing due to missing dependencies.
+A task that passes its own acceptance criteria but violates the contract
+will cause compilation failures or integration issues later.
+
+**Contract takes precedence over task-level acceptance criteria.**
+
 ## Completion gate
 
 **No task is complete without independent evaluation evidence.**
