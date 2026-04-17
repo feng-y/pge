@@ -1,10 +1,10 @@
 # Phase Contract
 
-Use this file when Planner freezes the current phase and shapes the current task as a bounded, plan-faithful execution slice.
+Use this file when Planner operates across the continuous planning lane: when the incoming plan is too large, it first slices into the current phase/slice; then it freezes the current phase and shapes the current task as a bounded, plan-faithful execution slice.
 
 ## Phase contract
 
-Freeze the current phase in terms of:
+In `pge:plan`, produce the complete current phase plan for execution. In `pge:execute`, freeze that current phase in terms of:
 - goal,
 - boundary,
 - non-goals,

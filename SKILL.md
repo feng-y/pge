@@ -5,13 +5,13 @@ description: Use when repo-internal work spans multiple rounds and the main risk
 
 # PGE
 
-A lightweight execution skill for repo-internal multi-round work.
+A lightweight execution harness for repo-internal multi-round work.
 
 This skill keeps phase work small, real, and handoff-ready. It separates scheduling, planning, generation, and evaluation without turning the work into a heavy framework.
 
-PGE is not the plan host. It consumes an upstream plan, blueprint, or exec-plan, freezes the current scope into execution contracts, and runs the current-round execution loop.
+PGE is an execute-first closed loop, not an execution-only skill and not an overall strategy host. `pge:execute` consumes larger phase/spec input and internally slices it into bounded current-scope work through a continuous planning lane before generation and evaluation begin.
 
-**Core principle:** treat the current phase contract as the execution blueprint for this round. Planner freezes the current phase and task contract as a bounded, plan-faithful slice; Generator builds only that slice with a concrete deliverable and minimum required verification; Evaluator independently accepts or blocks against the contract and evidence; Main / Scheduler only orchestrates routing, progress, and convergence so the loop stays aligned without turning orchestration into hidden architecture or review.
+**Core principle:** treat the current phase contract as the execution blueprint for this round. Planner owns continuous planning across both coarse slicing (larger input → current phase/slice) and current task shaping (current phase/slice → bounded task contract). Generator builds only that slice with a concrete deliverable and minimum required verification; Evaluator independently accepts or blocks against the contract and evidence; Main / Scheduler only orchestrates routing, progress, and convergence so the loop stays aligned without turning orchestration into hidden architecture or review.
 
 ## What this skill is for
 
@@ -56,8 +56,9 @@ Main / Scheduler does **not**:
 - silently weaken the contract when the process gets busy.
 
 ### Planner
-Own the current phase contract and task contract.
-- freeze the current phase contract,
+Own the continuous planning lane across both coarse slicing and current contract shaping.
+- when the incoming plan is too large, first slice it into the current phase/slice that can be executed in this round,
+- then freeze the current phase contract,
 - shape the current task contract as a bounded execution slice,
 - preserve the handoff seam for the next task or phase,
 - enforce anti-overreach before generation starts,

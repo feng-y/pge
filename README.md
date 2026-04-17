@@ -1,17 +1,30 @@
 # PGE (Plan-Generate-Evaluate)
 
-A lightweight execution skill for repo-internal multi-round work that needs clear phase contracts, verifiable task contracts, and separated planning/generation/evaluation.
+A lightweight execution harness for repo-internal multi-round work that needs clear phase plans, verifiable task contracts, and separated planning/generation/evaluation.
 
-PGE is not the plan host. It consumes an external plan, blueprint, or exec-plan and turns the current scope into bounded execution contracts, independent evaluation, and stable cross-round progress state.
+PGE is an execute-first closed loop, not an execution-only skill and not an overall strategy host. It consumes PRDs, intent, or upstream plans and internally turns them into bounded current-scope work through a continuous planning lane before generation and evaluation begin.
 
 ## Positioning
 
-PGE separates the upstream planning layer from the execution harness layer:
+PGE is an execution harness that separates upstream strategy from the current-phase execution loop:
 
-- **Upstream layer:** strategy, long-term architecture intent, project plan, exec-plan, and phase intent live outside PGE.
-- **PGE layer:** current phase contract, current task contract, bounded execution, independent acceptance, and progress / handoff state live inside PGE.
+- **Upstream layer:** strategy, roadmap intent, broad product or architecture direction, and external constraints live outside PGE.
+- **`pge:execute`:** the core closed loop that consumes larger phase/spec input and internally slices it into bounded current-scope work through the Planner lane, then runs bounded execution through Generator, performs independent acceptance through Evaluator, and maintains progress/handoff state through Main/Scheduler.
 
-Use PGE when the upstream plan already exists or the current phase boundary is clear enough to freeze into an execution contract. If the incoming plan is still too large, split it into the current phase or slice before entering the PGE loop.
+The decomposition from larger plan to current executable slice stays inside the Planner lane rather than becoming a separate standing role or external preprocessing step.
+
+## Usage
+
+### `pge:execute`
+The core execution loop. Use when you have a larger phase/spec input that needs to be turned into bounded, verifiable work.
+
+The execution loop internally handles:
+1. **Planning lane (Planner):** When the incoming plan is too large, first slice it into the current phase/slice, then freeze the current task/sprint contract with goal, boundary, deliverable, validation baseline, and handoff seam.
+2. **Generation lane (Generator):** Execute the bounded contract and return deliverable + validation evidence + explicit unverified areas.
+3. **Evaluation lane (Evaluator):** Independently accept or block based on contract compliance and evidence sufficiency.
+4. **Orchestration layer (Main/Scheduler):** Maintain progress, dispatch work, and route convergence decisions.
+
+The Planner lane is continuous: it handles both coarse slicing (larger input → current phase/slice) and current contract shaping (current phase/slice → current task contract), rather than these being separate roles or external steps.
 
 ## When to use PGE
 
@@ -31,22 +44,20 @@ Use this skill when:
 - Project-specific SOPs
 - Large workflow frameworks with many content roles or heavy standing ceremony
 
-## Usage
+## Input expectations
 
 ```bash
 /pge path/to/plan.md
 ```
 
-PGE expects an upstream plan, blueprint, or exec-plan as input. It does not host the overall plan; it consumes that upstream artifact and freezes the current round into execution contracts.
+PGE consumes an upstream plan, blueprint, or exec-plan as input. It does not host the overall strategy or roadmap; it consumes that upstream artifact and internally slices it into bounded executable work.
 
-If the incoming plan is still too large, an optional upstream init/decomposition step may split it into the current phase or slice before entering PGE. That decomposition lives outside PGE and is not a standing PGE role.
+The upstream input may be:
+- A complete phase plan ready for task-level execution
+- A larger spec that needs coarse slicing into the current phase first
+- A PRD or intent document that needs phase boundary definition
 
-The upstream plan should define enough current-scope intent for PGE to freeze:
-- Current phase contract (what this phase delivers, what it does NOT deliver)
-- Task breakdown or slices with acceptance criteria
-- Boundary constraints (no-touch zones)
-- Required validation evidence
-- Handoff seam to next phase
+The Planner lane handles the appropriate level of slicing based on what comes in, then freezes the current task contract before generation begins.
 
 ## Team model
 
@@ -60,9 +71,9 @@ PGE uses **3 working roles plus 1 orchestration layer**:
 - Handles scheduling, dispatch, state tracking, and convergence routing
 
 ### Planner
-- Owns the phase and task contract shaping surface for the current round
-- Freezes the current phase contract as a plan-faithful task slice
-- Shapes the current task contract so it stays bounded, verifiable, and aligned with the phase boundary
+- Owns the continuous planning lane across both coarse slicing and current contract shaping
+- When the incoming plan is too large, first slices it into the current phase/slice that can be executed in this round
+- Then freezes the current phase contract and shapes the current task contract as a bounded execution slice
 - Preserves plan-level quality and validation requirements without overcommitting detailed implementation
 - Preserves the handoff seam, enforces anti-overreach, and avoids over-fragmentation
 
