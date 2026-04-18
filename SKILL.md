@@ -13,6 +13,23 @@ PGE is an execute-first closed loop, not an execution-only skill and not an over
 
 **Core principle:** treat the current phase contract as the execution blueprint for this round. Planner owns continuous planning across both coarse slicing (larger input → current phase/slice) and current task shaping (current phase/slice → bounded task contract). Generator builds only that slice with a concrete deliverable and minimum required verification; Evaluator independently accepts or blocks against the contract and evidence; Main / Scheduler only orchestrates routing, progress, and convergence so the loop stays aligned without turning orchestration into hidden architecture or review.
 
+## What v1 is not
+
+PGE v1 is a skill-level execution harness, not a runtime-native multi-agent system.
+
+## Non-goal: runtime agent semantics
+
+PGE v1 must not be treated as a runtime-native multi-agent system.
+
+Specifically:
+
+- Planner / Generator / Evaluator / Main must not be assumed to run in isolated contexts
+- Evaluator must not be assumed to have independent context isolation by default
+- Orchestration in v1 is a logical control flow, not a runtime scheduling primitive
+- The skill does not guarantee agent-level separation, concurrency, or isolation
+
+If such properties are required, they must be implemented at a runtime layer outside this skill.
+
 ## PGE v1 entry gate
 
 PGE accepts an upstream plan, not a pre-frozen current task contract.

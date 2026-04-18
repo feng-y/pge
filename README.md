@@ -13,6 +13,23 @@ PGE is an execution harness that separates upstream strategy from the current-ph
 
 The decomposition from larger plan to current executable slice stays inside the Planner lane rather than becoming a separate standing role or external preprocessing step.
 
+## What v1 is not
+
+PGE v1 is a skill-level execution harness, not a runtime-native multi-agent system.
+
+## Non-goal: runtime agent semantics
+
+PGE v1 must not be treated as a runtime-native multi-agent system.
+
+Specifically:
+
+- Planner / Generator / Evaluator / Main must not be assumed to run in isolated contexts
+- Evaluator must not be assumed to have independent context isolation by default
+- Orchestration in v1 is a logical control flow, not a runtime scheduling primitive
+- The skill does not guarantee agent-level separation, concurrency, or isolation
+
+If such properties are required, they must be implemented at a runtime layer outside this skill.
+
 ## Usage
 
 ### `pge:execute`
