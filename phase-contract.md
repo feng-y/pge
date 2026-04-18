@@ -17,6 +17,12 @@ In `pge:plan`, produce the complete current phase plan for execution. In `pge:ex
 
 A good phase contract defines what this phase must settle now, what quality level it must achieve now, and what it must leave for later.
 
+## Entry distinction
+
+In PGE v1, the external input is the upstream plan. The task contract is not the entry artifact.
+
+The task contract is the internal current-round execution contract that Planner freezes after deciding whether the upstream plan can pass through directly or must first be sliced.
+
 ## Task contract
 
 Each task must include:
@@ -34,6 +40,10 @@ Each task must include:
 12. **Ambiguity stop rule**
 
 A task contract is not an independent mini-spec. It is the current-round slice of the blueprint that Planner freezes for Generator, and it must preserve the plan’s quality and validation requirements instead of weakening them.
+
+A task contract should represent one single bounded round: one goal, one deliverable, and one primary verification path.
+
+Planner must not create a smaller task contract when the upstream plan is already executable as one bounded round.
 
 ## Unacceptable task shapes
 

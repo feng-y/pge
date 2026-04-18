@@ -1,6 +1,6 @@
 ---
 name: pge
-description: Use when repo-internal work spans multiple rounds and the main risks are scope drift, role mixing, weak review, stale execution state, unclear handoffs, or isolated skeletons. Best fit when an upstream plan or current slice already exists and the work needs bounded delivery, independent acceptance, and explicit convergence across rounds.
+description: Use when repo-internal work spans multiple rounds and the main risks are scope drift, role mixing, weak review, stale execution state, unclear handoffs, or isolated skeletons. Best fit when an upstream execution plan already exists and the work needs bounded delivery, explicit slice control, independent acceptance, and convergence across rounds.
 ---
 
 # PGE
@@ -12,6 +12,41 @@ This skill keeps phase work small, real, and handoff-ready. It separates schedul
 PGE is an execute-first closed loop, not an execution-only skill and not an overall strategy host. `pge:execute` consumes larger phase/spec input and internally slices it into bounded current-scope work through a continuous planning lane before generation and evaluation begin.
 
 **Core principle:** treat the current phase contract as the execution blueprint for this round. Planner owns continuous planning across both coarse slicing (larger input → current phase/slice) and current task shaping (current phase/slice → bounded task contract). Generator builds only that slice with a concrete deliverable and minimum required verification; Evaluator independently accepts or blocks against the contract and evidence; Main / Scheduler only orchestrates routing, progress, and convergence so the loop stays aligned without turning orchestration into hidden architecture or review.
+
+## PGE v1 entry gate
+
+PGE accepts an upstream plan, not a pre-frozen current task contract.
+
+An input plan may enter PGE only if all of the following are true:
+- it has a concrete execution goal;
+- it has an identifiable scope boundary;
+- it does not require clarify-first work before execution can begin;
+- it has a minimum acceptance direction.
+
+If any of these conditions is missing, reject the input and route it upstream.
+
+If the input is still primarily a clarify artifact, it must be routed upstream, not into PGE.
+
+## Single bounded round (v1 heuristic)
+
+A plan or slice counts as a single bounded round only if it has:
+- one goal,
+- one deliverable,
+- one primary verification path.
+
+## Planner entry decision
+
+Planner's first job is to decide between exactly two cases.
+
+### Case A — already executable
+If the upstream plan already forms a single bounded round, Planner must not decompose it further. Planner freezes the current round contract and passes it to Generator.
+
+### Case B — still too large
+If the upstream plan does not yet form a single bounded round, Planner must cut one current slice that forms a single bounded round, then freeze that slice as the current round contract.
+
+## Anti-over-slicing rule
+
+If the plan is already small enough to be executed as a single bounded round, Planner must not decompose it further.
 
 ## What this skill is for
 

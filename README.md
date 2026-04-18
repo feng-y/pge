@@ -50,14 +50,57 @@ Use this skill when:
 /pge path/to/plan.md
 ```
 
-PGE consumes an upstream plan, blueprint, or exec-plan as input. It does not host the overall strategy or roadmap; it consumes that upstream artifact and internally slices it into bounded executable work.
+## PGE v1 Entry Gate
 
-The upstream input may be:
-- A complete phase plan ready for task-level execution
-- A larger spec that needs coarse slicing into the current phase first
-- A PRD or intent document that needs phase boundary definition
+PGE accepts an upstream plan, not a pre-frozen current task contract.
 
-The Planner lane handles the appropriate level of slicing based on what comes in, then freezes the current task contract before generation begins.
+An input plan may enter PGE v1 only if all of the following are true:
+
+1. it has a concrete execution goal;
+2. it has an identifiable scope boundary;
+3. it does not require a clarify phase before execution can begin;
+4. it has a minimum acceptance direction, so the round can be judged pass/fail.
+
+If any of these conditions is missing, the input must not enter PGE. It must be routed upstream.
+
+If the input is still primarily a clarify artifact, it must be routed upstream, not into PGE.
+
+## Single bounded round (v1 heuristic)
+
+A plan or slice forms a single bounded round only if all of the following are true:
+
+1. it advances one clear goal;
+2. it produces one primary deliverable;
+3. it has one primary verification path for the round.
+
+This heuristic exists only to decide whether Planner must cut further or must pass the plan through.
+
+## Planner Entry Decision
+
+After receiving the upstream plan, Planner must make one entry decision.
+
+### Case A — Plan is already executable
+
+If the plan already forms a single bounded round (one goal, one deliverable, one primary verification path), Planner must not decompose it further.
+
+Planner must:
+- freeze the current round contract,
+- pass it directly to Generator.
+
+### Case B — Plan still contains multiple slices
+
+If the plan does not yet form a single bounded round, Planner must cut one current slice that forms a single bounded round.
+
+Planner must:
+- cut exactly one executable current slice,
+- freeze the round contract for that slice,
+- then pass it to Generator.
+
+## Anti-over-slicing
+
+If the plan is already small enough to be executed as a single bounded round, Planner must not decompose it further.
+
+PGE accepts an upstream plan. If the plan is already small enough, Planner must pass it through. If it is still large, Planner must cut exactly one executable slice.
 
 ## Team model
 
