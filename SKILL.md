@@ -36,13 +36,29 @@ A plan or slice counts as a single bounded round only if it has:
 
 ## Planner entry decision
 
+Planner must use the “single bounded round (v1 heuristic)” as the only decision rule for determining whether to pass through or to slice.
+
 Planner's first job is to decide between exactly two cases.
 
 ### Case A — already executable
+This case applies if and only if the plan already satisfies the single bounded round heuristic.
 If the upstream plan already forms a single bounded round, Planner must not decompose it further. Planner freezes the current round contract and passes it to Generator.
 
 ### Case B — still too large
-If the upstream plan does not yet form a single bounded round, Planner must cut one current slice that forms a single bounded round, then freeze that slice as the current round contract.
+This case applies if and only if the plan does not satisfy the single bounded round heuristic.
+If the upstream plan does not yet form a single bounded round, Planner must produce exactly one current slice that already forms a single bounded round.
+
+That slice must satisfy:
+- one goal,
+- one deliverable,
+- one primary verification path,
+- and must be directly executable by Generator.
+
+Planner must not:
+- perform multi-step or recursive decomposition in a single round,
+- produce an intermediate slice that still requires further slicing before execution.
+
+Planner must freeze that slice as the current round contract and pass it to Generator.
 
 ## Anti-over-slicing rule
 

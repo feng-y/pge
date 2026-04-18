@@ -77,9 +77,13 @@ This heuristic exists only to decide whether Planner must cut further or must pa
 
 ## Planner Entry Decision
 
+Planner must use the “single bounded round (v1 heuristic)” as the only decision rule for determining whether to pass through or to slice.
+
 After receiving the upstream plan, Planner must make one entry decision.
 
 ### Case A — Plan is already executable
+
+This case applies if and only if the plan already satisfies the single bounded round heuristic.
 
 If the plan already forms a single bounded round (one goal, one deliverable, one primary verification path), Planner must not decompose it further.
 
@@ -89,10 +93,21 @@ Planner must:
 
 ### Case B — Plan still contains multiple slices
 
-If the plan does not yet form a single bounded round, Planner must cut one current slice that forms a single bounded round.
+This case applies if and only if the plan does not satisfy the single bounded round heuristic.
+
+If the plan does not yet form a single bounded round, Planner must produce exactly one current slice that already forms a single bounded round.
+
+That slice must satisfy:
+- one goal,
+- one deliverable,
+- one primary verification path,
+- and must be directly executable by Generator.
+
+Planner must not:
+- perform multi-step or recursive decomposition in a single round,
+- produce an intermediate slice that still requires further slicing before execution.
 
 Planner must:
-- cut exactly one executable current slice,
 - freeze the round contract for that slice,
 - then pass it to Generator.
 
