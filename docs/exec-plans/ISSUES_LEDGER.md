@@ -4,7 +4,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P0 / Blocker
 
-- No proving task is fixed yet.
+- No active blocker prevents the first `run-001` workflow loop.
 
 ## P1 / Follow-up
 
@@ -19,6 +19,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## Resolved
 
+- No proving task is fixed yet.
 - Preflight is now represented consistently enough across loop / state / skill for proving.
 - `continue` vs `converged` is now driven by explicit `run_stop_condition` rather than prose-only judgment.
 - Repo-level harness support surface has been added for future Claude Code sessions.

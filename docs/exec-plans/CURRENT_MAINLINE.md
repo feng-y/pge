@@ -10,8 +10,7 @@ Stop expanding design and use the existing skeleton to run one real proving/deve
 
 ## Current P0 blockers
 
-1. No proving task is fixed yet.
-2. No lightweight repo-level control plane existed for recording current mainline, issues, and round stops.
+1. No active P0 blocker prevents starting the `run-001` workflow loop.
 
 ## Explicit non-goals for this round
 
@@ -23,7 +22,7 @@ Stop expanding design and use the existing skeleton to run one real proving/deve
 
 ## Next single action
 
-Choose one proving task and record it as the next round goal before doing more design work.
+Use `docs/proving/runs/run-001/` plus `commands/start-round.md` and `commands/close-round.md` to start the first real bounded proving/development round.
 
 ## Round completion criteria
 
@@ -32,4 +31,4 @@ This support round is done when:
 - the mainline, blockers, and non-goals are recorded in one place
 - the repo has a reusable round template and proving entrypoint
 
-After this round lands, the next round should start the first proving task.
+After this round lands, the next round should execute the first real bounded proving task using the `run-001` pack and command entrypoints.
