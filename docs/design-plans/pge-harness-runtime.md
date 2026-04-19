@@ -125,14 +125,16 @@ Several older governance docs still carry richer or partially different semantic
 
 ### Normative execution-core seams
 
-Use these as the primary execution-core definition:
+**For proving runs, these files are the source of truth for runtime state, verdict, and routing decisions:**
 - `agents/*.md`
 - `contracts/*.md`
 - `skills/pge-execute/SKILL.md`
 
+All runtime state transitions, verdict interpretations, and route decisions during proving must be expressible through these normalized seams.
+
 ### Supporting governance/reference docs
 
-Use these as supporting references unless their stronger semantics are promoted into the normalized contract set:
+Use these as supporting references to enrich interpretation, but they must not silently override the normalized contract set:
 - `phase-contract.md`
 - `evaluation-gate.md`
 - `progress-md.md`
@@ -149,7 +151,8 @@ Examples:
 Alignment rule for v1 proof:
 - routes used in proof must be expressible through `contracts/routing-contract.md`
 - state transitions used in proof must be expressible through `contracts/runtime-state-contract.md`
-- older governance docs may enrich interpretation, but they should not silently override the normalized execution-core seams
+- verdicts used in proof must be expressible through `contracts/evaluation-contract.md`
+- older governance docs may enrich interpretation, but they must not introduce route/state/verdict vocabulary that contradicts the normalized seams
 
 ## 5. Scope of this document
 
@@ -235,6 +238,7 @@ PGE is responsible for the following behaviors:
    - confirm that the frozen round contract is executable without guessing
    - confirm that acceptance, evidence, and deviation expectations are explicit enough for independent evaluation
    - fail back to planning/routing if the contract is not executable as written
+   - preflight is represented as explicit runtime states: `preflight_pending` and `preflight_failed`
 
 4. **Execution against the round contract**
    - execute only the current round
@@ -246,7 +250,7 @@ PGE is responsible for the following behaviors:
    - prevent generator self-certification
 
 6. **Explicit routing**
-   - translate verdict plus current state into the next route
+   - translate verdict plus current state plus `run_stop_condition` into the next route
    - preserve why that route follows
 
 7. **Explicit runtime state transitions**
@@ -266,6 +270,8 @@ PGE is not responsible for:
 The current execution core should prove one stable control loop:
 
 `upstream plan -> entry check -> planner -> round contract -> preflight / contract-ack -> generator -> deliverable + evidence -> evaluator -> verdict -> main/router -> next state`
+
+Preflight sits between round contract freeze and generation start. It is represented as explicit runtime states (`preflight_pending`, `preflight_failed`) in the state model.
 
 This is the minimum loop that preserves:
 - bounded execution
@@ -306,10 +312,13 @@ Minimum identity seams:
 - `upstream_plan_ref`
 - `active_slice_ref`
 - `active_round_contract_ref`
+- `run_stop_condition`
 
 Minimum states:
 - `intake_pending`
 - `planning_round`
+- `preflight_pending`
+- `preflight_failed`
 - `ready_to_generate`
 - `generating`
 - `awaiting_evaluation`
@@ -318,11 +327,18 @@ Minimum states:
 - `converged`
 - `failed_upstream`
 
+Preflight states:
+- `preflight_pending`: round contract frozen, awaiting preflight confirmation
+- `preflight_failed`: preflight determined contract is not executable or independently evaluable as written
+
 Allowed transitions:
 - `intake_pending -> planning_round`
 - `intake_pending -> failed_upstream`
-- `planning_round -> ready_to_generate`
+- `planning_round -> preflight_pending`
 - `planning_round -> failed_upstream`
+- `preflight_pending -> ready_to_generate`
+- `preflight_pending -> preflight_failed`
+- `preflight_failed -> planning_round`
 - `ready_to_generate -> generating`
 - `generating -> awaiting_evaluation`
 - `generating -> routing`
@@ -370,8 +386,9 @@ Routing rule:
 ### Default verdict -> route -> state effect
 
 - `PASS` -> `continue` or `converged`
-  - route to `continue` when the current round is accepted and more bounded work remains under the same run
-  - route to `converged` when the accepted round reaches the intended stopping point
+  - route to `continue` when the current round is accepted and `run_stop_condition` is not yet satisfied
+  - route to `converged` when the accepted round satisfies `run_stop_condition`
+  - Router checks `run_stop_condition` mechanically (e.g., `single_round`, `slice_complete`, `goal_satisfied`, `deliverable_count:N`) instead of interpreting prose
 - `RETRY` -> `retry` -> return to `generating`
   - use when local repair inside the same bounded round is enough
 - `BLOCK` -> default `retry` -> return to `generating`
@@ -392,7 +409,7 @@ The first runtime must make failure behavior explicit.
 ### Planner / preflight failure
 - condition: Planner cannot freeze one bounded round cleanly, or preflight cannot acknowledge the contract as executable and independently evaluable
 - route: `return_to_planner` or upstream failure depending on whether the issue is local ambiguity or invalid intake
-- state result: remain in planning lane with explicit reason
+- state result: remain in planning lane with explicit reason, or transition to `preflight_failed` then back to `planning_round`
 
 ### Generator failure
 - condition: Generator cannot execute without guessing, or cannot produce the named deliverable/evidence handoff

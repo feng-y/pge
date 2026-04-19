@@ -31,10 +31,12 @@
 - Check entry conditions against `../../contracts/entry-contract.md`.
 - Initialize or resume runtime state via `../../contracts/runtime-state-contract.md`.
 - Let Planner freeze one current round contract.
-- Run a lightweight preflight / contract-ack on that frozen round to confirm it is executable without guessing and independently evaluable as written.
+- Transition to `preflight_pending` state.
+- Run preflight / contract-ack on that frozen round to confirm it is executable without guessing and independently evaluable as written.
+- If preflight passes, transition to `ready_to_generate`; if preflight fails, transition to `preflight_failed` then return to `planning_round`.
 - Let Generator execute only that contract.
 - Let Evaluator issue an independent verdict against artifact and evidence.
-- Let Main record the route, route reason, and next runtime state.
+- Let Main record the route, route reason, and next runtime state using verdict plus `run_stop_condition`.
 
 ## Non-goals
 - defining runtime behavior beyond this thin invocation surface

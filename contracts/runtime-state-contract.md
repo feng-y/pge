@@ -17,6 +17,7 @@ A run state must carry:
 - `upstream_plan_ref`
 - `active_slice_ref`
 - `active_round_contract_ref`
+- `run_stop_condition`
 - `latest_deliverable_ref`
 - `latest_evidence_ref`
 - `latest_evaluation_verdict`
@@ -31,9 +32,17 @@ A run state must carry:
 - `active_slice_ref` changes when the run moves from one bounded slice to another under the same upstream plan
 - `active_round_contract_ref` changes whenever Planner freezes a new current round contract, even inside the same slice
 
+## stop condition meaning
+- `run_stop_condition` defines when an accepted round should route to `converged` instead of `continue`
+- this field is set at run initialization from the upstream plan or explicit run input
+- typical values: `single_round`, `slice_complete`, `goal_satisfied`, `deliverable_count:N`, or a named stopping criterion
+- Router uses this field plus current round state to decide `continue` vs `converged` mechanically
+
 ## minimum states
 - `intake_pending`
 - `planning_round`
+- `preflight_pending`
+- `preflight_failed`
 - `ready_to_generate`
 - `generating`
 - `awaiting_evaluation`
@@ -42,11 +51,19 @@ A run state must carry:
 - `converged`
 - `failed_upstream`
 
+## preflight states meaning
+- `preflight_pending`: round contract is frozen, awaiting preflight/contract-ack confirmation
+- `preflight_failed`: preflight determined the frozen contract is not executable or not independently evaluable as written
+- preflight is the lightweight check that confirms the frozen round contract can be executed without guessing and evaluated independently before Generator starts
+
 ## allowed transitions
 - `intake_pending -> planning_round`
 - `intake_pending -> failed_upstream`
-- `planning_round -> ready_to_generate`
+- `planning_round -> preflight_pending`
 - `planning_round -> failed_upstream`
+- `preflight_pending -> ready_to_generate`
+- `preflight_pending -> preflight_failed`
+- `preflight_failed -> planning_round`
 - `ready_to_generate -> generating`
 - `generating -> awaiting_evaluation`
 - `generating -> routing`
