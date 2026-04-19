@@ -93,6 +93,13 @@ Typical routing effect:
 - `BLOCK` means acceptance is denied because a required condition is missing or violated
 - `ESCALATE` means the problem is not a simple local failure of the current round
 
+## verdict selection rule
+Choose the narrowest verdict that explains the failure correctly.
+
+- use `RETRY` when the current round remains valid and local repair is enough
+- use `BLOCK` when a required condition is missing or violated, but the current round still remains the right repair frame
+- use `ESCALATE` when the current round is no longer the right repair frame
+
 ## why `ESCALATE` is not the same as `BLOCK`
 - `BLOCK` says the current output is not acceptable yet
 - `ESCALATE` says the current round is no longer the right place to resolve the issue

@@ -59,6 +59,11 @@ A run state must carry:
 ## transition rule
 A state change is valid only when the route reason is explicit.
 
+## identity update rule
+- keep `upstream_plan_ref` stable unless the run is re-entered from a different upstream plan
+- keep `active_slice_ref` stable while the bounded proving target remains the same
+- update `active_round_contract_ref` whenever Planner freezes a new current round contract
+
 ## slice progression rule
 If the runtime continues under the same upstream plan but changes the bounded proving target,
 `active_slice_ref` must be updated even when `upstream_plan_ref` remains unchanged.
