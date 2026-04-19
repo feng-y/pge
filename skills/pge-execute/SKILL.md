@@ -31,13 +31,15 @@
 - Check entry conditions against `../../contracts/entry-contract.md`.
 - Initialize or resume runtime state via `../../contracts/runtime-state-contract.md`.
 - Let Planner freeze one current round contract.
+- Run a lightweight preflight / contract-ack on that frozen round to confirm it is executable without guessing and independently evaluable as written.
 - Let Generator execute only that contract.
 - Let Evaluator issue an independent verdict against artifact and evidence.
 - Let Main record the route, route reason, and next runtime state.
 
 ## Non-goals
-- defining runtime behavior
+- defining runtime behavior beyond this thin invocation surface
 - absorbing clarify-first or upstream shaping work into this loop
+- turning preflight into a new planning subsystem or review ceremony
 - defining multiple skills
 - replacing agent files or contract files
 - restating the full repo semantics inside this skill
