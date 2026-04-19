@@ -11,6 +11,7 @@
 
 ## Input
 - upstream plan
+- explicit `run_stop_condition` when it is not already fixed by the upstream plan
 - current repo context when needed
 - current round state when resuming
 
@@ -32,7 +33,7 @@
 - Initialize or resume runtime state via `../../contracts/runtime-state-contract.md`.
 - Let Planner freeze one current round contract.
 - Transition to `preflight_pending` state.
-- Run preflight / contract-ack on that frozen round to confirm it is executable without guessing and independently evaluable as written.
+- Run preflight / contract-ack on that frozen round to confirm it is executable without guessing and independently evaluable as written, and record `latest_preflight_result` in runtime state.
 - If preflight passes, transition to `ready_to_generate`; if preflight fails, transition to `preflight_failed` then return to `planning_round`.
 - Let Generator execute only that contract.
 - Let Evaluator issue an independent verdict against artifact and evidence.

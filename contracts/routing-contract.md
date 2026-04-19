@@ -9,13 +9,13 @@ Main routes based on:
 - run_stop_condition
 
 ## routing semantics
-- `continue`: current round is complete and the next bounded round may start
+- `continue`: current round is complete, accepted, and `run_stop_condition` is not yet satisfied
 - `retry`: the current round should run again without reopening upstream planning
 - `return_to_planner`: the round contract is too ambiguous, too large, conflicting, or needs repair before execution can continue
-- `converged`: the accepted work satisfies the intended stopping point for this PGE run
+- `converged`: the accepted round satisfies `run_stop_condition`
 
 ## default verdict-to-route mapping
-- `PASS` routes to `continue` when the accepted round leaves more bounded work under the same run and `run_stop_condition` is not yet satisfied
+- `PASS` routes to `continue` when the accepted round does not satisfy `run_stop_condition`
 - `PASS` routes to `converged` when the accepted round satisfies `run_stop_condition`
 - `RETRY` routes to `retry`
 - `BLOCK` routes to `retry` by default when the current round remains the correct repair frame

@@ -17,6 +17,7 @@ A run state must carry:
 - `upstream_plan_ref`
 - `active_slice_ref`
 - `active_round_contract_ref`
+- `latest_preflight_result`
 - `run_stop_condition`
 - `latest_deliverable_ref`
 - `latest_evidence_ref`
@@ -37,6 +38,12 @@ A run state must carry:
 - this field is set at run initialization from the upstream plan or explicit run input
 - typical values: `single_round`, `slice_complete`, `goal_satisfied`, `deliverable_count:N`, or a named stopping criterion
 - Router uses this field plus current round state to decide `continue` vs `converged` mechanically
+
+## preflight result meaning
+- `latest_preflight_result` records the latest explicit preflight outcome for the active frozen round contract
+- use `pass` when the frozen round is executable without guessing and independently evaluable as written
+- use `fail` when preflight returns the run to planning before generation starts
+- preserve this field when transitioning from `preflight_failed` back to `planning_round` so the failed pre-generation trace remains explicit in runtime state
 
 ## minimum states
 - `intake_pending`

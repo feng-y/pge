@@ -24,7 +24,8 @@ For proving runs, the following files define the normative execution-core semant
 - `contracts/*.md` — handoff contracts
 - `skills/pge-execute/SKILL.md` — invocation surface
 
-These seams are the source of truth for runtime state, verdict, and routing decisions.
+These seams are the source of truth for runtime state, verdict, routing, and stop-condition decisions.
+For proving runs, preflight, route, state, and stop-condition vocabulary must come from these seams; legacy/reference docs may provide context but must not override them.
 
 ## Supporting reference docs
 
