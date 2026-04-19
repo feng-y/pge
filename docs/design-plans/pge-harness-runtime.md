@@ -181,22 +181,9 @@ The runtime should reject hidden transitions. If the state changes, the route re
 
 A first runtime does not need a large state system, but it does need one canonical state record.
 
-For v1, state should at minimum track:
-- `run_id`
-- `round_id`
-- `state`
-- `upstream_plan_ref`
-- `active_round_contract`
-- `latest_deliverable_ref`
-- `latest_evidence_ref`
-- `latest_evaluation_verdict`
-- `latest_route`
-- `unverified_areas`
-- `accepted_deviations`
-- `route_reason`
-- `convergence_reason`
+The canonical state definition now lives in `contracts/runtime-state-contract.md`.
 
-This record should be small enough to operate manually at first, but explicit enough to become runtime-managed later.
+For v1, that contract should remain small enough to operate manually at first, but explicit enough to become runtime-managed later.
 
 ### Failure semantics
 

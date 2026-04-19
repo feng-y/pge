@@ -25,16 +25,19 @@
   - `../../contracts/round-contract.md`
   - `../../contracts/evaluation-contract.md`
   - `../../contracts/routing-contract.md`
+  - `../../contracts/runtime-state-contract.md`
 
 ## High-level flow
-- Check whether the upstream input can enter PGE.
+- Check entry conditions against `../../contracts/entry-contract.md`.
+- Initialize or resume runtime state via `../../contracts/runtime-state-contract.md`.
 - Let Planner freeze one current round contract.
-- Let Generator execute that contract.
-- Let Evaluator issue an independent verdict.
-- Let Main route `continue`, `retry`, `return_to_planner`, or `converged`.
+- Let Generator execute only that contract.
+- Let Evaluator issue an independent verdict against artifact and evidence.
+- Let Main record the route, route reason, and next runtime state.
 
 ## Non-goals
 - defining runtime behavior
+- absorbing clarify-first or upstream shaping work into this loop
 - defining multiple skills
 - replacing agent files or contract files
 - restating the full repo semantics inside this skill
