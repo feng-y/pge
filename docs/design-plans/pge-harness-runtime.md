@@ -1,155 +1,228 @@
-# PGE Harness Runtime Plan
+# PGE Harness Runtime
 
-## Problem
+## 1. Role in the overall harness system
 
-The current PGE repo has already moved beyond a single root prompt, but it is still fundamentally doc-defined.
+PGE is **Layer 3: execution core** inside a larger harness system.
 
-Today we have:
-- `agents/` for responsibility boundaries
-- `contracts/` for handoff boundaries
-- `skills/pge-execute/SKILL.md` for the current invocation surface
-- legacy governance docs such as `phase-contract.md`, `evaluation-gate.md`, and `progress-md.md`
+The full system thesis now lives in:
+- `docs/design-plans/harness-system-strategy.md`
 
-This is enough to describe a loop, but not enough to run one reliably.
+That larger system spans:
+- intent / shaping
+- planning / plan artifact formation
+- execution
+- evaluation
+- routing
+- state
+- progress consensus
+- improvement
 
-The main problems are:
-- execution semantics are still prose-only
-- state transitions are implied, not normalized
-- contract handoff exists conceptually, but not yet as a stable runtime model
-- evaluation and routing rules exist, but they are not yet gathered into one top-level runtime design
-- the repo can explain PGE, but it cannot yet stably carry `plan -> execution -> evaluation -> routing` across real multi-round work
+This document does **not** redefine that whole system.
+This document defines the **runtime strategy for the PGE execution core**.
 
-The current shape is therefore a good structural skeleton, but not yet a harness runtime.
+In other words:
+- `harness-system-strategy.md` answers: **what system are we building overall?**
+- `pge-harness-runtime.md` answers: **what should the Layer 3 execution core do, and how should this repo evolve to prove it?**
 
-## Goal
+## 2. Scope of this document
 
-Build our own PGE-centered harness runtime.
+This document owns **runtime orchestration semantics** for PGE.
 
-The goal is not to reproduce Anthropic’s internal harness design, and not to assemble a platform out of unrelated ideas. The goal is to create a runtime layer that is appropriate for our own workflow and that can gradually evolve from the current repo.
+It should define:
+- what kind of upstream input may enter PGE
+- what the canonical execution loop is
+- what state and routing semantics the runtime must preserve
+- what failure semantics the runtime must make explicit
+- what proving path should be used to validate the current execution-core design
 
-The runtime should be able to:
-- accept an upstream writing-plan
-- reduce that input into one bounded round
-- drive generation against a clear round contract
-- run independent evaluation against evidence and contract
-- route the next state explicitly
-- preserve progress and handoff state across rounds
-- evolve from a single-skill runtime into a stronger multi-skill runtime later
+It should **not** define:
+- whole-system strategy
+- native intent-shaping protocols
+- broad plan-artifact taxonomy beyond what PGE currently consumes
+- general workflow-platform orchestration
+- immediate multi-agent or multi-skill architecture
+- full progress/improvement system design for the whole harness
 
-## Non-goals
+Canonical ownership stays split:
+- `agents/*.md` define role responsibilities
+- `contracts/*.md` define handoff and state contracts
+- this document defines how those pieces run together as one execution core
 
-This phase should explicitly not do the following:
-- copy Anthropic runtime internals
-- build a general workflow engine
-- introduce a full multi-agent runtime from the start
-- create a large state platform before one real loop works
-- expand immediately into many skills
-- add `runtime/`, `commands/`, or a large execution framework in the same phase
-- collapse the runtime back into one large prompt or one root document
+## 3. Current repo position
 
-The first job is to make one loop stable, not to design a platform.
+The repo is still doc-defined, but its docs are now partitioned around runtime seams instead of living in one root prompt or one root design document.
 
-## Sources of inspiration
+Today it already has the **contractual shape** of an execution core:
+- `agents/` for responsibility seams
+- `contracts/` for handoff seams
+- `skills/pge-execute/` for the current invocation seam
+- `contracts/runtime-state-contract.md` for explicit runtime-state identity and transitions
+- `progress-md.md` and `evaluation-gate.md` as richer governance references
 
-### Anthropic
+Concretely:
+- `agents/planner.md` describes freezing one bounded round
+- `agents/generator.md` describes executing that round and returning evidence
+- `agents/evaluator.md` describes independent acceptance
+- `agents/main.md` describes route decisions
+- `contracts/entry-contract.md` defines intake conditions
+- `contracts/round-contract.md` defines minimum round handoff
+- `contracts/evaluation-contract.md` defines verdict semantics
+- `contracts/routing-contract.md` defines route meanings
+- `contracts/runtime-state-contract.md` defines minimum state and transitions
 
-We borrow the main harness axes, not the surface form.
+So the repo's true current position is:
 
-What to take:
-- planner / generator / evaluator separation
-- independent evaluation instead of self-certification
-- contract and artifact handoff as the stabilizing mechanism for long-running work
-- the idea that harness structure should remain stable while runtime internals can evolve
+> It has a doc-defined execution-core seam partition, but not yet a proven execution-core protocol.
 
-What not to take:
-- assumptions about Anthropic-specific runtime internals
-- assumptions about isolation, concurrency, or orchestration features we do not yet have
-- pressure to imitate their implementation details instead of solving our own runtime problem
+That is why this document should stay narrow.
+The next job is to prove one stable execution core, not to redesign the whole harness at once.
 
-### superpower
+### Current semantic mismatches that are still unresolved
 
-We borrow upstream shaping.
+The repo is not yet fully semantically unified.
+Several older governance docs still carry stronger or partially different operational semantics than the current contract set.
 
-What to take:
-- the ability to turn a vague request into a usable writing-plan before execution begins
-- the discipline of separating plan formation from bounded execution
+Examples:
+- `progress-md.md` still says `progress.md` is the canonical state file, uses `Main / Scheduler` language, and references routes such as `shrink`
+- `evaluation-gate.md` still uses richer review scoring and `Shrink and retry` language
+- `phase-contract.md` still carries stronger plan-fidelity and phase/task language than the current round contract
 
-Why it matters:
-- PGE should not absorb all pre-clarification work into the runtime loop itself
-- the runtime becomes more stable if its upstream input is already shaped enough to enter execution
+For current v1 proof, the alignment rule is:
+- `agents/*.md` and `contracts/*.md` are the normative execution-core seams
+- root governance docs are supporting references unless and until their stronger semantics are promoted into the contract set
+- any route used in proof must be expressible through `contracts/routing-contract.md`
+- any state transition used in proof must be expressible through `contracts/runtime-state-contract.md`
 
-### gsd
+## 4. Upstream input boundary
 
-We borrow progressive execution discipline.
+PGE does not own clarify-first shaping.
+For now, PGE assumes that Layer 1 and Layer 2 have already produced an upstream plan artifact that is shaped enough to enter execution.
 
-What to take:
-- bounded phase/slice progression
-- explicit seams between rounds
-- visible state instead of hidden conversational continuity
-- the expectation that large work advances through a sequence of stable bounded rounds
+Current working assumption:
+- upstream shaping and plan formation are borrowed for now
+- PGE begins at execution intake
 
-Why it matters:
-- PGE is not supposed to finish everything in one pass
-- it should advance through well-bounded execution slices while keeping the route to the next slice clear
+### Accepted upstream input
 
-### gstack
-
-We borrow review pressure and routing taste.
-
-What to take:
-- independent review posture before or after execution where needed
-- clear route outcomes instead of fuzzy completion
-- the idea that execution should be surrounded by explicit judgment points
-
-Why it matters:
-- routing quality matters as much as generation quality
-- without clear route outcomes, the loop turns back into improvised chat
-
-## Runtime model
-
-This document owns **runtime orchestration semantics only**.
-
-It does not redefine the detailed role charters or contract fields already defined in:
-- `agents/*.md`
-- `contracts/*.md`
-- `evaluation-gate.md`
-- `progress-md.md`
-
-Those files remain the canonical definition of role and handoff content. This document defines how they run together as one loop.
-
-### Runtime inputs
-
-The runtime accepts an **upstream writing-plan**.
-
-The writing-plan must be shaped enough to enter execution. At minimum it must provide:
+PGE currently accepts an upstream plan only when it already provides:
 - a concrete execution goal
-- an identifiable scope boundary
-- a plausible deliverable shape
-- a minimum verification direction
+- a boundary that can be preserved in execution
+- a named deliverable or clear deliverable target
+- a plausible verification path
 
-Fail-fast rule:
-- if these conditions are missing, intake fails and the request stays upstream
-- PGE runtime should not absorb clarify-first work into the execution loop
+This aligns with:
+- `contracts/entry-contract.md`
 
-This aligns with `contracts/entry-contract.md`.
+### Reject conditions
 
-### Canonical loop
+Do not start the PGE loop when the upstream plan is:
+- clarify-first instead of execute-first
+- missing a concrete goal
+- missing a meaningful boundary
+- missing deliverable shape
+- missing a plausible verification path
+- so ambiguous that Planner cannot freeze one bounded current round
 
-The first runtime should implement one stable control loop:
+### Why this boundary matters
 
-`writing-plan -> entry check -> planner -> round contract -> generator -> deliverable + evidence -> evaluator -> verdict -> main/router -> next state`
+If PGE absorbs clarify-first work, the execution core loses its boundary and starts behaving like a generic planning/chat wrapper.
+That would collapse the runtime center we are trying to prove.
 
-This is the smallest loop that preserves:
+## 5. Runtime responsibilities
+
+PGE is responsible for the following execution-core behaviors:
+
+1. **Entry check**
+   - decide whether the upstream plan may enter execution
+
+2. **Bounded round formation**
+   - freeze exactly one current round contract
+   - reject hidden planning spillover
+
+3. **Execution against the round contract**
+   - execute only the current round
+   - produce the named deliverable
+   - return evidence and unverified areas
+
+4. **Independent evaluation handoff**
+   - hand off artifact and evidence for independent judgment
+   - prevent generator self-certification
+
+5. **Explicit routing**
+   - translate verdict plus current state into the next route
+   - preserve the reason for that route
+
+6. **Explicit runtime state transitions**
+   - preserve resumability across rounds
+   - separate runtime state from conversational continuity
+
+## 6. What PGE is not responsible for
+
+PGE is not responsible for:
+- inventing the whole-system strategy
+- owning native intent / shaping protocols yet
+- turning plan formation into runtime semantics
+- solving full progress-consensus design for the whole harness
+- owning long-term rule memory by itself
+- becoming a general workflow engine
+- expanding immediately into a broad multi-skill or multi-agent runtime
+
+This boundary is important.
+If PGE tries to solve the whole harness in one phase, the repo will drift into platform design before one real execution loop works.
+
+## 7. Canonical loop
+
+The current execution core should prove one stable control loop:
+
+`upstream plan -> entry check -> planner -> round contract -> generator -> deliverable + evidence -> evaluator -> verdict -> main/router -> next state`
+
+This is the minimum loop that preserves:
 - bounded execution
 - independent acceptance
 - explicit routing
-- resumable multi-round state
+- explicit state continuity
 
-### v1 state machine
+### Role ownership inside the loop
 
-The v1 runtime state machine should be explicit.
+- Planner owns bounded round formation
+- Generator owns deliverable and evidence production
+- Evaluator owns independent acceptance
+- Main / Router owns next-state decisions
 
-States:
+Canonical references:
+- `agents/planner.md`
+- `agents/generator.md`
+- `agents/evaluator.md`
+- `agents/main.md`
+- `contracts/round-contract.md`
+- `contracts/evaluation-contract.md`
+- `contracts/routing-contract.md`
+
+This document should not duplicate those files in detail.
+It should only define how they fit together as runtime orchestration.
+
+## 8. Runtime state model
+
+The first runtime does not need a large state platform.
+It does need one explicit state model.
+
+The canonical state definition lives in:
+- `contracts/runtime-state-contract.md`
+
+### Minimum identity seams
+
+A runtime state must distinguish:
+- `upstream_plan_ref`
+- `active_slice_ref`
+- `active_round_contract_ref`
+
+These seams matter because:
+- the upstream plan may remain stable across multiple bounded slices
+- the active slice may remain stable while Planner freezes a new current round
+- the current round contract must update whenever the round changes
+
+### Minimum states
+
 - `intake_pending`
 - `planning_round`
 - `ready_to_generate`
@@ -160,229 +233,183 @@ States:
 - `converged`
 - `failed_upstream`
 
-Allowed transitions:
+### Allowed transitions
+
 - `intake_pending -> planning_round`
 - `intake_pending -> failed_upstream`
 - `planning_round -> ready_to_generate`
 - `planning_round -> failed_upstream`
 - `ready_to_generate -> generating`
 - `generating -> awaiting_evaluation`
-- `generating -> routing` when generation escalates instead of producing an acceptable handoff
+- `generating -> routing`
 - `awaiting_evaluation -> evaluating`
 - `evaluating -> routing`
-- `routing -> planning_round` on `return_to_planner`
-- `routing -> generating` on `retry`
-- `routing -> planning_round` on `continue` for the next bounded round
+- `routing -> planning_round`
+- `routing -> generating`
 - `routing -> converged`
 
-The runtime should reject hidden transitions. If the state changes, the route reason must be recorded.
+### Transition rule
 
-### Runtime state record
+No hidden transition is valid unless the route reason is explicit.
 
-A first runtime does not need a large state system, but it does need one canonical state record.
+That rule is part of the runtime center.
+If state changes cannot be explained, the runtime is not stable enough yet.
 
-The canonical state definition now lives in `contracts/runtime-state-contract.md`.
+## 9. Failure semantics
 
-For v1, that contract should remain small enough to operate manually at first, but explicit enough to become runtime-managed later.
+The first runtime must make failure behavior explicit.
 
-### Failure semantics
-
-The first runtime should make failure behavior explicit.
-
-#### Intake failure
+### Intake failure
 - condition: upstream plan fails entry conditions
-- route: do not start PGE loop
+- route: do not enter the PGE loop
 - state result: `failed_upstream`
 
-#### Planner failure
-- condition: planner cannot freeze one bounded round cleanly
+### Planner failure
+- condition: Planner cannot freeze one bounded round cleanly
 - route: `return_to_planner` or upstream failure depending on whether the issue is local ambiguity or invalid intake
-- state result: stay in planning lane with recorded reason
+- state result: remain in planning lane with explicit reason
 
-#### Generator failure
-- condition: generator cannot execute without guessing, or execution cannot produce the named deliverable/evidence handoff
+### Generator failure
+- condition: Generator cannot execute without guessing, or cannot produce the named deliverable/evidence handoff
 - route: `routing`
 - allowed next outcomes: `retry` or `return_to_planner`
 
-#### Evaluator failure
-- condition: required evidence is missing, contract is violated, or deviation is unresolved
+### Evaluator failure
+- condition: required evidence is missing, contract is violated, or deviation remains unresolved
 - route: `routing`
-- allowed next outcomes: `retry`, `return_to_planner`, or `converged` only if evaluator passes
+- allowed next outcomes: `retry`, `return_to_planner`, or `converged` only if evaluation passes
 
-#### Router failure
-- condition: router cannot explain why the next state follows from the verdict and current state
-- rule: this is a runtime design error, not a soft concern
+### Router failure
+- condition: Main / Router cannot explain why the next state follows from verdict plus current state
+- rule: this is a runtime-design error, not a soft concern
 - state result: stop and surface the missing routing rationale
 
-### Role and contract ownership
+## 10. Relationship to adjacent layers
 
-Runtime ownership should stay narrow:
-- planner owns bounded round formation
-- generator owns deliverable and evidence production
-- evaluator owns independent acceptance
-- main/router owns state transition decisions
+This runtime doc should acknowledge adjacent layers without trying to absorb them.
 
-Canonical references:
-- planner: `agents/planner.md`
-- generator: `agents/generator.md`
-- evaluator: `agents/evaluator.md`
-- main/router: `agents/main.md`
-- round contract: `contracts/round-contract.md`
-- evaluation contract: `contracts/evaluation-contract.md`
-- routing contract: `contracts/routing-contract.md`
+### Upstream relationship
+- intent / shaping and broader plan formation remain upstream of PGE
+- for now, PGE depends on shaped input rather than owning shaping itself
 
-This doc should not restate those files in detail.
+### Side relationship: progress consensus
+- `progress.md` guidance remains an important supporting reference
+- but progress consensus is **adjacent** to the execution core, not identical to runtime state
+- the next proving path should test how runtime state and progress interact without collapsing them into one object too early
 
-### End-to-end trace
+### Downstream relationship: improvement
+- round-end, evaluation, and session-end capture matter to the larger harness
+- but the current PGE job is only to expose the seams that those later layers must consume
+- do not turn this document into a whole-system hook design
 
-A v1 loop should be understandable through one concrete trace:
+## 11. Risks
 
-1. `intake_pending`
-   - runtime receives a writing-plan
-   - entry check passes
-2. `planning_round`
-   - planner freezes exactly one bounded round contract
-3. `ready_to_generate -> generating`
-   - generator executes that contract
-4. `awaiting_evaluation -> evaluating`
-   - generator returns deliverable, evidence, and unverified areas
-   - evaluator judges artifact plus evidence
-5. `routing`
-   - router records verdict and route reason
-   - if verdict is `RETRY`, return to generation for the same round
-   - if verdict requires contract repair, route to planner
-   - if current round is accepted but more bounded work remains, continue to the next round
-   - if accepted work reaches the stopping point, mark `converged`
+### Risk 1: PGE expands back into whole-system strategy
+If this document starts redefining shaping, planning taxonomy, progress design, and improvement design in full, it will drift beyond Layer 3 and duplicate `harness-system-strategy.md`.
 
-This trace is the minimum runtime behavior we need to prove.
+**Mitigation**
+- keep this doc focused on execution-core orchestration
+- treat broader system design as reference, not as local scope
 
-## Repository evolution
+### Risk 2: plan artifact and runtime get conflated
+If the upstream plan is treated as the runtime itself, then bounded round formation, evaluation independence, routing, and state discipline will weaken.
 
-The current repo has already completed the first structural move:
-- from root-doc dominance
-- to `agents/`, `contracts/`, and `skills/` as the main structure
+**Mitigation**
+- preserve the boundary between plan artifact intake and runtime orchestration
 
-That evolution should now continue in one direction only:
-- from structure-first repo
-- to runtime-defined repo
+### Risk 3: progress remains implicit
+If progress stays only as conversational continuity, cross-round state will leak back into chat reconstruction.
 
-The intended evolution is:
+**Mitigation**
+- use the next proving path to test explicit interaction between runtime state and progress guidance
+- avoid prematurely merging them into one abstraction
 
-### Past
-- root `README.md` and root `SKILL.md` carried most of the effective semantics
-- role boundaries and handoffs were embedded in large documents
+### Risk 4: premature platform expansion
+If multi-agent runtime, multi-skill expansion, or workflow machinery arrives before one stable loop is proven, ambiguity will scale faster than capability.
 
-### Present
-- `agents/` defines responsibility surfaces
-- `contracts/` defines handoff surfaces
-- `skills/` defines invocation surfaces
-- supporting governance docs still exist as richer reference material
+**Mitigation**
+- keep the proving target narrow
+- require real runtime friction before adding heavier machinery
 
-### Next
-- `docs/design-plans/pge-harness-runtime.md` becomes the top-level runtime construction plan
-- legacy supporting docs are treated as inputs and references, not the runtime center
-- the runtime model becomes the thing we implement against
-
-### Later
-- `pge-execute` becomes a real runtime loop over the current structure
-- additional skills can share the same contract and state model without another repo restructure
-
-## Phased roadmap
+## 12. Proving roadmap for this repo
 
 ### v0: structure-first skeleton
 
-Objective:
-- finish the structural transition and define the runtime plan
+What now exists:
+- role seams in `agents/`
+- handoff seams in `contracts/`
+- one invocation seam in `skills/pge-execute/`
+- one runtime-state seam in `contracts/runtime-state-contract.md`
+- this runtime strategy as the Layer 3 execution-core framing
 
-What exists already:
-- `agents/`
-- `contracts/`
-- `skills/pge-execute/SKILL.md`
-
-What v0 still needs:
-- this design document
-- one canonical runtime state model
-- agreement that the repo has moved from skill-doc design to runtime-plan design
-
-### v1: single `pge-execute` runtime loop
+### v1: single PGE execution-loop proof
 
 Objective:
-- prove one stable execution loop
+- prove one stable multi-round execution loop over a real upstream plan
 
 Scope:
-- one upstream writing-plan enters the loop
-- planner freezes one bounded round
-- generator executes the round
-- evaluator judges independently
-- main/router decides next transition
-- state is updated explicitly after each round
+- entry check
+- bounded round formation
+- execution against one current round
+- independent evaluation
+- explicit route and state transitions
 
 Success criteria:
-- one real plan can move through multiple rounds without semantic collapse
-- contract boundaries remain visible
+- one real plan survives multiple rounds without semantic collapse
 - evaluator verdicts actually affect routing
-- state can be resumed without reconstructing everything from chat
+- state remains resumable without reconstructing the run from chat alone
+- role and contract boundaries remain visible under pressure
 
-### v2: multi-skill expansion
+Proof protocol:
+- use one real upstream plan that satisfies `contracts/entry-contract.md`
+- exercise at least two routed rounds
+- exercise at least one non-pass repair path: either `retry` or `return_to_planner`
+- persist runtime state using the fields defined in `contracts/runtime-state-contract.md`
+- record evaluator verdicts using the semantics in `contracts/evaluation-contract.md`
+- record route decisions using the semantics in `contracts/routing-contract.md`
+- update a progress artifact after each routed step
+
+Fail the proof if any of the following happens:
+- a state transition cannot be explained by explicit route reason
+- a route outcome depends on hidden prose-only judgment not represented in the runtime contracts
+- runtime state and progress record diverge without an explicit reconciliation rule
+- the loop can proceed only by collapsing Planner, Generator, Evaluator, and Router responsibilities into one lane
+
+### v1.5: state/progress seam proof
 
 Objective:
-- allow more than one skill to share the runtime substrate
+- test the interaction between runtime state and progress guidance without prematurely platformizing either one
 
 Scope:
-- keep PGE core loop reusable
-- introduce additional invocation surfaces only when they share the same contract and state model
-- avoid per-skill reinvention of planner/generator/evaluator/routing semantics
+- explicit runtime-state updates
+- explicit progress updates at round boundaries
+- visible route reasons and unresolved areas
 
 Success criteria:
-- adding a new skill does not require rebuilding the runtime model
-- the repo remains structure-first instead of proliferating special-case prompts
+- the next round can resume from recorded state plus progress without reopening the whole discussion
+- runtime state and progress remain distinct but cooperative
 
-### v3: stronger runtime orchestration
+### Later
 
-Objective:
-- improve loop quality without turning the system into a platform prematurely
+Only after v1 is real should the repo consider:
+- stronger retry / escalation handling
+- stronger progress-consensus formalization
+- stronger hook / improvement capture
+- additional skills that genuinely share the same runtime substrate
+- stronger agentization if it solves a demonstrated runtime bottleneck
 
-Possible additions:
-- stronger retry and escalation handling
-- stronger evaluator enforcement
-- clearer boundaries between runtime state and conversational state
-- stronger session and sandbox semantics
-- optional stronger agentization if it solves a proven problem
+## 13. Immediate next step
 
-Success criteria:
-- orchestration becomes more stable without losing bounded execution discipline
-- new capability is justified by runtime friction, not by abstract completeness
+The next highest-value move is:
 
-## First proving task
+**run one real proving task through the current Layer 3 execution core and use it to validate the plan -> round -> artifact+evidence -> verdict -> route -> next-state loop.**
 
-The first proving task should be real, bounded, and measurable.
-
-Current recommended candidate:
-- `/Users/yan./git/b/data_router/docs/timeout_and_backpressure_plan.md`
-
-Why this is a good first proof:
-- it already has a concrete operational problem
-- it includes bounded implementation ideas
-- it contains measurable success criteria
-- it is rich enough to test plan intake, slicing, generation, evaluation, and routing
-- it is not so large that the first runtime proof becomes a platform exercise
-
-This proving task is not chosen because it belongs to PGE itself. It is chosen because it is a good runtime testbed.
-
-## Immediate next step for this repo
-
-The next step should remain narrow.
-
-Do now:
-1. land this design document
-2. use it as the top-level runtime reference
-3. keep the next implementation patch focused on one runtime-shaped proving step
+Why this is next:
+- the execution-core skeleton is already in place
+- the biggest unknown is not more document structure
+- the biggest unknown is whether the designed runtime survives real multi-round work
 
 Do not do now:
-- add `runtime/`
-- add `commands/`
-- add multiple new skills
-- turn the repo into a workflow platform
-- rewrite the current role and contract skeletons before the runtime plan is tested
-
-The repo should now use this design document as the top-level construction plan for evolving PGE into our own harness runtime.
+- do not turn this repo into a workflow platform
+- do not broaden this doc back into whole-system strategy
+- do not expand into many skills before the current execution core is proven
