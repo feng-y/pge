@@ -3,12 +3,19 @@
 ## purpose
 This contract defines the minimum explicit state record for one PGE run.
 
+## state identity seams
+A runtime state must distinguish:
+- `upstream_plan_ref`: the higher-level plan or proving packet that authorized the run
+- `active_slice_ref`: the currently active bounded slice under that upstream plan
+- `active_round_contract_ref`: the exact current round contract being executed now
+
 ## state record
 A run state must carry:
 - `run_id`
 - `round_id`
 - `state`
 - `upstream_plan_ref`
+- `active_slice_ref`
 - `active_round_contract_ref`
 - `latest_deliverable_ref`
 - `latest_evidence_ref`
@@ -18,6 +25,11 @@ A run state must carry:
 - `accepted_deviations`
 - `route_reason`
 - `convergence_reason`
+
+## identity meanings
+- `upstream_plan_ref` stays stable while multiple bounded slices are executed under the same higher-level plan
+- `active_slice_ref` changes when the run moves from one bounded slice to another under the same upstream plan
+- `active_round_contract_ref` changes whenever Planner freezes a new current round contract, even inside the same slice
 
 ## minimum states
 - `intake_pending`
@@ -46,6 +58,10 @@ A run state must carry:
 
 ## transition rule
 A state change is valid only when the route reason is explicit.
+
+## slice progression rule
+If the runtime continues under the same upstream plan but changes the bounded proving target,
+`active_slice_ref` must be updated even when `upstream_plan_ref` remains unchanged.
 
 ## non-goals
 - defining planner behavior
