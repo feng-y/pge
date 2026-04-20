@@ -4,7 +4,12 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P0 / Blocker
 
-- No active P0 blocker remains inside the first real proving run.
+- **Generator and Evaluator agents are stubs that do not execute real work**
+  - Symptom: Skill converges with PASS but actual deliverable is never created
+  - Root cause: Agents produce test artifacts instead of reading upstream plan and executing it
+  - Impact: Skill appears to work but produces no real value
+  - Evidence: Post-MVP proving round 004 (run-1776666837)
+  - Next: Implement real generator that executes upstream plan, real evaluator that verifies actual deliverable
 
 ## P1 / Follow-up
 
@@ -33,6 +38,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 - MVP Round 1 complete: `skills/pge-execute/skill.sh` runtime wired, entry contract checked, Planner agent reached successfully.
 - MVP Round 2 complete: full planner → generator → evaluator cycle implemented, all three role artifacts produced and verified.
 - MVP Round 3 complete: convergence loop closed, final round summary produced, skill stops cleanly after PASS + single_round.
+- Post-MVP proving round 004 complete: skill executed on real repo task, exposed P0 blocker (stub agents), runtime orchestration validated.
 
 ## Important decisions
 
