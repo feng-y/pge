@@ -149,12 +149,21 @@ Spawn **evaluator** agent using the Agent tool:
 - Input: round contract, implementation bundle
 - Task: Independently validate deliverable against contract
 
-The evaluator must produce a verdict bundle at `.pge-artifacts/{run_id}-evaluator-verdict.md` with:
+The evaluator must produce a verdict bundle at `.pge-artifacts/{run_id}-evaluator-verdict.md` using markdown with these top-level sections:
+- `## verdict`
+- `## evidence`
+- `## violated_invariants_or_risks`
+- `## required_fixes`
+- `## next_route`
+
+Section content must follow the evaluator contract:
 - `verdict`: PASS | RETRY | BLOCK | ESCALATE
 - `evidence`: Concrete evidence supporting verdict
 - `violated_invariants_or_risks`: Issues found
 - `required_fixes`: Specific fixes needed (if not PASS)
 - `next_route`: continue | converged | retry | return_to_planner
+
+Optional explanatory sections may follow, but the required bundle keys above must remain explicit and easy to parse from the artifact.
 
 Update runtime state:
 - Set `latest_evaluation_verdict` to verdict

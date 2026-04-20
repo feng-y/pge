@@ -33,18 +33,15 @@ PASS
 - ✓ File syntax is valid markdown (proper heading hierarchy, code blocks formatted correctly)
 
 ### 3. Evidence sufficiency
-
-Generator provided concrete, verifiable evidence:
-- Tool output: grep commands showing section exists
-- File existence: deliverable_path confirmed
-- Line counts: before (19 lines) → after (54 lines)
-- Git diff: only target file changed
-- Specific details: section at line 21, 2 examples present
-
-All evidence is verifiable and not just narrative.
+- Generator provided concrete, verifiable evidence
+- Tool output recorded grep-based checks showing the section exists
+- File existence and path were confirmed
+- Before/after change is concrete: 19 lines → 54 lines
+- Git diff showed only the target file changed
+- Specific deliverable details were verified: section at line 21, 2 examples present
+- Evidence is verifiable and not just narrative
 
 ### 4. Critical invariants
-
 - ✓ Syntax is valid (markdown parses correctly)
 - ✓ Boundary respected (only entry-contract.md changed)
 - ✓ Examples align with existing entry criteria (accepted example has all required fields, rejected example shows missing fields)
@@ -60,7 +57,7 @@ None.
 
 ## next_route
 
-`converged` (run_stop_condition is `single_round` and round passed)
+converged
 
 ## verdict_reason
 
