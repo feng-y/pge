@@ -6,29 +6,28 @@ Get `feat/pge-agents-contracts-skeleton` into its first real Phase 1 proving run
 
 ## Current stage goal
 
-The first real bounded proving/development round has now converged mechanically; the next work should start from a new bounded proving slice rather than reopening the first run.
+Execute the MVP in three bounded rounds as defined in `docs/exec-plans/MVP_EXECUTION_PLAN.md`.
 
 ## Current P0 blockers
 
-1. No active P0 blocker remains inside the first real proving run.
+None.
 
-## Explicit non-goals for this round
+## Explicit non-goals for this stage
 
-- broad harness redesign
-- naming cleanup
-- semantic polishing without a proving blocker
-- Phase 2 / Phase 3 planning
-- expanding P1 / P2 items during the active round
+- multi-round task execution
+- Phase 2/3 harness expansion
+- runtime state persistence beyond one round
+- error recovery or retry logic
+- parallel workstream support
+- external proving tasks (only repo-internal for MVP)
 
 ## Next single action
 
-Choose the next real bounded proving slice and open a new round from the converged first proving run artifacts.
+Start MVP Round 1: Wire the skill runtime by creating `skills/pge-execute/skill.sh`.
 
 ## Round completion criteria
 
-This stage is done when:
-- the first real bounded proving/development round has a frozen current round contract
-- the round leaves a generator deliverable, evaluator verdict, and explicit routing outcome
-- routing reaches `converged` under the declared `run_stop_condition`
-
-After this stage lands, execution should continue only through new bounded proving slices rather than reopening first-run setup or intake work.
+The MVP stage is done when:
+- Round 3 succeeds with a real repo-internal task
+- the skill routes to `converged` when the reviewer accepts
+- the skill stops cleanly after convergence without manual intervention
