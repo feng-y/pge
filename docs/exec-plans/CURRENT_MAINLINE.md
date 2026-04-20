@@ -23,7 +23,7 @@ None.
 
 ## Next single action
 
-Start MVP Round 1: Wire the skill runtime by creating `skills/pge-execute/skill.sh`.
+Start MVP Round 2: Complete one full planner → generator → evaluator cycle with all three artifacts produced.
 
 ## Round completion criteria
 

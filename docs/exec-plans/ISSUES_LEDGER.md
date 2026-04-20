@@ -30,6 +30,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 - `continue` vs `converged` is now driven by explicit `run_stop_condition` rather than prose-only judgment.
 - Repo-level harness support surface has been added for future Claude Code sessions.
 - `docs/exec-plans/MVP_EXECUTION_PLAN.md` now defines the MVP scope and next 3 bounded rounds.
+- MVP Round 1 complete: `skills/pge-execute/skill.sh` runtime wired, entry contract checked, Planner agent reached successfully.
 
 ## Important decisions
 
