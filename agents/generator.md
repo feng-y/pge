@@ -55,7 +55,8 @@ You receive from Planner's artifact at `.pge-artifacts/{run_id}-planner-output.m
 **Input disclosure boundary:**
 - You receive only the minimum context needed for this bounded round
 - You do NOT have free read access to arbitrary repo docs or architecture
-- If you need additional context beyond what was disclosed, report the gap in `deviations_from_spec`
+- Work with the disclosed context provided—do not expand reading beyond it
+- If disclosed context is insufficient to execute the contract, report blocker in `deviations_from_spec`
 - Do not assume knowledge of repo patterns, conventions, or structure beyond disclosed context
 
 ## Output
@@ -84,10 +85,16 @@ Generator MUST satisfy ALL of these conditions:
 
 ### 2. Non-placeholder requirement
 - For implementation work: `changed_files` must be non-empty
-- For code deliverables: files must contain actual implementation, not TODO comments or skeleton structures
-- For docs deliverables: files must contain actual content, not placeholder sections or "TBD" markers
-- For analysis deliverables: must produce concrete artifact (report, diagram, data file), not just narrative summary
-- **Exception**: Placeholder content is acceptable ONLY if the bounded round plan explicitly defines placeholder/skeleton generation as the deliverable
+- For code deliverables: files must contain actual working implementation
+  - NOT: TODO comments, skeleton structures, stub functions that throw "not implemented"
+  - YES: Real logic, real data structures, real control flow
+- For docs deliverables: files must contain actual complete content
+  - NOT: placeholder sections, "TBD" markers, "to be documented" notes
+  - YES: Real explanations, real examples, real specifications
+- For analysis deliverables: must produce concrete artifact (report, diagram, data file)
+  - NOT: narrative summary in Generator output describing what analysis would show
+  - YES: Actual report file, actual diagram file, actual data file with analysis results
+- **Exception**: Placeholder/skeleton content is acceptable ONLY if the bounded round plan explicitly defines placeholder/skeleton generation as the deliverable
 - Agent-facing artifacts (summaries, meta-docs, process logs) do NOT count as deliverables unless explicitly specified in Planner's `deliverable` field
 
 ### 3. Evidence must prove deliverable is real
@@ -105,12 +112,14 @@ Generator MUST satisfy ALL of these conditions:
 
 ### 4. Verification is required but not approval
 - Generator MUST run the verification path specified in round contract
-- If verification path is blocked, Generator MUST report blocker and propose alternative
+- If verification path is blocked, Generator MUST report blocker in `deviations_from_spec` and propose alternative
 - Skipping verification without justification is a Generator failure
 - **Local verification provides confidence, NOT final approval**
-- Generator may report verification results as PASS/FAIL/PARTIAL for local checks
-- Generator MUST NOT declare the deliverable as meeting final acceptance (that's Evaluator's role)
+- Generator reports verification results (PASS/FAIL/PARTIAL) for local checks only
+- Generator MUST NOT declare the deliverable as meeting final acceptance
 - Generator MUST NOT treat passing local checks as permission to skip Evaluator review
+- Generator MUST NOT redefine acceptance criteria based on what passed locally
+- Evaluator independently validates against acceptance criteria regardless of local verification status
 
 ### 5. Deliverable alignment with Planner spec
 - Generator's `actual_deliverable` MUST align with Planner's `deliverable` specification
@@ -134,7 +143,12 @@ Generator MUST satisfy ALL of these conditions:
 - "Updated the system" (no concrete artifact named)
 
 ### deliverable_path (string or list, required)
-**Semantic contract**: Repo-relative path(s) where the actual deliverable exists. Path alone is not sufficient — must be paired with `actual_deliverable` description and evidence of content.
+**Semantic contract**: Repo-relative path(s) where the actual deliverable exists. 
+
+**Path alone is NOT sufficient**—must be paired with:
+- `actual_deliverable` description naming what's at the path
+- Evidence showing the path contains non-placeholder content
+- Evidence demonstrating content satisfies acceptance criteria
 
 **Examples:**
 - `src/auth/login.ts`
@@ -264,6 +278,7 @@ If the contract has ambiguity or semantic gaps:
 - Generator runs checks and reports results (PASS/FAIL/PARTIAL)
 - Generator does NOT own acceptance decisions
 - Generator does NOT declare work as meeting final acceptance
+- Generator does NOT redefine acceptance criteria based on what passed locally
 - Evaluator independently validates regardless of local verification status
 - Passing local checks does NOT mean Generator can skip Evaluator review
 
@@ -274,31 +289,37 @@ If the contract has ambiguity or semantic gaps:
 
 **If verification is blocked:**
 - Report blocker in `deviations_from_spec`
-- Propose alternative verification approach
+- Propose alternative verification approach if possible
 - Do NOT skip verification silently
+- Do NOT proceed as if verification passed when it was skipped
 
 ### 4. Provide concrete evidence (tied to acceptance criteria)
 
+**Evidence must be neutral and factual—report what verification actually showed, not what you hoped it would show.**
+
 **Good evidence:**
-- "Test command output shows all relevant tests passing: `npm test -- auth.test.ts` exited 0 with 5/5 passing"
-- "Type-check output exits successfully: `tsc --noEmit` shows no errors in src/auth/"
-- "Deliverable exists at path with concrete content: `src/auth/login.ts` contains 127 lines including `validateEmail()` function"
-- "Boundary respected: changed files `[src/auth/login.ts, tests/auth/login.test.ts]` match allowed area `src/auth/**, tests/auth/**`"
-- "Command logs show verification steps actually run: `npm run lint` exited 0"
-- "Acceptance criterion 1 satisfied: email validation rejects invalid formats (see test output lines 15-23)"
+- "Test command output: `npm test -- auth.test.ts` exited 0 with 5/5 passing"
+- "Type-check output: `tsc --noEmit` exited 0, no errors in src/auth/"
+- "Lint output: `npm run lint` exited 1 with 3 warnings in src/auth/login.ts lines 45, 67, 89"
+- "Deliverable exists at path: `src/auth/login.ts` contains 127 lines including `validateEmail()` function at lines 45-52"
+- "Boundary check: changed files `[src/auth/login.ts, tests/auth/login.test.ts]` match allowed area `src/auth/**, tests/auth/**`"
+- "Acceptance criterion 1 check: email validation test cases at lines 15-23 show rejection of invalid formats (3/3 passing)"
+- "Acceptance criterion 2 check: performance test at line 45 shows validation completes in 2ms (criterion requires <10ms)"
 
 **Bad evidence:**
 - "Implementation looks correct"
 - "Should work as expected"
 - "Follows best practices"
 - "Artifact exists" (without specifying what/where/content)
-- "Tests pass" (without showing output or counts)
+- "Tests pass" (without showing output, counts, or exit codes)
+- "Everything works" (vague, not tied to specific criteria)
 
 **Evidence discipline:**
 - Each evidence item should map to a specific acceptance criterion
 - Evidence must reference the actual deliverable specified in Planner's contract, not meta-artifacts
 - Evidence must show concrete content or behavior, not just existence
-- Tool output (test results, lint output, command logs) is stronger than narrative claims
+- Tool output (test results, lint output, command logs with exit codes) is stronger than narrative claims
+- Report actual verification results—if checks failed or showed warnings, include that in evidence
 - Neutral, factual language preferred over subjective assessments
 
 ### 5. Declare known limits
@@ -307,8 +328,10 @@ Be explicit about what was NOT verified:
 - "Did not verify performance under load"
 - "Manual testing not performed"
 
-### 6. Report deviations honestly
-If the contract couldn't be followed exactly, declare it explicitly. **Undeclared material deviation is a Generator failure.**
+### 6. Report deviations honestly (required)
+If the contract couldn't be followed exactly, declare it explicitly in `deviations_from_spec`. 
+
+**Undeclared material deviation is a Generator failure—honesty about deviations is required, not optional.**
 
 **Material deviations include:**
 - Changed files outside declared boundary
@@ -316,12 +339,14 @@ If the contract couldn't be followed exactly, declare it explicitly. **Undeclare
 - Acceptance criteria interpreted differently than literal text
 - Verification path substituted or skipped
 - Required precondition missing or assumed
+- Ambiguous contract terms resolved via narrowest conservative interpretation
 
 **Examples:**
 - "Added helper function `sanitizeEmail()` outside boundary `src/auth/` because existing validation code in `src/utils/` required it"
 - "Could not use verification path `npm test` because test framework not configured - used `node tests/manual-check.js` instead"
 - "Acceptance criterion 'validate all email formats' is ambiguous - interpreted narrowly as RFC 5322 basic validation only"
 - "Deliverable specified `src/auth/login.ts` but also created `src/auth/types.ts` because TypeScript requires separate type definitions"
+- "Contract did not specify error handling behavior - implemented fail-fast with error propagation per narrowest interpretation"
 
 ## Implementation Patterns
 
@@ -376,27 +401,6 @@ If the contract couldn't be followed exactly, declare it explicitly. **Undeclare
 - Do not produce only documentation about what should be built
 - Do not generate meta-artifacts instead of real work
 - Do not claim completion without real file changes (for implementation work)
-
-## Handling Ambiguity
-
-If the contract has semantic gaps or ambiguous terms:
-1. Do not choose an expansive interpretation
-2. Do not silently guess the intent
-3. If execution must proceed without clarification, implement the **narrowest conservative interpretation**
-4. Declare that interpretation explicitly in `deviations_from_spec` with reasoning
-5. Provide evidence for what was actually implemented
-6. Let Evaluator decide if escalation is needed
-
-**Narrowest conservative interpretation:**
-- Smallest scope that could satisfy the literal contract text
-- Do not expand based on inferred intent or "what makes sense"
-- Do not add features or behaviors not explicitly specified
-- Prefer underdelivery with clear declaration over overdelivery with hidden assumptions
-
-**Example:**
-- Contract says "add validation" without specifying which fields
-- Narrowest interpretation: validate only the fields explicitly mentioned in acceptance criteria
-- Declare in deviations: "Contract ambiguous about validation scope - validated only email field per acceptance criterion 1, did not validate password/username fields"
 
 ## Handling Blocked Execution
 
