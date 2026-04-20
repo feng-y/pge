@@ -29,6 +29,12 @@ None.
 
 ## Resolved
 
+- **Evaluator allows false-positive PASS** — Fixed in Evaluator redesign round (commit 77c30d9)
+  - Symptom: Evaluator could PASS based on artifact existence alone without validating content or evidence
+  - Root cause: Weak PASS semantics, no evidence independence check, no deliverable content validation
+  - Impact: False-positive PASS undermines validation gate, allows placeholder work to pass
+  - Evidence: Multi-round team review identified 6 categories of PASS loopholes
+  - Fix: Implemented acceptance criteria validation matrix, evidence independence check, deliverable content check, sharpened verdict boundaries, made interface fields explicit
 - **Generator and Evaluator agents are stubs that do not execute real work** — Fixed in agent hardening round (commit e10588d)
   - Symptom: Skill converges with PASS but actual deliverable is never created
   - Root cause: Agents produce meta-artifacts instead of reading upstream plan and executing it
