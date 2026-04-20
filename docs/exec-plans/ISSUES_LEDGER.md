@@ -8,6 +8,11 @@ None.
 
 ## P1 / Follow-up
 
+- **Runtime contract proving still needed**: Latest interface alignment is doc-level until exercised through a real `/pge` run
+  - Planner / Generator / Evaluator / skill now share current-task vocabulary on paper
+  - Need to verify real runtime consumes the aligned fields without fallback to older wording
+  - Impact: Medium (could hide stale runtime assumptions)
+  - Next: Test via actual `/pge` skill invocation on a small repo-internal task
 - **Runtime integration gap**: Validation was manual simulation, not actual skill runtime execution
   - Current `skills/pge-execute/skill.sh` has stub implementations embedded
   - Need to verify runtime properly invokes agent .md files
@@ -29,6 +34,12 @@ None.
 
 ## Resolved
 
+- **P/G/E current-task vocabulary drift** — Fixed in interface alignment round
+  - Symptom: Planner, Generator, Evaluator, and skill used overlapping but mismatched handoff language
+  - Root cause: Planner moved to current-task semantics while Generator/Evaluator/skill still carried older round-contract wording
+  - Impact: Medium (semantic/interface drift across handoffs)
+  - Evidence: Cross-file review showed mixed use of `boundary`/`deliverable` vs `in_scope`/`out_of_scope`/`actual_deliverable`, plus unclear local verification vs final approval wording
+  - Fix: Locked shared current-task semantics, clarified Generator local verification vs Evaluator final approval, and minimally aligned `skills/pge-execute/SKILL.md`
 - **Evaluator allows false-positive PASS** — Fixed in Evaluator redesign round (commit 77c30d9)
   - Symptom: Evaluator could PASS based on artifact existence alone without validating content or evidence
   - Root cause: Weak PASS semantics, no evidence independence check, no deliverable content validation

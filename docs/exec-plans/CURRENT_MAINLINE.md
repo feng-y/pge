@@ -23,7 +23,7 @@ None.
 
 ## Next single action
 
-Test via actual `/pge` skill invocation to verify runtime properly loads and executes agent .md files (not embedded stubs).
+Test via actual `/pge` skill invocation to verify runtime properly consumes the newly aligned current-task Planner → Generator → Evaluator vocabulary (not stale older wording).
 
 ## Round completion criteria
 

@@ -1,6 +1,6 @@
 # pge-execute
 
-Execute one bounded PGE round: plan → generate → evaluate → route.
+Execute one bounded PGE round: freeze one current-task contract → generate → evaluate → route.
 
 ## When to use
 
@@ -19,10 +19,10 @@ Do NOT use for:
 
 Executes one bounded PGE round:
 
-1. **Planning phase**: Spawn Planner agent to freeze one current round contract
-2. **Preflight check**: Validate contract is executable and independently evaluable
-3. **Generation phase**: Spawn Generator agent to execute contract and produce deliverable
-4. **Evaluation phase**: Spawn Evaluator agent to independently validate deliverable
+1. **Planning phase**: Spawn Planner agent to freeze one current-task plan / bounded round contract
+2. **Preflight check**: Validate the current-task contract is executable and independently evaluable
+3. **Generation phase**: Spawn Generator agent to execute the current task and produce deliverable + local verification evidence
+4. **Evaluation phase**: Spawn Evaluator agent to independently validate the current task deliverable
 5. **Routing**: Route based on verdict and stop condition
 
 ## Input
@@ -37,9 +37,9 @@ Optional:
 
 This skill spawns specialized agents defined in `../../agents/`:
 
-- **planner** (`../../agents/planner.md`): Freezes one current round contract
-- **generator** (`../../agents/generator.md`): Executes contract and produces deliverable
-- **evaluator** (`../../agents/evaluator.md`): Independently validates deliverable
+- **planner** (`../../agents/planner.md`): Freezes one current-task plan / bounded round contract
+- **generator** (`../../agents/generator.md`): Executes one current task, performs local verification, and produces a deliverable bundle
+- **evaluator** (`../../agents/evaluator.md`): Independently validates the current task deliverable and issues the final gate verdict
 
 Each agent has a defined responsibility boundary. See `agents/` for their contracts.
 
@@ -85,17 +85,17 @@ Spawn **planner** agent using the Agent tool:
 - `subagent_type`: "general-purpose"
 - `prompt`: Load and provide `../../agents/planner.md` instructions
 - Input: upstream plan, current runtime state
-- Task: Freeze one current round contract per `../../contracts/round-contract.md`
+- Task: Freeze one current-task plan / bounded round contract per `../../contracts/round-contract.md`
 
 The planner must produce a round contract artifact at `.pge-artifacts/{run_id}-planner-output.md` with:
-- `goal`: What this round must settle
-- `boundary`: What this round may change
-- `deliverable`: The artifact to produce
-- `verification_path`: How to verify
+- `goal`: What the current task must settle
+- `in_scope`: What the current task may change
+- `out_of_scope`: What must stay out of scope
+- `actual_deliverable`: The real artifact to produce
+- `verification_path`: How Generator verifies locally and Evaluator inspects independently
 - `acceptance_criteria`: Minimum conditions for completion
 - `required_evidence`: Evidence Evaluator needs
-- `allowed_deviation_policy`: Which deviations are acceptable
-- `no_touch_boundary`: What must stay out of scope
+- `stop_condition`: What marks the current task as done for routing
 - `handoff_seam`: Where later work can continue
 
 Update runtime state:
@@ -104,7 +104,7 @@ Update runtime state:
 
 ### 3. Preflight check
 
-Validate the round contract:
+Validate the current-task contract:
 - Contract file exists
 - Contains all required fields
 - Is executable without guessing
@@ -124,17 +124,21 @@ If preflight fails:
 Spawn **generator** agent using the Agent tool:
 - `subagent_type`: "general-purpose"
 - `prompt`: Load and provide `../../agents/generator.md` instructions
-- Input: round contract, minimal repo context
-- Task: Execute contract and produce actual deliverable
+- Input: current-task contract, minimal repo context
+- Task: Execute the current task, run local verification, and produce the actual deliverable bundle
 
 The generator must produce an implementation bundle at `.pge-artifacts/{run_id}-generator-output.md` with:
+- `current_task`: What current task was executed
+- `boundary`: Applied in-scope / out-of-scope boundary
 - `actual_deliverable`: What was actually delivered
 - `deliverable_path`: Repo-relative path(s)
 - `changed_files`: Files created or modified
 - `local_verification`: Checks run and results
 - `evidence`: Concrete evidence
 - `known_limits`: Unverified areas
+- `non_done_items`: Explicit items not completed in this round
 - `deviations_from_spec`: Deviations with justifications
+- `handoff_status`: Ready for evaluation or needs escalation
 
 Update runtime state:
 - Set `latest_deliverable_ref` to deliverable path
@@ -146,8 +150,8 @@ Update runtime state:
 Spawn **evaluator** agent using the Agent tool:
 - `subagent_type`: "general-purpose"
 - `prompt`: Load and provide `../../agents/evaluator.md` instructions
-- Input: round contract, implementation bundle
-- Task: Independently validate deliverable against contract
+- Input: current-task contract, implementation bundle
+- Task: Independently validate the current task deliverable against the same contract
 
 The evaluator must produce a verdict bundle at `.pge-artifacts/{run_id}-evaluator-verdict.md` using markdown with these top-level sections:
 - `## verdict`
@@ -233,9 +237,9 @@ This skill does NOT:
 ## Quality bar
 
 A successful round:
-- Planner produces executable contract
-- Generator produces actual deliverable (not placeholders)
-- Evaluator independently validates against contract
+- Planner produces an executable current-task contract
+- Generator produces the actual deliverable plus local verification evidence (not placeholders)
+- Evaluator independently validates the current task against the same contract
 - Routing decision is explicit and justified
 - All artifacts preserved for inspection
 
