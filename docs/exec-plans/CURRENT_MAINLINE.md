@@ -6,11 +6,11 @@ Get `feat/pge-agents-contracts-skeleton` into its first real Phase 1 proving run
 
 ## Current stage goal
 
-Stop expanding design and use the existing skeleton to run one real proving/development loop.
+Use the landed `run-001` control plane to start the first real bounded proving/development round.
 
 ## Current P0 blockers
 
-1. No active P0 blocker prevents starting the `run-001` workflow loop.
+1. The first real bounded proving/development round still needs its first runtime intake/state artifact frozen from the verified upstream packet.
 
 ## Explicit non-goals for this round
 
@@ -22,13 +22,13 @@ Stop expanding design and use the existing skeleton to run one real proving/deve
 
 ## Next single action
 
-Use `docs/proving/runs/run-001/` plus `commands/start-round.md` and `commands/close-round.md` to start the first real bounded proving/development round.
+Use `docs/proving/runs/run-002/upstream-plan.md` as the verified upstream packet and freeze the first runtime intake/state artifact for the first real bounded proving/development round.
 
 ## Round completion criteria
 
-This support round is done when:
-- repo-level working constraints are visible to Claude Code
-- the mainline, blockers, and non-goals are recorded in one place
-- the repo has a reusable round template and proving entrypoint
+This stage is done when:
+- the first real bounded proving/development round is opened from the landed control plane
+- that round has one P0-only goal, one named artifact, and one primary verification path
+- the round record is created and the next proving action is explicit
 
-After this round lands, the next round should execute the first real bounded proving task using the `run-001` pack and command entrypoints.
+After this stage lands, execution should stay inside real bounded proving/development rounds rather than reopening support-layer setup.
