@@ -23,7 +23,7 @@ None.
 
 ## Next single action
 
-Start MVP Round 2: Complete one full planner → generator → evaluator cycle with all three artifacts produced.
+Start MVP Round 3: Close the convergence loop with clean stop after evaluator acceptance.
 
 ## Round completion criteria
 

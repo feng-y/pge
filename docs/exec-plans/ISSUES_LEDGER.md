@@ -31,6 +31,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 - Repo-level harness support surface has been added for future Claude Code sessions.
 - `docs/exec-plans/MVP_EXECUTION_PLAN.md` now defines the MVP scope and next 3 bounded rounds.
 - MVP Round 1 complete: `skills/pge-execute/skill.sh` runtime wired, entry contract checked, Planner agent reached successfully.
+- MVP Round 2 complete: full planner → generator → evaluator cycle implemented, all three role artifacts produced and verified.
 
 ## Important decisions
 
