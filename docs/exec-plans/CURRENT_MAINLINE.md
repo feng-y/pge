@@ -6,11 +6,11 @@ Get `feat/pge-agents-contracts-skeleton` into its first real Phase 1 proving run
 
 ## Current stage goal
 
-Use the landed `run-001` control plane to start the first real bounded proving/development round.
+The first real bounded proving/development round has now converged mechanically; the next work should start from a new bounded proving slice rather than reopening the first run.
 
 ## Current P0 blockers
 
-1. The first real bounded proving/development round still needs its first runtime intake/state artifact frozen from the verified upstream packet.
+1. No active P0 blocker remains inside the first real proving run.
 
 ## Explicit non-goals for this round
 
@@ -22,13 +22,13 @@ Use the landed `run-001` control plane to start the first real bounded proving/d
 
 ## Next single action
 
-Use `docs/proving/runs/run-002/upstream-plan.md` as the verified upstream packet and freeze the first runtime intake/state artifact for the first real bounded proving/development round.
+Choose the next real bounded proving slice and open a new round from the converged first proving run artifacts.
 
 ## Round completion criteria
 
 This stage is done when:
-- the first real bounded proving/development round is opened from the landed control plane
-- that round has one P0-only goal, one named artifact, and one primary verification path
-- the round record is created and the next proving action is explicit
+- the first real bounded proving/development round has a frozen current round contract
+- the round leaves a generator deliverable, evaluator verdict, and explicit routing outcome
+- routing reaches `converged` under the declared `run_stop_condition`
 
-After this stage lands, execution should stay inside real bounded proving/development rounds rather than reopening support-layer setup.
+After this stage lands, execution should continue only through new bounded proving slices rather than reopening first-run setup or intake work.

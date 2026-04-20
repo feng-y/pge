@@ -4,7 +4,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P0 / Blocker
 
-- The first real bounded proving/development round still needs its first runtime intake/state artifact frozen from the verified upstream packet.
+- No active P0 blocker remains inside the first real proving run.
 
 ## P1 / Follow-up
 
@@ -23,6 +23,8 @@ Keep this file lightweight. Record only items that help the current mainline mov
 - The first proving task is fixed as `run-001`.
 - `commands/start-round.md` and `commands/close-round.md` now provide the executable round entry/closure path.
 - `docs/proving/runs/run-002/upstream-plan.md` now provides the first verified execute-first upstream packet for real proving intake.
+- `docs/proving/runs/run-003/runtime-intake-state.md` now provides the first verified runtime intake/state artifact for real proving runtime entry.
+- `docs/proving/runs/run-004/` now closes the first real bounded proving/development round through explicit contract, deliverable, verdict, and routing artifacts.
 - No proving task is fixed yet.
 - Preflight is now represented consistently enough across loop / state / skill for proving.
 - `continue` vs `converged` is now driven by explicit `run_stop_condition` rather than prose-only judgment.
