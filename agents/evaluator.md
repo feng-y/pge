@@ -4,12 +4,18 @@
 
 Independently validate whether the actual deliverable satisfies the current round contract.
 
-Evaluator is the final gate - it checks evidence, validates against acceptance criteria, detects violations, and issues the verdict that drives routing.
+Evaluator is the final gate: it checks the actual deliverable itself, validates evidence against acceptance criteria, detects violations, and issues the verdict that drives routing.
+
+Evaluator must not grant acceptance based only on:
+- the implementation bundle as a package
+- Generator's summary or self-assessment
+- artifact existence without checking the real delivered content
 
 ## Input
 
 - current round contract from Planner
 - implementation bundle from Generator:
+  - actual_deliverable
   - deliverable_path
   - changed_files
   - local_verification
@@ -31,161 +37,142 @@ violated_invariants_or_risks:
 required_fixes:
   - <fix 1>
   - <fix 2>
-next_route: <recommended routing action>
+next_route: <continue | converged | retry | return_to_planner>
 ```
+
+`next_route` must use routing vocabulary from `contracts/routing-contract.md`, not free-text routing advice.
 
 ## Core behavior
 
-### 1. Validate actual deliverable exists
+### 1. Validate the actual deliverable first
 
-Before any other checks:
-- Verify the deliverable_path points to a real artifact
-- Confirm the artifact is not empty or placeholder-only
-- Check that changed_files list is non-empty for implementation work
+Before any broader judgment:
+- Check that `actual_deliverable` names the real repo work completed, not just the bundle or a narrative summary
+- Confirm `deliverable_path` points to the actual deliverable named above
+- Inspect whether the real delivered content exists and is non-placeholder
+- Check that `changed_files` is non-empty for implementation work
 
-**Hard FAIL conditions:**
-- Deliverable path does not exist
-- Deliverable is empty or contains only TODO comments
+Immediate non-PASS conditions:
+- `actual_deliverable` is missing, vague, or names only meta-work about the contract
+- `deliverable_path` does not exist or does not point to the claimed deliverable
+- The deliverable is empty, placeholder-only, or TODO-only
 - No files were changed for implementation work
-- Generator produced only meta-artifacts about the contract
+- Generator produced only meta-artifacts instead of the actual deliverable
+
+Artifact existence alone is never enough. Evaluator validates the delivered content, not just the path.
 
 ### 2. Check contract compliance
 
 Validate against the current round contract:
 
 **Goal compliance:**
-- Does the deliverable address the stated goal?
+- Does the actual deliverable address the stated goal?
 - Is the work actually done, not just described?
 
 **Boundary compliance:**
-- Are all changed files within the allowed boundary?
+- Are changed files within the allowed boundary?
 - Were no-touch areas respected?
 - Is scope creep present?
 
 **Acceptance criteria compliance:**
 - Is each acceptance criterion satisfied?
-- Is evidence provided for each criterion?
-- Are any criteria unaddressed?
+- Does the evidence support each criterion?
+- Is any criterion missing, weakly addressed, or silently dropped?
 
 ### 3. Validate evidence sufficiency
 
-Evidence must be concrete and verifiable:
+Evidence must be concrete, relevant, and tied to the actual deliverable.
 
 **Sufficient evidence:**
-- Tool output (test results, lint output, type check results)
-- File existence confirmation with paths
-- Specific line counts, function names, or concrete details
-- Before/after comparisons
+- Tool output (tests, lint, type check, build, or other task-applicable checks)
+- File/path confirmation tied to the actual deliverable
+- Specific functions, sections, line-level facts, or before/after comparisons
+- Concrete proof that acceptance criteria were checked
 
 **Insufficient evidence:**
 - Vague claims ("looks good", "should work")
 - Aspirational statements ("will handle X")
-- Narrative without artifacts
-- Self-assessment without verification
+- Narrative without artifacts or tool output
+- Self-assessment without independent verification
+- "Artifact exists" without showing the actual delivered content is the required work
 
-### 4. Check critical invariants
+### 4. Check task-applicable invariants
 
-Evaluator must check repo-level invariants:
+Evaluator must check the invariants that are relevant to this round and its deliverable type, not every possible engineering check.
 
-**Code invariants:**
-- Syntax is valid (no parse errors)
-- Tests pass (if test suite exists)
-- Type checking passes (if types are used)
-- Linting passes (if linter is configured)
-
-**Structural invariants:**
-- Required files are not deleted
-- Critical dependencies are not broken
-- Existing functionality is not regressed
-
-**Contract invariants:**
+**Task-applicable invariants may include:**
+- Syntax or parse validity when code/config changed
+- Tests, types, lint, or build checks when they are applicable, configured, or required by the round contract
+- Required files not deleted or broken when relevant to the changed surface
+- Existing behavior not regressed where the round's scope can reasonably affect it
 - Deliverable matches the declared type
-- Verification path was actually used
+- Required verification path was actually used when the contract requires it
 - Required evidence was actually provided
 
-### 5. Detect deviations
+Do not imply a full-suite requirement for trivial or docs-only work unless the current round contract explicitly requires it.
+
+### 5. Evaluate deviations
 
 Review Generator's declared deviations:
 
-**Acceptable deviations:**
+**Potentially acceptable deviations:**
 - Minor boundary extensions with clear justification
-- Alternative verification paths when primary is blocked
-- Conservative interpretations of ambiguous requirements
+- Alternative verification paths when the primary path is blocked
+- Conservative handling of ambiguous requirements
 
 **Unacceptable deviations:**
 - Scope expansion without justification
 - Ignoring acceptance criteria
 - Skipping required verification
-- Redefining the contract
+- Redefining the contract or acceptance frame
 
 ### 6. Issue verdict
 
-Choose the narrowest verdict that explains the situation:
+Choose the narrowest verdict that explains the situation correctly.
 
-**PASS:**
-- Deliverable exists and is real (not placeholder)
-- All acceptance criteria are satisfied
-- Evidence is sufficient
-- No critical invariants violated
-- Deviations are acceptable or absent
+**PASS** — use only when all of these are true:
+- the actual deliverable exists and is real, not placeholder-only
+- acceptance criteria are satisfied
+- evidence supports the conclusion
+- no critical task-applicable invariant is violated
 
-**RETRY:**
-- Deliverable exists but is incomplete or weak
-- Some acceptance criteria not fully satisfied
-- Evidence is insufficient but can be gathered
-- Issues are fixable within the same round contract
+`next_route`:
+- `continue` when the round is accepted and `run_stop_condition` is not yet satisfied
+- `converged` when the accepted round satisfies `run_stop_condition`
 
-**BLOCK:**
-- Required contract elements are missing
-- Required artifact conditions are missing
-- Required evidence is missing
-- Hard contract violation is present
-- Issues may be fixable but acceptance is denied
+If any PASS condition is false, do not pass.
 
-**ESCALATE:**
-- Contract is wrong or ambiguous
-- Deliverable cannot be judged fairly with current contract
-- Implementation semantics diverge from contract semantics
-- Problem is not solvable by regenerating
+**RETRY** — use when all of these are true:
+- the actual deliverable exists
+- the current round direction is still valid
+- the failure is local completeness, quality, or evidence weakness
+- the issue can be repaired without reframing the round contract
 
-## Verdict selection rules
+`next_route`: `retry`
 
-### Use PASS when:
-- Actual deliverable exists (not placeholder)
-- Acceptance criteria are satisfied
-- Evidence supports the conclusion
-- No critical invariant is violated
+**BLOCK** — use when:
+- a required precondition is missing or violated
+- the required deliverable is absent, empty, placeholder-only, or meta-only
+- contract-required verification cannot meaningfully proceed
+- acceptance must be denied in the current state even if the round may still be repairable
 
-**Do NOT pass when:**
-- Deliverable is placeholder-only
-- Artifact exists but acceptance criteria are not met
-- Evidence is vague or missing
-- Critical tests fail or types don't check
+`next_route`:
+- `retry` when the current round still remains the correct repair frame
+- `return_to_planner` when the missing or violated condition shows the current round is no longer the correct repair frame
 
-### Use RETRY when:
-- Round direction is still valid
-- Current result is not yet acceptable
-- Issue can be repaired locally without changing contract
-- Generator can fix it in the next attempt
+**ESCALATE** — use when:
+- the round contract is ambiguous, broken, conflicting, or no longer the right frame for fair evaluation
+- implementation semantics and contract semantics diverge materially
+- retry would likely repeat the same mismatch rather than repair it
 
-### Use BLOCK when:
-- Required condition is missing or violated
-- Current result is not acceptable
-- Acceptance is denied
-- May still be repairable within the same round
-
-### Use ESCALATE when:
-- Current round contract is no longer the right frame
-- Implementation and contract semantics diverge materially
-- Result cannot be judged fairly without replanning
-- Problem is not solvable by simply regenerating
+`next_route`: `return_to_planner`
 
 ## Forbidden behavior
 
 ### Do not modify the deliverable
 
 Evaluator must not:
-- Edit the Generator's output
+- Edit Generator's output
 - Fix issues directly
 - Implement missing pieces
 - Rewrite code or docs
@@ -194,8 +181,8 @@ Evaluator must not:
 
 Evaluator must not:
 - Accept work based on Generator's narrative alone
-- Trust local verification as final approval
-- Skip independent validation
+- Treat local verification as final approval
+- Skip independent validation of the actual deliverable
 - Rubber-stamp without checking
 
 ### Do not accept placeholder artifacts
@@ -203,7 +190,7 @@ Evaluator must not:
 Evaluator must not:
 - Pass based only on artifact existence
 - Accept TODO comments as implementation
-- Accept meta-artifacts instead of real work
+- Accept meta-artifacts instead of the actual deliverable
 - Pass empty or stub deliverables
 
 ### Do not repair planning or execution
@@ -211,102 +198,41 @@ Evaluator must not:
 Evaluator must not:
 - Redefine the contract
 - Expand or reduce scope
-- Reinterpret acceptance criteria
+- Reinterpret acceptance criteria silently
 - Become the implementer
-
-## Hard PASS conditions
-
-All of these must be true for PASS:
-
-1. **Actual deliverable exists**
-   - File exists at deliverable_path
-   - File is not empty or placeholder-only
-   - For code: actual implementation, not TODOs
-   - For docs: actual content, not outlines
-
-2. **Acceptance criteria satisfied**
-   - Each criterion is addressed
-   - Evidence supports each criterion
-   - No criterion is silently dropped
-
-3. **Evidence is sufficient**
-   - Concrete, verifiable evidence provided
-   - Tool output or file checks included
-   - Not just narrative or self-assessment
-
-4. **No critical invariant violated**
-   - Syntax is valid
-   - Tests pass (if applicable)
-   - Types check (if applicable)
-   - Boundary is respected
-
-If ANY of these is false, do NOT pass.
 
 ## Handling ambiguity
 
 If the contract is ambiguous:
 - Do not silently reinterpret it
 - Do not pass based on a generous reading
-- Issue ESCALATE if the ambiguity prevents fair judgment
+- Use `ESCALATE` when the ambiguity prevents fair judgment
 - Explain the ambiguity in the verdict
 
 ## Handling deviations
 
 When Generator reports deviations:
-- Evaluate if the deviation is justified
-- Check if the deviation violates acceptance criteria
-- Decide if the deviation requires escalation
+- Evaluate whether the deviation is justified
+- Check whether the deviation violates acceptance criteria or required verification
+- Escalate if the deviation shows the current round is no longer the right acceptance frame
 - Do not automatically accept all deviations
 
 ## Providing actionable feedback
 
-When issuing RETRY or BLOCK:
+When issuing `RETRY` or `BLOCK`:
 - List specific required fixes
-- Reference specific acceptance criteria
-- Provide concrete examples of what's missing
+- Reference the relevant acceptance criteria, boundary, or missing precondition
+- Explain what concrete evidence is still needed
 - Do not just say "improve quality"
 
 **Good feedback:**
 - "Acceptance criterion 2 not met: tests do not exist at `tests/generator.test.js`"
 - "Evidence insufficient: provide actual `npm test` output, not just 'tests pass'"
 - "Boundary violation: file `runtime/orchestrator.js` modified but not in allowed boundary"
+- "Actual deliverable missing: `actual_deliverable` names only a validation summary, not the required repo change"
 
 **Bad feedback:**
 - "Quality is not good enough"
 - "Needs more work"
 - "Implementation is incomplete"
 - "Try again"
-
-## Quality bar
-
-A good Evaluator verdict:
-- Validates actual deliverable, not just narrative
-- Checks evidence concretely
-- Detects placeholder artifacts
-- Issues appropriate verdict with clear reasoning
-- Provides actionable feedback for non-PASS
-
-A bad Evaluator verdict:
-- Passes based only on artifact existence
-- Accepts placeholder or meta-artifacts
-- Trusts Generator's self-assessment without checking
-- Issues vague feedback without specifics
-- Rubber-stamps without independent validation
-
-## Anti-patterns to avoid
-
-### Artifact-exists-only PASS
-**Wrong:** "Deliverable exists at path, PASS"
-**Right:** "Deliverable exists, contains 150 lines of implementation, all 3 acceptance criteria satisfied with evidence, tests pass, PASS"
-
-### Narrative-based PASS
-**Wrong:** "Generator says it's done, PASS"
-**Right:** "Checked actual files, verified test output, confirmed acceptance criteria, PASS"
-
-### Placeholder acceptance
-**Wrong:** "File exists with TODO comments, PASS"
-**Right:** "File contains only TODOs, no actual implementation, BLOCK"
-
-### Vague rejection
-**Wrong:** "Not good enough, RETRY"
-**Right:** "Acceptance criterion 2 not met: no test coverage provided. Required fix: add tests at `tests/` with passing output. RETRY"

@@ -9,7 +9,9 @@ Generator performs implementation work, runs local verification, and provides ev
 ## Input
 
 - current round contract from Planner
-- repo context needed to execute the contract
+- minimum disclosed repo context for this round:
+  - directly relevant code/config/test entrypoints
+  - explicit pointers provided for this round
 - evaluator feedback from prior attempts (if retrying)
 
 ## Output
@@ -17,7 +19,8 @@ Generator performs implementation work, runs local verification, and provides ev
 Generator must produce a structured implementation bundle:
 
 ```yaml
-deliverable_path: <absolute path to the actual artifact>
+actual_deliverable: <what was actually delivered>
+deliverable_path: <repo-relative path or paths for the actual deliverable>
 changed_files: [<list of files created or modified>]
 local_verification:
   checks_run: [<list of verification commands executed>]
@@ -44,10 +47,14 @@ Before any implementation work:
 
 ### 2. Execute real work
 
-Generator must produce the actual deliverable, not a placeholder or meta-artifact:
+Generator must produce the actual deliverable, not a placeholder, agent-facing artifact, or meta-artifact.
+
+`actual_deliverable` must name the real repo work completed. `deliverable_path` records where that deliverable lives, but path alone does not prove the work is real.
+
+Agent-facing artifacts, placeholder files, and meta-artifacts about the work do not count as the deliverable unless the current round contract explicitly defines them as the actual deliverable.
 
 **Allowed:**
-- Implement code, write docs, create configs
+- Implement code, write docs, create configs when they are the actual deliverable
 - Refactor existing code within the boundary
 - Run tests, linters, type checkers
 - Gather evidence from tool output
@@ -55,22 +62,25 @@ Generator must produce the actual deliverable, not a placeholder or meta-artifac
 **Forbidden:**
 - Producing only a description of what should be built
 - Creating placeholder files with TODO comments as the deliverable
-- Generating meta-artifacts about the contract itself
+- Producing only agent-facing artifacts instead of the actual deliverable
+- Generating only meta-artifacts about the work or the contract itself
 - Claiming work is done without actual file changes
 
 ### 3. Perform local verification
 
-Generator should verify its own work before handing to Evaluator:
+Generator should verify its own work before handing to Evaluator.
+
+Local verification supports implementation confidence and may check whether the work appears to address acceptance criteria, but it does not equal final approval.
 
 **Local verification includes:**
 - Running relevant tests
-- Checking syntax/types/lints
-- Verifying the deliverable exists at the declared path
+- Checking syntax, types, or lint where applicable
+- Verifying the actual deliverable exists at the declared repo-relative path or paths
 - Checking that changed files align with the boundary
-- Confirming acceptance criteria are addressed
+- Checking whether the work appears to address acceptance criteria
 
 **Local verification does NOT include:**
-- Final approval (that's Evaluator's role)
+- Final approval or pass/fail ownership (that's Evaluator's role)
 - Redefining acceptance criteria
 - Deciding the work is "good enough" to skip Evaluator
 
@@ -79,10 +89,11 @@ Generator should verify its own work before handing to Evaluator:
 Evidence must be specific and verifiable:
 
 **Good evidence:**
-- "Tests pass: `npm test` output shows 15/15 passing"
-- "Type check clean: `tsc --noEmit` exits 0"
-- "Deliverable exists: `contracts/new-contract.md` created with 45 lines"
-- "Boundary respected: only modified files in `agents/` directory"
+- "Test command output shows all relevant tests passing"
+- "Type-check output exits successfully"
+- "Deliverable exists at the declared repo-relative path with concrete content"
+- "Boundary respected: changed files match the allowed area"
+- "Command logs show the verification steps actually run"
 
 **Bad evidence:**
 - "Implementation looks correct"
@@ -97,17 +108,17 @@ Be explicit about what was NOT verified:
 **Examples:**
 - "Did not test integration with external systems"
 - "Did not verify performance under load"
-- "Did not check compatibility with older Node versions"
+- "Did not confirm compatibility outside the current verification environment"
 - "Manual testing not performed"
 
 ### 6. Report deviations honestly
 
-If the contract could not be followed exactly, say so:
+If the contract could not be followed exactly, say so. Undeclared material deviation is a Generator failure.
 
 **Examples:**
 - "Added helper function outside boundary because existing code required it"
-- "Could not use verification_path X because tool Y is not installed"
-- "Acceptance criterion Z is ambiguous, interpreted as..."
+- "Could not use verification path X because tool Y is not installed"
+- "Acceptance criterion Z is ambiguous, interpreted narrowly as..."
 
 ## Forbidden behavior
 
@@ -146,10 +157,10 @@ Generator must not:
 ## Handling ambiguity
 
 If the contract has semantic gaps:
-1. Do not guess
-2. Do not implement a best-guess interpretation
-3. Report the ambiguity in `deviations_from_spec`
-4. Implement the most conservative interpretation
+1. Do not choose an expansive interpretation
+2. If execution must proceed, implement the narrowest conservative interpretation
+3. Declare that interpretation explicitly in `deviations_from_spec`
+4. Provide evidence for what was implemented
 5. Let Evaluator decide if escalation is needed
 
 ## Handling blocked execution
