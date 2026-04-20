@@ -8,6 +8,16 @@ None.
 
 ## P1 / Follow-up
 
+- **Runtime integration gap**: Validation was manual simulation, not actual skill runtime execution
+  - Current `skills/pge-execute/skill.sh` has stub implementations embedded
+  - Need to verify runtime properly invokes agent .md files
+  - Impact: Medium (runtime may not use new agent definitions)
+  - Next: Test via actual `/pge` skill invocation
+- **Agent invocation mechanism unclear**: Agent .md files are definitions, but how does runtime execute them?
+  - Are they loaded as prompts to spawned agents?
+  - Are they referenced by the runtime?
+  - Impact: Medium (affects whether agents are actually used)
+  - Next: Clarify agent invocation model
 - Refine supporting governance docs only if a real proving run exposes contradiction or driveability pain.
 - Add richer runtime/progress formalization only if the first proving runs show the current control plane is insufficient.
 
@@ -40,6 +50,7 @@ None.
 - MVP Round 2 complete: full planner → generator → evaluator cycle implemented, all three role artifacts produced and verified.
 - MVP Round 3 complete: convergence loop closed, final round summary produced, skill stops cleanly after PASS + single_round.
 - Post-MVP proving round 004 complete: skill executed on real repo task, exposed P0 blocker (stub agents), runtime orchestration validated.
+- Validation round 005 complete: Generator and Evaluator validated with real bounded task, both agents performed correctly, verdict is USABLE.
 
 ## Important decisions
 

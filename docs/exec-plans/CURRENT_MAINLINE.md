@@ -23,7 +23,7 @@ None.
 
 ## Next single action
 
-Run a real proving task through the updated agents to verify they execute actual work and validate real deliverables.
+Test via actual `/pge` skill invocation to verify runtime properly loads and executes agent .md files (not embedded stubs).
 
 ## Round completion criteria
 
