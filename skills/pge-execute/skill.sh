@@ -319,7 +319,59 @@ route_verdict() {
     if [[ "$route" == "converged" ]]; then
         update_state_field "convergence_reason" "$route_reason"
         transition_state "converged" "$route_reason"
+        write_round_summary
     fi
+}
+
+# Write final round summary
+write_round_summary() {
+    local run_id=$(jq -r '.run_id' "$STATE_FILE")
+    local round_id=$(jq -r '.round_id' "$STATE_FILE")
+    local upstream_plan=$(jq -r '.upstream_plan_ref' "$STATE_FILE")
+    local contract_ref=$(jq -r '.active_round_contract_ref' "$STATE_FILE")
+    local deliverable_ref=$(jq -r '.latest_deliverable_ref' "$STATE_FILE")
+    local verdict=$(jq -r '.latest_evaluation_verdict' "$STATE_FILE")
+    local route=$(jq -r '.latest_route' "$STATE_FILE")
+    local convergence_reason=$(jq -r '.convergence_reason' "$STATE_FILE")
+
+    local summary_artifact="$ARTIFACTS_DIR/${run_id}-round-summary.md"
+
+    cat > "$summary_artifact" <<EOF
+# Round Summary
+
+## Run Information
+
+- Run ID: $run_id
+- Round ID: $round_id
+- Upstream Plan: $upstream_plan
+- Stop Condition: $(jq -r '.run_stop_condition' "$STATE_FILE")
+
+## Execution Flow
+
+1. **Planning**: Planner froze round contract
+2. **Preflight**: Contract validated as executable
+3. **Generation**: Generator produced deliverable
+4. **Evaluation**: Evaluator assessed deliverable
+5. **Routing**: Routed to $route
+
+## Artifacts Produced
+
+- Round Contract: $contract_ref
+- Deliverable: $deliverable_ref
+- Evaluator Verdict: $verdict
+
+## Convergence
+
+**Route**: $route
+
+**Reason**: $convergence_reason
+
+## Outcome
+
+Round completed successfully and converged.
+EOF
+
+    echo "✓ Round summary written: $summary_artifact"
 }
 
 # Main execution loop

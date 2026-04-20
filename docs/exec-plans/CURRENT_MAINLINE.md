@@ -23,7 +23,7 @@ None.
 
 ## Next single action
 
-Start MVP Round 3: Close the convergence loop with clean stop after evaluator acceptance.
+MVP complete. Next: prove with real repo-internal task or expand to external tasks.
 
 ## Round completion criteria
 
