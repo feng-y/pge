@@ -4,12 +4,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P0 / Blocker
 
-- **Generator and Evaluator agents are stubs that do not execute real work**
-  - Symptom: Skill converges with PASS but actual deliverable is never created
-  - Root cause: Agents produce test artifacts instead of reading upstream plan and executing it
-  - Impact: Skill appears to work but produces no real value
-  - Evidence: Post-MVP proving round 004 (run-1776666837)
-  - Next: Implement real generator that executes upstream plan, real evaluator that verifies actual deliverable
+None.
 
 ## P1 / Follow-up
 
@@ -24,6 +19,12 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## Resolved
 
+- **Generator and Evaluator agents are stubs that do not execute real work** — Fixed in agent hardening round (commit e10588d)
+  - Symptom: Skill converges with PASS but actual deliverable is never created
+  - Root cause: Agents produce meta-artifacts instead of reading upstream plan and executing it
+  - Impact: Skill appears to work but produces no real value
+  - Evidence: Post-MVP proving round 004
+  - Fix: Implemented real Generator with semantic guardrails against placeholder artifacts, real Evaluator with hard PASS conditions preventing artifact-exists-only approval
 - The support-layer setup round has landed.
 - The first proving task is fixed as `run-001`.
 - `commands/start-round.md` and `commands/close-round.md` now provide the executable round entry/closure path.

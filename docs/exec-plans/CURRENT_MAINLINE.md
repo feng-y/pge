@@ -10,7 +10,7 @@ Execute the MVP in three bounded rounds as defined in `docs/exec-plans/MVP_EXECU
 
 ## Current P0 blockers
 
-Generator and Evaluator agents are stubs - they produce test artifacts instead of executing real work. Exposed in post-MVP proving round 004.
+None.
 
 ## Explicit non-goals for this stage
 
@@ -23,7 +23,7 @@ Generator and Evaluator agents are stubs - they produce test artifacts instead o
 
 ## Next single action
 
-Implement real generator and evaluator agents that execute actual work instead of producing stub artifacts.
+Run a real proving task through the updated agents to verify they execute actual work and validate real deliverables.
 
 ## Round completion criteria
 
