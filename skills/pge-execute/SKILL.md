@@ -65,6 +65,7 @@ Create runtime state at `.pge-runtime-state.json`:
   "round_id": "round-1",
   "state": "intake_pending",
   "upstream_plan_ref": "{upstream_plan}",
+  "active_slice_ref": "",
   "active_round_contract_ref": "",
   "latest_preflight_result": "",
   "run_stop_condition": "{single_round|until_converged}",
@@ -72,6 +73,8 @@ Create runtime state at `.pge-runtime-state.json`:
   "latest_evidence_ref": "",
   "latest_evaluation_verdict": "",
   "latest_route": "",
+  "unverified_areas": [],
+  "accepted_deviations": [],
   "route_reason": "",
   "convergence_reason": ""
 }
@@ -215,16 +218,37 @@ Runtime state: `.pge-runtime-state.json`
 
 ## State transitions
 
+Valid runtime states per `../../contracts/runtime-state-contract.md`:
+- `intake_pending`
+- `planning_round`
+- `preflight_pending`
+- `preflight_failed`
+- `ready_to_generate`
+- `generating`
+- `awaiting_evaluation`
+- `evaluating`
+- `routing`
+- `converged`
+- `failed_upstream`
+
 Valid state transitions per `../../contracts/runtime-state-contract.md`:
 - `intake_pending` → `planning_round`
+- `intake_pending` → `failed_upstream`
 - `planning_round` → `preflight_pending`
-- `preflight_pending` → `ready_to_generate` | `preflight_failed`
+- `planning_round` → `failed_upstream`
+- `preflight_pending` → `ready_to_generate`
+- `preflight_pending` → `preflight_failed`
 - `preflight_failed` → `planning_round`
 - `ready_to_generate` → `generating`
 - `generating` → `awaiting_evaluation`
+- `generating` → `routing`
 - `awaiting_evaluation` → `evaluating`
 - `evaluating` → `routing`
-- `routing` → `converged` | `retry` | `return_to_planner` | `continue`
+- `routing` → `planning_round`
+- `routing` → `generating`
+- `routing` → `converged`
+
+Routing outcomes such as `continue`, `retry`, and `return_to_planner` are route tokens, not runtime states; apply them via `../../contracts/routing-contract.md` to determine the next valid state transition.
 
 ## Non-goals
 
