@@ -24,7 +24,7 @@ PGE is now packaged as a Claude Code plugin source repo.
 - Plugin metadata lives at `.claude-plugin/plugin.json`
 - Canonical source artifacts remain in `skills/`, `agents/`, and `contracts/`
 - The repo-local `.claude/` tree is a development-time projection surface only; it is not the packaged runtime layout
-- Marketplace catalog entries belong in a separate marketplace repo, not in this source repo
+- This repo now serves as both the plugin source repo and the single-plugin marketplace source for `pge`
 
 Installed plugin bundles should expose this plugin-facing layout:
 
@@ -48,6 +48,10 @@ PGE is installed through the Claude Code marketplace at `feng-y/pge`.
 
 Plugin name: `pge`
 Marketplace name: `pge`
+
+This repo now includes both manifests Claude Code expects:
+- `.claude-plugin/marketplace.json` for marketplace registration
+- `.claude-plugin/plugin.json` for the plugin itself
 
 In Claude Code, register the marketplace first:
 

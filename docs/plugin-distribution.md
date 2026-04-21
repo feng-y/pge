@@ -4,7 +4,7 @@
 
 This repo is the **source repo** for the PGE Claude Code plugin.
 
-It is not the marketplace catalog repo, and it is not an installed `.claude/` runtime tree.
+It also serves as the **single-plugin marketplace repo** for `pge`, and it is not an installed `.claude/` runtime tree.
 
 The goal of this packaging layer is to make PGE installable and updatable through the Claude Code plugin marketplace model while preserving the existing source-oriented layout.
 
@@ -60,27 +60,23 @@ The manifest is authoritative for:
 - explicit plugin version (`version`)
 - installable runtime-facing skill/agent exposure
 
-## Marketplace catalog separation
+## Marketplace manifest
 
-Official Claude Code marketplace catalogs live in a **separate marketplace repo** and define entries in `.claude-plugin/marketplace.json`.
+This repo now includes a marketplace catalog at:
 
-This source repo should not pretend to be the marketplace host.
+- `.claude-plugin/marketplace.json`
 
-Instead, a marketplace repo should carry an entry for this plugin that points to this source repo.
+The catalog exposes a single plugin entry:
+- marketplace name: `pge`
+- plugin name: `pge`
+- plugin source: `./`
 
-Illustrative marketplace entry shape:
+Using `source: "./"` keeps the marketplace entry pointed at this repo's existing plugin root.
+That allows Claude Code to:
+- add `feng-y/pge` as a marketplace
+- install `pge` from that marketplace with `pge@pge`
 
-```json
-{
-  "name": "pge",
-  "source": {
-    "type": "github",
-    "repo": "OWNER/REPO"
-  }
-}
-```
-
-The exact marketplace catalog belongs outside this repo.
+This is the minimum same-repo marketplace layout. A separate marketplace repo remains optional later, but it is not required for current install support.
 
 ## Versioning policy
 

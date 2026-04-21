@@ -1,0 +1,13 @@
+{
+  "name": "pge",
+  "owner": {
+    "name": "PGE contributors"
+  },
+  "plugins": [
+    {
+      "name": "pge",
+      "description": "Bounded Planner/Generator/Evaluator execution flow for Claude Code.",
+      "source": "./"
+    }
+  ]
+}

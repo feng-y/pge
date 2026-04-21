@@ -8,9 +8,9 @@ None.
 
 ## P1 / Follow-up
 
-- **Marketplace publication still external**: This source repo now defines the installable plugin, but the marketplace catalog entry must live in a separate marketplace repo
-  - Impact: Medium (plugin packaging is done, but marketplace publication is not represented inside this repo by design)
-  - Next: add a `pge` entry in the external marketplace repo and test install/update through that catalog
+- **Marketplace install path still unverified**: This repo now carries both the plugin manifest and the same-repo marketplace catalog, but the actual add/install flow still needs to be exercised end-to-end
+  - Impact: Medium (catalog shape is present, but the real Claude Code marketplace flow must still be proven)
+  - Next: test `/plugin marketplace add feng-y/pge` and `/plugin install pge@pge`
 
 - **Runtime contract proving still needed**: Latest interface alignment is doc-level until exercised through a real `/pge` run
   - Planner / Generator / Evaluator / skill now share current-task vocabulary on paper
