@@ -2,11 +2,11 @@
 
 ## Current overall goal
 
-Get `feat/pge-agents-contracts-skeleton` into its first real Phase 1 proving run.
+Make PGE installable and updatable through the Claude Code plugin marketplace flow without relying on development-time `.claude/` symlinks.
 
 ## Current stage goal
 
-Execute the MVP in three bounded rounds as defined in `docs/exec-plans/MVP_EXECUTION_PLAN.md`.
+Add the minimum plugin packaging layer that keeps the repo source-oriented while making the installed runtime layout, contracts placement, and version/update behavior explicit.
 
 ## Current P0 blockers
 
@@ -14,20 +14,21 @@ None.
 
 ## Explicit non-goals for this stage
 
-- multi-round task execution
-- Phase 2/3 harness expansion
-- runtime state persistence beyond one round
-- error recovery or retry logic
-- parallel workstream support
-- external proving tasks (only repo-internal for MVP)
+- redesigning Planner / Generator / Evaluator semantics
+- redesigning runtime orchestration broadly
+- converting the source repo into a `.claude` runtime tree
+- installing contracts as top-level `.claude/contracts/`
+- building a custom updater framework beyond the marketplace/plugin model
 
 ## Next single action
 
-Test via actual `/pge` skill invocation to verify runtime properly consumes the newly aligned current-task Planner → Generator → Evaluator vocabulary (not stale older wording).
+None in this repo for the active round. The next external step, if desired, is to publish a marketplace catalog entry from a separate marketplace repo and test install/update through that catalog.
 
 ## Round completion criteria
 
-The MVP stage is done when:
-- Round 3 succeeds with a real repo-internal task
-- the skill routes to `converged` when the reviewer accepts
-- the skill stops cleanly after convergence without manual intervention
+This stage is done when:
+- the repo has explicit plugin metadata with versioning
+- the installed runtime layout is documented clearly
+- contracts are packaged in a sane plugin-owned location
+- source layout vs installed layout is explicit
+- update behavior is documented through the marketplace/plugin flow

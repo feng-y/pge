@@ -1,3 +1,7 @@
+---
+description: Close one bounded proving or development round
+---
+
 # close-round
 
 Use this command to close one bounded proving/development round.

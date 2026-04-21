@@ -1,3 +1,7 @@
+---
+description: Start one bounded proving or development round
+---
+
 # start-round
 
 Use this command to start one bounded proving/development round.

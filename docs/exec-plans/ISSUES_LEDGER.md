@@ -8,6 +8,10 @@ None.
 
 ## P1 / Follow-up
 
+- **Marketplace publication still external**: This source repo now defines the installable plugin, but the marketplace catalog entry must live in a separate marketplace repo
+  - Impact: Medium (plugin packaging is done, but marketplace publication is not represented inside this repo by design)
+  - Next: add a `pge` entry in the external marketplace repo and test install/update through that catalog
+
 - **Runtime contract proving still needed**: Latest interface alignment is doc-level until exercised through a real `/pge` run
   - Planner / Generator / Evaluator / skill now share current-task vocabulary on paper
   - Need to verify real runtime consumes the aligned fields without fallback to older wording
@@ -34,6 +38,12 @@ None.
 
 ## Resolved
 
+- **Plugin packaging layer missing** — Fixed in plugin packaging / marketplace round
+  - Symptom: normal usage depended on repo-local `.claude/` projection instead of the Claude Code plugin marketplace/install flow
+  - Root cause: the source repo had no formal plugin manifest, no explicit versioned plugin identity, and no documented installed runtime layout
+  - Impact: High for distribution and upgrade clarity
+  - Evidence: repo inspection showed only source seams plus dev-time `.claude/` symlink projection, with no `.claude-plugin/plugin.json`; `claude plugin validate /code/b/pge` now passes; `claude -p --plugin-dir /code/b/pge "/pge-execute test"` successfully loads the packaged skill surface
+  - Fix: added `.claude-plugin/plugin.json`, documented installed plugin layout and update path, and kept contracts as plugin-owned supporting files under `contracts/` rather than top-level `.claude/contracts/`
 - **P/G/E current-task vocabulary drift** — Fixed in interface alignment round
   - Symptom: Planner, Generator, Evaluator, and skill used overlapping but mismatched handoff language
   - Root cause: Planner moved to current-task semantics while Generator/Evaluator/skill still carried older round-contract wording

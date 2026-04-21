@@ -1,3 +1,9 @@
+---
+name: pge-execute
+description: Use this skill when bounded repo-internal work needs one explicit Planner → Generator → Evaluator execution round with clear acceptance gates.
+version: 0.1.0
+---
+
 # pge-execute
 
 Execute one bounded PGE round: freeze one current-task contract → generate → evaluate → route.

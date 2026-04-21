@@ -1,3 +1,9 @@
+---
+name: pge-main
+description: Routes the current round from Planner, Generator, and Evaluator outputs without doing role work itself.
+tools: Read, Grep, Glob
+---
+
 # Main
 
 ## responsibility

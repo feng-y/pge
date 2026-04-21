@@ -17,6 +17,38 @@ skills/
 ## Current skill
 - `skills/pge-execute/SKILL.md`
 
+## Plugin packaging
+
+PGE is now packaged as a Claude Code plugin source repo.
+
+- Plugin metadata lives at `.claude-plugin/plugin.json`
+- Canonical source artifacts remain in `skills/`, `agents/`, and `contracts/`
+- The repo-local `.claude/` tree is a development-time projection surface only; it is not the packaged runtime layout
+- Marketplace catalog entries belong in a separate marketplace repo, not in this source repo
+
+Installed plugin bundles keep the same source-oriented component layout:
+
+```text
+.claude-plugin/plugin.json
+skills/pge-execute/SKILL.md
+agents/planner.md
+agents/generator.md
+agents/evaluator.md
+contracts/*.md
+```
+
+Contracts are packaged as plugin-owned supporting files under `contracts/` in the installed bundle. They are not installed as a top-level `.claude/contracts/` runtime directory.
+
+## Install and update flow
+
+Intended distribution path:
+
+1. Add or refresh a marketplace that points to a catalog repo containing a `pge` entry
+2. Install or update the plugin through the marketplace/plugin flow
+3. Use `/reload-plugins` if the current Claude Code session needs to reload plugin contents
+
+Distributable changes should bump the version in `.claude-plugin/plugin.json` so marketplace/plugin update detection remains explicit.
+
 ## Normalized execution-core seams
 
 For proving runs, the following files define the normative execution-core semantics:
