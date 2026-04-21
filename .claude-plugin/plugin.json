@@ -1,0 +1,14 @@
+{
+  "name": "pge",
+  "version": "0.1.1",
+  "description": "Bounded Planner/Generator/Evaluator execution flow for Claude Code.",
+  "author": {
+    "name": "PGE contributors"
+  },
+  "skills": "./skills/",
+  "agents": [
+    "./agents/planner.md",
+    "./agents/generator.md",
+    "./agents/evaluator.md"
+  ]
+}

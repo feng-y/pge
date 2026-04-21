@@ -1,5 +1,10 @@
 # Phase Contract
 
+## Normalization status
+
+For the current PGE execution-core proof, `agents/*.md` and `contracts/*.md` are the normative seam set.
+This file is a supporting reference for stronger planning guidance and must not silently override the normalized entry, round, routing, or runtime-state seams.
+
 Use this file when Planner operates across the continuous planning lane: when the incoming plan is too large, it first slices into the current phase/slice; then it freezes the current phase and shapes the current task as a bounded, plan-faithful execution slice.
 
 ## Phase contract

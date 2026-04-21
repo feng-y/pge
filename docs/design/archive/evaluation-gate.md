@@ -1,5 +1,10 @@
 # Evaluation Gate
 
+## Normalization status
+
+For the current PGE execution-core proof, `agents/*.md` and `contracts/*.md` are the normative seam set.
+This file is a supporting reference for richer evaluator guidance and must not silently override the normalized verdict and routing seams.
+
 Use this file when Evaluator performs independent acceptance on whether the current task is actually complete under both the blueprint and the current task slice.
 
 ## Independent acceptance

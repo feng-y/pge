@@ -1,8 +1,13 @@
 # progress.md
 
+## Normalization status
+
+For the current PGE execution-core proof, `agents/*.md` and `contracts/*.md` are the normative seam set.
+This file is a supporting reference for the human-visible progress surface and must not silently override the normalized runtime seams.
+
 Use this file when maintaining state across multiple rounds.
 
-`progress.md` is the canonical state file for Main / Scheduler. Keep it short. Generator and Evaluator append execution and evaluation state when they produce new results.
+`progress.md` is the canonical human-visible progress surface for Main. Keep it short. Generator and Evaluator append execution and evaluation state when they produce new results. It must stay aligned with the normalized runtime-state seam rather than override it.
 
 ## What `progress.md` should record
 
@@ -31,11 +36,11 @@ Its job is to preserve the current execution and routing state across rounds.
 
 ## Update points
 
-Main / Scheduler should update `progress.md` at these points:
+Main should update `progress.md` at these points:
 1. after blueprint alignment,
 2. after the Generator returns the current deliverable,
 3. after each evaluation round,
-4. after Main / Scheduler routes continue / retry / shrink / return to Planner / handoff.
+4. after Main routes `continue` / `retry` / `return_to_planner` / `converged`.
 
 ## Mandatory updates by role
 
@@ -109,7 +114,7 @@ Example for ESCALATE:
 
 **Do NOT skip this step.** Main / Scheduler needs this to make decisions.
 
-### Main / Scheduler (after routing decision)
+### Main (after routing decision)
 
 After receiving task completion or evaluation notifications:
 
