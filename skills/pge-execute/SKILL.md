@@ -1,7 +1,7 @@
 ---
 name: pge-execute
 description: Use this skill when bounded repo-internal work needs one explicit Planner → Generator → Evaluator execution round with clear acceptance gates.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # pge-execute
@@ -51,7 +51,10 @@ Each agent has a defined responsibility boundary. See `agents/` for their contra
 
 ## Contracts
 
-Agent handoffs follow contracts defined in `../../contracts/`:
+Installed plugin bundles treat these contracts as supporting files of `pge-execute` under `skills/pge-execute/contracts/`.
+Canonical source contracts still live at repo root in `contracts/` for development.
+
+Agent handoffs follow contracts defined in `./contracts/`:
 
 - `entry-contract.md`: Entry conditions for PGE execution
 - `round-contract.md`: Structure of round contracts
@@ -94,7 +97,7 @@ Spawn **planner** agent using the Agent tool:
 - `subagent_type`: "general-purpose"
 - `prompt`: Load and provide `../../agents/planner.md` instructions
 - Input: upstream plan, current runtime state
-- Task: Freeze one current-task plan / bounded round contract per `../../contracts/round-contract.md`
+- Task: Freeze one current-task plan / bounded round contract per `./contracts/round-contract.md`
 
 The planner must produce a round contract artifact at `.pge-artifacts/{run_id}-planner-output.md` with:
 - `goal`: What the current task must settle
@@ -184,7 +187,7 @@ Update runtime state:
 
 ### 6. Routing
 
-Route based on verdict and stop condition per `../../contracts/routing-contract.md`:
+Route based on verdict and stop condition per `./contracts/routing-contract.md`:
 
 **PASS verdict:**
 - If `run_stop_condition` is `single_round`: route to `converged`
@@ -224,7 +227,7 @@ Runtime state: `.pge-runtime-state.json`
 
 ## State transitions
 
-Valid runtime states per `../../contracts/runtime-state-contract.md`:
+Valid runtime states per `./contracts/runtime-state-contract.md`:
 - `intake_pending`
 - `planning_round`
 - `preflight_pending`
@@ -237,7 +240,7 @@ Valid runtime states per `../../contracts/runtime-state-contract.md`:
 - `converged`
 - `failed_upstream`
 
-Valid state transitions per `../../contracts/runtime-state-contract.md`:
+Valid state transitions per `./contracts/runtime-state-contract.md`:
 - `intake_pending` → `planning_round`
 - `intake_pending` → `failed_upstream`
 - `planning_round` → `preflight_pending`
@@ -254,7 +257,7 @@ Valid state transitions per `../../contracts/runtime-state-contract.md`:
 - `routing` → `generating`
 - `routing` → `converged`
 
-Routing outcomes such as `continue`, `retry`, and `return_to_planner` are route tokens, not runtime states; apply them via `../../contracts/routing-contract.md` to determine the next valid state transition.
+Routing outcomes such as `continue`, `retry`, and `return_to_planner` are route tokens, not runtime states; apply them via `./contracts/routing-contract.md` to determine the next valid state transition.
 
 ## Non-goals
 

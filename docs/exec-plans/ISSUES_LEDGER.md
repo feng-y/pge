@@ -43,7 +43,7 @@ None.
   - Root cause: the source repo had no formal plugin manifest, no explicit versioned plugin identity, and no documented installed runtime layout
   - Impact: High for distribution and upgrade clarity
   - Evidence: repo inspection showed only source seams plus dev-time `.claude/` symlink projection, with no `.claude-plugin/plugin.json`; `claude plugin validate /code/b/pge` now passes; `claude -p --plugin-dir /code/b/pge "/pge-execute test"` successfully loads the packaged skill surface
-  - Fix: added `.claude-plugin/plugin.json`, documented installed plugin layout and update path, and kept contracts as plugin-owned supporting files under `contracts/` rather than top-level `.claude/contracts/`
+  - Fix: added `.claude-plugin/plugin.json`, documented installed plugin layout and update path, and treated contracts as `pge-execute` supporting files under `skills/pge-execute/contracts/` rather than top-level `.claude/contracts/`
 - **P/G/E current-task vocabulary drift** — Fixed in interface alignment round
   - Symptom: Planner, Generator, Evaluator, and skill used overlapping but mismatched handoff language
   - Root cause: Planner moved to current-task semantics while Generator/Evaluator/skill still carried older round-contract wording

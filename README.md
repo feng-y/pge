@@ -26,26 +26,83 @@ PGE is now packaged as a Claude Code plugin source repo.
 - The repo-local `.claude/` tree is a development-time projection surface only; it is not the packaged runtime layout
 - Marketplace catalog entries belong in a separate marketplace repo, not in this source repo
 
-Installed plugin bundles keep the same source-oriented component layout:
+Installed plugin bundles should expose this plugin-facing layout:
 
 ```text
 .claude-plugin/plugin.json
 skills/pge-execute/SKILL.md
+skills/pge-execute/contracts/*.md
 agents/planner.md
 agents/generator.md
 agents/evaluator.md
-contracts/*.md
 ```
 
-Contracts are packaged as plugin-owned supporting files under `contracts/` in the installed bundle. They are not installed as a top-level `.claude/contracts/` runtime directory.
+`contracts/` remains the canonical source location in this repo, but the installed/plugin-facing payload treats those files as supporting files of `pge-execute` under `skills/pge-execute/contracts/`.
+They are not installed as a top-level `.claude/contracts/` runtime directory.
 
 ## Install and update flow
 
-Intended distribution path:
+### Claude Code marketplace install
 
-1. Add or refresh a marketplace that points to a catalog repo containing a `pge` entry
-2. Install or update the plugin through the marketplace/plugin flow
-3. Use `/reload-plugins` if the current Claude Code session needs to reload plugin contents
+PGE is installed through the Claude Code marketplace at `feng-y/pge`.
+
+Plugin name: `pge`
+Marketplace name: `pge`
+
+In Claude Code, register the marketplace first:
+
+```text
+/plugin marketplace add feng-y/pge
+```
+
+Then install the plugin from that marketplace:
+
+```text
+/plugin install pge@pge
+```
+
+If you want the marketplace registered at project scope instead of user scope, use the CLI form:
+
+```bash
+claude plugin marketplace add --scope project feng-y/pge
+```
+
+### Update marketplace metadata
+
+Refresh all configured marketplaces:
+
+```text
+/plugin marketplace update
+```
+
+Or refresh this marketplace explicitly:
+
+```text
+/plugin marketplace update pge
+```
+
+### Update or reinstall PGE
+
+Update the installed plugin:
+
+```text
+/plugin update pge
+```
+
+If you need a clean reinstall:
+
+```text
+/plugin uninstall pge
+/plugin install pge@pge
+```
+
+### Reload plugins in the current session
+
+If Claude Code is already running, reload installed plugin contents:
+
+```text
+/reload-plugins
+```
 
 Distributable changes should bump the version in `.claude-plugin/plugin.json` so marketplace/plugin update detection remains explicit.
 

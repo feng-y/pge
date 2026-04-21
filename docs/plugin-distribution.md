@@ -25,29 +25,29 @@ The repo-local `.claude/` directory is only a development-time projection surfac
 
 ### Installed plugin layout
 
-When Claude Code installs the plugin, the bundle should preserve the same component-oriented shape:
+When Claude Code installs the plugin, the plugin-facing bundle should expose this shape:
 
 ```text
 .claude-plugin/plugin.json
 skills/pge-execute/SKILL.md
+skills/pge-execute/contracts/*.md
 agents/planner.md
 agents/generator.md
 agents/evaluator.md
-contracts/*.md
 ```
 
-This keeps the source layout and installed layout aligned semantically without forcing the source repo to become an installed runtime tree.
+This keeps the source repo source-oriented without treating `contracts/` as a top-level installed runtime concept.
 
 ## Contracts placement
 
-Contracts are installed as **plugin-owned supporting files** under `contracts/` inside the plugin bundle.
+Contracts are installed as **plugin-owned supporting files** under `skills/pge-execute/contracts/` inside the plugin bundle.
 
 Why this layout was chosen:
-- `pge-execute` already references contracts by relative path from `skills/pge-execute/SKILL.md`
-- packaging contracts at plugin root keeps those references stable
-- contracts remain bundled with the plugin
+- `pge-execute` is the runtime-facing skill that consumes these contracts
+- installed layout should make the ownership relation explicit
+- source `contracts/` can remain at repo root for development without forcing the source repo to become the installed tree
 - this avoids a top-level `.claude/contracts/` runtime directory
-- this avoids duplicating the contract files under the skill directory
+- this avoids broader plugin architecture changes beyond the current install correction
 
 ## Plugin manifest
 
