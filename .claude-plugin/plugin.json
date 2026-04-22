@@ -7,8 +7,8 @@
   },
   "skills": "./skills/",
   "agents": [
-    "./agents/planner.md",
-    "./agents/generator.md",
-    "./agents/evaluator.md"
+    "./agents/pge-planner.md",
+    "./agents/pge-generator.md",
+    "./agents/pge-evaluator.md"
   ]
 }

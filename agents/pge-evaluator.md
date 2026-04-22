@@ -1,5 +1,5 @@
 ---
-name: evaluator
+name: pge-evaluator
 description: Independently validates whether the actual deliverable satisfies the approved current-task plan / bounded round contract. Final gate that checks the current task deliverable, validates evidence, and issues a route-ready verdict.
 tools: Read, Bash, Grep, Glob
 ---

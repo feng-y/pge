@@ -32,9 +32,9 @@ Installed plugin bundles should expose this plugin-facing layout:
 .claude-plugin/plugin.json
 skills/pge-execute/SKILL.md
 skills/pge-execute/contracts/*.md
-agents/planner.md
-agents/generator.md
-agents/evaluator.md
+agents/pge-planner.md
+agents/pge-generator.md
+agents/pge-evaluator.md
 ```
 
 `contracts/` remains the canonical source location in this repo, but the installed/plugin-facing payload treats those files as supporting files of `pge-execute` under `skills/pge-execute/contracts/`.
@@ -135,7 +135,7 @@ The helper intentionally installs only the runtime-facing PGE payload:
 - `SKILL.md`
 - `skills/pge-execute/SKILL.md`
 - `skills/pge-execute/contracts/*.md`
-- `agents/{planner,generator,evaluator}.md`
+- `agents/pge-{planner,generator,evaluator}.md`
 
 It does not copy docs, proving artifacts, or other repo-only files.
 

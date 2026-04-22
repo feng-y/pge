@@ -5,18 +5,20 @@ usage() {
   cat <<'EOF'
 Usage: ./bin/pge-local-install.sh [--clean] [--help]
 
-Install the local PGE skill into ~/.claude/skills using the same install shape gstack uses:
+Install the local PGE skill into ~/.claude/skills and agents into ~/.claude/agents:
 - ~/.claude/skills/pge as the runtime root
 - ~/.claude/skills/pge-execute/SKILL.md as the top-level discovered skill entry
+- ~/.claude/agents/pge-{planner,generator,evaluator}.md as discoverable agents
 
 Options:
-  --clean   Remove the local PGE install from ~/.claude/skills and exit.
+  --clean   Remove the local PGE install from ~/.claude/skills and ~/.claude/agents, then exit.
   --help    Show this help text.
 EOF
 }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 skills_dir="${HOME}/.claude/skills"
+agents_dir="${HOME}/.claude/agents"
 install_dir="${skills_dir}/pge"
 entry_dir="${skills_dir}/pge-execute"
 clean_only=0
@@ -43,7 +45,8 @@ mkdir -p "$skills_dir"
 
 if [[ "$clean_only" -eq 1 ]]; then
   rm -rf "$install_dir" "$entry_dir"
-  printf 'Removed local PGE install from: %s\n' "$skills_dir"
+  rm -f "$agents_dir/pge-planner.md" "$agents_dir/pge-generator.md" "$agents_dir/pge-evaluator.md"
+  printf 'Removed local PGE install from: %s and %s\n' "$skills_dir" "$agents_dir"
   exit 0
 fi
 
@@ -61,9 +64,9 @@ mkdir -p \
 cp "$repo_root/.claude-plugin/plugin.json" "$tmp_dir/.claude-plugin/plugin.json"
 cp "$repo_root/SKILL.md" "$tmp_dir/SKILL.md"
 cp "$repo_root/skills/pge-execute/SKILL.md" "$tmp_dir/skills/pge-execute/SKILL.md"
-cp "$repo_root/agents/planner.md" "$tmp_dir/agents/planner.md"
-cp "$repo_root/agents/generator.md" "$tmp_dir/agents/generator.md"
-cp "$repo_root/agents/evaluator.md" "$tmp_dir/agents/evaluator.md"
+cp "$repo_root/agents/pge-planner.md" "$tmp_dir/agents/pge-planner.md"
+cp "$repo_root/agents/pge-generator.md" "$tmp_dir/agents/pge-generator.md"
+cp "$repo_root/agents/pge-evaluator.md" "$tmp_dir/agents/pge-evaluator.md"
 cp "$repo_root/skills/pge-execute/contracts/"*.md "$tmp_dir/skills/pge-execute/contracts/"
 
 python - <<'PY' "$tmp_dir"
@@ -114,6 +117,11 @@ trap - EXIT
 mkdir -p "$entry_dir"
 ln -snf "$install_dir/skills/pge-execute/SKILL.md" "$entry_dir/SKILL.md"
 
+mkdir -p "$agents_dir"
+cp "$install_dir/agents/pge-planner.md" "$agents_dir/pge-planner.md"
+cp "$install_dir/agents/pge-generator.md" "$agents_dir/pge-generator.md"
+cp "$install_dir/agents/pge-evaluator.md" "$agents_dir/pge-evaluator.md"
+
 manifest_summary="$(python - <<'PY'
 import json
 from pathlib import Path
@@ -140,6 +148,10 @@ Installed local PGE skill to:
   $install_dir
 Exposed top-level skill at:
   $entry_dir/SKILL.md
+Installed discoverable agents to:
+  $agents_dir/pge-planner.md
+  $agents_dir/pge-generator.md
+  $agents_dir/pge-evaluator.md
 $manifest_summary
 ${installed_plugin_warning:+$installed_plugin_warning
 }

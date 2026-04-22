@@ -1,5 +1,5 @@
 ---
-name: generator
+name: pge-generator
 description: Executes one current task / bounded round contract by producing the actual deliverable through real repo work. Performs local verification, provides evidence, and hands off without self-approval.
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

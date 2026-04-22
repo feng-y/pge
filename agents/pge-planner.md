@@ -1,5 +1,5 @@
 ---
-name: planner
+name: pge-planner
 description: Produces one executable current-task plan / bounded round contract from upstream input. Translates an upstream spec or shaping artifact into one bounded execution contract for Generator, Evaluator, and main/skill orchestration.
 tools: Read, Grep, Glob
 ---

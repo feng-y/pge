@@ -25,10 +25,10 @@ Do NOT use for:
 
 Executes one bounded PGE round:
 
-1. **Planning phase**: Spawn Planner agent to freeze one current-task plan / bounded round contract
+1. **Planning phase**: Spawn pge-planner agent to freeze one current-task plan / bounded round contract
 2. **Preflight check**: Validate the current-task contract is executable and independently evaluable
-3. **Generation phase**: Spawn Generator agent to execute the current task and produce deliverable + local verification evidence
-4. **Evaluation phase**: Spawn Evaluator agent to independently validate the current task deliverable
+3. **Generation phase**: Spawn pge-generator agent to execute the current task and produce deliverable + local verification evidence
+4. **Evaluation phase**: Spawn pge-evaluator agent to independently validate the current task deliverable
 5. **Routing**: Route based on verdict and stop condition
 
 ## Input
@@ -43,13 +43,13 @@ Optional:
 
 This skill dispatches installed plugin agents by runtime-facing agent identity:
 
-- **planner**: Freezes one current-task plan / bounded round contract
-- **generator**: Executes one current task, performs local verification, and produces a deliverable bundle
-- **evaluator**: Independently validates the current task deliverable and issues the final gate verdict
+- **pge-planner**: Freezes one current-task plan / bounded round contract
+- **pge-generator**: Executes one current task, performs local verification, and produces a deliverable bundle
+- **pge-evaluator**: Independently validates the current task deliverable and issues the final gate verdict
 
 The files in `../../agents/` are the packaged agent definitions that Claude Code auto-discovers at install time.
 They are not runtime prompt attachments for the main session to read and replay.
-The runtime path must dispatch the installed `planner`, `generator`, and `evaluator` agents directly.
+The runtime path must dispatch the installed `pge-planner`, `pge-generator`, and `pge-evaluator` agents directly.
 
 ## Contracts
 
@@ -95,13 +95,13 @@ Transition to `planning_round` state.
 
 ### 2. Planning phase
 
-Dispatch the installed **planner** agent using the Agent tool:
-- `subagent_type`: `planner`
+Dispatch the installed **pge-planner** agent using the Agent tool:
+- `subagent_type`: `pge-planner`
 - Input: upstream plan, current runtime state, output artifact path, and the required contract fields from `./contracts/round-contract.md`
 - Task: Freeze one current-task plan / bounded round contract
 
-Do not have the main session read `../../agents/planner.md` and simulate the role.
-The installed `planner` agent already carries its own role instructions at runtime.
+Do not have the main session read `../../agents/pge-planner.md` and simulate the role.
+The installed `pge-planner` agent already carries its own role instructions at runtime.
 
 The planner must produce a round contract artifact at `.pge-artifacts/{run_id}-planner-output.md` with:
 - `goal`: What the current task must settle
@@ -137,13 +137,13 @@ If preflight fails:
 
 ### 4. Generation phase
 
-Dispatch the installed **generator** agent using the Agent tool:
-- `subagent_type`: `generator`
+Dispatch the installed **pge-generator** agent using the Agent tool:
+- `subagent_type`: `pge-generator`
 - Input: current-task contract, minimal repo context, output artifact path, and required implementation bundle fields
 - Task: Execute the current task, run local verification, and produce the actual deliverable bundle
 
-Do not have the main session read `../../agents/generator.md` and simulate the role.
-The installed `generator` agent already carries its own role instructions at runtime.
+Do not have the main session read `../../agents/pge-generator.md` and simulate the role.
+The installed `pge-generator` agent already carries its own role instructions at runtime.
 
 The generator must produce an implementation bundle at `.pge-artifacts/{run_id}-generator-output.md` with:
 - `current_task`: What current task was executed
@@ -165,13 +165,13 @@ Update runtime state:
 
 ### 5. Evaluation phase
 
-Dispatch the installed **evaluator** agent using the Agent tool:
-- `subagent_type`: `evaluator`
+Dispatch the installed **pge-evaluator** agent using the Agent tool:
+- `subagent_type`: `pge-evaluator`
 - Input: current-task contract, implementation bundle, current runtime state when needed, output artifact path, and required verdict bundle sections
 - Task: Independently validate the current task deliverable against the same contract
 
-Do not have the main session read `../../agents/evaluator.md` and simulate the role.
-The installed `evaluator` agent already carries its own role instructions at runtime.
+Do not have the main session read `../../agents/pge-evaluator.md` and simulate the role.
+The installed `pge-evaluator` agent already carries its own role instructions at runtime.
 
 The evaluator must produce a verdict bundle at `.pge-artifacts/{run_id}-evaluator-verdict.md` using markdown with these top-level sections:
 - `## verdict`
