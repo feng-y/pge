@@ -18,7 +18,7 @@ Planner hands Generator exactly one current-task / bounded round contract with:
 - `actual_deliverable`: the real artifact this current task must produce
 - `verification_path`: the primary way this current task will be checked
 - `acceptance_criteria`: the minimum conditions that must be true for this current task to count as complete
-- `required_evidence`: the minimum evidence Evaluator must see to judge the current task independently
+- `required_evidence`: the minimum evidence Evaluator must see to judge the current task independently; for single-round proving this may include current-run control-plane artifacts that already exist by evaluation time, but must not require post-route artifacts such as the round summary before PASS
 - `stop_condition`: what marks the current task as done for routing purposes
 - `out_of_scope`: what must remain out of scope for this current task
 - `handoff_seam`: where later work can continue without reopening this current task

@@ -2,11 +2,11 @@
 
 ## Current overall goal
 
-Make PGE installable and updatable through the Claude Code plugin marketplace flow without relying on development-time `.claude/` symlinks.
+Make `pge-execute` actually runnable as a real orchestration skill.
 
 ## Current stage goal
 
-Add the minimum plugin packaging layer that keeps the repo source-oriented while making the installed runtime layout, contracts placement, and version/update behavior explicit.
+Evaluate whether agent-team orchestration is actually needed after the direct single-round path has been proven, and avoid adding it unless it unblocks a demonstrated need.
 
 ## Current P0 blockers
 
@@ -14,21 +14,28 @@ None.
 
 ## Explicit non-goals for this stage
 
-- redesigning Planner / Generator / Evaluator semantics
-- redesigning runtime orchestration broadly
-- converting the source repo into a `.claude` runtime tree
-- installing contracts as top-level `.claude/contracts/`
-- building a custom updater framework beyond the marketplace/plugin model
+- external task support
+- multi-round support
+- repo-specific disclosure docs
+- broad agent semantic redesign
+- heavy team orchestration
+- planner/generator/evaluator interface redesign beyond the already proven smoke path
 
 ## Next single action
 
-None in this repo for the active round. The next external step, if desired, is to publish a marketplace catalog entry from a separate marketplace repo and test install/update through that catalog.
+Do not implement heavy teams. Keep the direct dispatch path as the current mainline until a concrete blocker appears that the proven single-round path cannot handle.
 
 ## Round completion criteria
 
 This stage is done when:
-- the repo has explicit plugin metadata with versioning
-- the installed runtime layout is documented clearly
-- contracts are packaged in a sane plugin-owned location
-- source layout vs installed layout is explicit
-- update behavior is documented through the marketplace/plugin flow
+- the installed runtime-facing agents are discoverable under the names `pge-planner`, `pge-generator`, and `pge-evaluator`
+- `/pge-execute` runs as an imperative orchestration skill instead of only showing descriptive flow text
+- the runtime dispatch path uses the installed agents directly
+- planner, generator, and evaluator artifacts are persisted for one bounded run
+- routing result is explicit and inspectable
+- one minimal smoke round converges end-to-end through `PASS` + `converged`
+- consecutive smoke rounds write distinct runtime state files keyed by `run_id`
+- the second smoke round does not reuse or overwrite the first run's runtime state
+- one canonical proving packet exists with planner output, generator bundle, evaluator verdict, route, and round summary all inspectable from the same converged run
+- canonical schema semantics are aligned so evaluator evidence is judged against artifacts available by evaluation time and summary remains a post-route artifact
+- Phase 6 decision is explicit: heavy teams are not currently needed because the direct installed-agent dispatch path already proves the required bounded run without a demonstrated team-only blocker

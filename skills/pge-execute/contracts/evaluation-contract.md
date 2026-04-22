@@ -24,6 +24,7 @@ Meaning:
 Triggered when:
 - contract compliance is satisfied
 - evidence is sufficient
+- required evidence is judged against artifacts available by evaluation time, not against post-route artifacts written only after convergence
 - any deviation is either absent or already accepted within this round
 
 Local or escalated:

@@ -12,21 +12,9 @@ None.
   - Impact: Medium (catalog shape is present, but the real Claude Code marketplace flow must still be proven)
   - Next: test `/plugin marketplace add feng-y/pge` and `/plugin install pge@pge`
 
-- **Runtime contract proving still needed**: Latest interface alignment is doc-level until exercised through a real `/pge` run
-  - Planner / Generator / Evaluator / skill now share current-task vocabulary on paper
-  - Need to verify real runtime consumes the aligned fields without fallback to older wording
-  - Impact: Medium (could hide stale runtime assumptions)
-  - Next: Test via actual `/pge` skill invocation on a small repo-internal task
-- **Runtime integration gap**: Validation was manual simulation, not actual skill runtime execution
-  - Current `skills/pge-execute/skill.sh` has stub implementations embedded
-  - Need to verify runtime properly invokes agent .md files
-  - Impact: Medium (runtime may not use new agent definitions)
-  - Next: Test via actual `/pge` skill invocation
-- **Agent invocation mechanism unclear**: Agent .md files are definitions, but how does runtime execute them?
-  - Are they loaded as prompts to spawned agents?
-  - Are they referenced by the runtime?
-  - Impact: Medium (affects whether agents are actually used)
-  - Next: Clarify agent invocation model
+- **Legacy runtime state file still present on disk**: `.pge-runtime-state.json` remains as a historical artifact even though current runs now write per-run state files under `.pge-artifacts/`
+  - Impact: Low (stale artifact can confuse inspection, but recent runs are writing isolated per-run state files)
+  - Next: optionally remove the stale legacy file and update ignore/documentation references so only per-run state remains visible
 - Refine supporting governance docs only if a real proving run exposes contradiction or driveability pain.
 - Add richer runtime/progress formalization only if the first proving runs show the current control plane is insufficient.
 
@@ -62,6 +50,36 @@ None.
   - Impact: Skill appears to work but produces no real value
   - Evidence: Post-MVP proving round 004
   - Fix: Implemented real Generator with semantic guardrails against placeholder artifacts, real Evaluator with hard PASS conditions preventing artifact-exists-only approval
+- **Phase 6 team-need evaluation** — Fixed in Phase 6 decision round
+  - Symptom: after the direct dispatch path was proven, it was still unclear whether the next step should be heavy team orchestration or staying on the simpler mainline
+  - Root cause: earlier strategy material discussed multi-round and team-oriented futures, but the current proven runtime path had not yet been used to make an explicit go/no-go decision on teams
+  - Impact: Medium (without an explicit decision, scope could expand into unnecessary orchestration machinery)
+  - Evidence: converged run `run-1776865379794` already proves the installed direct dispatch path can complete the bounded round with planner, generator, evaluator, route, and summary; no current blocker requires parallel team orchestration
+  - Fix: recorded the explicit decision to not implement heavy teams now and to keep direct installed-agent dispatch as the mainline until a demonstrated team-only blocker appears
+- **Phase 5 canonical interface alignment** — Fixed in Phase 5 alignment round
+  - Symptom: the converged proving packet exposed a semantic gap around what counts as evaluator evidence during evaluation versus what is only written after routing
+  - Root cause: contracts and orchestration instructions did not explicitly lock `required_evidence`, `latest_evidence_ref`, and summary timing to the same canonical semantics
+  - Impact: Medium to High (single-round proving could drift again even after one successful converged run)
+  - Evidence: canonical run `run-1776865379794` now serves as the reference packet; contracts and `skills/pge-execute/SKILL.md` were aligned so summary is post-route and evaluator evidence is limited to artifacts available by evaluation time
+  - Fix: tightened round/evaluation/runtime-state semantics in both canonical contracts and skill-owned contract copies, and aligned `skills/pge-execute/SKILL.md` to the same evidence timing model
+- **Phase 4 canonical smoke proving** — Fixed in Phase 4 proving round
+  - Symptom: a bounded round could execute and create the correct deliverable, but the first proving packet blocked because the upstream frame treated post-route control-plane artifacts as pre-PASS acceptance requirements
+  - Root cause: the proving packet semantics were too loose about which control-plane artifacts are required during evaluation versus written after routing/convergence
+  - Impact: High for proving clarity; execution looked broken even though the deliverable path already worked
+  - Evidence: corrected proving run `run-1776865379794` converged with `PASS` and `converged`, and wrote planner, generator, evaluator, runtime-state, and summary artifacts for one fresh deliverable `/code/b/pge/.pge-artifacts/pge-smoke-phase4c-1776865294410.txt`
+  - Fix: reran Phase 4 with an upstream plan that kept the repo deliverable acceptance frame narrow while treating round summary as a post-route artifact instead of a pre-PASS prerequisite
+- **Per-run runtime state isolation** — Fixed in Phase 3 validation round
+  - Symptom: runtime state was persisted as one shared repo-global file, so consecutive runs could overwrite one another
+  - Root cause: `skills/pge-execute/SKILL.md` used a fixed `.pge-runtime-state.json` path instead of a per-run path keyed by `run_id`
+  - Impact: High for proving correctness across consecutive runs
+  - Evidence: consecutive smoke runs `run-1776859767170` and `run-1776860124096` each wrote distinct runtime state files under `.pge-artifacts/`; the legacy repo-global file has an older timestamp and was not updated by those runs
+  - Fix: changed the skill to persist runtime state at `.pge-artifacts/{run_id}-runtime-state.json` and validated two consecutive runs against the installed runtime
+- **`pge-execute` imperative dispatch path** — Fixed in Phase 2 smoke round
+  - Symptom: the installed skill loaded but behaved like descriptive documentation instead of a runnable orchestration surface
+  - Root cause: `skills/pge-execute/SKILL.md` did not instruct the main session to parse input, initialize runtime state, dispatch agents, and persist artifacts concretely; generator dispatch also lacked `acceptEdits` mode for bounded repo writes
+  - Impact: High (real runtime path stopped before generator/evaluator completion)
+  - Evidence: smoke run `run-1776857676` produced planner, generator, evaluator, and summary artifacts; evaluator verdict `PASS`; route `converged`
+  - Fix: rewrote `skills/pge-execute/SKILL.md` as an imperative single-round orchestrator and required `mode: acceptEdits` on generator dispatch
 - The support-layer setup round has landed.
 - The first proving task is fixed as `run-001`.
 - `commands/start-round.md` and `commands/close-round.md` now provide the executable round entry/closure path.

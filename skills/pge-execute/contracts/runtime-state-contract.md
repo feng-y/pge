@@ -20,7 +20,7 @@ A run state must carry:
 - `latest_preflight_result`
 - `run_stop_condition`
 - `latest_deliverable_ref`
-- `latest_evidence_ref`
+- `latest_evidence_ref` — points to the current generator evidence bundle for the active round; when stored as a fragment reference it should resolve into the generator artifact rather than a separate evidence file
 - `latest_evaluation_verdict`
 - `latest_route`
 - `unverified_areas`
