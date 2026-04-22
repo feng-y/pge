@@ -97,6 +97,44 @@ Normal update flow:
 
 This round intentionally does **not** add a custom updater mechanism beyond the built-in marketplace/plugin flow.
 
+## Local development install
+
+For local development only, this repo also provides a helper script:
+
+- `bin/pge-local-install.sh`
+
+The helper installs the minimum runtime-facing PGE payload into:
+
+- `~/.claude/skills/pge`
+
+And exposes the top-level discovered skill entry at:
+
+- `~/.claude/skills/pge-execute/SKILL.md`
+
+This local install exists only to shorten the validation loop while iterating on this repo.
+It is not a replacement for marketplace/plugin install or update.
+
+The installed payload should include:
+- `.claude-plugin/plugin.json`
+- `SKILL.md`
+- `skills/pge-execute/SKILL.md`
+- `skills/pge-execute/contracts/*.md`
+- `agents/planner.md`
+- `agents/generator.md`
+- `agents/evaluator.md`
+
+The local install should not include repo-only material such as docs, proving artifacts, exec plans, or `.git/` state.
+
+After installing locally:
+1. if the helper warns that `pge@pge` is still installed in the Claude plugin registry, uninstall that marketplace plugin to avoid duplicate discovered skills
+2. run `claude -p "/pge-execute test"`
+3. if an existing Claude Code session does not discover `/pge-execute`, restart the session
+
+The helper prints the installed plugin `name`, `version`, and `description` after each run.
+For a visible install check, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed manifest changed under `~/.claude/skills/pge/.claude-plugin/plugin.json`.
+
+This local install flow intentionally does not assume or manipulate undocumented Claude internal cache directories.
+
 ## What this round intentionally does not do
 
 - redesign Planner / Generator / Evaluator semantics

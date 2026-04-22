@@ -49,3 +49,35 @@ A round is done when one of these is true:
 - the run produced a stable failed loop with the blocker explicitly recorded
 
 When the round is done, stop. Do not keep expanding scope inside the same round.
+
+## Local skill install for proving
+
+If marketplace install/update is too heavy for a bounded repo-local validation loop, use the local install helper:
+
+```bash
+./bin/pge-local-install.sh
+```
+
+This installs the minimum runtime-facing PGE payload into:
+
+```text
+~/.claude/skills/pge
+```
+
+And exposes the discovered skill entry at:
+
+```text
+~/.claude/skills/pge-execute/SKILL.md
+```
+
+Recommended proving check sequence:
+1. if the helper warns that `pge@pge` is still installed in the Claude plugin registry, uninstall that marketplace plugin to avoid duplicate discovered skills
+2. `claude -p "/pge-execute test"`
+3. if an already-running Claude Code session does not discover `/pge-execute`, restart the current session
+
+The helper prints the installed plugin `name`, `version`, and `description` after each run.
+For a visible install proof, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed manifest changed.
+
+For a visible runtime proof, prefer a harmless text change in `skills/pge-execute/SKILL.md`, rerun the helper, and confirm the smoke invocation reflects the updated skill content after reinstall.
+
+This helper is only for local validation. Marketplace/plugin install remains the formal distribution path.
