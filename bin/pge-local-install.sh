@@ -67,13 +67,28 @@ cp "$repo_root/agents/evaluator.md" "$tmp_dir/agents/evaluator.md"
 cp "$repo_root/skills/pge-execute/contracts/"*.md "$tmp_dir/skills/pge-execute/contracts/"
 
 python - <<'PY' "$tmp_dir"
+import hashlib
 import json
 import sys
 from pathlib import Path
 
 install_root = Path(sys.argv[1])
 manifest = json.loads((install_root / '.claude-plugin' / 'plugin.json').read_text())
-marker = f"[local dev v{manifest['version']}] "
+tracked = [
+    install_root / '.claude-plugin' / 'plugin.json',
+    install_root / 'SKILL.md',
+    install_root / 'skills' / 'pge-execute' / 'SKILL.md',
+    *sorted((install_root / 'agents').glob('*.md')),
+    *sorted((install_root / 'skills' / 'pge-execute' / 'contracts').glob('*.md')),
+]
+h = hashlib.sha256()
+for path in tracked:
+    h.update(path.relative_to(install_root).as_posix().encode())
+    h.update(b'\0')
+    h.update(path.read_bytes())
+    h.update(b'\0')
+local_build = h.hexdigest()[:8]
+marker = f"[local dev v{manifest['version']}-{local_build}] "
 
 for rel in ['SKILL.md', 'skills/pge-execute/SKILL.md']:
     path = install_root / rel
@@ -81,10 +96,15 @@ for rel in ['SKILL.md', 'skills/pge-execute/SKILL.md']:
     for i, line in enumerate(lines):
         if line.startswith('description: '):
             original = line[len('description: '):]
-            if not original.startswith(marker):
-                lines[i] = f'description: {marker}{original}'
+            if original.startswith('[local dev '):
+                end = original.find('] ')
+                if end != -1:
+                    original = original[end + 2:]
+            lines[i] = f'description: {marker}{original}'
             break
     path.write_text('\n'.join(lines) + '\n')
+
+(install_root / '.local-build').write_text(local_build + '\n')
 PY
 
 rm -rf "$install_dir"
@@ -97,8 +117,10 @@ ln -snf "$install_dir/skills/pge-execute/SKILL.md" "$entry_dir/SKILL.md"
 manifest_summary="$(python - <<'PY'
 import json
 from pathlib import Path
-manifest = json.loads(Path.home().joinpath('.claude/skills/pge/.claude-plugin/plugin.json').read_text())
-print(f"Plugin: {manifest['name']} | Version: {manifest['version']} | Description: {manifest['description']}")
+install_root = Path.home().joinpath('.claude/skills/pge')
+manifest = json.loads((install_root / '.claude-plugin' / 'plugin.json').read_text())
+local_build = (install_root / '.local-build').read_text().strip()
+print(f"Plugin: {manifest['name']} | Manifest version: {manifest['version']} | Local build: {local_build}")
 PY
 )"
 

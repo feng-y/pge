@@ -17,8 +17,8 @@ Use this command when you need to validate PGE locally without pushing to `main`
 
 ## Verification note
 
-The helper prints the installed plugin `name`, `version`, and `description` after each run so you can see immediately which local install is active.
-It also rewrites the installed `pge` and `pge-execute` skill descriptions to start with `[local dev vX.Y.Z]`, so the Claude skill list shows that the discovered skill came from the local install.
+The helper prints the installed plugin `name`, manifest `version`, and a content-derived `local build` after each run so you can see immediately whether the installed local payload changed.
+It also rewrites the installed `pge` and `pge-execute` skill descriptions to start with `[local dev vX.Y.Z-BUILD]`, so the Claude skill list shows that the discovered skill came from the local install and whether it changed.
 
 For a stronger visible install check, you may temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun `./bin/pge-local-install.sh`, and confirm both the helper output and the installed manifest under `~/.claude/skills/pge/.claude-plugin/plugin.json` changed too.
 

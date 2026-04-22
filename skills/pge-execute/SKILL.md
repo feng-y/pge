@@ -41,13 +41,15 @@ Optional:
 
 ## Agents used
 
-This skill spawns specialized agents defined in `../../agents/`:
+This skill dispatches installed plugin agents by runtime-facing agent identity:
 
-- **planner** (`../../agents/planner.md`): Freezes one current-task plan / bounded round contract
-- **generator** (`../../agents/generator.md`): Executes one current task, performs local verification, and produces a deliverable bundle
-- **evaluator** (`../../agents/evaluator.md`): Independently validates the current task deliverable and issues the final gate verdict
+- **planner**: Freezes one current-task plan / bounded round contract
+- **generator**: Executes one current task, performs local verification, and produces a deliverable bundle
+- **evaluator**: Independently validates the current task deliverable and issues the final gate verdict
 
-Each agent has a defined responsibility boundary. See `agents/` for their contracts.
+The files in `../../agents/` are the packaged agent definitions that Claude Code auto-discovers at install time.
+They are not runtime prompt attachments for the main session to read and replay.
+The runtime path must dispatch the installed `planner`, `generator`, and `evaluator` agents directly.
 
 ## Contracts
 
@@ -93,11 +95,13 @@ Transition to `planning_round` state.
 
 ### 2. Planning phase
 
-Spawn **planner** agent using the Agent tool:
-- `subagent_type`: "general-purpose"
-- `prompt`: Load and provide `../../agents/planner.md` instructions
-- Input: upstream plan, current runtime state
-- Task: Freeze one current-task plan / bounded round contract per `./contracts/round-contract.md`
+Dispatch the installed **planner** agent using the Agent tool:
+- `subagent_type`: `planner`
+- Input: upstream plan, current runtime state, output artifact path, and the required contract fields from `./contracts/round-contract.md`
+- Task: Freeze one current-task plan / bounded round contract
+
+Do not have the main session read `../../agents/planner.md` and simulate the role.
+The installed `planner` agent already carries its own role instructions at runtime.
 
 The planner must produce a round contract artifact at `.pge-artifacts/{run_id}-planner-output.md` with:
 - `goal`: What the current task must settle
@@ -133,11 +137,13 @@ If preflight fails:
 
 ### 4. Generation phase
 
-Spawn **generator** agent using the Agent tool:
-- `subagent_type`: "general-purpose"
-- `prompt`: Load and provide `../../agents/generator.md` instructions
-- Input: current-task contract, minimal repo context
+Dispatch the installed **generator** agent using the Agent tool:
+- `subagent_type`: `generator`
+- Input: current-task contract, minimal repo context, output artifact path, and required implementation bundle fields
 - Task: Execute the current task, run local verification, and produce the actual deliverable bundle
+
+Do not have the main session read `../../agents/generator.md` and simulate the role.
+The installed `generator` agent already carries its own role instructions at runtime.
 
 The generator must produce an implementation bundle at `.pge-artifacts/{run_id}-generator-output.md` with:
 - `current_task`: What current task was executed
@@ -159,11 +165,13 @@ Update runtime state:
 
 ### 5. Evaluation phase
 
-Spawn **evaluator** agent using the Agent tool:
-- `subagent_type`: "general-purpose"
-- `prompt`: Load and provide `../../agents/evaluator.md` instructions
-- Input: current-task contract, implementation bundle
+Dispatch the installed **evaluator** agent using the Agent tool:
+- `subagent_type`: `evaluator`
+- Input: current-task contract, implementation bundle, current runtime state when needed, output artifact path, and required verdict bundle sections
 - Task: Independently validate the current task deliverable against the same contract
+
+Do not have the main session read `../../agents/evaluator.md` and simulate the role.
+The installed `evaluator` agent already carries its own role instructions at runtime.
 
 The evaluator must produce a verdict bundle at `.pge-artifacts/{run_id}-evaluator-verdict.md` using markdown with these top-level sections:
 - `## verdict`
