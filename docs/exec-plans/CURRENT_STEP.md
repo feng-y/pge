@@ -8,6 +8,8 @@ Stage 2 — Runtime team bootstrap
 
 Implement and validate the minimal runtime bootstrap path for `pge-execute`.
 
+(Refined from: "Define and validate the minimal runtime team lifecycle for `pge-execute`")
+
 ## Why this step matters now
 
 This is the smallest meaningful implementation unit inside Stage 2. The lifecycle is already defined; the missing proof is that `main` can enter the runtime path, dispatch the installed teammates, persist file-backed handoffs, and stop through explicit teardown.
