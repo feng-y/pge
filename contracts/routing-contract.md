@@ -33,11 +33,12 @@ Router decides `continue` vs `converged` by checking `run_stop_condition` agains
 This removes ad-hoc interpretation from the routing decision.
 
 ## default route-to-state effect
-- `continue` normally advances from `routing` to `planning_round` for the next bounded round under the same run
-- `retry` normally advances from `routing` to `generating` for the same bounded round
-- `return_to_planner` normally advances from `routing` to `planning_round`
+- `continue` canonically points toward the next bounded round under the same run, but in the current stage it must stop at `unsupported_route` unless that loop is truly implemented
+- `retry` canonically points toward rerunning the same bounded round, but in the current stage it must stop at `unsupported_route` unless that loop is truly implemented
+- `return_to_planner` canonically points toward planning repair, but in the current stage it must stop at `unsupported_route` unless that loop is truly implemented
 - `converged` advances from `routing` to `converged`
 
 ## mapping rule
 - Main must not invent a route that contradicts the current evaluator verdict and runtime state
 - if Main cannot explain the selected route from verdict plus current state, routing is invalid and must stop for repair
+- if Main selects `continue`, `retry`, or `return_to_planner` in the current stage, it must preserve that canonical route in runtime state, write a recovery checkpoint, transition to `unsupported_route`, and stop without redispatch

@@ -17,6 +17,28 @@ Start a run only when all of the following are true:
 
 Use `docs/exec-plans/CURRENT_MAINLINE.md` and `docs/exec-plans/ISSUES_LEDGER.md` before starting.
 
+Before acting, do a short warmup:
+- restate the current mainline
+- restate the one active bounded step
+- name the done-when for this round
+- name the non-goals for this round
+- read only the minimum files needed for the bounded step
+
+Keep exactly one active bounded step at a time. New ideas should be classified into `ISSUES_LEDGER.md` as P1 or P2 instead of interrupting the current step.
+
+For planning or control-plane changes, a planning-only review cell may be used before execution:
+- one primary planner drafts the bounded change
+- specialist reviewers may review in parallel
+- reviewer inputs are consolidated into accepted / rejected / deferred deltas
+- run an extra review round only when a material disagreement remains
+
+The planning-only review cell can include these advisory specialists:
+- Superpower — leverage opportunities, prompt/control-surface quality, reusable planning heuristics
+- Gstack — workflow sequencing, operator ergonomics, and review-loop practicality
+- GSD — bounded-phase discipline, anti-drift guardrails, and explicit exit criteria
+
+These specialists are for planning/review only. They do not change the runtime `pge-execute` agent surface and do not justify heavy runtime team orchestration by themselves.
+
 ## What artifacts a run must leave behind
 
 Each run should leave behind:

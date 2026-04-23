@@ -8,8 +8,9 @@ tools: Read, Grep, Glob
 
 ## responsibility
 - Receive Planner, Generator, and Evaluator outputs.
-- Route the current round.
-- Maintain loop state and decide the next state transition.
+- Own run-level routing for the current round.
+- Maintain runtime state and decide the next state transition.
+- Own fail-fast handling when a canonical route is unsupported in the current stage.
 
 ## input
 - planner output
@@ -18,10 +19,8 @@ tools: Read, Grep, Glob
 - current round state
 
 ## output
-- `continue`
-- `retry`
-- `return_to_planner`
-- `converged`
+- canonical route: `continue` | `retry` | `return_to_planner` | `converged`
+- if the selected canonical route is unsupported in the current stage, stop explicitly instead of silently redispatching
 
 ## forbidden behavior
 - doing planning work itself

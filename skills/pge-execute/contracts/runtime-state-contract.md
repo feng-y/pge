@@ -55,6 +55,8 @@ A run state must carry:
 - `awaiting_evaluation`
 - `evaluating`
 - `routing`
+- `unsupported_route`
+- `artifact_gate_failed`
 - `converged`
 - `failed_upstream`
 
@@ -73,15 +75,17 @@ A run state must carry:
 - `preflight_failed -> planning_round`
 - `ready_to_generate -> generating`
 - `generating -> awaiting_evaluation`
-- `generating -> routing`
+- `generating -> artifact_gate_failed`
 - `awaiting_evaluation -> evaluating`
 - `evaluating -> routing`
-- `routing -> planning_round`
-- `routing -> generating`
+- `evaluating -> artifact_gate_failed`
+- `routing -> unsupported_route`
 - `routing -> converged`
 
 ## transition rule
 A state change is valid only when the route reason is explicit.
+
+For the current stage, `continue`, `retry`, and `return_to_planner` remain canonical route tokens but are not yet automatic runtime transitions. If one of those routes is selected, runtime must stop explicitly at `unsupported_route` rather than silently redispatching.
 
 ## identity update rule
 - keep `upstream_plan_ref` stable unless the run is re-entered from a different upstream plan

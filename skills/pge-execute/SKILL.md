@@ -19,10 +19,11 @@ Run one real PGE orchestration round by dispatching the installed `pge-planner`,
 <scope>
 - Single repo-internal round only.
 - No external tasks.
-- No multi-round support.
-- No heavy teams.
+- No automatic multi-round redispatch in the current stage.
+- Runtime-team architecture remains the target control-plane shape, but this skill only executes the bounded single-round path.
 - Use the installed runtime-facing agent names exactly: `pge-planner`, `pge-generator`, `pge-evaluator`.
 - Runtime state must be isolated per run and keyed by `run_id`.
+- Follow `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` as the orchestration source of truth for current-stage route/state/recovery behavior.
 </scope>
 
 <argument_handling>
@@ -58,6 +59,7 @@ Create and use:
 - `evaluator_artifact = {artifact_dir}/{run_id}-evaluator-verdict.md`
 - `summary_artifact = {artifact_dir}/{run_id}-round-summary.md`
 - `runtime_state = {artifact_dir}/{run_id}-runtime-state.json`
+- `checkpoint_artifact = {artifact_dir}/{run_id}-checkpoint.json`
 </runtime_files>
 
 <process>
@@ -106,7 +108,7 @@ Execute the following steps in order.
    - It must exist.
    - It must contain all required round-contract fields from `contracts/round-contract.md`.
    - If preflight fails, update `runtime_state` to `preflight_failed`, report the missing fields, and stop.
-   - If preflight passes, update `latest_preflight_result` to `pass` and update `runtime_state` to `ready_to_generate`.
+   - If preflight passes, update `latest_preflight_result` to `pass`, update `runtime_state` to `ready_to_generate`, and write `checkpoint_artifact` using the schema from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` with recovery entry point `resume_generation`.
 9. Dispatch the installed `pge-generator` agent with the Agent tool in `acceptEdits` mode.
    - Use `mode: acceptEdits` so the installed generator can perform the bounded repo write it owns in this phase.
    - Give it the full planner artifact content.
@@ -126,6 +128,7 @@ Execute the following steps in order.
 10. Write the returned generator artifact verbatim to `generator_artifact`.
 11. Update `runtime_state` to `awaiting_evaluation` and fill `latest_deliverable_ref` plus `latest_evidence_ref` when those values are explicit in the generator artifact.
    - `latest_evidence_ref` should point to the generator evidence bundle inside `generator_artifact`; prefer a fragment reference into that artifact rather than inventing a separate evidence file.
+   - After generator artifact gates pass and the run enters `awaiting_evaluation`, write `checkpoint_artifact` using the schema from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` with recovery entry point `resume_evaluation`.
 12. Dispatch the installed `pge-evaluator` agent with the Agent tool.
    - Evaluate only against evidence that exists by evaluation time.
    - Do not require `summary_artifact` for PASS, because `summary_artifact` is written only after routing to `converged`.
@@ -145,8 +148,13 @@ Execute the following steps in order.
    - `RETRY` => `retry`
    - `BLOCK` => `retry` unless the verdict shows the current contract is no longer the right repair frame, then `return_to_planner`
    - `ESCALATE` => `return_to_planner`
-15. Update `runtime_state` with the final verdict, final route, and route reason.
-16. If routed to `converged`, write `summary_artifact` containing:
+15. Before final route exit, confirm artifact-chain gates for planner, generator, and evaluator artifacts.
+   - If any required section or resolvable artifact reference is missing, update `runtime_state` to `artifact_gate_failed`, report the blocker, and stop.
+16. Update `runtime_state` with the final verdict, final canonical route, and route reason.
+17. Before exiting routing, write `checkpoint_artifact` using the schema from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`.
+   - Use recovery entry point `resume_from_route_decision` when the selected canonical route is unsupported for automatic execution in the current stage.
+18. If the final canonical route is `continue`, `retry`, or `return_to_planner`, update `runtime_state` to `unsupported_route`, report that the route is canonically valid but unsupported for automatic execution in the current stage, and stop without redispatch.
+19. If routed to `converged`, write `summary_artifact` containing:
    - `summary_artifact` is a post-route artifact. It is not part of the pre-PASS evaluator evidence set.
    - `run_id`
    - `planner_artifact`
@@ -155,7 +163,7 @@ Execute the following steps in order.
    - `final_verdict`
    - `final_route`
    - one short round summary
-17. Report the run result to the user by naming the `run_id`, verdict, route, and artifact paths.
+20. Report the run result to the user by naming the `run_id`, verdict, route, and artifact paths.
 </process>
 
 <constraints>

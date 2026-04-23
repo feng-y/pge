@@ -4,25 +4,43 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P0 / Blocker
 
-None.
+- **Persistent runtime-team architecture is not yet operationally closed**
+  - Impact: High (the target architecture is settled, but the runtime still needs authoritative orchestration closure before persistent team lifecycle can be claimed as implemented)
+  - Next: keep `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`, canonical contracts, runtime-facing contract copies, and `skills/pge-execute/SKILL.md` aligned while the next implementation round closes the remaining runtime lifecycle mechanics
 
 ## P1 / Follow-up
 
-- **Marketplace install path still unverified**: This repo now carries both the plugin manifest and the same-repo marketplace catalog, but the actual add/install flow still needs to be exercised end-to-end
-  - Impact: Medium (catalog shape is present, but the real Claude Code marketplace flow must still be proven)
+- **Artifact-chain validation before final routing must be implemented in runtime behavior**
+  - Impact: Medium to High (the control-plane gates are now explicit, but the runtime surface must still enforce planner/generator/evaluator artifact usability before final routing)
+  - Next: make `skills/pge-execute/SKILL.md` and runtime behavior stop on explicit artifact-gate failure states instead of routing from partial artifacts
+
+- **Canonical and runtime-facing contract copies can drift**
+  - Impact: Medium (semantic drift between `contracts/*` and `skills/pge-execute/contracts/*` can break runtime expectations silently)
+  - Next: keep canonical contracts, runtime-facing copies, and `skills/pge-execute/SKILL.md` updated together whenever route/state/verdict/checkpoint semantics change
+
+- **Checkpoint-driven recovery is defined but not yet enacted end-to-end**
+  - Impact: Medium (recovery entry points and checkpoint schema are now explicit, but the runtime still needs to write and consume checkpoints consistently)
+  - Next: add checkpoint writes at the defined control points and use them as the recovery source of truth
+
+- **Marketplace install path still unverified**
+  - Impact: Medium (catalog shape is present, but the real Claude Code marketplace flow must still be exercised end-to-end)
   - Next: test `/plugin marketplace add feng-y/pge` and `/plugin install pge@pge`
 
-- **Legacy runtime state file still present on disk**: `.pge-runtime-state.json` remains as a historical artifact even though current runs now write per-run state files under `.pge-artifacts/`
+- **Legacy runtime state file still present on disk**
   - Impact: Low (stale artifact can confuse inspection, but recent runs are writing isolated per-run state files)
   - Next: optionally remove the stale legacy file and update ignore/documentation references so only per-run state remains visible
-- Refine supporting governance docs only if a real proving run exposes contradiction or driveability pain.
-- Add richer runtime/progress formalization only if the first proving runs show the current control plane is insufficient.
+
+- **Runtime shell guardrails are now codified but still need runtime enforcement**
+  - Impact: Medium (FSM states, checkpoint-driven recovery, scoped delegation, and append-only evidence expectations are now explicit, but the executable runtime path must still enforce them consistently)
+  - Next: implement the codified guardrails in the next runtime round instead of expanding the control-plane docs again
 
 ## P2 / Park
 
-- Broader harness strategy expansion.
-- Naming and terminology polish that does not unblock proving.
-- Additional workflow/process machinery beyond the current minimal support layer.
+- Full multi-round execution support beyond the current bounded implementation round.
+- Full autonomous retry loop support.
+- Broad external task support.
+- Generalized production-grade long-running recovery semantics.
+- Additional workflow/process machinery beyond what the execution-layer target currently needs.
 
 ## Resolved
 
@@ -50,12 +68,14 @@ None.
   - Impact: Skill appears to work but produces no real value
   - Evidence: Post-MVP proving round 004
   - Fix: Implemented real Generator with semantic guardrails against placeholder artifacts, real Evaluator with hard PASS conditions preventing artifact-exists-only approval
-- **Phase 6 team-need evaluation** — Fixed in Phase 6 decision round
+- **Phase 6 team-need evaluation** — Superseded by Round 011 runtime-team architecture decision
   - Symptom: after the direct dispatch path was proven, it was still unclear whether the next step should be heavy team orchestration or staying on the simpler mainline
   - Root cause: earlier strategy material discussed multi-round and team-oriented futures, but the current proven runtime path had not yet been used to make an explicit go/no-go decision on teams
-  - Impact: Medium (without an explicit decision, scope could expand into unnecessary orchestration machinery)
-  - Evidence: converged run `run-1776865379794` already proves the installed direct dispatch path can complete the bounded round with planner, generator, evaluator, route, and summary; no current blocker requires parallel team orchestration
-  - Fix: recorded the explicit decision to not implement heavy teams now and to keep direct installed-agent dispatch as the mainline until a demonstrated team-only blocker appears
+  - Impact at the time: Medium (without an explicit decision, scope could expand into unnecessary orchestration machinery)
+  - Evidence at the time: converged run `run-1776865379794` proved the installed direct dispatch path could complete the bounded round with planner, generator, evaluator, route, and summary
+  - Original conclusion: do not implement heavy teams yet; keep direct installed-agent dispatch as the mainline until a demonstrated team-only blocker appears
+  - Superseded by: `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md`, `docs/exec-plans/CURRENT_MAINLINE.md`, and `docs/exec-plans/ROUND_011_RUNTIME_TEAM_ORCHESTRATION_PLAN.md`, which now make runtime teams the target architecture and move the blocker to orchestration closure rather than team necessity
+  - Current meaning: keep this item only as historical context; do not use it as live architecture guidance
 - **Phase 5 canonical interface alignment** — Fixed in Phase 5 alignment round
   - Symptom: the converged proving packet exposed a semantic gap around what counts as evaluator evidence during evaluation versus what is only written after routing
   - Root cause: contracts and orchestration instructions did not explicitly lock `required_evidence`, `latest_evidence_ref`, and summary timing to the same canonical semantics
