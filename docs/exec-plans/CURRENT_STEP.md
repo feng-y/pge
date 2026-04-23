@@ -6,19 +6,19 @@ Stage 2 — Runtime team bootstrap
 
 ## Current step
 
-Define and validate the minimal runtime team lifecycle for `pge-execute`.
+Implement and validate the minimal runtime bootstrap path for `pge-execute`.
 
 ## Why this step matters now
 
-This is the smallest meaningful unit inside Stage 2. Until the runtime lifecycle is explicit, future rounds will keep re-deciding install status, runtime ownership, and what `main` versus the runtime teammates are supposed to do.
+This is the smallest meaningful implementation unit inside Stage 2. The lifecycle is already defined; the missing proof is that `main` can enter the runtime path, dispatch the installed teammates, persist file-backed handoffs, and stop through explicit teardown.
 
 ## Done when
 
-- one minimal lifecycle is fixed for the current stage
-- that lifecycle explicitly covers `bootstrap`, `dispatch`, `handoff`, and `teardown`
-- `main` is explicitly the team lead / orchestration shell in that lifecycle
-- `pge-planner`, `pge-generator`, and `pge-evaluator` are explicitly the only runtime teammates in that lifecycle
-- the next round can implement against the lifecycle without reopening stage selection, install scope, skill semantics, or agent semantics
+- the minimal Stage 2 lifecycle is exercised through `bootstrap`, `dispatch`, `handoff`, and `teardown`
+- `main` enters the runtime path as the orchestration shell
+- installed `pge-planner`, `pge-generator`, and `pge-evaluator` are actually dispatched
+- planner, generator, evaluator, runtime-state, and terminal teardown artifacts are persisted for one bounded run
+- one minimal smoke check proves the lifecycle is exercised without broadening into Stage 3+ or full smoke-run quality claims
 
 ## Inputs to read
 
@@ -32,20 +32,21 @@ This is the smallest meaningful unit inside Stage 2. Until the runtime lifecycle
 
 ## Non-goals
 
-- implementing runtime behavior in this step
+- implementing full smoke-run business capability
 - redesigning the skill
 - redesigning the agents
 - reworking install/discovery
 - introducing the per-task file protocol
 - doing contract convergence as active work
-- running the smoke path
+- broadening into Stage 3+
 
 ## Evidence to collect
 
-- a lifecycle description that explicitly names `bootstrap`, `dispatch`, `handoff`, and `teardown`
-- a clear ownership split between `main` and the three runtime teammates
-- a clear statement of what is intentionally deferred to later stages
-- proof that a future round can identify one mainline, one active stage, one current step, and one next step from the control plane alone
+- one run id for the bounded smoke path
+- persisted planner, generator, evaluator, runtime-state, and terminal teardown artifacts
+- evidence that the installed `pge-planner`, `pge-generator`, and `pge-evaluator` were dispatched
+- evidence that handoff happened through persisted artifacts rather than transcript-only state
+- evidence that teardown was explicit through runtime-state plus checkpoint or summary output
 
 ## Blockers
 
@@ -53,4 +54,4 @@ This is the smallest meaningful unit inside Stage 2. Until the runtime lifecycle
 
 ## Next step after completion
 
-Implement the Stage 2 runtime team lifecycle in the runtime workflow surfaces without changing the staged control-plane shape.
+Close the remaining Stage 2 implementation gaps without broadening into Stage 3 dispatch-loop behavior.
