@@ -38,6 +38,13 @@ This removes ad-hoc interpretation from the routing decision.
 - `return_to_planner` canonically points toward planning repair, but in the current stage it must stop at `unsupported_route` unless that loop is truly implemented
 - `converged` advances from `routing` to `converged`
 
+## teardown rule for Stage 2
+Routing ends in teardown for the current stage:
+- `converged` tears down the bounded run through final runtime-state persistence plus summary output
+- `continue`, `retry`, and `return_to_planner` tear down the bounded run through checkpoint write, `unsupported_route`, and explicit stop
+
+This keeps teardown explicit without implying that redispatch is already implemented.
+
 ## mapping rule
 - Main must not invent a route that contradicts the current evaluator verdict and runtime state
 - if Main cannot explain the selected route from verdict plus current state, routing is invalid and must stop for repair

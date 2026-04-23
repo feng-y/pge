@@ -31,6 +31,7 @@ Installed plugin bundles should expose this plugin-facing layout:
 ```text
 .claude-plugin/plugin.json
 skills/pge-execute/SKILL.md
+skills/pge-execute/ORCHESTRATION.md
 skills/pge-execute/contracts/*.md
 agents/pge-planner.md
 agents/pge-generator.md
@@ -132,8 +133,8 @@ And exposes the top-level discovered skill entry at:
 
 The helper intentionally installs only the runtime-facing PGE payload:
 - `.claude-plugin/plugin.json`
-- `SKILL.md`
 - `skills/pge-execute/SKILL.md`
+- `skills/pge-execute/ORCHESTRATION.md`
 - `skills/pge-execute/contracts/*.md`
 - `agents/pge-{planner,generator,evaluator}.md`
 
@@ -155,9 +156,10 @@ For a visible install check during development, temporarily change `.claude-plug
 ## Normalized execution-core seams
 
 For proving runs, the following files define the normative execution-core semantics:
-- `agents/*.md` — role responsibilities
+- `agents/*.md` — P/G/E role responsibilities
 - `contracts/*.md` — handoff contracts
 - `skills/pge-execute/SKILL.md` — invocation surface
+- `skills/pge-execute/ORCHESTRATION.md` — skill-internal run orchestration
 
 These seams are the source of truth for runtime state, verdict, routing, and stop-condition decisions.
 For proving runs, preflight, route, state, and stop-condition vocabulary must come from these seams; legacy/reference docs may provide context but must not override them.

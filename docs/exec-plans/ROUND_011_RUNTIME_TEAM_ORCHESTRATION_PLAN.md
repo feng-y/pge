@@ -4,23 +4,26 @@
 
 After multi-round review, the architecture decision is now explicit:
 
-> `pge` should evolve into a generic, plan-driven execution layer organized around `main` plus a persistent runtime Planner / Generator / Evaluator team.
+> `pge` should evolve into a generic, plan-driven execution layer where `main` orchestrates a persistent runtime Planner / Generator / Evaluator team.
 
 This is not an optional upgrade. The review result is that without runtime team organization, P/G/E responsibility surfaces do not fully stand up: collaboration, retry, recovery, and boundary ownership remain too dependent on prompt text and human interpretation.
 
 At the same time, review also showed that the current repo is **not yet operationally ready** to claim that this runtime team architecture has been fully implemented. The blocking gap is not whether teams are needed; it is that orchestration closure is still incomplete.
 
 So this round records both truths at once:
-- **Target architecture**: `main` + persistent runtime P/G/E team is the intended execution model.
+- **Target architecture**: `main` orchestrates a persistent runtime P/G/E team as the intended execution model.
 - **Current bounded implementation goal**: make orchestration authoritative enough that this team model can be implemented without ambiguity or control-surface drift.
 
 ## Final target architecture
 
 ### Main
 
-`main` is the run-level scheduler and control-plane owner.
+`main` is the skill-internal run-level scheduler and orchestration authority.
 
-It owns:
+For the architectural control-plane definition of what `main` is and is not, use `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md`.
+For the active operational seam, use `skills/pge-execute/ORCHESTRATION.md`.
+
+At a high level, it owns:
 - upstream plan intake
 - run initialization
 - runtime state ownership
@@ -29,7 +32,7 @@ It owns:
 - stop / recovery ownership
 - team lifecycle ownership
 
-It does **not** perform Planner / Generator / Evaluator role work itself.
+It does **not** perform Planner / Generator / Evaluator role work itself, and it must not be modeled as a peer runtime agent role.
 
 ### Planner
 
@@ -86,7 +89,7 @@ It does **not** implement fixes or rewrite planning.
 
 1. **Orchestration truth is split**
    - too much authoritative runtime behavior still lives in `skills/pge-execute/SKILL.md`
-   - `agents/main.md` is not yet a strong enough run-level scheduler contract
+   - `main` orchestration semantics need to live in a dedicated skill-owned seam instead of an agent-shaped seam
 
 2. **Team lifecycle is not operationally closed**
    - no explicit runtime mechanism yet for persistent team identity, recovery after partial failure, or resumable intra-run orchestration
@@ -108,12 +111,14 @@ It does **not** implement fixes or rewrite planning.
 
 Do the minimum hardening required so the runtime team architecture becomes implementable on a stable base.
 
-The authoritative orchestration source of truth for this round is:
+The active orchestration seams for this round are:
+- `skills/pge-execute/ORCHESTRATION.md`
+- `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md`
 - `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`
 
 This round should therefore focus on:
 
-1. establishing a single operational source of truth for runtime orchestration,
+1. establishing an explicit two-part control-plane source of truth for orchestration ownership and runtime behavior,
 2. making route and recovery behavior explicit and fail-fast where not yet supported,
 3. tightening ownership boundaries between `main` and Planner,
 4. tightening artifact-chain validation,
@@ -126,19 +131,16 @@ This round should therefore focus on:
 
 ## What this round must change first
 
-### 1. Establish one orchestration source of truth
+### 1. Establish explicit control-plane sources of truth
 
-The repo needs one authoritative runtime-orchestration definition that unifies:
-- state transitions
-- route policy
-- unsupported-route handling
-- recovery entry points
-- team lifecycle assumptions
-- explicit terminal / paused / failed states
+The repo needs an explicit seam split:
+- `skills/pge-execute/ORCHESTRATION.md` for active skill-owned orchestration behavior
+- `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md` for orchestration ownership and the definition of `main`
+- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` for runtime state transitions, route policy, unsupported-route handling, recovery entry points, team lifecycle assumptions, and explicit terminal / paused / failed states
 
-`SKILL.md` should become a thin dispatcher to this orchestration truth rather than remaining the de facto full runtime specification.
+`SKILL.md` should become a thin dispatcher to those seams rather than remaining the de facto full runtime specification.
 
-This source of truth should be shaped as an explicit runtime FSM rather than a loose prose flow. At minimum it should distinguish:
+The runtime behavior source of truth should be shaped as an explicit runtime FSM rather than a loose prose flow. At minimum it should distinguish:
 - planning
 - executing
 - evaluating
@@ -210,7 +212,7 @@ This round is done only when all of the following are true:
 ## Required evidence
 
 - Updated control-plane text reflecting runtime-team target architecture.
-- Updated orchestration text showing one runtime source of truth.
+- Updated orchestration text showing the explicit ownership/runtime control-plane split.
 - Explicit unsupported-route behavior documented for the current stage.
 - Explicit ownership table for `main`, Planner, Generator, Evaluator.
 - Explicit artifact-chain validation expectations before route finalization.

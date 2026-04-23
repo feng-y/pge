@@ -7,7 +7,11 @@ It defines what `pge` is becoming, what the intended runtime organization is, an
 
 Round plans may narrow or sequence the work, but they should not redefine this architecture casually.
 
-For current-stage runtime orchestration behavior, the authoritative control-plane source is `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`.
+For normalized orchestration ownership and the definition of `main`, the architectural control-plane source is `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md`.
+
+For active skill-layer orchestration behavior, use `skills/pge-execute/ORCHESTRATION.md`.
+
+For current-stage runtime orchestration policy, the authoritative runtime-control source is `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`.
 
 ## Core definition
 
@@ -16,21 +20,18 @@ For current-stage runtime orchestration behavior, the authoritative control-plan
 Its primary input is an **upstream plan**.
 That plan may originate from prompt, intent, or spec upstream, but PGE itself is not the generic intent-understanding layer. By the time work enters PGE, the input should already be shaped enough to execute.
 
-PGE's job is to let a runtime organization of:
-- `main`
-- `Planner`
-- `Generator`
-- `Evaluator`
-
-work together to achieve end-to-end development efficiently and stably.
+PGE's job is to let skill-internal `main` orchestration inside `/pge-execute` coordinate a persistent runtime team of Planner / Generator / Evaluator so the whole execution layer can achieve end-to-end development efficiently and stably.
 
 ## Target runtime organization
 
 ### Main
 
-`main` is the run-level scheduler and control-plane owner.
+`main` is the skill-internal run-level scheduler and orchestration authority.
 
-It owns:
+For the architectural control-plane definition of what `main` is and is not, use `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md`.
+For the active operational seam, use `skills/pge-execute/ORCHESTRATION.md`.
+
+At a high level, `main` owns:
 - upstream plan intake
 - run initialization
 - runtime-state ownership
@@ -39,7 +40,7 @@ It owns:
 - stop / recovery ownership
 - persistent team lifecycle ownership
 
-It does **not** perform Planner / Generator / Evaluator role work itself.
+It does **not** perform Planner / Generator / Evaluator role work itself, and it must not be modeled as a peer runtime agent role.
 
 ### Planner
 
@@ -90,7 +91,7 @@ Without runtime team organization:
 
 So the intended architecture is:
 
-> `main` + persistent runtime Planner / Generator / Evaluator team
+> `main` orchestrates a persistent runtime Planner / Generator / Evaluator team
 
 The remaining question is not whether teams are needed.
 The remaining question is how to make orchestration closure strong enough that the team model can stand up operationally.
@@ -134,7 +135,7 @@ These should strengthen the runtime shell, not turn the docs into abstract theor
 ## What must remain true while evolving
 
 - `SKILL.md` should become thinner, not thicker.
-- `main` should become a clearer orchestration authority, not a hidden planner.
+- `main` should remain a clearer orchestration authority, not an agent-shaped peer or hidden planner.
 - file-based handoff should strengthen, not disappear.
 - contracts should remain the minimum supporting vocabulary, not retake control as a heavy schema-first center.
 - progress / support docs should stay anti-corruption oriented: short, revisable, and disposable when stale.

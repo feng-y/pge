@@ -1,7 +1,7 @@
 ---
 name: pge-execute
 description: Use this skill when bounded repo-internal work needs one explicit Planner → Generator → Evaluator execution round with clear acceptance gates.
-version: 0.1.1
+version: 0.1.2
 argument-hint: "<upstream-plan | path | test>"
 allowed-tools:
   - Agent
@@ -13,7 +13,11 @@ allowed-tools:
 ---
 
 <objective>
-Run one real PGE orchestration round by dispatching the installed `pge-planner`, `pge-generator`, and `pge-evaluator` agents. The main session owns orchestration only: runtime state, artifact persistence, preflight, and routing. The main session must not do planner, generator, or evaluator role work itself.
+Run one real PGE execution round by dispatching the installed `pge-planner`, `pge-generator`, and `pge-evaluator` agents.
+
+`main` lives here as skill-internal orchestration logic only: runtime state, artifact persistence, preflight, routing, recovery records, and bounded run control.
+
+Use `skills/pge-execute/ORCHESTRATION.md` as the operational seam for that orchestration behavior.
 </objective>
 
 <scope>
@@ -23,7 +27,7 @@ Run one real PGE orchestration round by dispatching the installed `pge-planner`,
 - Runtime-team architecture remains the target control-plane shape, but this skill only executes the bounded single-round path.
 - Use the installed runtime-facing agent names exactly: `pge-planner`, `pge-generator`, `pge-evaluator`.
 - Runtime state must be isolated per run and keyed by `run_id`.
-- Follow `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` as the orchestration source of truth for current-stage route/state/recovery behavior.
+- Follow `skills/pge-execute/ORCHESTRATION.md` plus `skills/pge-execute/contracts/*` for execution behavior.
 </scope>
 
 <argument_handling>
@@ -63,111 +67,25 @@ Create and use:
 </runtime_files>
 
 <process>
-Execute the following steps in order.
+Execute one bounded round exactly as defined in:
+- `skills/pge-execute/ORCHESTRATION.md`
+- `skills/pge-execute/contracts/entry-contract.md`
+- `skills/pge-execute/contracts/round-contract.md`
+- `skills/pge-execute/contracts/evaluation-contract.md`
+- `skills/pge-execute/contracts/runtime-state-contract.md`
+- `skills/pge-execute/contracts/routing-contract.md`
 
-1. Resolve the effective upstream plan from the argument-handling rules.
-2. Create `artifact_dir` if needed.
-3. Initialize `runtime_state` using the fields from `contracts/runtime-state-contract.md` with:
-   - `run_id`
-   - `round_id: round-1`
-   - `state: intake_pending`
-   - `upstream_plan_ref`
-   - `active_slice_ref: ""`
-   - `active_round_contract_ref: ""`
-   - `latest_preflight_result: ""`
-   - `run_stop_condition`
-   - `latest_deliverable_ref: ""`
-   - `latest_evidence_ref: ""`
-   - `latest_evaluation_verdict: ""`
-   - `latest_route: ""`
-   - `unverified_areas: []`
-   - `accepted_deviations: []`
-   - `route_reason: ""`
-   - `convergence_reason: ""`
-4. Validate the effective upstream plan against `contracts/entry-contract.md`.
-   - If entry fails, update `runtime_state` to `failed_upstream`, tell the user exactly which required entry fields are missing, and stop.
-5. Update `runtime_state` to `planning_round`.
-6. Dispatch the installed `pge-planner` agent with the Agent tool.
-   - Give it the effective upstream plan.
-   - Give it a short runtime-state summary.
-   - Tell it to return only a markdown artifact with these exact top-level sections:
-     - `## goal`
-     - `## in_scope`
-     - `## out_of_scope`
-     - `## actual_deliverable`
-     - `## acceptance_criteria`
-     - `## verification_path`
-     - `## stop_condition`
-     - `## required_evidence`
-     - `## handoff_seam`
-     - `## open_questions`
-     - `## planner_note`
-     - `## planner_escalation`
-7. Write the returned planner artifact verbatim to `planner_artifact`.
-8. Preflight the planner artifact.
-   - It must exist.
-   - It must contain all required round-contract fields from `contracts/round-contract.md`.
-   - If preflight fails, update `runtime_state` to `preflight_failed`, report the missing fields, and stop.
-   - If preflight passes, update `latest_preflight_result` to `pass`, update `runtime_state` to `ready_to_generate`, and write `checkpoint_artifact` using the schema from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` with recovery entry point `resume_generation`.
-9. Dispatch the installed `pge-generator` agent with the Agent tool in `acceptEdits` mode.
-   - Use `mode: acceptEdits` so the installed generator can perform the bounded repo write it owns in this phase.
-   - Give it the full planner artifact content.
-   - Give it only the minimum repo context directly relevant to the declared deliverable and verification path.
-   - Tell it to return only a markdown artifact with these exact top-level sections:
-     - `## current_task`
-     - `## boundary`
-     - `## actual_deliverable`
-     - `## deliverable_path`
-     - `## changed_files`
-     - `## local_verification`
-     - `## evidence`
-     - `## known_limits`
-     - `## non_done_items`
-     - `## deviations_from_spec`
-     - `## handoff_status`
-10. Write the returned generator artifact verbatim to `generator_artifact`.
-11. Update `runtime_state` to `awaiting_evaluation` and fill `latest_deliverable_ref` plus `latest_evidence_ref` when those values are explicit in the generator artifact.
-   - `latest_evidence_ref` should point to the generator evidence bundle inside `generator_artifact`; prefer a fragment reference into that artifact rather than inventing a separate evidence file.
-   - After generator artifact gates pass and the run enters `awaiting_evaluation`, write `checkpoint_artifact` using the schema from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` with recovery entry point `resume_evaluation`.
-12. Dispatch the installed `pge-evaluator` agent with the Agent tool.
-   - Evaluate only against evidence that exists by evaluation time.
-   - Do not require `summary_artifact` for PASS, because `summary_artifact` is written only after routing to `converged`.
-   - Give it the full planner artifact content.
-   - Give it the full generator artifact content.
-   - Give it a short current runtime-state summary.
-   - Tell it to return only a markdown artifact with these exact top-level sections:
-     - `## verdict`
-     - `## evidence`
-     - `## violated_invariants_or_risks`
-     - `## required_fixes`
-     - `## next_route`
-13. Write the returned evaluator artifact verbatim to `evaluator_artifact`.
-14. Route using `contracts/routing-contract.md`.
-   - `PASS` + `single_round` => `converged`
-   - `PASS` + non-`single_round` => `continue`
-   - `RETRY` => `retry`
-   - `BLOCK` => `retry` unless the verdict shows the current contract is no longer the right repair frame, then `return_to_planner`
-   - `ESCALATE` => `return_to_planner`
-15. Before final route exit, confirm artifact-chain gates for planner, generator, and evaluator artifacts.
-   - If any required section or resolvable artifact reference is missing, update `runtime_state` to `artifact_gate_failed`, report the blocker, and stop.
-16. Update `runtime_state` with the final verdict, final canonical route, and route reason.
-17. Before exiting routing, write `checkpoint_artifact` using the schema from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`.
-   - Use recovery entry point `resume_from_route_decision` when the selected canonical route is unsupported for automatic execution in the current stage.
-18. If the final canonical route is `continue`, `retry`, or `return_to_planner`, update `runtime_state` to `unsupported_route`, report that the route is canonically valid but unsupported for automatic execution in the current stage, and stop without redispatch.
-19. If routed to `converged`, write `summary_artifact` containing:
-   - `summary_artifact` is a post-route artifact. It is not part of the pre-PASS evaluator evidence set.
-   - `run_id`
-   - `planner_artifact`
-   - `generator_artifact`
-   - `evaluator_artifact`
-   - `final_verdict`
-   - `final_route`
-   - one short round summary
-20. Report the run result to the user by naming the `run_id`, verdict, route, and artifact paths.
+For the current stage, follow the minimal runtime team lifecycle in `skills/pge-execute/ORCHESTRATION.md`:
+- `bootstrap`
+- `dispatch`
+- `handoff`
+- `teardown`
+
+At the end of the round, report the `run_id`, verdict, route, and artifact paths.
 </process>
 
 <constraints>
-- Main must orchestrate and persist artifacts, but must not invent Planner, Generator, or Evaluator content.
+- `main` is skill-internal orchestration logic, not an agent seam.
 - Use the installed agents directly through the Agent tool. Do not read `agents/*.md` and simulate them.
 - Keep the run bounded to one round.
 - Do not broaden scope beyond the accepted upstream plan.

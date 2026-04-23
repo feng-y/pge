@@ -13,13 +13,14 @@ Rebuild PGE into a standard Claude Code skill shape and remove the bash-first or
 - `skills/pge-execute/SKILL.md` (converted from documentation-only to prompt-first orchestration entrypoint)
 
 ### Files Preserved
-All semantic/source-of-truth files preserved:
+All semantic/source-of-truth files preserved at that stage:
 - `agents/planner.md`
 - `agents/generator.md`
 - `agents/evaluator.md`
-- `agents/main.md`
 - `contracts/*.md` (5 files)
 - `docs/` (all files)
+
+Historical note: this round predated the later seam cleanup that removed `agents/main.md` and moved `main` orchestration semantics into `skills/pge-execute/ORCHESTRATION.md`.
 
 ## Old Architecture (Incorrect)
 

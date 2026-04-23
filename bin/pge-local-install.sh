@@ -62,8 +62,8 @@ mkdir -p \
   "$tmp_dir/skills/pge-execute/contracts"
 
 cp "$repo_root/.claude-plugin/plugin.json" "$tmp_dir/.claude-plugin/plugin.json"
-cp "$repo_root/SKILL.md" "$tmp_dir/SKILL.md"
 cp "$repo_root/skills/pge-execute/SKILL.md" "$tmp_dir/skills/pge-execute/SKILL.md"
+cp "$repo_root/skills/pge-execute/ORCHESTRATION.md" "$tmp_dir/skills/pge-execute/ORCHESTRATION.md"
 cp "$repo_root/agents/pge-planner.md" "$tmp_dir/agents/pge-planner.md"
 cp "$repo_root/agents/pge-generator.md" "$tmp_dir/agents/pge-generator.md"
 cp "$repo_root/agents/pge-evaluator.md" "$tmp_dir/agents/pge-evaluator.md"
@@ -79,8 +79,8 @@ install_root = Path(sys.argv[1])
 manifest = json.loads((install_root / '.claude-plugin' / 'plugin.json').read_text())
 tracked = [
     install_root / '.claude-plugin' / 'plugin.json',
-    install_root / 'SKILL.md',
     install_root / 'skills' / 'pge-execute' / 'SKILL.md',
+    install_root / 'skills' / 'pge-execute' / 'ORCHESTRATION.md',
     *sorted((install_root / 'agents').glob('*.md')),
     *sorted((install_root / 'skills' / 'pge-execute' / 'contracts').glob('*.md')),
 ]
@@ -93,7 +93,7 @@ for path in tracked:
 local_build = h.hexdigest()[:8]
 marker = f"[local dev v{manifest['version']}-{local_build}] "
 
-for rel in ['SKILL.md', 'skills/pge-execute/SKILL.md']:
+for rel in ['skills/pge-execute/SKILL.md']:
     path = install_root / rel
     lines = path.read_text().splitlines()
     for i, line in enumerate(lines):

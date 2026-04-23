@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file is the authoritative control-plane source of truth for current PGE runtime orchestration.
+This file is the authoritative current-stage runtime-control policy for PGE orchestration.
 
 It defines, in one place:
 - runtime state transitions
@@ -13,14 +13,19 @@ It defines, in one place:
 - artifact-chain gates required before final routing
 - the minimal checkpoint schema for recovery
 
-If this file conflicts with `skills/pge-execute/SKILL.md`, older round notes, or checklist prose, this file wins.
+The active operational seam for these rules lives in `skills/pge-execute/ORCHESTRATION.md`.
+If this file conflicts with older round notes or checklist prose, this file wins as the current-stage runtime-control policy and the skill layer must be aligned to it.
 
 ## Relationship to other seams
 
+- `skills/pge-execute/ORCHESTRATION.md` is the active skill-owned operational seam for `main`.
+- `skills/pge-execute/SKILL.md` is the bounded dispatcher/orchestrator entrypoint.
 - `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md` defines the broader execution-layer architecture.
+- `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md` defines the architectural ownership split and the normalized meaning of `main`.
 - `contracts/*` define the canonical route/state/verdict vocabulary.
 - `skills/pge-execute/contracts/*` are runtime-facing copies used by the installed skill.
-- `skills/pge-execute/SKILL.md` is the bounded dispatcher/orchestrator and must follow this file.
+
+`main` is the orchestration主体 for a run: the skill-internal run-level scheduler, state owner, router, and recovery owner. This file defines the current-stage runtime behavior that the skill layer must follow.
 
 This file defines orchestration behavior for the current stage. It does not broaden the target architecture beyond what the runtime can honestly support today.
 
@@ -28,7 +33,7 @@ This file defines orchestration behavior for the current stage. It does not broa
 
 The target architecture remains:
 
-> `main` + persistent runtime Planner / Generator / Evaluator team
+> `main` orchestrates a persistent runtime Planner / Generator / Evaluator team
 
 That architecture is not optional and is not reopened here.
 
@@ -193,13 +198,17 @@ The evaluator artifact must:
 
 ### Append-only step record gate
 
-Before final route exit, the runtime must leave an append-only recovery record that names:
+Before final route exit, the runtime must leave an append-only route record that names:
 - state before route finalization
 - state after route finalization
 - planner/generator/evaluator artifact refs
 - latest evaluator verdict
 - selected canonical route
 - route reason
+
+For the current stage:
+- unsupported-route stops satisfy this requirement through `checkpoint_artifact`
+- converged stops satisfy this requirement through final `runtime_state` plus `summary_artifact`
 
 If any artifact gate fails, the runtime must stop with `artifact_gate_failed` instead of inventing a route.
 
@@ -237,8 +246,10 @@ The minimal recovery checkpoint for a run must be written at:
 The current stage requires checkpoint writes at these minimum points:
 - after planner artifact passes preflight and the run becomes `ready_to_generate`
 - after generator artifact passes its gate and the run becomes `awaiting_evaluation`
-- after evaluator artifact is accepted for routing and before the runtime exits routing
+- after evaluator artifact is accepted for routing when the runtime is about to stop before automatic redispatch
 - immediately before stopping on `unsupported_route`
+
+For `converged`, final `runtime_state` plus `summary_artifact` act as the terminal route record instead of an additional recovery checkpoint.
 
 ### Recovery entry points
 
@@ -252,7 +263,8 @@ Recovery must use checkpointed records, not transcript reconstruction, as the du
 ## Team lifecycle assumptions
 
 The control-plane assumption remains:
-- `main` is the run-level scheduler and team lifecycle owner
+- `main` is the skill-internal run-level scheduler and team lifecycle owner
+- `main` is outside the runtime worker team and must not be modeled as a peer agent role or `agents/` seam relative to Planner / Generator / Evaluator
 - Planner / Generator / Evaluator are the intended persistent runtime team members for a run
 
 What remains intentionally deferred in the current stage:
@@ -274,6 +286,7 @@ So the repo should now speak about runtime teams like this:
 Whenever route, state, verdict, artifact-gate, or checkpoint semantics change:
 1. update the canonical contract under `contracts/*`
 2. update the runtime-facing copy under `skills/pge-execute/contracts/*`
-3. update `skills/pge-execute/SKILL.md` in the same change if runtime behavior is affected
+3. update `skills/pge-execute/ORCHESTRATION.md` in the same change if runtime behavior is affected
+4. update `skills/pge-execute/SKILL.md` in the same change if the dispatcher surface is affected
 
 Do not claim control-plane parity if only one of those surfaces was updated.

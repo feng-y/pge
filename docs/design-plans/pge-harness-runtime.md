@@ -98,13 +98,13 @@ Current anchors:
 - `agents/planner.md`
 - `agents/generator.md`
 - `agents/evaluator.md`
-- `agents/main.md`
+- `skills/pge-execute/SKILL.md`
+- `skills/pge-execute/ORCHESTRATION.md`
 - `contracts/entry-contract.md`
 - `contracts/round-contract.md`
 - `contracts/evaluation-contract.md`
 - `contracts/routing-contract.md`
 - `contracts/runtime-state-contract.md`
-- `skills/pge-execute/SKILL.md`
 
 So the truthful current position is:
 
@@ -290,7 +290,8 @@ Canonical references:
 - `agents/planner.md`
 - `agents/generator.md`
 - `agents/evaluator.md`
-- `agents/main.md`
+- `skills/pge-execute/SKILL.md`
+- `skills/pge-execute/ORCHESTRATION.md`
 - `contracts/round-contract.md`
 - `contracts/evaluation-contract.md`
 - `contracts/routing-contract.md`

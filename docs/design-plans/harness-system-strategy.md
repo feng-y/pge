@@ -125,7 +125,6 @@ Responsibility layer:
 - `agents/planner.md`
 - `agents/generator.md`
 - `agents/evaluator.md`
-- `agents/main.md`
 
 Handoff layer:
 - `contracts/entry-contract.md`
@@ -134,8 +133,9 @@ Handoff layer:
 - `contracts/routing-contract.md`
 - `contracts/runtime-state-contract.md`
 
-Invocation layer:
+Invocation / orchestration layer:
 - `skills/pge-execute/SKILL.md`
+- `skills/pge-execute/ORCHESTRATION.md`
 
 Execution-core runtime plan:
 - `docs/design-plans/pge-harness-runtime.md`

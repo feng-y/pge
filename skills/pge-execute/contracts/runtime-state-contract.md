@@ -60,6 +60,14 @@ A run state must carry:
 - `converged`
 - `failed_upstream`
 
+## lifecycle mapping for Stage 2
+- `bootstrap` covers `intake_pending`, entry validation, and transition into `planning_round`
+- `dispatch` covers planner/generator/evaluator dispatch across `planning_round`, `ready_to_generate`, `generating`, `awaiting_evaluation`, `evaluating`, and `routing`
+- `handoff` covers the file-backed artifact gates between planner, generator, and evaluator seams
+- `teardown` covers terminal stop behavior for `converged` and `unsupported_route`
+
+This lifecycle mapping is the minimal runtime-team lifecycle for the current stage. It does not imply automatic multi-round execution.
+
 ## preflight states meaning
 - `preflight_pending`: round contract is frozen, awaiting preflight/contract-ack confirmation
 - `preflight_failed`: preflight determined the frozen contract is not executable or not independently evaluable as written

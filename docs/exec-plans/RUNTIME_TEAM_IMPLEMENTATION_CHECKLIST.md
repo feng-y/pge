@@ -3,7 +3,9 @@
 This checklist translates the reviewed runtime-team orchestration plan into a bounded implementation sequence.
 
 Use it with:
+- `skills/pge-execute/ORCHESTRATION.md`
 - `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md`
+- `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md`
 - `docs/exec-plans/CURRENT_MAINLINE.md`
 - `docs/exec-plans/ROUND_011_RUNTIME_TEAM_ORCHESTRATION_PLAN.md`
 - `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`
@@ -15,10 +17,12 @@ Do not claim later items before earlier items are explicit in the repo.
 
 ---
 
-## 1. Make one orchestration source of truth explicit
+## 1. Make the control-plane sources of truth explicit
 
 ### Goal
-Create one authoritative runtime-orchestration definition for:
+Create one explicit seam split for:
+- skill-owned orchestration behavior for `main`
+- orchestration ownership and the definition of `main`
 - state transitions
 - route policy
 - unsupported-route behavior
@@ -26,13 +30,15 @@ Create one authoritative runtime-orchestration definition for:
 - team lifecycle assumptions
 
 ### Done when
-- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` is explicitly named as the runtime orchestration source of truth.
+- `skills/pge-execute/ORCHESTRATION.md` is explicitly named as the active orchestration seam for `main`.
+- `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md` is explicitly named as the orchestration ownership source of truth.
+- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` is explicitly named as the runtime behavior source of truth.
 - `SKILL.md` no longer acts as the only de facto runtime spec.
-- The source of truth includes explicit FSM states, not only prose.
+- The runtime source of truth includes explicit FSM states, not only prose.
 
 ### Evidence
-- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` is named in control-plane docs.
-- `SKILL.md` references it rather than re-specifying the whole runtime.
+- both control-plane docs are named in mainline/runtime docs.
+- `SKILL.md` references them rather than re-specifying the whole runtime.
 
 ---
 
@@ -51,8 +57,8 @@ Make run-level vs slice-level authority non-overlapping.
 - Planner may emit slice-status advice only.
 
 ### Evidence
-- Ownership table exists in runtime docs.
-- No conflicting wording remains in `agents/main.md`, `agents/pge-planner.md`, or runtime docs.
+- Ownership table exists in control-plane docs.
+- No conflicting wording remains in `agents/`, `skills/pge-execute/`, or runtime docs.
 
 ---
 
@@ -162,7 +168,7 @@ Reduce `skills/pge-execute/SKILL.md` to entry + dispatch + artifact + route/reco
 - It clearly acts as a thin dispatcher into the orchestration source of truth.
 
 ### Evidence
-- Runtime orchestration detail has moved to the named authoritative runtime doc(s).
+- Orchestration ownership and runtime behavior detail have moved to the named authoritative control-plane docs.
 - `SKILL.md` keeps only the minimal operational surface.
 
 ---

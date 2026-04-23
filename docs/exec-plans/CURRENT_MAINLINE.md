@@ -1,60 +1,51 @@
 # CURRENT_MAINLINE
 
-## Current overall goal
+## Current mainline
 
-Converge `pge` toward a generic, plan-driven execution layer organized around `main` plus a persistent runtime Planner / Generator / Evaluator team.
+Make `pge-execute` a runnable thin skill with persistent runtime `pge-planner` / `pge-generator` / `pge-evaluator` teammates.
 
-See the main architecture plan at `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md`.
+## Why this is the mainline
 
-## Current stage goal
+Repo evidence already supports the install/discovery baseline:
+- `.claude-plugin/plugin.json` declares the plugin package and runtime agent entries
+- `skills/pge-execute/SKILL.md` is already framed as a bounded execution entrypoint
+- `skills/pge-execute/ORCHESTRATION.md` already defines `main` as the skill-internal orchestration shell
 
-Make runtime orchestration authoritative enough that the intended runtime-team architecture can stand up without ambiguity, control-surface drift, or hidden ownership conflicts.
+So the active problem is no longer install work. The active problem is making the runtime team lifecycle explicit enough that future implementation rounds can proceed without re-deciding the architecture.
 
-This stage does **not** defer runtime teams as optional. Runtime teams are the target architecture. The current bounded round exists to make that architecture implementable on a stable base.
+## Active stage
 
-## Current P0 blockers
+Stage 2 — Runtime team bootstrap
 
-- Persistent runtime-team lifecycle, route/recovery behavior, and ownership boundaries are not yet operationally closed strongly enough to claim the team architecture is fully implemented.
+## Current blocker
 
-## Runtime orchestration authority for this stage
+The thin-skill runtime-team direction is settled, but the minimal runtime team lifecycle is not yet captured as the single active implementation target for the next round.
 
-The authoritative orchestration source of truth is:
-- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`
+## What this round is optimizing for
 
-For the current stage, that file defines:
-- runtime state transitions
-- route policy
-- unsupported-route handling
-- recovery entry points
-- team lifecycle assumptions
-- artifact-chain gates before final routing
-- the checkpoint mini-schema
+- keep `SKILL.md` thin
+- keep `main` as the orchestration shell, not a peer agent
+- treat `pge-planner`, `pge-generator`, and `pge-evaluator` as the persistent runtime teammates
+- make bootstrap, dispatch, handoff, and teardown the runtime lifecycle backbone
+- remove stage ambiguity so future rounds do not reopen install work or broader architecture
 
-If older round notes, checklist prose, or `skills/pge-execute/SKILL.md` conflict with that file, the orchestration authority file wins.
+## Explicit non-goals
 
-## Explicit non-goals for this stage
-
-- broad external task support
-- full multi-round execution support in the same round
-- claiming persistent runtime-team lifecycle is already fully implemented
-- broad agent semantic redesign beyond orchestration closure
-- uncontrolled workflow/process expansion outside the execution-layer target
+- more install or discovery work
+- broad runtime implementation beyond the active step
+- multi-round automation
+- per-task file protocol design
+- contract convergence work beyond what is needed to keep the current stage coherent
+- broad process expansion outside the staged plan
 
 ## Next single action
 
-Start the next runtime implementation round directly from the authoritative control plane:
-- enforce artifact-chain gates in the executable runtime path, not only in docs
-- write and consume checkpoints from `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`
-- keep unsupported-route handling fail-fast in the runtime surface
-- close the remaining runtime lifecycle mechanics without reopening architecture
+Use `docs/exec-plans/CURRENT_STEP.md` to define and validate the minimal runtime team lifecycle for `pge-execute`.
 
-## Round completion criteria
+## Stage exit criteria
 
-This stage is done when:
-- runtime P/G/E teams are explicitly documented as the intended target architecture
-- one operational source of truth exists for runtime orchestration, state/route/recovery behavior, and unsupported-route handling
-- `main` vs Planner responsibilities are explicit and non-overlapping
-- artifact-chain validation requirements are explicit before final routing
-- contract drift control between canonical and runtime-facing copies is explicitly addressed
-- the current bounded runtime path remains runnable end-to-end with explicit artifacts, explicit route reason, and explicit final outcome
-- the repo does not overclaim persistent runtime-team capability before orchestration closure is actually implemented
+Stage 2 is done when:
+- `main` is unambiguously framed as the runtime team lead / orchestration shell
+- runtime teammates are unambiguously `pge-planner`, `pge-generator`, and `pge-evaluator`
+- the minimal lifecycle covers bootstrap, dispatch, handoff, and teardown
+- the next implementation round can collect concrete lifecycle evidence without reopening architecture or install scope
