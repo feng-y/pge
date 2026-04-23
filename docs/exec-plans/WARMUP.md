@@ -1,39 +1,41 @@
 # WARMUP
 
-Warmup is mandatory before any new implementation round.
+Warmup is mandatory before every future implementation round.
 
 ## Required read order
+
+Always read these files first, in this order:
 
 1. `docs/exec-plans/CURRENT_MAINLINE.md`
 2. `docs/exec-plans/STAGE_PROGRESS.md`
 3. `docs/exec-plans/CURRENT_STEP.md`
-4. the minimum source-of-truth files for the active step
+4. `skills/pge-execute/SKILL.md`
+5. `skills/pge-execute/ORCHESTRATION.md`
+6. `.claude-plugin/plugin.json`
 
-For the current step, read:
-- `skills/pge-execute/SKILL.md`
-- `skills/pge-execute/ORCHESTRATION.md`
-- `.claude-plugin/plugin.json`
+After that, read only the minimal additional source-of-truth files needed for the current step.
 
-Read additional files only if they are needed to resolve a concrete contradiction for the active step.
+## Required warmup report
 
-## Required pre-implementation report
+Before implementation starts, report all of the following:
 
-Before editing code, report all of the following:
 - current mainline
 - active stage
 - current step
-- done-when for the current step
-- explicit non-goals for the current step
+- done-when
+- non-goals
 
-If any of those are unclear after warmup, stop and repair the control plane before implementation.
+If any item is unclear after warmup, stop and repair the control plane before implementation.
 
 ## Warmup guardrails
 
+- do not create a parallel planning system
 - do not reopen settled architecture during warmup
 - do not reactivate completed stages
 - do not start multiple current steps
+- do not read broad supporting materials unless the current step needs them as source of truth
 - do not jump ahead to later-stage concerns unless the current step is blocked by a direct contradiction
 
 ## Purpose
 
-Warmup exists to reduce coordination overhead. A future round should be able to read these files and know what to do now, what not to do now, what evidence to collect, and what comes next.
+Warmup exists so a future Claude Code round can read a small fixed set of files, restate the current execution target, and know exactly what to do next without reopening the architecture.
