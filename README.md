@@ -111,47 +111,43 @@ If Claude Code is already running, reload installed plugin contents:
 
 Distributable changes should bump the version in `.claude-plugin/plugin.json` so marketplace/plugin update detection remains explicit.
 
+### Discoverability troubleshooting
+
+If the installed skill or agents look stale after a GitHub or marketplace update:
+- run `/reload-plugins`
+- if the current session still looks stale, restart Claude Code
+- if you previously used local/dev installs, clear old conflicting state before trusting discovery, especially `~/.claude/dev-plugins/pge`
+
+Do not use the local helper as a workaround for marketplace discoverability. Fix the marketplace install state instead.
+
 ### Local development install
 
-For local validation, you can install the local PGE skill into Claude's skills directory without pushing to `main` or reinstalling through the marketplace flow:
+Use `./bin/pge-local-install.sh` only for maintainer/dev validation in a clean local environment.
+It is not the formal install or update path, and it is not the right fix for marketplace/GitHub discoverability issues.
 
-```bash
-./bin/pge-local-install.sh
-```
-
-This installs the local runtime root at:
+Normal users should stay on the marketplace path:
 
 ```text
-~/.claude/skills/pge
+/plugin marketplace update pge
+/plugin update pge
+/reload-plugins
 ```
 
-And exposes the top-level discovered skill entry at:
+If you need a clean reinstall:
 
 ```text
-~/.claude/skills/pge-execute/SKILL.md
+/plugin uninstall pge
+/plugin install pge@pge
 ```
 
-The helper intentionally installs only the runtime-facing PGE payload:
-- `.claude-plugin/plugin.json`
-- `skills/pge-execute/SKILL.md`
-- `skills/pge-execute/ORCHESTRATION.md`
-- `skills/pge-execute/contracts/*.md`
-- `agents/pge-{planner,generator,evaluator}.md`
+The local helper installs the minimum runtime-facing payload into `~/.claude/skills/pge` and exposes `~/.claude/skills/pge-execute/SKILL.md` for local validation only.
+It intentionally does not copy docs, proving artifacts, or other repo-only files.
 
-It does not copy docs, proving artifacts, or other repo-only files.
+The helper now refuses to run if either of these conflict states is present:
+- marketplace-installed plugin `pge@pge`
+- legacy local state at `~/.claude/dev-plugins/pge`
 
-After installing locally:
-
-```bash
-claude -p "/pge-execute test"
-```
-
-If the helper warns that `pge@pge` is still installed in the Claude plugin registry, uninstall that marketplace plugin before trusting the skill list, otherwise duplicate `/pge` or `/pge-execute` entries may appear.
-
-If Claude Code is already running and `/pge-execute` is not discovered immediately, restart the current Claude Code session.
-
-The helper prints the installed plugin `name`, `version`, and `description` after each run.
-For a visible install check during development, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed manifest under `~/.claude/skills/pge/.claude-plugin/plugin.json` changed too.
+If Claude Code is already running and marketplace changes are not discovered immediately, run `/reload-plugins` first, then restart the current session if needed.
 
 ## Normalized execution-core seams
 

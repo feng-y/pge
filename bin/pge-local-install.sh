@@ -50,6 +50,46 @@ if [[ "$clean_only" -eq 1 ]]; then
   exit 0
 fi
 
+marketplace_registry="${HOME}/.claude/plugins/installed_plugins.json"
+legacy_dev_plugin_dir="${HOME}/.claude/dev-plugins/pge"
+
+if python - <<'PY' "$marketplace_registry"
+import json
+import sys
+from pathlib import Path
+registry = Path(sys.argv[1])
+if not registry.exists():
+    raise SystemExit(1)
+data = json.loads(registry.read_text())
+raise SystemExit(0 if data.get('plugins', {}).get('pge@pge') else 1)
+PY
+then
+  cat >&2 <<EOF
+Refusing local dev install because marketplace-installed plugin pge@pge is present.
+Use the marketplace path for normal installs and updates instead:
+  /plugin marketplace update pge
+  /plugin update pge
+  /reload-plugins
+If you need a clean reinstall:
+  /plugin uninstall pge
+  /plugin install pge@pge
+EOF
+  exit 1
+fi
+
+if [[ -e "$legacy_dev_plugin_dir" ]]; then
+  cat >&2 <<EOF
+Refusing local dev install because legacy dev-plugin state exists at:
+  $legacy_dev_plugin_dir
+Remove that stale path before using this maintainer-only helper.
+For normal installs and updates, use the marketplace path instead:
+  /plugin marketplace update pge
+  /plugin update pge
+  /reload-plugins
+EOF
+  exit 1
+fi
+
 tmp_dir="$(mktemp -d "${skills_dir}/.pge-local-install.XXXXXX")"
 cleanup() {
   rm -rf "$tmp_dir"
@@ -129,17 +169,6 @@ install_root = Path.home().joinpath('.claude/skills/pge')
 manifest = json.loads((install_root / '.claude-plugin' / 'plugin.json').read_text())
 local_build = (install_root / '.local-build').read_text().strip()
 print(f"Plugin: {manifest['name']} | Manifest version: {manifest['version']} | Local build: {local_build}")
-PY
-)"
-
-installed_plugin_warning="$(python - <<'PY'
-import json
-from pathlib import Path
-registry = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
-if registry.exists():
-    data = json.loads(registry.read_text())
-    if data.get('plugins', {}).get('pge@pge'):
-        print('Warning: marketplace-installed plugin pge@pge is still present in Claude plugin registry.\n         You may see duplicate /pge or /pge-execute entries until that plugin is uninstalled.')
 PY
 )"
 
