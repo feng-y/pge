@@ -6,7 +6,7 @@ Make `pge-execute` a runnable thin skill with persistent runtime `pge-planner` /
 
 ## Active stage
 
-Stage 2 — Runtime team bootstrap
+Stage 3 — Team dispatch / handoff closure
 
 ## Stage list
 
@@ -14,9 +14,10 @@ Stage 2 — Runtime team bootstrap
   - Exit criteria: one mainline is fixed; install work is no longer treated as the active problem.
 - **Stage 1 — Runtime install/discovery** — **DONE**
   - Exit criteria: `.claude-plugin/plugin.json` declares the plugin package and runtime agent entries, and `skills/pge-execute/` is already the runnable orchestration entry surface.
-- **Stage 2 — Runtime team bootstrap** — **ACTIVE**
+- **Stage 2 — Runtime team bootstrap** — **DONE**
   - Exit criteria: the minimal runtime team lifecycle for `pge-execute` is fixed with explicit `bootstrap`, `dispatch`, `handoff`, and `teardown`, with `main` as orchestration shell and `pge-planner` / `pge-generator` / `pge-evaluator` as the runtime teammates.
-- **Stage 3 — Team dispatch / handoff closure** — **TODO**
+  - **Completion evidence**: Two successful smoke runs (`run-1777010098564`, `run-1777010525846`) proving the runtime bootstrap path works end-to-end with repeatable lifecycle execution.
+- **Stage 3 — Team dispatch / handoff closure** — **ACTIVE**
   - Exit criteria: the Stage 2 lifecycle is implemented in the runtime workflow surfaces with file-backed handoffs and no role simulation in `main`.
 - **Stage 4 — Thin skill reshape** — **TODO**
   - Exit criteria: `skills/pge-execute/SKILL.md` is reduced to a thin runnable entrypoint while orchestration detail lives in the supporting control-plane seams.
@@ -29,13 +30,12 @@ Stage 2 — Runtime team bootstrap
 - **Stage 8 — Post-smoke stabilization** — **TODO**
   - Exit criteria: only issues exposed by the smoke run are fixed without reopening the architecture.
 
-## Why Stage 2 is active
+## Why Stage 3 is active
 
-Stage 1 is already effectively complete in repo state. The missing control surface is the minimal runtime team lifecycle that future implementation rounds should execute against.
+Stage 2 is complete. The minimal runtime team lifecycle has been proven through two successful smoke runs. The next step is to close any remaining dispatch/handoff gaps in the runtime workflow surfaces.
 
 ## Backlog
 
-- Route-specific dispatch and handoff closure beyond the Stage 2 definition step.
 - Further thinning of `skills/pge-execute/SKILL.md` once runtime lifecycle behavior is implemented.
 - Per-task file protocol design.
 - Contract convergence and drift-control hardening.
@@ -44,5 +44,5 @@ Stage 1 is already effectively complete in repo state. The missing control surfa
 
 ## Notes
 
-- There is exactly one active stage: Stage 2.
+- There is exactly one active stage: Stage 3.
 - The only current step is tracked in `docs/exec-plans/CURRENT_STEP.md`.
