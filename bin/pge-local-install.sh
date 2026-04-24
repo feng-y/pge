@@ -5,22 +5,23 @@ usage() {
   cat <<'EOF'
 Usage: ./bin/pge-local-install.sh [--clean] [--help]
 
-Install the local PGE skill into ~/.claude/skills and agents into ~/.claude/agents:
-- ~/.claude/skills/pge as the runtime root
-- ~/.claude/skills/pge-execute/SKILL.md as the top-level discovered skill entry
-- ~/.claude/agents/pge-{planner,generator,evaluator}.md as discoverable agents
+Install the local PGE plugin as a dev-plugin override at ~/.claude/dev-plugins/pge.
+This replaces the active local PGE override surface without creating parallel
+~/.claude/skills/pge-execute or ~/.claude/agents/pge-* entries.
 
 Options:
-  --clean   Remove the local PGE install from ~/.claude/skills and ~/.claude/agents, then exit.
+  --clean   Remove the local PGE dev-plugin override and legacy helper outputs, then exit.
   --help    Show this help text.
 EOF
 }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-skills_dir="${HOME}/.claude/skills"
-agents_dir="${HOME}/.claude/agents"
-install_dir="${skills_dir}/pge"
-entry_dir="${skills_dir}/pge-execute"
+dev_plugins_dir="${HOME}/.claude/dev-plugins"
+legacy_skills_dir="${HOME}/.claude/skills"
+legacy_agents_dir="${HOME}/.claude/agents"
+install_dir="${dev_plugins_dir}/pge"
+legacy_runtime_root="${legacy_skills_dir}/pge"
+legacy_entry_dir="${legacy_skills_dir}/pge-execute"
 clean_only=0
 
 while [[ $# -gt 0 ]]; do
@@ -41,56 +42,25 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-mkdir -p "$skills_dir"
+mkdir -p "$dev_plugins_dir"
+
+cleanup_legacy_helper_outputs() {
+  rm -rf "$legacy_runtime_root" "$legacy_entry_dir"
+  rm -f \
+    "$legacy_agents_dir/pge-planner.md" \
+    "$legacy_agents_dir/pge-generator.md" \
+    "$legacy_agents_dir/pge-evaluator.md"
+}
 
 if [[ "$clean_only" -eq 1 ]]; then
-  rm -rf "$install_dir" "$entry_dir"
-  rm -f "$agents_dir/pge-planner.md" "$agents_dir/pge-generator.md" "$agents_dir/pge-evaluator.md"
-  printf 'Removed local PGE install from: %s and %s\n' "$skills_dir" "$agents_dir"
+  rm -rf "$install_dir"
+  cleanup_legacy_helper_outputs
+  printf 'Removed local PGE dev-plugin override from: %s\n' "$install_dir"
+  printf 'Removed legacy helper outputs from: %s and %s\n' "$legacy_skills_dir" "$legacy_agents_dir"
   exit 0
 fi
 
-marketplace_registry="${HOME}/.claude/plugins/installed_plugins.json"
-legacy_dev_plugin_dir="${HOME}/.claude/dev-plugins/pge"
-
-if python - <<'PY' "$marketplace_registry"
-import json
-import sys
-from pathlib import Path
-registry = Path(sys.argv[1])
-if not registry.exists():
-    raise SystemExit(1)
-data = json.loads(registry.read_text())
-raise SystemExit(0 if data.get('plugins', {}).get('pge@pge') else 1)
-PY
-then
-  cat >&2 <<EOF
-Refusing local dev install because marketplace-installed plugin pge@pge is present.
-Use the marketplace path for normal installs and updates instead:
-  /plugin marketplace update pge
-  /plugin update pge
-  /reload-plugins
-If you need a clean reinstall:
-  /plugin uninstall pge
-  /plugin install pge@pge
-EOF
-  exit 1
-fi
-
-if [[ -e "$legacy_dev_plugin_dir" ]]; then
-  cat >&2 <<EOF
-Refusing local dev install because legacy dev-plugin state exists at:
-  $legacy_dev_plugin_dir
-Remove that stale path before using this maintainer-only helper.
-For normal installs and updates, use the marketplace path instead:
-  /plugin marketplace update pge
-  /plugin update pge
-  /reload-plugins
-EOF
-  exit 1
-fi
-
-tmp_dir="$(mktemp -d "${skills_dir}/.pge-local-install.XXXXXX")"
+tmp_dir="$(mktemp -d "${dev_plugins_dir}/.pge-local-install.XXXXXX")"
 cleanup() {
   rm -rf "$tmp_dir"
 }
@@ -151,21 +121,14 @@ for rel in ['skills/pge-execute/SKILL.md']:
 PY
 
 rm -rf "$install_dir"
+cleanup_legacy_helper_outputs
 mv "$tmp_dir" "$install_dir"
 trap - EXIT
-
-mkdir -p "$entry_dir"
-ln -snf "$install_dir/skills/pge-execute/SKILL.md" "$entry_dir/SKILL.md"
-
-mkdir -p "$agents_dir"
-cp "$install_dir/agents/pge-planner.md" "$agents_dir/pge-planner.md"
-cp "$install_dir/agents/pge-generator.md" "$agents_dir/pge-generator.md"
-cp "$install_dir/agents/pge-evaluator.md" "$agents_dir/pge-evaluator.md"
 
 manifest_summary="$(python - <<'PY'
 import json
 from pathlib import Path
-install_root = Path.home().joinpath('.claude/skills/pge')
+install_root = Path.home().joinpath('.claude/dev-plugins/pge')
 manifest = json.loads((install_root / '.claude-plugin' / 'plugin.json').read_text())
 local_build = (install_root / '.local-build').read_text().strip()
 print(f"Plugin: {manifest['name']} | Manifest version: {manifest['version']} | Local build: {local_build}")
@@ -173,25 +136,21 @@ PY
 )"
 
 cat <<EOF
-Installed local PGE skill to:
+Installed local PGE dev-plugin override to:
   $install_dir
-Exposed top-level skill at:
-  $entry_dir/SKILL.md
-Installed discoverable agents to:
-  $agents_dir/pge-planner.md
-  $agents_dir/pge-generator.md
-  $agents_dir/pge-evaluator.md
+Removed legacy helper-created skill and agent surfaces from:
+  $legacy_skills_dir
+  $legacy_agents_dir
 $manifest_summary
-${installed_plugin_warning:+$installed_plugin_warning
-}
 Next steps:
-  1. Run the skill directly in Claude Code:
+  1. Reload plugins in Claude Code:
+     /reload-plugins
+  2. Run the skill directly in Claude Code:
      /pge-execute test
-  2. Or smoke-test it from the CLI:
+  3. Or smoke-test it from the CLI:
      claude -p "/pge-execute test"
-  3. If Claude Code is already running, restart the current session if /pge-execute is not discovered immediately.
 
 Troubleshooting:
-  - To remove the local install entirely:
+  - To remove the local override and return to marketplace visibility:
     ./bin/pge-local-install.sh --clean
 EOF
