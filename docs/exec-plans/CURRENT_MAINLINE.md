@@ -6,46 +6,51 @@ Make `pge-execute` a runnable thin skill with persistent runtime `pge-planner` /
 
 ## Why this is the mainline
 
-Repo evidence already supports the install/discovery baseline:
+Repo evidence supports the runtime team architecture:
 - `.claude-plugin/plugin.json` declares the plugin package and runtime agent entries
-- `skills/pge-execute/SKILL.md` is already framed as a bounded execution entrypoint
-- `skills/pge-execute/ORCHESTRATION.md` already defines `main` as the skill-internal orchestration shell
+- `skills/pge-execute/SKILL.md` is framed as a bounded execution entrypoint
+- `skills/pge-execute/ORCHESTRATION.md` defines `main` as the skill-internal orchestration shell
+- Stage 2 proved the minimal runtime team lifecycle works end-to-end through two successful smoke runs
 
-So the active problem is no longer install work. The active problem is making the runtime team lifecycle explicit enough that future implementation rounds can proceed without re-deciding the architecture.
+The active problem is no longer runtime team bootstrap. The active problem is closing any remaining dispatch/handoff gaps in the runtime workflow surfaces.
 
 ## Active stage
 
-Stage 2 — Runtime team bootstrap
+Stage 3 — Team dispatch / handoff closure
 
 ## Current blocker
 
-The thin-skill runtime-team direction is settled, but the minimal runtime team lifecycle is not yet captured as the single active implementation target for the next round.
+Stage 2 is complete. The minimal runtime team lifecycle has been proven through two successful smoke runs (`run-1777010098564`, `run-1777010525846`).
+
+The current step is to identify and close any remaining dispatch/handoff gaps from the Stage 2 smoke runs, and verify that no role simulation remains in `main`.
 
 ## What this round is optimizing for
 
 - keep `SKILL.md` thin
 - keep `main` as the orchestration shell, not a peer agent
 - treat `pge-planner`, `pge-generator`, and `pge-evaluator` as the persistent runtime teammates
-- make bootstrap, dispatch, handoff, and teardown the runtime lifecycle backbone
-- remove stage ambiguity so future rounds do not reopen install work or broader architecture
+- ensure all dispatch/handoff seams are file-backed
+- verify no role simulation remains in `main`
+- close Stage 3 without broadening into Stage 4+ work
 
 ## Explicit non-goals
 
-- more install or discovery work
-- broad runtime implementation beyond the active step
-- multi-round automation
+- Stage 4 thin-skill reshape work
 - per-task file protocol design
-- contract convergence work beyond what is needed to keep the current stage coherent
+- contract convergence work beyond what is needed to keep Stage 3 coherent
 - broad process expansion outside the staged plan
+- multi-round automation
+- self-hosting tasks
+- Ralph loop
 
 ## Next single action
 
-Use `docs/exec-plans/CURRENT_STEP.md` to define and validate the minimal runtime team lifecycle for `pge-execute`.
+Identify remaining dispatch/handoff gaps from Stage 2 smoke runs and verify whether any role simulation remains in `main`.
 
 ## Stage exit criteria
 
-Stage 2 is done when:
-- `main` is unambiguously framed as the runtime team lead / orchestration shell
-- runtime teammates are unambiguously `pge-planner`, `pge-generator`, and `pge-evaluator`
-- the minimal lifecycle covers bootstrap, dispatch, handoff, and teardown
-- the next implementation round can collect concrete lifecycle evidence without reopening architecture or install scope
+Stage 3 is done when:
+- all dispatch/handoff gaps identified from Stage 2 smoke runs are closed
+- no role simulation remains in `main`
+- the runtime workflow surfaces are complete for the current stage
+- file-backed handoffs are confirmed for all seams
