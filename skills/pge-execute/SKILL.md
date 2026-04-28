@@ -1,8 +1,8 @@
 ---
 name: pge-execute
-description: Use this skill when the user asks to run one bounded PGE execution round. It creates a persistent Claude Code Team with pge-planner, pge-generator, and pge-evaluator, then runs Planner → Generator → Evaluator through file-backed handoff.
-version: 0.2.0
-argument-hint: "test | <upstream-plan-file> | <inline-upstream-plan>"
+description: Run one minimal PGE execution using a real Claude Code Agent Team (planner, generator, evaluator) with file-backed artifacts.
+version: 0.3.0
+argument-hint: "test | <task prompt>"
 allowed-tools:
   - TeamCreate
   - TeamDelete
@@ -18,705 +18,433 @@ allowed-tools:
 
 # PGE Execute
 
-Run one bounded PGE execution round using Claude Code native Team system.
+Run one bounded PGE execution with a real Agent Team.
 
-This skill is the `main` orchestration shell.
+This skill is the orchestration shell only.
+It is not a fourth agent.
 
-`main` is not a fourth agent.
+Current goal: make `/pge-execute test` run end-to-end with the smallest real closed loop.
+Do not broaden into workflow/framework design.
 
-`main` owns:
-- team lifecycle
-- runtime state
-- artifact paths
-- phase dispatch
-- file-backed handoff
-- route recording
-- teardown
+## Hard requirements
 
-`main` must not:
-- simulate Planner / Generator / Evaluator
-- read agent markdown and act as those roles
-- replace Team execution with direct role-play
-- create one-off per-task P/G/E groups
-- expand into multi-round orchestration
+- Use Claude Code native Agent Teams.
+- Create exactly one team for the run.
+- Spawn exactly three teammates:
+  - `planner` using `pge-planner`
+  - `generator` using `pge-generator`
+  - `evaluator` using `pge-evaluator`
+- Dispatch work through `SendMessage`.
+- Use file-backed handoff.
+- Do not simulate Planner / Generator / Evaluator in `main`.
+- Do not fall back to direct non-team Agent dispatch.
+- Do not require the user to pass a plan path.
+- First version is single-round only.
 
-The runtime team is fixed for this skill invocation.
+If TeamCreate / Agent with `team_name` / SendMessage / TeamDelete cannot be used, stop immediately and report one concrete blocker.
 
-Resolve `plugin_root` from the current installed skill location.
+## Accepted inputs
 
-If the skill base directory is `{plugin_root}/skills/pge-execute`, then use:
+Read the final `ARGUMENTS:` block for this skill invocation.
 
-```python
-plugin_root = dirname(dirname(skill_base_dir))
-```
-
-Use these agent definition paths from the active plugin surface:
-
-| Teammate | subagent_type | Agent definition |
-|---|---|---|
-| planner | pge-planner | `{plugin_root}/agents/pge-planner.md` |
-| generator | pge-generator | `{plugin_root}/agents/pge-generator.md` |
-| evaluator | pge-evaluator | `{plugin_root}/agents/pge-evaluator.md` |
-
-## Agent Resolution Map
-
-Use these exact mappings:
-
-```python
-AGENTS = {
-  "planner": {
-    "subagent_type": "pge-planner",
-    "name": "planner",
-    "agent_def_path": f"{plugin_root}/agents/pge-planner.md",
-  },
-  "generator": {
-    "subagent_type": "pge-generator",
-    "name": "generator",
-    "agent_def_path": f"{plugin_root}/agents/pge-generator.md",
-  },
-  "evaluator": {
-    "subagent_type": "pge-evaluator",
-    "name": "evaluator",
-    "agent_def_path": f"{plugin_root}/agents/pge-evaluator.md",
-  },
-}
-```
-
-This map is the only role → agent mapping for `pge-execute`.
-
-Do not invent other role names.
-
-Do not spawn extra Planner / Generator / Evaluator agents.
-
-## Accepted Inputs
-
-Use the final `ARGUMENTS:` block attached to this skill invocation.
-
-Accepted forms:
-
+Supported inputs in this version:
 1. `test`
-2. a readable file path containing upstream shaping input
-3. inline upstream text, notes, or a partially-shaped upstream plan
-4. any short execute-first request that Planner can cut into one bounded round
+2. any other inline task prompt
 
-If the argument is `test`, use this fixed upstream plan exactly:
-
-```yaml
-goal: Create `.pge-artifacts/pge-smoke.txt` containing exactly `pge smoke`
-boundary: Only create `.pge-artifacts/pge-smoke.txt`
-deliverable: `.pge-artifacts/pge-smoke.txt` with exact content `pge smoke`
-verification_path: Verify the file exists and its full contents equal `pge smoke`
-run_stop_condition: single_round
-```
-
-If the input is not `test`, do not require upstream fields at entry.
-
-Pass the effective upstream input to Planner exactly as received after file resolution.
-
-Planner owns cutting or normalizing that input into one bounded round contract.
-
-Do not enforce intake validation beyond resolving the provided argument.
-
-Do not guess beyond the provided upstream input.
-
-## Runtime Files
-
-Use the current working directory as `repo_root`.
-
-Resolve the active plugin root from the installed skill location:
-
-```python
-plugin_root = dirname(dirname(skill_base_dir))
-```
-
-Create and use:
-
-```python
-artifact_dir = f"{repo_root}/.pge-artifacts"
-run_id = f"run-{timestamp}"
-round_id = "round-1"
-
-planner_artifact = f"{artifact_dir}/{run_id}-planner-output.md"
-generator_artifact = f"{artifact_dir}/{run_id}-generator-output.md"
-evaluator_artifact = f"{artifact_dir}/{run_id}-evaluator-verdict.md"
-runtime_state = f"{artifact_dir}/{run_id}-runtime-state.json"
-summary_artifact = f"{artifact_dir}/{run_id}-round-summary.md"
-checkpoint_artifact = f"{artifact_dir}/{run_id}-checkpoint.json"
-team_log = f"{artifact_dir}/{run_id}-team-log.jsonl"
-```
-
-All runtime state is per-run.
-
-Do not write repo-global runtime state.
-
-## Team Lifecycle
-
-Use Claude Code native Team system.
-
-```python
-# 1. Create persistent team for this run
-TeamCreate(team_name=f"pge-runtime-{run_id}")
-
-# 2. Spawn exactly three teammates
-Agent(
-  subagent_type="pge-planner",
-  team_name=f"pge-runtime-{run_id}",
-  name="planner",
-  prompt=planner_startup_prompt,
-)
-
-Agent(
-  subagent_type="pge-generator",
-  team_name=f"pge-runtime-{run_id}",
-  name="generator",
-  prompt=generator_startup_prompt,
-)
-
-Agent(
-  subagent_type="pge-evaluator",
-  team_name=f"pge-runtime-{run_id}",
-  name="evaluator",
-  prompt=evaluator_startup_prompt,
-)
-
-# 3. Dispatch by SendMessage
-SendMessage(to="planner", message=planner_message)
-SendMessage(to="generator", message=generator_message)
-SendMessage(to="evaluator", message=evaluator_message)
-
-# 4. Shutdown
-SendMessage(to="planner", message={"type": "shutdown_request"})
-SendMessage(to="generator", message={"type": "shutdown_request"})
-SendMessage(to="evaluator", message={"type": "shutdown_request"})
-
-TeamDelete(team_name=f"pge-runtime-{run_id}")
-```
-
-If `TeamCreate`, `Agent(..., team_name=...)`, `SendMessage`, or `TeamDelete` is unavailable, stop immediately.
-
-Do not fall back to direct Agent dispatch.
-
-Do not report success without Team execution.
-
-## Startup Checks
-
-Before running the round:
-
-1. Confirm `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set.
-2. Confirm these files exist under the active plugin root:
-
-   * `{plugin_root}/agents/pge-planner.md`
-   * `{plugin_root}/agents/pge-generator.md`
-   * `{plugin_root}/agents/pge-evaluator.md`
-3. Record each agent definition evidence:
-
-   * path
-   * sha256 if available
-   * otherwise mtime and size
-4. Create `.pge-artifacts/` if needed.
-5. Initialize `runtime_state`.
-6. Create `team_log`.
-
-If any agent definition file is missing, stop.
-
-Report:
+If the argument is `test`, use this fixed smoke task:
 
 ```text
-BLOCKER: missing PGE agent definition under active plugin root: <path>
+Create .pge-artifacts/pge-smoke.txt with content exactly: pge smoke
 ```
 
-## Observer Log
+If the argument is not `test`:
+- use the prompt as the task input
+- Planner may inspect repo plans/docs if helpful
+- if no plan exists, Planner should produce a minimal execution brief directly from the prompt
+- do not ask the user for a plan path
 
-`main` writes JSONL records to `team_log`.
+## Runtime files
 
-Use one event per phase transition.
+Use `repo_root` as the current working directory.
+Create `.pge-artifacts/` if needed.
 
-Required phases:
+Use these exact per-run artifacts:
 
 ```text
-init
-agent_def_checked
-team_create_start
-team_create_done
-spawn_planner_done
-spawn_generator_done
-spawn_evaluator_done
-planner_dispatch_start
-planner_done
-planner_artifact_written
-generator_dispatch_start
-generator_done
-generator_artifact_written
-evaluator_dispatch_start
-evaluator_done
-evaluator_artifact_written
-route_selected
-summary_written
-shutdown_start
-shutdown_done
-complete
-blocker
+run_id = "run-" + current UTC timestamp in YYYYMMDDTHHMMSSZ
+artifact_dir = .pge-artifacts
+input_artifact = .pge-artifacts/<run_id>-input.md
+planner_artifact = .pge-artifacts/<run_id>-planner.md
+generator_artifact = .pge-artifacts/<run_id>-generator.md
+evaluator_artifact = .pge-artifacts/<run_id>-evaluator.md
+state_artifact = .pge-artifacts/<run_id>-state.json
+summary_artifact = .pge-artifacts/<run_id>-summary.md
+smoke_deliverable = .pge-artifacts/pge-smoke.txt
+team_name = pge-runtime-<run_id>
 ```
 
-Each log entry should include:
+## Minimal runtime state
 
-```json
-{
-  "ts": "<iso8601>",
-  "run_id": "<run_id>",
-  "round_id": "round-1",
-  "phase": "<phase>",
-  "team_name": "pge-runtime-<run_id>",
-  "details": {}
-}
-```
-
-The log is evidence.
-
-Do not use transcript-only state.
-
-## Execution Flow
-
-### Step 0 — Initialize
-
-Resolve the effective upstream input.
-
-- If the argument is `test`, use the fixed smoke upstream plan.
-- If the argument is a readable file path, read that file and use its contents as the upstream input.
-- Otherwise, treat the raw argument text as the upstream input.
-- Pass the resolved upstream input forward without entry-time validation.
-
-Write initial `runtime_state`:
+`state_artifact` must always be valid JSON with these fields:
 
 ```json
 {
   "run_id": "<run_id>",
-  "round_id": "round-1",
   "state": "initialized",
-  "agent_team_mode": true,
-  "team_name": "pge-runtime-<run_id>",
-  "teammates": {
-    "planner": {
-      "subagent_type": "pge-planner",
-      "agent_def_path": "{plugin_root}/agents/pge-planner.md"
-    },
-    "generator": {
-      "subagent_type": "pge-generator",
-      "agent_def_path": "{plugin_root}/agents/pge-generator.md"
-    },
-    "evaluator": {
-      "subagent_type": "pge-evaluator",
-      "agent_def_path": "{plugin_root}/agents/pge-evaluator.md"
-    }
-  },
-  "artifacts": {},
+  "team_created": false,
+  "planner_called": false,
+  "generator_called": false,
+  "evaluator_called": false,
   "verdict": null,
   "route": null,
-  "route_reason": null
+  "artifact_refs": {},
+  "error_or_blocker": null
 }
 ```
 
-### Step 1 — Create Team
+Allowed `state` values only:
+- `initialized`
+- `team_created`
+- `planning`
+- `generating`
+- `evaluating`
+- `converged`
+- `stopped`
+- `failed`
 
-Create the team:
+## Step 0 — Initialize
+
+1. Resolve the effective task input.
+   - `test` => fixed smoke task
+   - otherwise => raw prompt text
+2. Write `input_artifact`.
+   - include `run_id`
+   - include original argument
+   - include resolved task input
+   - for `test`, explicitly record the exact smoke contract
+3. Write initial `state_artifact` with state `initialized`.
+4. Check that these files exist under the active plugin root or current repo plugin source:
+   - `agents/pge-planner.md`
+   - `agents/pge-generator.md`
+   - `agents/pge-evaluator.md`
+5. If any is missing, set `state` to `failed`, set `error_or_blocker`, write `state_artifact`, and stop.
+
+## Step 1 — Create Team
+
+1. Create the team:
 
 ```python
-TeamCreate(team_name=f"pge-runtime-{run_id}")
+TeamCreate(team_name=team_name, description="PGE runtime smoke team")
 ```
 
-Spawn exactly:
+2. Spawn exactly three teammates:
 
 ```python
-Agent(subagent_type="pge-planner", team_name=f"pge-runtime-{run_id}", name="planner", prompt=...)
-Agent(subagent_type="pge-generator", team_name=f"pge-runtime-{run_id}", name="generator", prompt=...)
-Agent(subagent_type="pge-evaluator", team_name=f"pge-runtime-{run_id}", name="evaluator", prompt=...)
+Agent(subagent_type="pge-planner", team_name=team_name, name="planner", prompt="You are the PGE planner teammate. Stay idle until main sends the run task. Do not write code.")
+Agent(subagent_type="pge-generator", team_name=team_name, name="generator", mode="acceptEdits", prompt="You are the PGE generator teammate. Stay idle until main sends the run task. You may write files when asked.")
+Agent(subagent_type="pge-evaluator", team_name=team_name, name="evaluator", prompt="You are the PGE evaluator teammate. Stay idle until main sends the run task. Do not modify files.")
 ```
 
-The spawned teammates must appear as:
+3. Update `state_artifact`:
+   - `state = "team_created"`
+   - `team_created = true`
+   - fill `artifact_refs` for all known artifact paths
 
-```text
-@planner
-@generator
-@evaluator
-```
+If team creation or teammate spawn fails, set `state = "failed"`, record one concrete blocker, write `state_artifact`, and stop.
 
-If spawn fails, retry once.
+## Step 2 — Planner
 
-If still failing, stop and write blocker.
-
-Do not continue without all three teammates.
-
-### Step 2 — Planner
-
-Send the upstream plan to `@planner`.
+1. Update `state = "planning"`.
+2. Send work to `planner`.
+3. Planner must write `planner_artifact`.
+4. Wait for `planner_artifact` to exist before continuing.
+   - Prefer waiting on the file-backed handoff directly.
+   - Use a bounded shell wait if needed.
+   - Do not stop early just because the teammate has not replied yet.
+5. After the file exists, read it and gate it.
 
 Planner message:
 
 ```text
 You are @planner in the PGE runtime team.
 
-Produce exactly one bounded round contract for this run.
+run_id: <run_id>
+input_artifact: <input_artifact>
+output_artifact: <planner_artifact>
 
-Inputs:
-- run_id: {run_id}
-- round_id: round-1
-- upstream_plan:
-{upstream_plan}
+Task:
+Produce the smallest executable plan for this run.
 
-Output must be a markdown artifact with these sections:
+If the task is `test`, you must preserve this exact smoke deliverable:
+- file: .pge-artifacts/pge-smoke.txt
+- content: pge smoke
 
-# PGE Planner Output
+For non-test input:
+- inspect repo plans/docs only if useful
+- if a relevant plan exists, normalize it into one minimal execution brief
+- otherwise create the execution brief directly from the prompt
 
-## goal
-## in_scope
-## out_of_scope
-## actual_deliverable
-## acceptance_criteria
-## verification_path
-## required_evidence
-## stop_condition
-## handoff_seam
-## open_questions
-## planner_note
-## planner_escalation
+Write markdown to <planner_artifact> with exactly these top-level sections:
+- ## goal
+- ## in_scope
+- ## out_of_scope
+- ## actual_deliverable
+- ## acceptance_criteria
+- ## verification_path
+- ## stop_condition
+- ## handoff_seam
+- ## open_questions
 
 Rules:
-- Do not implement.
-- Do not evaluate.
-- Do not broaden scope.
-- If the input is `test`, preserve the smoke deliverable exactly:
-  `.pge-artifacts/pge-smoke.txt` containing exactly `pge smoke`.
+- do not implement
+- do not evaluate
+- keep one bounded round only
+- for test, acceptance must require the smoke file content to equal exactly `pge smoke`
+- for test, do not broaden scope beyond the smoke file plus the normal PGE control-plane artifacts written by main/generator/evaluator
 ```
 
-Persist Planner result to:
+Planner gate:
+- artifact exists
+- all required sections exist
+- `## actual_deliverable` exists
+- `## acceptance_criteria` exists
+- `## verification_path` exists
+- `## stop_condition` exists
 
-```text
-.pge-artifacts/{run_id}-planner-output.md
-```
+If the gate fails:
+- set `state = "failed"`
+- set `planner_called = true`
+- record blocker
+- write `state_artifact`
+- stop
 
-Gate:
+If the gate passes:
+- set `planner_called = true`
+- persist `planner_artifact` path in `artifact_refs`
+- write `state_artifact`
 
-* file exists
-* required sections exist
-* `actual_deliverable` exists
-* `acceptance_criteria` exists
-* `verification_path` exists
-* `stop_condition` exists
+## Step 3 — Generator
 
-If gate fails, stop with:
-
-```text
-BLOCKER: planner artifact failed structural gate.
-```
-
-### Step 3 — Generator
-
-Send Planner artifact to `@generator`.
+1. Update `state = "generating"`.
+2. Send work to `generator`.
+3. Generator must write `generator_artifact` and perform the real repo work.
+4. Wait for `generator_artifact` to exist before continuing.
+   - Prefer waiting on the file-backed handoff directly.
+   - Do not stop early just because the teammate has not replied yet.
+5. After the file exists, read it and gate it.
 
 Generator message:
 
 ```text
 You are @generator in the PGE runtime team.
 
-Execute the bounded round contract from Planner.
+run_id: <run_id>
+planner_artifact: <planner_artifact>
+output_artifact: <generator_artifact>
 
-Inputs:
-- run_id: {run_id}
-- round_id: round-1
-- planner_artifact_path: {planner_artifact}
-- generator_artifact_path: {generator_artifact}
+Execute the planner contract.
 
-You must produce the real deliverable.
+For `test`, you must perform a real write in this run:
+- write `.pge-artifacts/pge-smoke.txt`
+- set its full content to exactly `pge smoke`
+- do this even if the file already exists
+- verify the file exists and its full content equals exactly `pge smoke`
 
-For smoke test:
-- create `.pge-artifacts/pge-smoke.txt`
-- content must be exactly:
-  pge smoke
-
-Output must be a markdown artifact with these sections:
-
-# PGE Generator Output
-
-## current_task
-## boundary
-## actual_deliverable
-## deliverable_path
-## changed_files
-## local_verification
-### checks_run
-### results
-### overall_status
-## evidence
-## known_limits
-## non_done_items
-## deviations_from_spec
-## handoff_status
+Write markdown to <generator_artifact> with exactly these top-level sections:
+- ## current_task
+- ## boundary
+- ## actual_deliverable
+- ## deliverable_path
+- ## changed_files
+- ## local_verification
+- ## evidence
+- ## known_limits
+- ## non_done_items
+- ## deviations_from_spec
+- ## handoff_status
 
 Rules:
-- Produce the actual deliverable through repo work.
-- Run the verification path.
-- Do not self-approve.
-- Do not issue final verdict.
-- Do not change the Planner contract.
-- Stay inside boundary.
+- perform the real file work
+- run local verification
+- do not self-approve
+- do not issue final PASS
+- for test, `changed_files` must include `.pge-artifacts/pge-smoke.txt`
+- for test, evidence must include proof of exact content equality
 ```
 
-Persist Generator result to:
+Generator gate:
+- artifact exists
+- `## deliverable_path` exists
+- `## changed_files` exists
+- `## local_verification` exists
+- `## evidence` exists
+- for `test`, `.pge-artifacts/pge-smoke.txt` exists
+- for `test`, reading `.pge-artifacts/pge-smoke.txt` returns exactly `pge smoke`
 
-```text
-.pge-artifacts/{run_id}-generator-output.md
-```
+If the gate fails:
+- set `state = "failed"`
+- set `planner_called = true`
+- set `generator_called = true`
+- record blocker
+- write `state_artifact`
+- stop
 
-Gate:
+If the gate passes:
+- set `generator_called = true`
+- persist `generator_artifact` and smoke deliverable path in `artifact_refs`
+- write `state_artifact`
 
-* generator artifact exists
-* deliverable path is named
-* changed files are named
-* local verification is present
-* evidence is present
-* for `test`, `.pge-artifacts/pge-smoke.txt` exists
-* for `test`, full file content equals exactly `pge smoke`
+## Step 4 — Evaluator
 
-If gate fails, stop with:
-
-```text
-BLOCKER: generator artifact or smoke deliverable failed gate.
-```
-
-### Step 4 — Evaluator
-
-Send Planner + Generator artifacts to `@evaluator`.
+1. Update `state = "evaluating"`.
+2. Send work to `evaluator`.
+3. Evaluator must independently read the smoke file and write `evaluator_artifact`.
+4. Wait for `evaluator_artifact` to exist before continuing.
+   - Prefer waiting on the file-backed handoff directly.
+   - Do not stop early just because the teammate has not replied yet.
+5. After the file exists, read it and gate it.
 
 Evaluator message:
 
 ```text
 You are @evaluator in the PGE runtime team.
 
-Independently evaluate Generator output against Planner contract.
+run_id: <run_id>
+planner_artifact: <planner_artifact>
+generator_artifact: <generator_artifact>
+output_artifact: <evaluator_artifact>
 
-Inputs:
-- run_id: {run_id}
-- round_id: round-1
-- planner_artifact_path: {planner_artifact}
-- generator_artifact_path: {generator_artifact}
-- expected_deliverable_path: .pge-artifacts/pge-smoke.txt for smoke test
-- expected_smoke_content: pge smoke for smoke test
+Evaluate independently.
+You must read the actual deliverable yourself.
+Do not trust generator claims without checking the file.
+Do not modify repo files.
 
-Output must be a markdown artifact with these sections:
+For `test`, independently read `.pge-artifacts/pge-smoke.txt`.
+Only output PASS if the file exists and its full content equals exactly `pge smoke`.
+If PASS, route must be `converged`.
 
-# PGE Evaluator Verdict
+Write markdown to <evaluator_artifact> with exactly these top-level sections:
+- ## verdict
+- ## route
+- ## route_reason
+- ## evidence
+- ## required_followup
 
-## contract_checked
-## deliverable_checked
-## evidence_checked
-## verification_checked
-## findings
-## verdict
-## route
-## route_reason
-## required_followup
-
-Allowed verdict:
+Allowed verdicts:
 - PASS
 - RETRY
 - BLOCK
 - ESCALATE
 
-Allowed route:
+Allowed routes:
 - converged
 - retry
 - return_to_planner
-- escalate
-
-Rules:
-- Verify the actual deliverable.
-- For smoke test, read `.pge-artifacts/pge-smoke.txt` and confirm full content equals exactly `pge smoke`.
-- Do not trust Generator claims without checking the artifact.
-- PASS only if acceptance criteria are satisfied.
-- If PASS, route should be `converged`.
+- stopped
 ```
 
-Persist Evaluator result to:
+Evaluator gate:
+- artifact exists
+- `## verdict` exists
+- `## route` exists
+- `## route_reason` exists
+- `## evidence` exists
+- for `test`, PASS is valid only when route is `converged`
 
-```text
-.pge-artifacts/{run_id}-evaluator-verdict.md
-```
+If the gate fails:
+- set `state = "failed"`
+- set `planner_called = true`
+- set `generator_called = true`
+- set `evaluator_called = true`
+- record blocker
+- write `state_artifact`
+- stop
 
-Gate:
+If the gate passes:
+- set `evaluator_called = true`
+- persist `evaluator_artifact` path in `artifact_refs`
+- write `state_artifact`
 
-* evaluator artifact exists
-* verdict exists
-* route exists
-* route_reason exists
-* findings exist
-* for PASS, route is `converged`
+## Step 5 — Route
 
-If gate fails, stop with:
+Read the evaluator artifact.
 
-```text
-BLOCKER: evaluator artifact failed route gate.
-```
+If:
+- verdict = `PASS`
+- route = `converged`
 
-### Step 5 — Route
+then:
+- set `state = "converged"`
+- set `verdict = "PASS"`
+- set `route = "converged"`
+- set `error_or_blocker = null`
 
-`main` reads Evaluator artifact and records final route.
+Otherwise:
+- set `state = "stopped"`
+- set `verdict` and `route` from evaluator when present
+- set `error_or_blocker` to the evaluator reason
+- do not retry automatically in this version
 
-Supported terminal route for this stage:
+Write `state_artifact` after route selection.
 
-```text
-converged
-```
+## Step 6 — Summary
 
-If route is:
+Write `summary_artifact` with:
+- run_id
+- task input summary
+- team name
+- planner/generator/evaluator called flags
+- verdict
+- route
+- artifact paths
+- for `test`, smoke result and exact smoke file path
+- blocker if any
 
-```text
-retry
-return_to_planner
-escalate
-```
+## Step 7 — Teardown
 
-write checkpoint and stop.
-
-Do not automatically redispatch in this stage.
-
-### Step 6 — Summary
-
-Write:
-
-```text
-.pge-artifacts/{run_id}-round-summary.md
-```
-
-Summary must include:
-
-```md
-# PGE Round Summary
-
-## run_id
-## round_id
-## team_name
-## teammates
-## agent_definitions
-## artifacts
-## verdict
-## route
-## route_reason
-## smoke_result
-```
-
-For `agent_definitions`, include:
-
-```md
-| teammate | subagent_type | path | sha256_or_mtime_size |
-|---|---|---|---|
-| planner | pge-planner | {plugin_root}/agents/pge-planner.md | ... |
-| generator | pge-generator | {plugin_root}/agents/pge-generator.md | ... |
-| evaluator | pge-evaluator | {plugin_root}/agents/pge-evaluator.md | ... |
-```
-
-### Step 7 — Teardown
-
-Send shutdown messages:
+After the summary is written:
 
 ```python
-SendMessage(to="planner", message={"type": "shutdown_request", "run_id": run_id})
-SendMessage(to="generator", message={"type": "shutdown_request", "run_id": run_id})
-SendMessage(to="evaluator", message={"type": "shutdown_request", "run_id": run_id})
-TeamDelete(team_name=f"pge-runtime-{run_id}")
+SendMessage(to="planner", message={"type": "shutdown_request"})
+SendMessage(to="generator", message={"type": "shutdown_request"})
+SendMessage(to="evaluator", message={"type": "shutdown_request"})
+TeamDelete()
 ```
 
-Write final runtime state with:
+If teardown fails after route selection and artifacts are already written:
+- keep the execution result
+- mention teardown failure in the final text
+- do not rewrite PASS to failure solely because shutdown was noisy
 
-```json
-{
-  "state": "complete",
-  "verdict": "PASS",
-  "route": "converged"
-}
-```
+## Final response
 
-If shutdown fails after the round completed, report it as teardown warning, not as execution failure.
-
-## Smoke Completion Criteria
-
-For `pge-execute test`, success requires:
-
-1. Team was created.
-2. Exactly three teammates were spawned:
-
-   * planner
-   * generator
-   * evaluator
-3. The teammates used these subagent types:
-
-   * pge-planner
-   * pge-generator
-   * pge-evaluator
-4. The agent definition files existed under the active plugin root:
-
-   * `{plugin_root}/agents/pge-planner.md`
-   * `{plugin_root}/agents/pge-generator.md`
-   * `{plugin_root}/agents/pge-evaluator.md`
-5. Planner artifact was written.
-6. Generator artifact was written.
-7. Evaluator artifact was written.
-8. Runtime state was written.
-9. Summary was written.
-10. `.pge-artifacts/pge-smoke.txt` exists.
-11. `.pge-artifacts/pge-smoke.txt` content is exactly:
-
-    ```text
-    pge smoke
-    ```
-12. Evaluator verdict is `PASS`.
-13. Route is `converged`.
-14. Team was shut down.
-
-## Forbidden Fallbacks
-
-Do not do any of these:
-
-* use direct Agent calls without `team_name`
-* read agent definition files and imitate them instead of using Team execution
-* spawn temporary task-specific P/G/E groups
-* claim Agent Teams were used without TeamCreate
-* claim success without SendMessage dispatch
-* claim success without teammate artifacts
-* claim success without `.pge-artifacts/pge-smoke.txt`
-* broaden smoke into architecture/design work
-* implement multi-round retry
-* edit unrelated docs
-
-## Final Response
-
-When done, report only:
+Return only:
 
 ```md
 ## PGE Execute Result
-
-- status:
-- run_id:
-- team_name:
-- teammates:
-  - planner: pge-planner
-  - generator: pge-generator
-  - evaluator: pge-evaluator
-- agent_definitions:
-  - {plugin_root}/agents/pge-planner.md: <sha256_or_mtime_size>
-  - {plugin_root}/agents/pge-generator.md: <sha256_or_mtime_size>
-  - {plugin_root}/agents/pge-evaluator.md: <sha256_or_mtime_size>
+- status: <SUCCESS | BLOCKED>
+- run_id: <run_id>
+- verdict: <verdict>
+- route: <route>
 - artifacts:
-  - planner:
-  - generator:
-  - evaluator:
-  - runtime_state:
-  - summary:
-  - team_log:
-  - deliverable:
-- verdict:
-- route:
-- changed_files:
-- blocker:
+  - <input_artifact>
+  - <planner_artifact>
+  - <generator_artifact>
+  - <evaluator_artifact>
+  - <state_artifact>
+  - <summary_artifact>
+  - .pge-artifacts/pge-smoke.txt
+- blocker: <single concrete blocker or null>
 ```
 
-If not complete, `status` must be `BLOCKED`, and `blocker` must be the single concrete blocker.
+## Forbidden behavior
+
+Do not:
+- require `--plan`
+- require a plan path from the user
+- simulate agents in `main`
+- replace Team flow with direct role-play
+- auto-retry multiple rounds
+- expand into broader contract or state-machine design
+- stop before waiting for the dispatched teammate artifact handoff
+- accept `test` without the evaluator independently reading `.pge-artifacts/pge-smoke.txt`

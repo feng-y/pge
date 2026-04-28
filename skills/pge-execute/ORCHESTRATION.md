@@ -2,223 +2,102 @@
 
 ## Purpose
 
-This file is the skill-owned operational seam for `main` inside `skills/pge-execute/`.
+This file records the minimal orchestration behavior for `/pge-execute` in the current stage.
 
-It defines the run-level orchestration behavior used by `/pge-execute` for the current stage:
-- upstream input intake
-- run initialization
-- runtime state ownership
-- Planner / Generator / Evaluator dispatch and handoff behavior
-- route / stop / recovery behavior
-- unsupported-route fail-fast
-- artifact-chain gates and checkpoint expectations for one bounded round
+Current priority is only this:
+- make `/pge-execute test` run through a real Agent Team
+- prove planner -> generator -> evaluator handoff
+- write the required artifacts
+- stop after one bounded round
 
-`main` is skill-internal orchestration logic only. It is not an agent and it is not a peer runtime role alongside Planner / Generator / Evaluator.
+Do not broaden this seam into a larger workflow framework.
 
-## Relationship to nearby seams
+## Runtime roles
 
-- `skills/pge-execute/SKILL.md` is the entrypoint and dispatcher.
-- `skills/pge-execute/contracts/*` are the runtime-facing contracts used by the skill.
-- `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md` records the architectural ownership split.
-- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` records the current-stage control-plane policy that this file operationalizes.
+- `main` = orchestration shell only
+- `planner` = produce minimal execution brief
+- `generator` = do the real repo work and self-check
+- `evaluator` = independently validate and issue verdict/route
 
-If the skill behavior changes, update this file and then align the exec-plan docs in the same change.
+`main` is not a fourth agent.
 
-## Role split
+## Required lifecycle
 
-- `main` = skill-internal orchestration shell / run-level scheduler / runtime-state owner
-- Planner = slice scheduler / boundary owner
-- Generator = deliverable owner
-- Evaluator = validation gate / route-signal producer
+Single round only:
+1. initialize run
+2. create team
+3. planner handoff
+4. generator handoff
+5. evaluator handoff
+6. route
+7. summary
+8. teardown
 
-The persistent runtime team is Planner / Generator / Evaluator only.
+## Core rule
 
-## Runtime ownership
+Each handoff is file-backed.
+`main` continues only after the required artifact file exists and passes its minimal structural gate.
 
-`main` owns:
-- resolving the effective upstream plan
-- creating per-run artifact locations
-- initializing and updating runtime state
-- planner preflight before generation
-- generator/evaluator artifact gates before routing
-- canonical route selection from evaluator verdict plus stop condition
-- stop / recovery records
-- fail-fast handling when the selected canonical route is unsupported in the current stage
+For the current stage, this is more important than richer state-machine detail.
 
-`main` must not:
-- invent Planner, Generator, or Evaluator content
-- absorb slice-shaping work from Planner
-- absorb deliverable work from Generator
-- absorb acceptance work from Evaluator
-- silently redispatch unsupported routes
+## Smoke task
 
-## Minimal runtime team lifecycle for Stage 2
+For `/pge-execute test`:
+- generator must write `.pge-artifacts/pge-smoke.txt`
+- file content must be exactly `pge smoke`
+- evaluator must independently read that file
+- PASS requires `verdict = PASS` and `route = converged`
 
-Stage 2 defines one minimal lifecycle only:
-- `bootstrap`
-- `dispatch`
-- `handoff`
-- `teardown`
+## Required run artifacts
 
-This lifecycle is the current implementation target for `/pge-execute`.
-It is intentionally smaller than full multi-round orchestration.
+Each run must write at least:
+- `.pge-artifacts/<run_id>-input.md`
+- `.pge-artifacts/<run_id>-planner.md`
+- `.pge-artifacts/<run_id>-generator.md`
+- `.pge-artifacts/<run_id>-evaluator.md`
+- `.pge-artifacts/<run_id>-state.json`
+- `.pge-artifacts/<run_id>-summary.md`
+- `.pge-artifacts/pge-smoke.txt`
 
-### `bootstrap`
+## Minimal runtime state
 
-`main`:
-- resolves the effective upstream input
-- creates per-run artifact locations
-- initializes per-run runtime state
-- starts the runtime team without entry-time input gating
+Allowed states only:
+- `initialized`
+- `team_created`
+- `planning`
+- `generating`
+- `evaluating`
+- `converged`
+- `stopped`
+- `failed`
 
-Bootstrap ends when the run is ready for Planner dispatch.
+Required fields only:
+- `run_id`
+- `state`
+- `team_created`
+- `planner_called`
+- `generator_called`
+- `evaluator_called`
+- `verdict`
+- `route`
+- `artifact_refs`
+- `error_or_blocker`
 
-### `dispatch`
+## Route behavior
 
-`main` dispatches the persistent runtime teammates in bounded order:
-- `pge-planner`
-- `pge-generator`
-- `pge-evaluator`
-
-Dispatch must keep inputs scoped to each role.
-`main` remains the orchestration shell and does not become a fourth teammate.
-
-### `handoff`
-
-Every teammate handoff must be file-backed and gateable:
-- Planner handoff is the frozen round contract
-- Generator handoff is the implementation bundle plus evidence
-- Evaluator handoff is the verdict bundle plus canonical route signal
-
-A handoff is not complete until the receiving step has the required artifact and the artifact passes the structural gate for that seam.
-
-### `teardown`
-
-`main` owns teardown after route selection.
-Teardown means:
-- persist the final route decision into runtime state
-- write the required checkpoint or summary artifact for the terminal outcome reached in this stage
-- stop the bounded run without hidden transcript-only state
-
-For the current stage, both `converged` and `unsupported_route` are teardown exits.
-
-## Runtime files
-
-Use the runtime file locations declared in `skills/pge-execute/SKILL.md`:
-- `artifact_dir`
-- `planner_artifact`
-- `generator_artifact`
-- `evaluator_artifact`
-- `summary_artifact`
-- `runtime_state`
-- `checkpoint_artifact`
-
-All state is per-run and keyed by `run_id`.
-
-## Bounded execution flow
-
-Execute this flow in order for one bounded round.
-
-### `bootstrap`
-
-1. Resolve the effective upstream input from `SKILL.md` argument handling.
-2. Create `artifact_dir` if needed.
-3. Initialize `runtime_state` using `skills/pge-execute/contracts/runtime-state-contract.md` with the bounded single-round defaults.
-4. Set runtime state to `planning_round`.
-
-### `dispatch`
-
-6. Dispatch `pge-planner` with:
-   - the effective upstream input exactly as received after file resolution
-   - a short runtime-state summary
-   - the required planner artifact section list from `skills/pge-execute/contracts/round-contract.md`
-   - instruction that Planner owns cutting or normalizing loose upstream input into one bounded round contract
-7. Persist the returned planner artifact.
-8. Set runtime state to `preflight_pending`.
-9. Preflight the planner artifact.
-   - It must exist.
-   - It must satisfy the round-contract sections.
-   - If preflight fails, set `state: preflight_failed`, report the missing fields, and stop.
-   - If preflight passes, set `latest_preflight_result: pass`, set `state: ready_to_generate`, and write `checkpoint_artifact` with `recovery_entry_point: resume_generation`.
-10. Set runtime state to `generating`.
-11. Dispatch `pge-generator` in `acceptEdits` mode with:
-   - the full planner artifact
-   - only the minimum repo context needed for the declared deliverable and verification path
-   - the required generator artifact section list
-12. Persist the returned generator artifact.
-13. Set runtime state to `awaiting_evaluation`.
-14. Set runtime state to `evaluating`.
-15. Dispatch `pge-evaluator` with:
-   - the full planner artifact
-   - the full generator artifact
-   - a short current runtime-state summary
-   - the required evaluator artifact section list from `skills/pge-execute/contracts/evaluation-contract.md`
-16. Persist the returned evaluator artifact.
-17. Set runtime state to `routing`.
-
-### `handoff`
-
-18. Gate the planner, generator, and evaluator artifacts at each seam before route exit.
-   - Planner handoff must remain structurally usable for execution.
-   - Generator handoff must expose resolvable deliverable and evidence refs.
-   - Evaluator handoff must be structurally complete and route-usable.
-   - If any gate fails, set `state: artifact_gate_failed`, report the blocker, and stop.
-19. Fill `latest_deliverable_ref` and `latest_evidence_ref` when explicit, and write `checkpoint_artifact` with the current recovery entry point before leaving a successful handoff seam.
-
-### `teardown`
-
-20. Select the canonical route using `skills/pge-execute/contracts/routing-contract.md`.
-21. Persist the final verdict, final route, and route reason into `runtime_state`.
-22. If the canonical route is `continue`, `retry`, or `return_to_planner`, write `checkpoint_artifact` with `recovery_entry_point: resume_from_route_decision`, set `state: unsupported_route`, report the unsupported-route stop, and stop without redispatch.
-23. If the canonical route is `converged`, write `summary_artifact` with run id, artifact refs, final verdict, final route, and one short round summary.
-24. Report the run result with `run_id`, verdict, route, and artifact paths.
-
-## Artifact-chain gates
-
-Before final route exit:
-- planner artifact must be structurally usable for execution
-- generator artifact must name resolvable deliverable and evidence
-- evaluator artifact must be structurally complete and route-usable
-- the step must leave an append-only route record via `checkpoint_artifact` or final `runtime_state` + `summary_artifact`
-
-If any gate fails, stop with `artifact_gate_failed` instead of inventing a route.
-
-## Route and stop behavior
-
-Canonical route vocabulary:
-- `continue`
-- `retry`
-- `return_to_planner`
+Current version supports only one successful terminal route:
 - `converged`
 
-Current-stage execution support:
-- `converged` is supported
-- `continue`, `retry`, and `return_to_planner` are not automatically redispatched in the current stage
-
-When an unsupported canonical route is selected, `main` must:
-1. preserve the canonical route in runtime state
-2. set `state: unsupported_route`
-3. write the checkpoint before stopping
-4. report that the route is valid vocabulary but unsupported for automatic execution in the current stage
-5. stop without silently redispatching Planner / Generator / Evaluator
-
-## Recovery expectations
-
-Recovery is checkpoint-driven, not transcript-driven.
-
-Required checkpoint fields and entry points remain aligned with:
-- `skills/pge-execute/contracts/runtime-state-contract.md`
-- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`
-
-Current-stage recovery entry points:
-- `resume_generation`
-- `resume_evaluation`
-- `resume_from_route_decision`
+If evaluator returns anything else:
+- record it
+- write state + summary
+- stop
+- do not auto-retry
 
 ## Guardrails
 
+- Use real Agent Teams or stop with a blocker.
+- Do not simulate planner/generator/evaluator inside `main`.
+- Do not stop early after dispatch while the required artifact handoff is still pending.
 - Keep the run bounded to one round.
-- Keep file-based handoff as the execution backbone.
-- Stop and report malformed or missing artifacts instead of repairing by guesswork.
-- Do not broaden scope beyond the planner-frozen round contract.
-- Do not model `main` as a fourth agent in any skill or doc surface.
+- Keep changes minimal and execution-first.
