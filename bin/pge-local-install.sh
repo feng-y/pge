@@ -66,34 +66,38 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p \
-  "$tmp_dir/.claude-plugin" \
-  "$tmp_dir/agents" \
-  "$tmp_dir/skills/pge-execute/contracts"
-
+mkdir -p "$tmp_dir/.claude-plugin"
 cp "$repo_root/.claude-plugin/plugin.json" "$tmp_dir/.claude-plugin/plugin.json"
-cp "$repo_root/skills/pge-execute/SKILL.md" "$tmp_dir/skills/pge-execute/SKILL.md"
-cp "$repo_root/skills/pge-execute/ORCHESTRATION.md" "$tmp_dir/skills/pge-execute/ORCHESTRATION.md"
-cp "$repo_root/agents/pge-planner.md" "$tmp_dir/agents/pge-planner.md"
-cp "$repo_root/agents/pge-generator.md" "$tmp_dir/agents/pge-generator.md"
-cp "$repo_root/agents/pge-evaluator.md" "$tmp_dir/agents/pge-evaluator.md"
-cp "$repo_root/skills/pge-execute/contracts/"*.md "$tmp_dir/skills/pge-execute/contracts/"
 
-python - <<'PY' "$tmp_dir"
+python - <<'PY' "$repo_root" "$tmp_dir"
 import hashlib
 import json
+import shutil
 import sys
 from pathlib import Path
 
-install_root = Path(sys.argv[1])
-manifest = json.loads((install_root / '.claude-plugin' / 'plugin.json').read_text())
-tracked = [
-    install_root / '.claude-plugin' / 'plugin.json',
-    install_root / 'skills' / 'pge-execute' / 'SKILL.md',
-    install_root / 'skills' / 'pge-execute' / 'ORCHESTRATION.md',
-    *sorted((install_root / 'agents').glob('*.md')),
-    *sorted((install_root / 'skills' / 'pge-execute' / 'contracts').glob('*.md')),
-]
+repo_root = Path(sys.argv[1])
+install_root = Path(sys.argv[2])
+manifest = json.loads((repo_root / '.claude-plugin' / 'plugin.json').read_text())
+
+def copy_declared_path(relative_path: str) -> None:
+    normalized = relative_path.removeprefix('./')
+    source = repo_root / normalized
+    target = install_root / normalized
+    if not source.exists():
+        raise SystemExit(f"Manifest path does not exist: {relative_path}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if source.is_dir():
+        shutil.copytree(source, target, dirs_exist_ok=True)
+    else:
+        shutil.copy2(source, target)
+
+copy_declared_path('.claude-plugin/plugin.json')
+copy_declared_path(manifest['skills'])
+for agent_path in manifest.get('agents', []):
+    copy_declared_path(agent_path)
+
+tracked = sorted(path for path in install_root.rglob('*') if path.is_file())
 h = hashlib.sha256()
 for path in tracked:
     h.update(path.relative_to(install_root).as_posix().encode())
@@ -103,8 +107,7 @@ for path in tracked:
 local_build = h.hexdigest()[:8]
 marker = f"[local dev v{manifest['version']}-{local_build}] "
 
-for rel in ['skills/pge-execute/SKILL.md']:
-    path = install_root / rel
+for path in sorted(install_root.glob('skills/**/SKILL.md')):
     lines = path.read_text().splitlines()
     for i, line in enumerate(lines):
         if line.startswith('description: '):

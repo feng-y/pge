@@ -5,7 +5,7 @@
 This file is the skill-owned operational seam for `main` inside `skills/pge-execute/`.
 
 It defines the run-level orchestration behavior used by `/pge-execute` for the current stage:
-- upstream plan intake
+- upstream input intake
 - run initialization
 - runtime state ownership
 - Planner / Generator / Evaluator dispatch and handoff behavior
@@ -66,12 +66,12 @@ It is intentionally smaller than full multi-round orchestration.
 ### `bootstrap`
 
 `main`:
-- resolves the effective upstream plan
+- resolves the effective upstream input
 - creates per-run artifact locations
 - initializes per-run runtime state
-- validates entry before the runtime team starts work
+- starts the runtime team without entry-time input gating
 
-Bootstrap ends only when the run is ready for Planner dispatch without ambiguity.
+Bootstrap ends when the run is ready for Planner dispatch.
 
 ### `dispatch`
 
@@ -121,19 +121,18 @@ Execute this flow in order for one bounded round.
 
 ### `bootstrap`
 
-1. Resolve the effective upstream plan from `SKILL.md` argument handling.
+1. Resolve the effective upstream input from `SKILL.md` argument handling.
 2. Create `artifact_dir` if needed.
 3. Initialize `runtime_state` using `skills/pge-execute/contracts/runtime-state-contract.md` with the bounded single-round defaults.
-4. Validate the effective upstream plan against `skills/pge-execute/contracts/entry-contract.md`.
-   - If entry fails, set `state: failed_upstream`, report the missing required fields, and stop.
-5. Set runtime state to `planning_round`.
+4. Set runtime state to `planning_round`.
 
 ### `dispatch`
 
 6. Dispatch `pge-planner` with:
-   - the effective upstream plan
+   - the effective upstream input exactly as received after file resolution
    - a short runtime-state summary
    - the required planner artifact section list from `skills/pge-execute/contracts/round-contract.md`
+   - instruction that Planner owns cutting or normalizing loose upstream input into one bounded round contract
 7. Persist the returned planner artifact.
 8. Set runtime state to `preflight_pending`.
 9. Preflight the planner artifact.
@@ -221,5 +220,5 @@ Current-stage recovery entry points:
 - Keep the run bounded to one round.
 - Keep file-based handoff as the execution backbone.
 - Stop and report malformed or missing artifacts instead of repairing by guesswork.
-- Do not broaden scope beyond the accepted upstream plan.
+- Do not broaden scope beyond the planner-frozen round contract.
 - Do not model `main` as a fourth agent in any skill or doc surface.
