@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install the plugin payload to a local Claude Code dev-plugin override.
-# The install payload is derived from .claude-plugin/plugin.json.
+# Manifest-driven component installer for PGE.
+# Reads .claude-plugin/plugin.json and installs skills and agents to Claude Code directories.
 #
 # Usage:
-#   ./bin/pge-local-install.sh [plugin-root]
-#   ./bin/pge-local-install.sh --uninstall [plugin-root]
+#   ./bin/pge-local-install.sh              Install components
+#   ./bin/pge-local-install.sh --uninstall  Remove installed components
+#   ./bin/pge-local-install.sh --help       Show this help
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$repo_root/.claude-plugin/plugin.json"
@@ -14,16 +15,17 @@ manifest="$repo_root/.claude-plugin/plugin.json"
 usage() {
   cat <<'EOF'
 Usage:
-  ./bin/pge-local-install.sh [plugin-root]              Install dev-plugin override
-  ./bin/pge-local-install.sh --uninstall [plugin-root]  Remove dev-plugin override
-  ./bin/pge-local-install.sh --help                     Show this help
+  ./bin/pge-local-install.sh              Install skills and agents
+  ./bin/pge-local-install.sh --uninstall  Remove installed components
+  ./bin/pge-local-install.sh --help       Show this help
 
-Default plugin-root: ~/.claude/dev-plugins/pge
+Installs to:
+  ~/.claude/skills/
+  ~/.claude/agents/
 EOF
 }
 
 mode="install"
-target_arg=""
 
 case "${1:-}" in
   --help|-h)
@@ -32,18 +34,17 @@ case "${1:-}" in
     ;;
   --uninstall)
     mode="uninstall"
-    target_arg="${2:-}"
-    [[ $# -le 2 ]] || { usage; exit 1; }
+    [[ $# -eq 1 ]] || { usage; exit 1; }
     ;;
   "")
     ;;
   *)
-    target_arg="$1"
-    [[ $# -eq 1 ]] || { usage; exit 1; }
+    usage
+    exit 1
     ;;
 esac
 
-python3 - "$repo_root" "$target_arg" "$mode" <<'PY'
+python3 - "$repo_root" "$mode" <<'PY'
 import hashlib
 import json
 import re
@@ -52,13 +53,10 @@ import sys
 from pathlib import Path
 
 repo_root = Path(sys.argv[1])
-target_arg = sys.argv[2]
-mode = sys.argv[3]
+mode = sys.argv[2]
 manifest = json.loads((repo_root / ".claude-plugin" / "plugin.json").read_text())
-plugin_name = manifest["name"]
-default_target = Path.home() / ".claude" / "dev-plugins" / plugin_name
-target = Path(target_arg).expanduser() if target_arg else default_target
 
+# Parse manifest
 agents = [repo_root / path.removeprefix("./") for path in manifest.get("agents", [])]
 skills_root = repo_root / manifest["skills"].removeprefix("./")
 skill_dirs = sorted(
@@ -66,14 +64,28 @@ skill_dirs = sorted(
     if path.is_dir() and (path / "SKILL.md").exists()
 )
 
-legacy_paths = [
-    Path.home() / ".claude" / "skills" / plugin_name,
-    Path.home() / ".claude" / "skills" / "pge-execute",
-    *(Path.home() / ".claude" / "agents" / agent.name for agent in agents),
-]
+# Target directories
+claude_home = Path.home() / ".claude"
+skills_target = claude_home / "skills"
+agents_target = claude_home / "agents"
+
+# Marker for tracking installed components
+MARKER_PREFIX = "[local dev v"
+
+
+def has_marker(file_path: Path) -> bool:
+    """Check if a file contains the local dev marker."""
+    if not file_path.exists() or not file_path.is_file():
+        return False
+    try:
+        text = file_path.read_text()
+        return MARKER_PREFIX in text
+    except Exception:
+        return False
 
 
 def remove_path(path: Path) -> list[str]:
+    """Remove a path if it exists."""
     if not path.exists() and not path.is_symlink():
         return []
     if path.is_dir() and not path.is_symlink():
@@ -83,17 +95,17 @@ def remove_path(path: Path) -> list[str]:
     return [str(path)]
 
 
-def iter_payload_files() -> list[Path]:
-    files = [repo_root / ".claude-plugin" / "plugin.json", *agents]
-    for skill_dir in skill_dirs:
-        files.extend(path for path in sorted(skill_dir.rglob("*")) if path.is_file())
-    return files
-
-
 def compute_local_build() -> str:
+    """Compute a hash of all installed files for version tracking."""
     digest = hashlib.sha256()
-    for path in sorted(iter_payload_files(), key=lambda item: item.relative_to(repo_root).as_posix()):
-        relative = path.relative_to(repo_root).as_posix()
+    files = [*agents]
+    for skill_dir in skill_dirs:
+        files.extend(sorted(skill_dir.rglob("*")))
+
+    for path in sorted(files, key=lambda p: p.relative_to(repo_root).as_posix() if p.is_relative_to(repo_root) else str(p)):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(repo_root).as_posix() if path.is_relative_to(repo_root) else path.name
         digest.update(relative.encode())
         digest.update(b"\0")
         digest.update(path.read_bytes())
@@ -103,9 +115,19 @@ def compute_local_build() -> str:
 
 if mode == "uninstall":
     removed = []
-    removed.extend(remove_path(target))
-    for legacy_path in legacy_paths:
-        removed.extend(remove_path(legacy_path))
+
+    # Remove skills with marker
+    for skill_dir in skill_dirs:
+        skill_target = skills_target / skill_dir.name
+        skill_md = skill_target / "SKILL.md"
+        if skill_target.exists() and has_marker(skill_md):
+            removed.extend(remove_path(skill_target))
+
+    # Remove agents with marker
+    for agent in agents:
+        agent_target = agents_target / agent.name
+        if agent_target.exists() and has_marker(agent_target):
+            removed.extend(remove_path(agent_target))
 
     if removed:
         for path in removed:
@@ -115,53 +137,63 @@ if mode == "uninstall":
     print("\nDone.")
     raise SystemExit(0)
 
-plugin_manifest_dir = target / ".claude-plugin"
-plugin_manifest_dir.mkdir(parents=True, exist_ok=True)
-if target.exists():
-    shutil.rmtree(target)
-target.mkdir(parents=True, exist_ok=True)
-plugin_manifest_dir = target / ".claude-plugin"
-plugin_manifest_dir.mkdir(parents=True, exist_ok=True)
-shutil.copy2(repo_root / ".claude-plugin" / "plugin.json", plugin_manifest_dir / "plugin.json")
+# Install mode
+skills_target.mkdir(parents=True, exist_ok=True)
+agents_target.mkdir(parents=True, exist_ok=True)
 
-skills_dest = target / "skills"
+# Install skills
 for skill_dir in skill_dirs:
-    dest = skills_dest / skill_dir.name
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest = skills_target / skill_dir.name
+    if dest.exists():
+        shutil.rmtree(dest)
     shutil.copytree(skill_dir, dest)
     print(f"  + skills/{skill_dir.name}/")
 
-agents_dest = target / "agents"
-agents_dest.mkdir(parents=True, exist_ok=True)
+# Install agents
 for agent in agents:
     if not agent.exists():
         raise SystemExit(f"missing manifest agent: {agent.relative_to(repo_root)}")
-    shutil.copy2(agent, agents_dest / agent.name)
+    dest = agents_target / agent.name
+    shutil.copy2(agent, dest)
     print(f"  + agents/{agent.name}")
 
+# Add marker to installed components
 local_build = compute_local_build()
 marker = f"[local dev v{manifest['version']}-{local_build}] "
+
 for skill_dir in skill_dirs:
-    installed_skill = skills_dest / skill_dir.name / "SKILL.md"
-    text = installed_skill.read_text()
-    updated = re.sub(
-        r"^(description:\s*)(.+)$",
-        lambda match: match.group(1) + marker + match.group(2).removeprefix(marker),
-        text,
-        count=1,
-        flags=re.MULTILINE,
-    )
-    installed_skill.write_text(updated)
+    installed_skill = skills_target / skill_dir.name / "SKILL.md"
+    if installed_skill.exists():
+        text = installed_skill.read_text()
+        updated = re.sub(
+            r"^(description:\s*)(.+)$",
+            lambda match: match.group(1) + marker + match.group(2).removeprefix(marker),
+            text,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        installed_skill.write_text(updated)
 
-removed_legacy = []
-for legacy_path in legacy_paths:
-    removed_legacy.extend(remove_path(legacy_path))
-for path in removed_legacy:
-    print(f"  - {path}")
+for agent in agents:
+    installed_agent = agents_target / agent.name
+    if installed_agent.exists():
+        text = installed_agent.read_text()
+        # Add marker to agent frontmatter description if it exists
+        updated = re.sub(
+            r"^(description:\s*)(.+)$",
+            lambda match: match.group(1) + marker + match.group(2).removeprefix(marker),
+            text,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        installed_agent.write_text(updated)
 
-print(f"\nInstalled to {target}")
+print(f"\nInstalled components:")
 print(f"  name: {manifest['name']}")
 print(f"  version: {manifest['version']}")
 print(f"  description: {manifest['description']}")
 print(f"  local build: {local_build}")
+print(f"\nTargets:")
+print(f"  skills: {skills_target}")
+print(f"  agents: {agents_target}")
 PY
