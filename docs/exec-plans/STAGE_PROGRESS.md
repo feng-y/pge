@@ -16,9 +16,10 @@ Stage 3 — Team dispatch / handoff closure
   - Exit criteria: `.claude-plugin/plugin.json` declares the plugin package and runtime agent entries, and `skills/pge-execute/` is already the runnable orchestration entry surface.
 - **Stage 2 — Runtime team bootstrap** — **DONE**
   - Exit criteria: the minimal runtime team lifecycle for `pge-execute` is fixed with explicit `bootstrap`, `dispatch`, `handoff`, and `teardown`, with `main` as orchestration shell and `pge-planner` / `pge-generator` / `pge-evaluator` as the runtime teammates.
-  - **Completion evidence**: Two successful smoke runs (`run-1777010098564`, `run-1777010525846`) proving the runtime bootstrap path works end-to-end with repeatable lifecycle execution.
+  - **Historical evidence**: Earlier proving runs (`run-1777010098564`, `run-1777010525846`) supported the runtime bootstrap direction at that stage.
+  - **Current note**: the current thin-skill architecture still needs a fresh runnable smoke proof and should not rely on those earlier runs as its only completion evidence.
 - **Stage 3 — Team dispatch / handoff closure** — **ACTIVE**
-  - Exit criteria: the Stage 2 lifecycle is implemented in the runtime workflow surfaces with file-backed handoffs and no role simulation in `main`.
+  - Exit criteria: the current runtime workflow surfaces have file-backed handoffs, no role simulation in `main`, and an explicit smoke-oriented validation path for the current architecture.
 - **Stage 4 — Thin skill reshape** — **TODO**
   - Exit criteria: `skills/pge-execute/SKILL.md` is reduced to a thin runnable entrypoint while orchestration detail lives in the supporting control-plane seams.
 - **Stage 5 — Per-task file protocol** — **TODO**
@@ -32,14 +33,14 @@ Stage 3 — Team dispatch / handoff closure
 
 ## Why Stage 3 is active
 
-Stage 2 is complete. The minimal runtime team lifecycle has been proven through two successful smoke runs. The next step is to close any remaining dispatch/handoff gaps in the runtime workflow surfaces.
+Stage 2 is historically complete, but the current runtime surfaces have changed enough that old smoke evidence is no longer sufficient by itself. The next step is to close remaining dispatch/handoff gaps and prepare current smoke validation.
 
 ## Backlog
 
 - Further thinning of `skills/pge-execute/SKILL.md` once runtime lifecycle behavior is implemented.
 - Per-task file protocol design.
 - Contract convergence and drift-control hardening.
-- Smoke-run proving.
+- Fresh smoke-run proving on the current thin-skill architecture.
 - Post-smoke stabilization from real run evidence.
 
 ## Notes

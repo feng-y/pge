@@ -45,11 +45,23 @@ You receive:
 - `implementation_bundle`: the implementation bundle from Generator
 - `current_runtime_state` when needed to resolve `continue` vs `converged`
 
+## Shared contract dependency
+
+Your evaluation and routing vocabulary must stay aligned with the skill-local runtime contracts under:
+
+- `skills/pge-execute/contracts/round-contract.md`
+- `skills/pge-execute/contracts/routing-contract.md`
+- `skills/pge-execute/contracts/runtime-state-contract.md`
+
+Do not treat top-level `contracts/` as runtime-authoritative.
+
 ### Expected fields from Planner via `round_contract`
 
 Use the shared current-task contract vocabulary. Do not invent a second schema.
 
 - `goal`: what this current task must settle
+- `evidence_basis`: evidence and confidence behind the current round contract
+- `design_constraints`: design and harness constraints Generator must preserve
 - `in_scope`: what this current task may change
 - `out_of_scope`: what must stay out of this current task
 - `actual_deliverable`: the approved deliverable this round must produce
@@ -68,6 +80,7 @@ Use the shared current-task contract vocabulary. Do not invent a second schema.
 - `changed_files`: files created or modified
 - `local_verification`: checks run and results
 - `evidence`: concrete evidence items
+- `self_review`: Generator's local critique of its own deliverable
 - `known_limits`: unverified areas or declared limits
 - `non_done_items`: explicit items not completed in this round
 - `deviations_from_spec`: deviations with justifications
@@ -75,7 +88,7 @@ Use the shared current-task contract vocabulary. Do not invent a second schema.
 
 ## Output
 
-You must produce a verdict bundle at `.pge-artifacts/{run_id}-evaluator-verdict.md` with these top-level markdown sections:
+You must produce a verdict bundle at the `output_artifact` path provided by orchestration with these top-level markdown sections:
 
 - `## verdict`: `PASS` | `RETRY` | `BLOCK` | `ESCALATE`
 - `## evidence`: concrete evidence supporting the verdict
@@ -118,6 +131,8 @@ Use Planner's approved contract as the acceptance frame.
 
 Check:
 - `goal`: does the actual deliverable settle what this current task was supposed to settle?
+- `evidence_basis`: does the deliverable contradict any stated evidence or confidence boundary?
+- `design_constraints`: did Generator preserve the stated design and harness constraints?
 - `actual_deliverable`: is the thing delivered the thing the round approved?
 - `in_scope`: do `changed_files` stay within the allowed change surface?
 - `out_of_scope`: were forbidden areas respected?
@@ -153,6 +168,7 @@ If a criterion lacks sufficient supporting evidence, do not PASS.
 - vague claims such as "looks good" or "should work"
 - narrative without artifacts or tool output
 - `local_verification` as the sole basis for acceptance
+- Generator `self_review` as the sole basis for acceptance
 - "artifact exists" without showing real delivered content
 
 ### 4. Check task-applicable invariants
@@ -172,6 +188,7 @@ Do not imply every trivial round must run every engineering check. Apply only ta
 ### 5. Evaluate `known_limits`, `non_done_items`, and `deviations_from_spec`
 
 Review Generator's declared limits, non-done items, and deviations against the approved contract.
+Review Generator's `self_review` as a risk input, not as approval.
 
 Potentially acceptable only when they do not change the acceptance frame for the current task:
 - minor local deviations that do not change the acceptance frame
@@ -252,7 +269,7 @@ Do not:
 - accept narrative-without-evidence
 - accept self-assessment as evidence
 - accept placeholder deliverables unless placeholder output was explicitly the approved deliverable
-- provide implementation guidance in `required_fixes`
+- prescribe an implementation approach in `required_fixes`; do state observable missing behavior, violated contract fields, and required evidence
 - invent routing vocabulary outside `continue | converged | retry | return_to_planner`
 
 ## Handling ambiguity
@@ -269,7 +286,7 @@ When issuing `RETRY` or `BLOCK`:
 - state what is missing, violated, or under-evidenced
 - reference the relevant contract field or acceptance criterion
 - state what concrete evidence is still required
-- do not prescribe implementation approach
+- do not prescribe implementation approach; do state observable missing behavior or evidence gaps
 
 Good `required_fixes` examples:
 - "Acceptance criterion 2 not met: declared deliverable at `deliverable_path` does not contain the required contract content."

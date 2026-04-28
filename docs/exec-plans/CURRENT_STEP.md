@@ -6,17 +6,18 @@ Stage 3 — Team dispatch / handoff closure
 
 ## Current step
 
-Identify and close any remaining dispatch/handoff gaps in the runtime workflow surfaces.
+Identify and close any remaining dispatch/handoff gaps in the current runtime workflow surfaces, then prepare the next runnable smoke validation step.
 
 ## Why this step matters now
 
-Stage 2 proved the minimal runtime bootstrap path works end-to-end through two successful smoke runs. The lifecycle (bootstrap, dispatch, handoff, teardown) is exercised and repeatable. The next step is to ensure the runtime workflow surfaces are complete and no role simulation remains in `main`.
+Historical proving runs showed the runtime direction was viable, but the current thin-skill architecture has since changed materially. The next step is to ensure the workflow surfaces are complete, no role simulation remains in `main`, and smoke validation is prepared for the current architecture rather than assumed from older runs.
 
 ## Done when
 
-- All dispatch/handoff gaps identified from the Stage 2 smoke runs are closed
+- All dispatch/handoff gaps in the current workflow surfaces are closed
 - No role simulation remains in `main`
 - The runtime workflow surfaces are complete for the current stage
+- The next runnable smoke validation step is explicit
 
 ## Inputs to read
 
@@ -26,7 +27,7 @@ Stage 2 proved the minimal runtime bootstrap path works end-to-end through two s
 4. `skills/pge-execute/SKILL.md`
 5. `skills/pge-execute/ORCHESTRATION.md`
 6. `.claude-plugin/plugin.json`
-7. Stage 2 smoke run artifacts for gap analysis
+7. `docs/pge-smoke-test.md`
 
 ## Non-goals
 
@@ -40,9 +41,10 @@ Stage 2 proved the minimal runtime bootstrap path works end-to-end through two s
 
 ## Evidence to collect
 
-- Gap analysis from Stage 2 smoke runs
+- Gap analysis from the current workflow surfaces
 - Identification of any role simulation in `main`
 - Verification that all dispatch/handoff seams are file-backed
+- Smoke validation steps for the current architecture
 
 ## Blockers
 
@@ -50,4 +52,4 @@ Stage 2 proved the minimal runtime bootstrap path works end-to-end through two s
 
 ## Next step after completion
 
-Move to Stage 4 — Thin skill reshape.
+Move to the next smoke-oriented proving step for the current architecture.

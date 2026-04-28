@@ -67,7 +67,7 @@ Planner may advise on slice status, but `main` remains the run-level route owner
 - `skills/pge-execute/SKILL.md` stays thin and dispatches according to that operational seam.
 - `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md` defines the broader execution-layer architecture.
 - `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` defines the current-stage runtime FSM, route policy, unsupported-route handling, recovery entry points, and artifact-gate behavior that the skill layer operationalizes.
-- `contracts/*` remain the canonical normalized vocabulary for route/state/verdict semantics.
+- `skills/pge-execute/contracts/*` remain the canonical normalized vocabulary for route/state/verdict semantics.
 
 ## Normalization rules
 

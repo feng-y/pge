@@ -3,6 +3,13 @@
 ## purpose
 This contract defines the minimum explicit state record for one PGE run.
 
+## framing
+This file is the normative semantic superset for runtime state.
+
+It defines the richer state vocabulary and transition semantics that PGE should preserve across stages, even when the currently executable runtime only implements a smaller subset.
+
+The current executable subset for `pge-execute` lives in `skills/pge-execute/runtime/artifacts-and-state.md` and `skills/pge-execute/ORCHESTRATION.md`.
+
 ## state identity seams
 A runtime state must distinguish:
 - `upstream_plan_ref`: the higher-level plan or proving packet that authorized the run

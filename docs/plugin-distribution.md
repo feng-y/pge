@@ -12,13 +12,13 @@ The goal of this packaging layer is to make PGE installable and updatable throug
 
 ### Source layout in this repo
 
-Canonical source artifacts remain here:
+Runtime-authoritative source artifacts remain here:
 
 - `skills/pge-execute/SKILL.md`
 - `agents/pge-planner.md`
 - `agents/pge-generator.md`
 - `agents/pge-evaluator.md`
-- `contracts/*.md`
+- `skills/pge-execute/contracts/*.md`
 - `.claude-plugin/plugin.json`
 
 The repo-local `.claude/` directory is only a development-time projection surface used for local iteration. It is not the packaged runtime contract.
@@ -45,9 +45,11 @@ Contracts are installed as **plugin-owned supporting files** under `skills/pge-e
 Why this layout was chosen:
 - `pge-execute` is the runtime-facing skill that consumes these contracts
 - installed layout should make the ownership relation explicit
-- source `contracts/` can remain at repo root for development without forcing the source repo to become the installed tree
+- plugin install correctness depends on skill-local files, not on a top-level `contracts/` directory
 - this avoids a top-level `.claude/contracts/` runtime directory
 - this avoids broader plugin architecture changes beyond the current install correction
+
+The old top-level `contracts/` directory has been removed. Runtime authority remains skill-local.
 
 ## Plugin manifest
 
@@ -133,6 +135,7 @@ The helper prints the installed plugin `name`, `version`, and `description` afte
 For a visible install check, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed manifest changed under `~/.claude/dev-plugins/pge/.claude-plugin/plugin.json`.
 
 This local install flow intentionally does not assume or manipulate undocumented Claude internal cache directories.
+The helper copies the plugin root itself, so runtime-facing references must resolve from the installed plugin root rather than from repo-only top-level paths.
 
 ## What this round intentionally does not do
 

@@ -14,9 +14,9 @@ Keep this file lightweight. Record only items that help the current mainline mov
   - Impact: Medium to High (the control-plane gates are now explicit, but the runtime surface must still enforce planner/generator/evaluator artifact usability before final routing)
   - Next: make `skills/pge-execute/SKILL.md` and runtime behavior stop on explicit artifact-gate failure states instead of routing from partial artifacts
 
-- **Canonical and runtime-facing contract copies can drift**
-  - Impact: Medium (semantic drift between `contracts/*` and `skills/pge-execute/contracts/*` can break runtime expectations silently)
-  - Next: keep canonical contracts, runtime-facing copies, and `skills/pge-execute/SKILL.md` updated together whenever route/state/verdict/checkpoint semantics change
+- **Legacy root contract references can mislead runtime work**
+  - Impact: Medium (top-level `contracts/*` can be mistaken for install-time authority even though plugin install depends on `skills/pge-execute/contracts/*`)
+  - Next: migrate runtime-facing references to skill-local contract paths and avoid reintroducing root-level authority claims
 
 - **Checkpoint-driven recovery is defined but not yet enacted end-to-end**
   - Impact: Medium (recovery entry points and checkpoint schema are now explicit, but the runtime still needs to write and consume checkpoints consistently)

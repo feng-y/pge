@@ -1,6 +1,6 @@
 {
   "name": "pge",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Bounded Planner/Generator/Evaluator execution flow for Claude Code.",
   "author": {
     "name": "PGE contributors"

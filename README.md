@@ -6,12 +6,10 @@ PGE is a skeleton-first repo for bounded execution flow.
 
 ```text
 agents/
-contracts/
 skills/
 ```
 
 - `agents/` — responsibility layer
-- `contracts/` — handoff layer
 - `skills/` — invocation layer
 
 ## Current skill
@@ -22,7 +20,7 @@ skills/
 PGE is now packaged as a Claude Code plugin source repo.
 
 - Plugin metadata lives at `.claude-plugin/plugin.json`
-- Canonical source artifacts remain in `skills/`, `agents/`, and `contracts/`
+- Install-relevant runtime artifacts must live under `skills/` and `agents/`
 - The repo-local `.claude/` tree is a development-time projection surface only; it is not the packaged runtime layout
 - This repo now serves as both the plugin source repo and the single-plugin marketplace source for `pge`
 
@@ -38,8 +36,8 @@ agents/pge-generator.md
 agents/pge-evaluator.md
 ```
 
-`contracts/` remains the canonical source location in this repo, but the installed/plugin-facing payload treats those files as supporting files of `pge-execute` under `skills/pge-execute/contracts/`.
-They are not installed as a top-level `.claude/contracts/` runtime directory.
+`skills/pge-execute/contracts/` is the runtime-authoritative contract location.
+Top-level `contracts/` has been removed so runtime authority is not ambiguous.
 
 ## Install and update flow
 
@@ -110,6 +108,7 @@ If Claude Code is already running, reload installed plugin contents:
 ```
 
 Distributable changes should bump the version in `.claude-plugin/plugin.json` so marketplace/plugin update detection remains explicit.
+The local install helper copies the plugin root into `~/.claude/dev-plugins/pge`, so plugin-facing runtime references must stay valid from that installed root.
 
 ### Discoverability troubleshooting
 
@@ -145,7 +144,7 @@ If Claude Code is already running after a local override install, run `/reload-p
 
 For proving runs, the following files define the normative execution-core semantics:
 - `agents/*.md` — P/G/E role responsibilities
-- `contracts/*.md` — handoff contracts
+- `skills/pge-execute/contracts/*.md` — handoff contracts
 - `skills/pge-execute/SKILL.md` — invocation surface
 - `skills/pge-execute/ORCHESTRATION.md` — skill-internal run orchestration
 

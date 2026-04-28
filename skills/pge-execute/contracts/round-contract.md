@@ -3,6 +3,8 @@
 ## minimum handoff
 Planner hands Generator exactly one current-task / bounded round contract with:
 - `goal`
+- `evidence_basis`
+- `design_constraints`
 - `in_scope`
 - `out_of_scope`
 - `actual_deliverable`
@@ -14,6 +16,8 @@ Planner hands Generator exactly one current-task / bounded round contract with:
 
 ## meaning
 - `goal`: what this current task must settle now
+- `evidence_basis`: the concrete facts, sources, and confidence boundaries Planner used to choose this round
+- `design_constraints`: the design, harness, and scope constraints Generator must preserve
 - `in_scope`: what this current task is allowed to change
 - `actual_deliverable`: the real artifact this current task must produce
 - `verification_path`: the primary way this current task will be checked

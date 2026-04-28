@@ -1,2 +1,4 @@
 .pge-runtime-state.json
 .pge-artifacts/
+.omx
+.claude

@@ -22,8 +22,8 @@ If this file conflicts with older round notes or checklist prose, this file wins
 - `skills/pge-execute/SKILL.md` is the bounded dispatcher/orchestrator entrypoint.
 - `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md` defines the broader execution-layer architecture.
 - `docs/exec-plans/PGE_ORCHESTRATION_CONTRACT.md` defines the architectural ownership split and the normalized meaning of `main`.
-- `contracts/*` define the canonical route/state/verdict vocabulary.
-- `skills/pge-execute/contracts/*` are runtime-facing copies used by the installed skill.
+- `skills/pge-execute/contracts/*` define the runtime-authoritative route/state/verdict vocabulary for `pge-execute`.
+- top-level `contracts/*` has been removed and must not be reintroduced as install-time authority.
 
 `main` is the orchestration主体 for a run: the skill-internal run-level scheduler, state owner, router, and recovery owner. This file defines the current-stage runtime behavior that the skill layer must follow.
 
@@ -279,14 +279,11 @@ So the repo should now speak about runtime teams like this:
 
 ## Contract drift control
 
-`contracts/*` remain the canonical normalized seams.
-
-`skills/pge-execute/contracts/*` are runtime-facing copies used by the installed skill.
+`skills/pge-execute/contracts/*` are the normalized runtime seams for `pge-execute`.
 
 Whenever route, state, verdict, artifact-gate, or checkpoint semantics change:
-1. update the canonical contract under `contracts/*`
-2. update the runtime-facing copy under `skills/pge-execute/contracts/*`
-3. update `skills/pge-execute/ORCHESTRATION.md` in the same change if runtime behavior is affected
-4. update `skills/pge-execute/SKILL.md` in the same change if the dispatcher surface is affected
+1. update `skills/pge-execute/contracts/*`
+2. update `skills/pge-execute/ORCHESTRATION.md` in the same change if runtime behavior is affected
+3. update `skills/pge-execute/SKILL.md` in the same change if the dispatcher surface is affected
 
 Do not claim control-plane parity if only one of those surfaces was updated.

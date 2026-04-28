@@ -10,9 +10,12 @@ Repo evidence supports the runtime team architecture:
 - `.claude-plugin/plugin.json` declares the plugin package and runtime agent entries
 - `skills/pge-execute/SKILL.md` is framed as a bounded execution entrypoint
 - `skills/pge-execute/ORCHESTRATION.md` defines `main` as the skill-internal orchestration shell
-- Stage 2 proved the minimal runtime team lifecycle works end-to-end through two successful smoke runs
+- `skills/pge-execute/handoffs/` now defines planner, preflight, generator, evaluator, and route/teardown seams explicitly
+- `bin/pge-validate-contracts.sh` validates the current contract and workflow surface statically
 
-The active problem is no longer runtime team bootstrap. The active problem is closing any remaining dispatch/handoff gaps in the runtime workflow surfaces.
+Historical proving runs suggest the runtime bootstrap direction is viable, but the current thin-skill architecture has not yet been re-proven through a fresh runnable smoke pass.
+
+The active problem is closing remaining dispatch/handoff gaps in the current workflow surfaces and preparing a trustworthy smoke-oriented validation path.
 
 ## Active stage
 
@@ -20,9 +23,9 @@ Stage 3 — Team dispatch / handoff closure
 
 ## Current blocker
 
-Stage 2 is complete. The minimal runtime team lifecycle has been proven through two successful smoke runs (`run-1777010098564`, `run-1777010525846`).
+The current skill/runtime surfaces are substantially aligned, but there is still no fresh runnable smoke proof for the current thin-skill architecture with bounded preflight negotiation.
 
-The current step is to identify and close any remaining dispatch/handoff gaps from the Stage 2 smoke runs, and verify that no role simulation remains in `main`.
+The current step is to close remaining dispatch/handoff gaps and make smoke validation explicit instead of inferred from older proving runs.
 
 ## What this round is optimizing for
 
@@ -31,7 +34,7 @@ The current step is to identify and close any remaining dispatch/handoff gaps fr
 - treat `pge-planner`, `pge-generator`, and `pge-evaluator` as the persistent runtime teammates
 - ensure all dispatch/handoff seams are file-backed
 - verify no role simulation remains in `main`
-- close Stage 3 without broadening into Stage 4+ work
+- prepare a current smoke-oriented validation path without broadening into Stage 4+ work
 
 ## Explicit non-goals
 
@@ -45,12 +48,12 @@ The current step is to identify and close any remaining dispatch/handoff gaps fr
 
 ## Next single action
 
-Identify remaining dispatch/handoff gaps from Stage 2 smoke runs and verify whether any role simulation remains in `main`.
+Close remaining dispatch/handoff gaps in the current workflow surfaces and prepare the next runnable smoke validation step.
 
 ## Stage exit criteria
 
 Stage 3 is done when:
-- all dispatch/handoff gaps identified from Stage 2 smoke runs are closed
+- dispatch/handoff gaps in the current workflow surfaces are closed
 - no role simulation remains in `main`
 - the runtime workflow surfaces are complete for the current stage
 - file-backed handoffs are confirmed for all seams
