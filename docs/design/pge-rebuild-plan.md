@@ -165,6 +165,8 @@ Updated: 2026-04-29
 | G4 | Evaluator 有量化评分和硬阈值 | 每个 verdict 附带维度评分和置信度，硬阈值低于 X 则自动 RETRY/BLOCK |
 | G5 | 支持从 checkpoint 恢复执行 | session 中断后，从 state artifact 恢复到最近完成的阶段，继续执行 |
 | G6 | 跨 round 进度追踪 | progress artifact 累积记录每轮结果，新 round 的 Planner 能读取历史进度 |
+| **G7** | **执行流程根据任务复杂度自适应** | 简单确定性任务（如 smoke test）通过 Agent Teams quick triage 快速收敛，Evaluator 批准 FAST_PATH 后 deterministic check 即可完成，不创建大量管理 artifacts |
+| **G8** | **通信默认走 Agent Teams messaging** | P/G/E 之间的 negotiation、clarification、feedback 走 SendMessage；只有 locked contract、final evidence、final verdict、checkpoint 写文件。文件不是 message bus |
 
 ---
 
@@ -200,11 +202,61 @@ Updated: 2026-04-29
 
 **状态**: 已在 Round 4 post-review revision 中完成。
 
-### Phase 1: Evaluator 硬阈值（最高优先级）
+### Phase 0.5A: Adaptive Execution — 流程自适应（P0-1）
+
+**范围**: 解决流程过重问题。当前所有任务（包括 9 字节 smoke test）走完整 P/G/E 全流程，产出 9 个管理文件。必须让执行流程根据任务复杂度自适应。
+
+**理由**: 这是后续所有 Phase 的前提。如果不解决，multi-round（Phase 2）、checkpoint（Phase 5）等都建立在过重流程上，成本不可控。Smoke test 已证明问题存在。
+
+**核心设计决策**:
+- Planner 只做 round shaping + 验收门控定义，不判断任务复杂度
+- Generator 提出实现方案 + 可行性说明
+- **Evaluator 拥有 Execution Cost Gate**：看到 Planner 的 contract + Generator 的方案后，决策执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE）
+- Orchestrator 只执行 Evaluator 的 mode decision
+- 简单任务用 Agent Teams quick triage 快速收敛，不是跳过 Agent Teams
+- Fast path 跳过重 artifacts，**不跳过 Evaluator verdict**
+
+**产出**:
+- `docs/design/pge-adaptive-execution-design.md`（已创建）
+- 更新 `skills/pge-execute/SKILL.md`: 增加 mode selection 流程
+- 更新 `skills/pge-execute/ORCHESTRATION.md`: 增加 triage 阶段和 mode-specific 生命周期
+- 更新 `skills/pge-execute/contracts/routing-contract.md`: 增加 FAST_PATH route
+- 更新 `skills/pge-execute/runtime/artifacts-and-state.md`: per-mode artifact budget
+
+**依赖**: Phase 0 完成。
+
+**验收标准**: 见 §7 Phase 0.5A 验收标准。
+
+### Phase 0.5B: Agent Teams Communication — 通信模型修正（P0-2）
+
+**范围**: 解决通信模型错误。当前 P/G/E 之间所有交互通过文件，本质上是三个独立模型串行读写文件，没有利用 Agent Teams 的 direct communication 能力。
+
+**理由**: Anthropic 用文件通信是 Claude Agent SDK 的环境约束（SDK 没有 SendMessage），不是架构偏好。PGE 运行在 Claude Code Agent Teams 上，有 SendMessage 原语，应该利用它。不解决这个问题，preflight negotiation 的效率和 artifact 膨胀问题无法根治。
+
+**核心设计决策**:
+- **默认走 Agent Teams messaging**: negotiation、clarification、challenge、feedback、status 全走 SendMessage
+- **例外才写文件**: 只有 locked contract、final evidence、final verdict、checkpoint/resume 写文件
+- Agent 主动读文件的场景极少：只有 resume 读 checkpoint、Evaluator 独立读 deliverable 验证
+- 文件不是 message bus，不模拟聊天记录
+- Resume 从 checkpoint 重建上下文，不重播文件历史
+
+**产出**:
+- `docs/design/pge-agent-teams-communication-design.md`（已创建）
+- 更新 `skills/pge-execute/handoffs/*.md`: 区分 message dispatch 和 file write
+- 更新 `skills/pge-execute/ORCHESTRATION.md`: 通信方式从 file-only 改为 hybrid
+- 更新 `skills/pge-execute/runtime/artifacts-and-state.md`: 标注哪些 artifacts 是 durable（必须写文件）、哪些是 transient（走消息）
+
+**依赖**: Phase 0 完成。可与 Phase 0.5A 并行。
+
+**验收标准**: 见 §7 Phase 0.5B 验收标准。
+
+### Phase 1: Evaluator 硬阈值
 
 **范围**: 让 Evaluator 从叙述性判断升级为量化评分 + 硬阈值。
 
 **理由**: Anthropic 明确指出 "开箱即用的 Claude 是糟糕的 QA agent"。Evaluator 质量是整个 harness 的瓶颈——如果 Evaluator 不可靠，multi-round 执行只会放大错误。
+
+**依赖**: Phase 0.5A（Evaluator 的 Execution Cost Gate 职责在 Phase 0.5A 中定义）。
 
 **产出**:
 - 更新 `skills/pge-execute/contracts/evaluation-contract.md`: 增加评分维度定义、硬阈值规则、AI slop 检测规则
@@ -281,6 +333,24 @@ Updated: 2026-04-29
 ---
 
 ## 7. 每阶段验收标准
+
+### Phase 0.5A 验收标准: Adaptive Execution
+
+1. `docs/design/pge-adaptive-execution-design.md` 定义 4 种执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE），每种模式有明确的 artifact budget
+2. Evaluator 拥有 Execution Cost Gate：mode decision 不来自 Planner 或 Orchestrator
+3. Planner 不输出 mode recommendation、不判断任务复杂度
+4. FAST_PATH 仍保留 Evaluator verdict（deterministic check 或 lightweight），不跳过 Evaluator
+5. 简单任务（如 smoke test）通过 Agent Teams quick triage 收敛，不创建超过 3 个 artifacts
+6. 执行一次 smoke test proving run，使用 FAST_PATH mode，验证 artifact 数量 ≤ 3
+
+### Phase 0.5B 验收标准: Agent Teams Communication
+
+1. `docs/design/pge-agent-teams-communication-design.md` 定义 Runtime Communication Plane（SendMessage）和 Durable Control Plane（文件），有明确的使用边界
+2. Preflight negotiation 使用 Agent Teams direct communication（SendMessage），不使用文件轮转
+3. 只有 locked contract、final evidence、final verdict、checkpoint/resume 写文件
+4. Handoff 模板区分 message dispatch（runtime）和 file write（durable）
+5. Resume 从 checkpoint 重建上下文，不重播文件历史
+6. 执行一次 proving run，preflight 阶段的 G↔E 交互走 SendMessage，最终 locked contract 写文件
 
 ### Phase 1 验收标准: Evaluator 硬阈值
 
