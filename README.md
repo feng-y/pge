@@ -123,18 +123,32 @@ This is a manifest-driven component installer that reads `.claude-plugin/plugin.
 - Skills to `~/.claude/skills/`
 - Agents to `~/.claude/agents/`
 
-It does NOT install to `~/.claude/dev-plugins/` and does NOT copy `plugin.json`.
-
 Install components:
 
 ```bash
 ./bin/pge-local-install.sh
 ```
 
+Install into a specific outer directory:
+
+```bash
+./bin/pge-local-install.sh --root /path/to/base
+```
+
+This installs to:
+- `/path/to/base/.claude/skills/`
+- `/path/to/base/.claude/agents/`
+
 Uninstall components:
 
 ```bash
 ./bin/pge-local-install.sh --uninstall
+```
+
+Uninstall from a specific outer directory:
+
+```bash
+./bin/pge-local-install.sh --root /path/to/base --uninstall
 ```
 
 The installer adds a version marker to installed files so uninstall can safely identify and remove only what it installed.

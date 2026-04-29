@@ -80,25 +80,25 @@ If marketplace install/update is too heavy for a bounded repo-local validation l
 ./bin/pge-local-install.sh
 ```
 
-This installs the minimum runtime-facing PGE payload as a single dev-plugin override at:
+This installs the minimum runtime-facing PGE payload into Claude's standard local surfaces:
 
 ```text
-~/.claude/dev-plugins/pge
+~/.claude/skills/
+~/.claude/agents/
 ```
 
 Recommended proving check sequence:
 1. run the helper
 2. if Claude Code is already running, run `/reload-plugins`
 3. `claude -p "/pge-execute test"`
-4. confirm legacy helper-created paths are absent:
-   - `~/.claude/skills/pge`
-   - `~/.claude/skills/pge-execute`
+4. confirm the installed files changed where expected:
+   - `~/.claude/skills/pge-execute/SKILL.md`
    - `~/.claude/agents/pge-planner.md`
    - `~/.claude/agents/pge-generator.md`
    - `~/.claude/agents/pge-evaluator.md`
 
 The helper prints the installed plugin `name`, `version`, and `description` after each run.
-For a visible install proof, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed manifest under `~/.claude/dev-plugins/pge/.claude-plugin/plugin.json` changed.
+For a visible install proof, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed files changed under `~/.claude/skills/pge-execute` and `~/.claude/agents/`.
 
 For a visible runtime proof, prefer a harmless text change in `skills/pge-execute/SKILL.md`, rerun the helper, reload plugins, and confirm the smoke invocation reflects the updated skill content after reinstall.
 

@@ -5,9 +5,11 @@ set -euo pipefail
 # Reads .claude-plugin/plugin.json and installs skills and agents to Claude Code directories.
 #
 # Usage:
-#   ./bin/pge-local-install.sh              Install components
-#   ./bin/pge-local-install.sh --uninstall  Remove installed components
-#   ./bin/pge-local-install.sh --help       Show this help
+#   ./bin/pge-local-install.sh                          Install components to ~/.claude
+#   ./bin/pge-local-install.sh --root /path/to/base     Install to /path/to/base/.claude
+#   ./bin/pge-local-install.sh --uninstall              Remove installed components
+#   ./bin/pge-local-install.sh --root /path --uninstall Remove installed components from /path/.claude
+#   ./bin/pge-local-install.sh --help                   Show this help
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$repo_root/.claude-plugin/plugin.json"
@@ -15,36 +17,52 @@ manifest="$repo_root/.claude-plugin/plugin.json"
 usage() {
   cat <<'EOF'
 Usage:
-  ./bin/pge-local-install.sh              Install skills and agents
-  ./bin/pge-local-install.sh --uninstall  Remove installed components
-  ./bin/pge-local-install.sh --help       Show this help
+  ./bin/pge-local-install.sh
+  ./bin/pge-local-install.sh --root /path/to/base
+  ./bin/pge-local-install.sh --uninstall
+  ./bin/pge-local-install.sh --root /path/to/base --uninstall
+  ./bin/pge-local-install.sh --help
 
-Installs to:
+Default install targets:
   ~/.claude/skills/
   ~/.claude/agents/
+
+With --root /path/to/base, installs to:
+  /path/to/base/.claude/skills/
+  /path/to/base/.claude/agents/
 EOF
 }
 
 mode="install"
+claude_home="$HOME/.claude"
 
-case "${1:-}" in
-  --help|-h)
-    usage
-    exit 0
-    ;;
-  --uninstall)
-    mode="uninstall"
-    [[ $# -eq 1 ]] || { usage; exit 1; }
-    ;;
-  "")
-    ;;
-  *)
-    usage
-    exit 1
-    ;;
-esac
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --uninstall)
+      mode="uninstall"
+      shift
+      ;;
+    --root)
+      [[ $# -ge 2 ]] || { usage; exit 1; }
+      claude_home="$2/.claude"
+      shift 2
+      ;;
+    --root=*)
+      claude_home="${1#--root=}/.claude"
+      shift
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+done
 
-python3 - "$repo_root" "$mode" <<'PY'
+python3 - "$repo_root" "$mode" "$claude_home" <<'PY'
 import hashlib
 import json
 import re
@@ -54,6 +72,7 @@ from pathlib import Path
 
 repo_root = Path(sys.argv[1])
 mode = sys.argv[2]
+claude_home = Path(sys.argv[3]).expanduser()
 manifest = json.loads((repo_root / ".claude-plugin" / "plugin.json").read_text())
 
 # Parse manifest
@@ -65,7 +84,6 @@ skill_dirs = sorted(
 )
 
 # Target directories
-claude_home = Path.home() / ".claude"
 skills_target = claude_home / "skills"
 agents_target = claude_home / "agents"
 
