@@ -108,29 +108,52 @@ If Claude Code is already running, reload installed plugin contents:
 ```
 
 Distributable changes should bump the version in `.claude-plugin/plugin.json` so marketplace/plugin update detection remains explicit.
-The local install helper copies the plugin root into `~/.claude/dev-plugins/pge`, so plugin-facing runtime references must stay valid from that installed root.
 
 ### Discoverability troubleshooting
 
 If the installed skill or agents look stale after a GitHub or marketplace update:
 - run `/reload-plugins`
 - if the current session still looks stale, restart Claude Code
-- if you previously used an older helper install, rerun the current helper or `--clean` once so it can remove the legacy `~/.claude/skills/pge-execute` and `~/.claude/agents/pge-*` surfaces
 
 ### Local development install
 
-Use `./bin/pge-local-install.sh` when you need local source changes to override the installed marketplace plugin without publishing a new marketplace build yet.
+Use `./bin/pge-local-install.sh` when you need to install components directly from source for local development.
 
-The helper now installs a single dev-plugin override at:
+This is a manifest-driven component installer that reads `.claude-plugin/plugin.json` and installs:
+- Skills to `~/.claude/skills/`
+- Agents to `~/.claude/agents/`
 
-```text
-~/.claude/dev-plugins/pge
+Install components:
+
+```bash
+./bin/pge-local-install.sh
 ```
 
-It does not create parallel `~/.claude/skills/pge-execute` or `~/.claude/agents/pge-*` entries.
-During install and clean, it also removes those legacy helper-created paths if they still exist.
+Install into a specific outer directory:
 
-Normal users should still use the marketplace path for published updates:
+```bash
+./bin/pge-local-install.sh --root /path/to/base
+```
+
+This installs to:
+- `/path/to/base/.claude/skills/`
+- `/path/to/base/.claude/agents/`
+
+Uninstall components:
+
+```bash
+./bin/pge-local-install.sh --uninstall
+```
+
+Uninstall from a specific outer directory:
+
+```bash
+./bin/pge-local-install.sh --root /path/to/base --uninstall
+```
+
+The installer adds a version marker to installed files so uninstall can safely identify and remove only what it installed.
+
+Normal users should use the marketplace path for published updates:
 
 ```text
 /plugin marketplace update pge
@@ -138,7 +161,7 @@ Normal users should still use the marketplace path for published updates:
 /reload-plugins
 ```
 
-If Claude Code is already running after a local override install, run `/reload-plugins` first, then restart the current session if needed.
+If Claude Code is already running after a local install, run `/reload-plugins` to pick up the changes.
 
 ## Normalized execution-core seams
 

@@ -105,37 +105,34 @@ For local development only, this repo also provides a helper script:
 
 - `bin/pge-local-install.sh`
 
-The helper installs the minimum runtime-facing PGE payload as a dev-plugin override at:
+The helper installs the minimum runtime-facing PGE payload into Claude's standard local surfaces:
 
-- `~/.claude/dev-plugins/pge`
+- `~/.claude/skills/`
+- `~/.claude/agents/`
 
 This local install exists only to shorten the validation loop while iterating on this repo.
 It is not a replacement for marketplace/plugin install or update.
 
 The installed payload should include:
-- `.claude-plugin/plugin.json`
-- `SKILL.md`
 - `skills/pge-execute/SKILL.md`
-- `skills/pge-execute/contracts/*.md`
 - `agents/pge-planner.md`
 - `agents/pge-generator.md`
 - `agents/pge-evaluator.md`
 
-The helper must not create parallel top-level skill or agent surfaces under `~/.claude/skills/pge-execute` or `~/.claude/agents`.
-If older helper-created paths still exist there, the helper removes them during install and clean.
+The helper installs from the manifest-defined source layout and rewrites installed descriptions with a local-build marker for verification.
+If older helper-created paths already exist at those same install surfaces, the helper replaces them during install and removes marker-owned paths during clean.
 
 The local install should not include repo-only material such as docs, proving artifacts, exec plans, or `.git/` state.
 
 After installing locally:
 1. run `/reload-plugins` if Claude Code is already running
 2. run `claude -p "/pge-execute test"`
-3. confirm the active override payload changed under `~/.claude/dev-plugins/pge/.claude-plugin/plugin.json`
+3. confirm the active installed surfaces changed under `~/.claude/skills/pge-execute` and `~/.claude/agents/`
 
 The helper prints the installed plugin `name`, `version`, and `description` after each run.
-For a visible install check, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed manifest changed under `~/.claude/dev-plugins/pge/.claude-plugin/plugin.json`.
+For a visible install check, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm the helper output changed together with the installed files under `~/.claude/skills/pge-execute` and `~/.claude/agents/`.
 
 This local install flow intentionally does not assume or manipulate undocumented Claude internal cache directories.
-The helper copies the plugin root itself, so runtime-facing references must resolve from the installed plugin root rather than from repo-only top-level paths.
 
 ## What this round intentionally does not do
 
