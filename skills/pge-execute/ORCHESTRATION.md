@@ -28,7 +28,7 @@ Single-run lifecycle:
 1. initialize run
 2. create team
 3. planner handoff
-4. preflight triage and mode decision
+4. Evaluator cost-gate triage and mode decision
 5. execute chosen path (`FAST_PATH`, `LITE_PGE`, or `FULL_PGE`)
 6. evaluator handoff / final verdict
 7. route
@@ -38,7 +38,9 @@ Single-run lifecycle:
 ## Core rule
 
 Normal coordination is message-first.
-`main` continues only after the required durable phase output exists and passes its minimal structural gate.
+`main` advances only from runtime events defined in `skills/pge-execute/contracts/runtime-event-contract.md`.
+
+Durable artifacts are side effects validated after the matching event is received.
 
 For the current stage:
 - Planner writes the locked task-shape artifact
@@ -52,6 +54,8 @@ For `/pge-execute test`:
 - file content must be exactly `pge smoke`
 - evaluator must independently read that file
 - PASS requires `verdict = PASS` and `next_route = converged`
+- expected mode is `FAST_PATH` when Evaluator approves the deterministic contract
+- management artifacts, excluding `input_artifact` and the smoke deliverable, must be at most 3: `planner_artifact`, `evaluator_artifact`, and `state_artifact`
 
 ## Required run artifacts
 
@@ -61,6 +65,8 @@ Required artifacts are mode-aware:
 - `FULL_PGE`: `.pge-artifacts/<run_id>-contract-proposal.md`, `.pge-artifacts/<run_id>-preflight.md`
 - mode-required only: `.pge-artifacts/<run_id>-summary.md`, `.pge-artifacts/<run_id>-progress.md`
 - deliverable when applicable: `.pge-artifacts/pge-smoke.txt`
+
+`FAST_PATH` must not require or write `.pge-artifacts/<run_id>-contract-proposal.md`, `.pge-artifacts/<run_id>-preflight.md`, `.pge-artifacts/<run_id>-generator.md`, `.pge-artifacts/<run_id>-summary.md`, or `.pge-artifacts/<run_id>-progress.md`.
 
 ## Minimal runtime state
 
@@ -101,6 +107,7 @@ Progress tracking:
 - lighter modes may omit `progress.md`
 - when present, progress must show current phase, phase status, open issues, and latest evaluator gate status
 - progress is an observer artifact written by `main`, not a fourth agent output
+- initial `mode` is null until Evaluator makes the mode decision; do not initialize as `FULL_PGE`
 
 ## Route behavior
 
@@ -117,6 +124,7 @@ If evaluator returns anything else:
 Preflight returns before generation:
 - `PASS` + `ready_to_generate` advances to Generator work
 - Evaluator owns preflight mode decision and fast-finish approval
+- For deterministic `FAST_PATH`, Evaluator may approve mode and fast finish from the Planner contract through `SendMessage`; do not write proposal/preflight artifacts.
 - repairable proposal issues may loop through bounded preflight repair attempts while state remains `preflight_pending`
 - `BLOCK` or `ESCALATE` records the contract issue and stops at `unsupported_route` once repair must return to Planner
 - preflight never performs repo edits
@@ -126,7 +134,8 @@ Preflight returns before generation:
 - Use real Agent Teams or stop with a blocker.
 - Do not simulate planner/generator/evaluator inside `main`.
 - Do not give Planner authority to decide `FAST_PATH` or fast finish.
-- Do not stop early after dispatch while the required artifact handoff is still pending.
+- Do not advance from artifact existence alone; require the matching runtime event first.
 - Keep the current lane bounded to one run.
 - Do not let Generator perform repo edits before preflight accepts the round contract.
+- Do not create FULL_PGE-only artifacts after Evaluator approves `FAST_PATH`.
 - Keep changes minimal and execution-first.

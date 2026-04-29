@@ -16,7 +16,7 @@ Updated: 2026-04-29
 | 三个 agent 定义 | `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` |
 | SKILL.md orchestration shell | `skills/pge-execute/SKILL.md` — v0.4.0, <220 行 |
 | 最小编排行为定义 | `skills/pge-execute/ORCHESTRATION.md` — 单轮生命周期 |
-| 五个运行时合约 | `skills/pge-execute/contracts/` — entry, round, evaluation, routing, runtime-state |
+| 六个运行时合约 | `skills/pge-execute/contracts/` — entry, round, evaluation, routing, runtime-event, runtime-state |
 | 五个 handoff 模板 | `skills/pge-execute/handoffs/` — planner, preflight, generator, evaluator, route-summary-teardown |
 | 运行时 artifact 路径定义 | `skills/pge-execute/runtime/artifacts-and-state.md` |
 | 历史运行产物 | `.pge-artifacts/` 下 3 个早期 run（使用 pre-ORCHESTRATION 命名约定：`-planner-output.md`, `-generator-output.md`, `-evaluator-verdict.md`, `-round-summary.md`，每个 run 4 个文件，不是当前 ORCHESTRATION.md 定义的完整 9-artifact 格式） |
@@ -52,7 +52,7 @@ Updated: 2026-04-29
 | P/G/E 三角色分离 | 可用 | 三个 agent 有明确的职责、输入/输出字段、工具权限、行为约束 |
 | 单轮 bounded execution | 可用 | 完整的 7 步生命周期：initialize → team → planner → preflight → generator → evaluator → route/summary/teardown |
 | Preflight negotiation | 可用（有限） | Generator proposal + Evaluator review，max 2 repair attempts |
-| 合约体系 | 可用 | 5 个合约文件定义完整的 verdict/route/state 语义 |
+| 合约体系 | 可用 | 6 个合约文件定义完整的 verdict/route/state/event 语义 |
 | Handoff 模板 | 可用 | 5 个 handoff 文件定义调度文本/gate/路由行为 |
 | Artifact-backed 状态 | 可用 | 每个阶段产出写入 `.pge-artifacts/`，不依赖 chat history |
 | 插件打包和安装 | 可用（本地验证） | 本地安装脚本完整，marketplace 路径未验证 |
@@ -61,22 +61,25 @@ Updated: 2026-04-29
 ---
 ## 3. 与 Anthropic 5 个 Critical Gates 的差距分析
 
-### Gate 1: Planner raw-prompt ownership
+### Gate 1: Planner evidence-backed round shaping
 
-**参考标准**: Planner 将 1-4 句用户 prompt 展开为完整产品 spec，关注产品上下文和高层技术设计，不指定细粒度实现细节。
+**参考标准**: Anthropic Planner 将 1-4 句用户 prompt 展开为完整产品 spec，关注产品上下文和高层技术设计，不指定细粒度实现细节。
 
-**当前状态**: Planner 是 "round shaper"，不是 "product planner"。接收上游 spec 或 raw user prompt，产出 bounded round contract。有 14 个输出字段（goal, evidence_basis, design_constraints 等）。有 "single bounded round heuristic"（pass-through 或 cut）。
+**PGE 调整**: PGE 不直接复制 Anthropic product-spec Planner。PGE 是 prompt-driven bounded-round harness，不能假设后续 runtime 会可靠补齐高层 spec 的空白。因此 PGE Planner 的定位是 **evidence-backed bounded-round planner**：先做轻量 research，再做薄 counter-research / brainstorming，再冻结一个可执行、可验证、可路由的 round contract。
+
+**当前状态**: Planner 是 "round shaper"，不是 "product planner"。接收上游 spec 或 raw user prompt，产出 bounded round contract。有 14 个输出字段（goal, evidence_basis, design_constraints 等）。已开始用职责面表达内部能力：evidence steward、scope challenger、contract author、risk registrar、contract self-checker。
 
 **缺口**:
-1. **无结构化澄清流程**: Planner 没有 Superpowers 式的逐步提问机制。当 raw prompt 模糊时，Planner 依赖自身判断而非向用户澄清
-2. **无 scope 前置检测**: 没有在深入规划前判断任务是否需要分解的机制
-3. **open_questions 是被动的**: Planner 记录 open_questions 但没有主动解决它们的流程
-4. **无方案对比**: 不提出 2-3 种方案让用户选择
+1. **research pass 仍需 proving**: 新规则已写入 Planner prompt，但还未用 proving run 验证它是否真能减少下游猜测
+2. **clarification 仍是轻量机制**: 当前只允许 `planner_escalation` 放一个 focused question，尚未实现完整 intake negotiation
+3. **risk register 仍压在 design_constraints 中**: 还没有独立 section，保持兼容但表达空间有限
+4. **方案对比必须保持薄**: 推荐 cut + 最多两个 rejected cuts，避免退化成大设计流程
 
 **改建动作**:
-- 在 `agents/pge-planner.md` 中增加 **intake negotiation 协议**: 当 raw prompt 歧义度超过阈值时，Planner 必须先产出 clarification artifact，等待用户回应后再产出 round contract
-- 在 `skills/pge-execute/contracts/entry-contract.md` 中定义 intake negotiation 的触发条件和产出格式
-- 在 `skills/pge-execute/handoffs/planner.md` 中增加 intake negotiation 阶段的调度文本
+- 在 `agents/pge-planner.md` 中明确 research pass / thin counter-research pass / architecture pass / contract freeze
+- 在 `skills/pge-execute/contracts/round-contract.md` 中定义 `evidence_basis` 的 source / fact / confidence / verification_path 结构
+- 在 `skills/pge-execute/handoffs/planner.md` 中要求 thin brainstorming：推荐 cut + 最多两个 rejected cuts + tradeoff
+- 将完整 intake negotiation 延后到 Phase 4；当前阶段只允许一个 focused `planner_escalation` question
 
 ### Gate 2: Preflight multi-turn negotiation
 
@@ -210,10 +213,10 @@ Updated: 2026-04-29
 **核心设计决策**:
 - Planner 只做 task shaping + 验收门控定义，负责识别任务形态与边界，不负责 fast finish 决策
 - Generator 基于 Planner contract 提出执行方式、验证方式和风险说明
-- **Evaluator 拥有 Execution Cost Gate**：看到 Planner 的 contract + Generator 的方案后，决策执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE），并确认是否允许快速结束
+- **Evaluator 拥有 Execution Cost Gate**：对确定性 FAST_PATH 可只基于 Planner contract 批准轻路径；对 LITE/FULL 则结合 Planner contract + Generator 方案决策执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE），并确认是否允许快速结束
 - Orchestrator 只执行 Evaluator 的 mode decision，不自行决定 fast finish
 - 简单任务用 Agent Teams quick triage 快速收敛，不是跳过 Agent Teams
-- Fast path 跳过重 artifacts，但**不跳过 Evaluator verdict**
+- Fast path 跳过 proposal/preflight/generator/summary/progress 等重 artifacts，但**不跳过 Evaluator verdict**
 
 **产出**:
 - `docs/design/pge-adaptive-execution-design.md`（已创建）

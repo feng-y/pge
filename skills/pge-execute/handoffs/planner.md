@@ -19,9 +19,10 @@ If the task is `test`, preserve this exact smoke deliverable:
 - content: pge smoke
 
 For non-test input:
-- inspect repo plans/docs only if useful
+- run the minimum research pass needed to ground the round
 - if a relevant plan exists, normalize it into one minimal execution brief
 - otherwise create the execution brief directly from the prompt
+- when code/runtime contracts conflict with prose docs, treat code/runtime contracts as truth and record the conflict
 
 Write markdown to <planner_artifact> with exactly these top-level sections:
 - ## goal
@@ -40,15 +41,39 @@ Write markdown to <planner_artifact> with exactly these top-level sections:
 - ## planner_escalation
 
 Rules:
-- act as the current round's lightweight researcher plus architect
+- act as one Planner agent with these facets: evidence steward, scope challenger, contract author, risk registrar, contract self-checker
 - if no upstream plan exists, shape the raw prompt into the narrowest executable bounded round contract
-- every `## evidence_basis` must include confidence labels or explicit smoke-contract evidence
+- follow the internal order: Questions gate -> Research pass -> Design/architecture pass -> Contract freeze
+- own current-round task split and DoD; do not schedule a full-project backlog
+- run research before architecture: collect facts first, then choose the round
+- keep the existing external section interface unchanged
+- include context loading strategy inside `## evidence_basis`: what was read, what was skipped, and why that is sufficient
+- when the cut is not obvious, do a thin brainstorming pass: recommended cut first, then at most two rejected cuts with tradeoffs
+- record `decision: pass-through|cut`, rejected cuts, and contract self-check inside `## planner_note`; write `rejected_cuts: None` when there was only one plausible cut
+- every `## evidence_basis` item must include source, fact, confidence, and verification path, or explicit smoke-contract evidence
+- confidence values are HIGH, MEDIUM, or LOW; LOW requires a concrete verification path
+- `## design_constraints` must include the chosen round boundary, relevant PGE invariants, and material failure modes
+- material failure modes in `## design_constraints` must include concrete failure, observable signal, likely owner
+- if more than one cut is plausible, `## planner_note` must briefly record the rejected cut and the reason
+- include contract self-check inside `## planner_note`, covering placeholders, contradiction, scope creep, and ambiguous acceptance criteria
+- if user clarification is required, put exactly one focused question in `## planner_escalation`
 - `## planner_escalation` is always present; write `None` when no escalation is needed
 - do not implement
 - do not evaluate
+- do not select execution mode or fast finish
 - keep one bounded round only
 - for test, acceptance must require the smoke file content to equal exactly `pge smoke`
 - for test, do not broaden scope beyond the smoke file plus the normal PGE control-plane artifacts
+
+After writing <planner_artifact>, send this runtime event to `main`:
+
+```text
+type: planner_contract_ready
+planner_artifact: <planner_artifact>
+planner_note: <planner_note>
+planner_escalation: <planner_escalation>
+ready_for_preflight: true
+```
 ```
 
 ## Gate
@@ -56,12 +81,15 @@ Rules:
 - artifact exists
 - all required sections exist
 - `## evidence_basis` exists
+- `## evidence_basis` includes confidence markers or explicit smoke-contract evidence
 - `## design_constraints` exists
+- `## design_constraints` includes at least one constraint or explicit `None`
 - `## actual_deliverable` exists
 - `## acceptance_criteria` exists
 - `## verification_path` exists
 - `## required_evidence` exists
 - `## stop_condition` exists
+- `## handoff_seam` exists
 - `## planner_note` exists
 - `## planner_escalation` exists
 

@@ -2,49 +2,49 @@
 
 ## Active stage
 
-Stage 3 — Team dispatch / handoff closure
+Stage 0.5C — Planner stabilization
 
 ## Current step
 
-Identify and close any remaining dispatch/handoff gaps in the current runtime workflow surfaces, then prepare the next runnable smoke validation step.
+Complete the new Planner design implementation plan and keep the runtime Planner surface aligned with it.
 
 ## Why this step matters now
 
-Historical proving runs showed the runtime direction was viable, but the current thin-skill architecture has since changed materially. The next step is to ensure the workflow surfaces are complete, no role simulation remains in `main`, and smoke validation is prepared for the current architecture rather than assumed from older runs.
+Planner must freeze the current-round task boundary, DoD, evidence basis, and failure modes before Generator and Evaluator can be tightened. If Planner remains vague, later agents will continue to fill in missing semantics.
 
 ## Done when
 
-- All dispatch/handoff gaps in the current workflow surfaces are closed
-- No role simulation remains in `main`
-- The runtime workflow surfaces are complete for the current stage
-- The next runnable smoke validation step is explicit
+- `docs/exec-plans/ROUND_012_PLANNER_STABILIZATION.md` exists
+- Planner agent, handoff, round contract, and validator agree on the new Planner output surface
+- Planner owns current-round task split and DoD
+- Planner does not own full-project backlog scheduling
+- Static contract validation passes
 
 ## Inputs to read
 
 1. `docs/exec-plans/CURRENT_MAINLINE.md`
-2. `docs/exec-plans/STAGE_PROGRESS.md`
+2. `docs/exec-plans/ROUND_012_PLANNER_STABILIZATION.md`
 3. `docs/exec-plans/CURRENT_STEP.md`
-4. `skills/pge-execute/SKILL.md`
-5. `skills/pge-execute/ORCHESTRATION.md`
-6. `.claude-plugin/plugin.json`
-7. `docs/pge-smoke-test.md`
+4. `agents/pge-planner.md`
+5. `skills/pge-execute/handoffs/planner.md`
+6. `skills/pge-execute/contracts/round-contract.md`
+7. `skills/pge-execute/contracts/runtime-event-contract.md`
+8. `bin/pge-validate-contracts.sh`
 
 ## Non-goals
 
-- implementing full smoke-run business capability
-- redesigning the skill
-- redesigning the agents
-- reworking install/discovery
-- introducing the per-task file protocol
-- doing contract convergence as active work
-- broadening into Stage 4+
+- redesigning Generator
+- redesigning Evaluator
+- adding new agents
+- splitting Planner into researcher / architect agents
+- implementing multi-round backlog scheduling
+- running proving before the static Planner surface is stable
 
 ## Evidence to collect
 
-- Gap analysis from the current workflow surfaces
-- Identification of any role simulation in `main`
-- Verification that all dispatch/handoff seams are file-backed
-- Smoke validation steps for the current architecture
+- New Planner stabilization plan
+- Updated Planner runtime surface
+- Static validator result
 
 ## Blockers
 
@@ -52,4 +52,4 @@ Historical proving runs showed the runtime direction was viable, but the current
 
 ## Next step after completion
 
-Move to the next smoke-oriented proving step for the current architecture.
+Start Generator stabilization.

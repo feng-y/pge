@@ -29,6 +29,8 @@ Artifacts are mode-aware:
 
 `input_artifact` is intake capture. It is durable when written, but it is not counted against the mode's management-artifact budget.
 
+`FAST_PATH` must not write `contract_proposal_artifact`, `preflight_artifact`, `generator_artifact`, `summary_artifact`, or `progress_artifact`.
+
 ## Runtime State
 
 This file defines the current executable subset of runtime state for `pge-execute`.
@@ -41,7 +43,7 @@ It is intentionally smaller than `skills/pge-execute/contracts/runtime-state-con
 {
   "run_id": "<run_id>",
   "state": "initialized",
-  "mode": "FULL_PGE",
+  "mode": null,
   "mode_decision_owner": null,
   "fast_finish_approved": false,
   "artifact_budget": null,
@@ -76,10 +78,13 @@ Allowed `state` values only:
 
 Allowed `mode` values only:
 
+- `null` until Evaluator makes the execution-mode decision
 - `FAST_PATH`
 - `LITE_PGE`
 - `FULL_PGE`
 - `LONG_RUNNING_PGE`
+
+Initial state must not default to `FULL_PGE`; doing so forces deterministic smoke tasks through the heavyweight artifact path before Evaluator has made the cost-gate decision.
 
 ## Progress Artifact
 

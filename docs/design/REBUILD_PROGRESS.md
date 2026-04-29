@@ -11,6 +11,7 @@ Updated: 2026-04-29
 | 0 | 设计文档对齐 | DONE | 无 | - |
 | 0.5A | Adaptive Execution | IN_PROGRESS | Phase 0 | P0 |
 | 0.5B | Agent Teams Communication | IN_PROGRESS | Phase 0 | P0 |
+| 0.5C | Planner Stabilization | IN_PROGRESS | Phase 0.5A/B | P0 |
 | 1 | Evaluator 验收面 | TODO | Phase 0.5A | P0 |
 | 2 | Multi-round 路由 | TODO | 无（可与 P1 并行） | P0 |
 | 3 | Preflight 协商增强 | TODO | Phase 1 | P1 |
@@ -41,7 +42,8 @@ Updated: 2026-04-29
 - [x] Generator 负责提出执行/验证方式
 - [x] Evaluator 拥有 Execution Cost Gate
 - [x] FAST_PATH 保留 Evaluator verdict
-- [ ] runtime handoffs 与 artifact budget 仍需继续落地
+- [x] runtime handoffs 与 artifact budget 已落地为 FAST_PATH 最小 artifact 面
+- [ ] proving run 验证 smoke test 管理 artifact 数量 ≤ 3
 
 ---
 
@@ -54,7 +56,31 @@ Updated: 2026-04-29
 - [x] negotiation/challenge/clarification/feedback/status 默认走 `SendMessage`
 - [x] 文件不再被定义为 turn-by-turn 消息总线
 - [x] durable artifact 边界已重新定义为“阶段结果”和“恢复状态”
-- [ ] preflight/evaluation handoff 的具体执行细节仍需继续落地
+- [x] preflight/evaluation handoff 已区分 FAST_PATH message approval 与 durable verdict
+- [x] `main` 的推进依据已收敛为 runtime events；artifact gate 退为事件引用的 durable side effect 校验
+- [ ] proving run 验证 preflight 不再写 proposal/preflight 文件轮转
+
+---
+
+## Phase 0.5C: Planner Stabilization — IN_PROGRESS
+
+**目标**: 先把 Planner 的 evidence steward / scope challenger / contract author / risk registrar / contract self-checker 职责落成可执行行为，否则后续 Generator / Evaluator 会继续填补 Planner 未冻结的语义空白。
+
+**当前对齐结论**:
+
+- [x] Planner 不是 Anthropic product-spec Planner 的直接复制；PGE Planner 是 evidence-backed bounded-round planner
+- [x] Planner 内部明确为 research pass → thin counter-research / brainstorming pass → architecture pass → contract freeze
+- [x] `evidence_basis` 要求 source / fact / confidence / verification_path
+- [x] Planner 明确拥有 current-round task split + DoD，不拥有 full-project backlog scheduling
+- [x] 保持 Planner 外部 section 接口不变；context loading、rejected cuts、failure modes、contract self-check 先写入现有 section
+- [x] code/runtime contract 与 prose doc 冲突时，code/runtime contract 是 truth
+- [x] 可选方案对比保持薄：推荐 cut + 最多两个 rejected cuts + tradeoff
+- [x] 需要用户澄清时，只在 `planner_escalation` 放一个 focused question
+- [ ] proving run 验证 Planner 产出是否真正减少 Generator / Evaluator 猜测
+
+**下一步**: Planner proving 后再进入 Generator 职责收敛。
+
+**延后 TODO**: 新增 Planner top-level section 需要与 Generator、Evaluator、orchestration gate、validator 联合调整，不能单独在 Planner 里先加。
 
 ---
 

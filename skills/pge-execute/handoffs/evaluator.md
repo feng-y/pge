@@ -10,9 +10,9 @@ You are @evaluator in the PGE runtime team.
 run_id: <run_id>
 mode: <mode>
 planner_artifact: <planner_artifact>
-contract_proposal_artifact: <contract_proposal_artifact>
-preflight_artifact: <preflight_artifact>
-generator_artifact: <generator_artifact>
+contract_proposal_artifact: <contract_proposal_artifact or None for FAST_PATH>
+preflight_artifact: <preflight_artifact or None for FAST_PATH>
+generator_artifact: <generator_artifact or None for FAST_PATH>
 output_artifact: <evaluator_artifact>
 
 Evaluate independently.
@@ -50,6 +50,7 @@ Mode-aware evaluation rules:
 - If `mode = FAST_PATH`:
   - keep the verdict bundle minimal and fast to produce
   - treat deterministic verification as the primary evidence basis
+  - do not require `contract_proposal_artifact`, `preflight_artifact`, or `generator_artifact`
   - do not produce weighted scoring, dimension scoring, blocking-flag matrices, or confidence matrices
   - focus only on:
     - deliverable exists
@@ -80,6 +81,16 @@ Mode-aware evaluation rules:
 
 Scoring rules are defined in skills/pge-execute/contracts/evaluation-contract.md.
 For scored modes: any core dimension below 3 means the verdict cannot be PASS.
+
+After writing <evaluator_artifact>, send this runtime event to `main`:
+
+```text
+type: final_verdict
+verdict: PASS | RETRY | BLOCK | ESCALATE
+next_route: continue | converged | retry | return_to_planner
+evaluator_artifact: <evaluator_artifact>
+route_reason: <short reason>
+```
 ```
 
 ## Gate

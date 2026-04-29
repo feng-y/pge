@@ -26,6 +26,16 @@ Otherwise:
 
 Write state after route selection. Update progress only when progress is enabled for the current mode.
 
+Emit this runtime event after route selection:
+
+```text
+type: route_selected
+verdict: <verdict>
+route: <route>
+state: <state>
+reason: <short reason>
+```
+
 ## Summary
 
 Only write `summary_artifact` when the chosen mode requires it.

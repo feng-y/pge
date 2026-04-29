@@ -39,6 +39,7 @@ You do NOT own:
 ## Input
 
 You receive the Planner artifact path from orchestration for the current run.
+For `FAST_PATH`, you may receive `output_artifact = None`; in that mode, produce the real deliverable and return a direct completion message instead of writing an implementation bundle.
 
 **Direct consumption from Planner:**
 - `goal` → what the current task must settle now
@@ -73,6 +74,18 @@ Your execution and output vocabulary must stay aligned with the skill-local runt
 Do not treat top-level `contracts/` as runtime-authoritative.
 
 ## Output
+
+For `FAST_PATH`, do not write an implementation bundle. After the real deliverable and local verification are complete, send this message to `main`:
+
+```text
+type: generator_completion
+handoff_status: READY_FOR_EVALUATOR
+deliverable_path: <path>
+verification_result: <exact check performed and result>
+generator_artifact: null
+```
+
+For non-FAST preflight proposal mode, send a `proposal_ready` runtime event after writing the durable proposal artifact.
 
 You must produce an implementation bundle at the `output_artifact` path provided by orchestration containing:
 
