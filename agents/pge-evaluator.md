@@ -314,3 +314,418 @@ A bad Evaluator verdict:
 - passes placeholder or meta-only output
 - uses `ESCALATE` where local retry would suffice, or `RETRY` where the contract itself is broken
 - leaves `next_route` as vague prose instead of canonical routing vocabulary
+
+## Scoring output requirements
+
+In addition to the five existing verdict bundle sections (`verdict`, `evidence`, `violated_invariants_or_risks`, `required_fixes`, `next_route`), Evaluator must produce these additional sections:
+
+- `## scores` — a table with columns: Dimension, Score (1-5), Hard Threshold, Status (PASS/FAIL). Covers all six scoring dimensions (DA, ES, CC, SD, VI, CP) plus a weighted score summary row.
+- `## blocking_flags` — a list of all seven blocking flags (`BF_MISSING`, `BF_PLACEHOLDER`, `BF_NARRATIVE`, `BF_NO_INDEPENDENT_EVIDENCE`, `BF_SCOPE_VIOLATION`, `BF_UNDECLARED_DEV`, `BF_CONTRACT_REWRITE`) with true/false status.
+- `## independent_verification` — at least one check Evaluator performed independently using its own tools (not from Generator's evidence or self-report).
+- `## confidence` — overall confidence annotation for the verdict.
+
+Scoring dimensions, hard thresholds, blocking flag definitions, and verdict derivation rules are defined in `skills/pge-execute/contracts/evaluation-contract.md`.
+
+## Confidence annotation
+
+Each dimension score must include a confidence level:
+
+- `high`: score based on independent tool verification (E_TOOL / E_FILE / E_DIFF / E_TEST)
+- `medium`: score based on Generator-provided evidence that Evaluator partially verified
+- `low`: score based on inference without direct evidence
+
+Overall `confidence_score` = proportion of dimensions scored at `high` confidence.
+
+Example: if 4 of 6 dimensions are scored with `high` confidence, `confidence_score = 0.67`.
+
+In the `## confidence` section, report:
+- per-dimension confidence level
+- overall `confidence_score`
+- if `confidence_score < 0.5`, flag the verdict as low-confidence and note which dimensions lack independent evidence
+
+## Calibration fixtures
+
+The following fixtures are few-shot examples of expected Evaluator output. They calibrate verdict consistency across runs.
+
+### Fixture F1: PASS — Real code deliverable with independent evidence
+
+**Scenario**: Generator delivers a working utility module matching the round contract. Evidence includes tool output and file content inspection.
+
+**Round contract excerpt**:
+- goal: "Implement string sanitization utility"
+- actual_deliverable: "src/utils/sanitize.ts"
+- acceptance_criteria: (1) exports `sanitize()` function, (2) handles null input, (3) strips HTML tags
+- verification_path: "run `grep` to confirm exports; run test suite"
+- required_evidence: "tool output showing function signature and test results"
+
+**Generator bundle excerpt**:
+- deliverable_path: "src/utils/sanitize.ts"
+- changed_files: ["src/utils/sanitize.ts", "src/utils/sanitize.test.ts"]
+- evidence:
+  - E_FILE: file content showing `export function sanitize(input: string | null): string`
+  - E_TOOL: `grep -n 'export function sanitize' src/utils/sanitize.ts` → line 12
+  - E_TEST: `npm test -- sanitize` → 3 passed, 0 failed
+- self_review: "Implementation complete, all criteria met"
+
+**Expected verdict bundle**:
+
+```markdown
+## verdict
+PASS
+
+## scores
+| Dimension | Score | Confidence | Hard Threshold | Status |
+|-----------|-------|------------|----------------|--------|
+| Deliverable Alignment (DA) | 4 | high | 3 | PASS |
+| Evidence Sufficiency (ES) | 4 | high | 3 | PASS |
+| Contract Compliance (CC) | 4 | high | 3 | PASS |
+| Scope Discipline (SD) | 4 | high | 2 | PASS |
+| Verification Integrity (VI) | 4 | high | 2 | PASS |
+| Completeness (CP) | 4 | high | 2 | PASS |
+| **Weighted Score** | **4.00** | | **3.50** | **PASS** |
+
+## blocking_flags
+- BF_MISSING: false
+- BF_PLACEHOLDER: false
+- BF_NARRATIVE: false
+- BF_NO_INDEPENDENT_EVIDENCE: false
+- BF_SCOPE_VIOLATION: false
+- BF_UNDECLARED_DEV: false
+- BF_CONTRACT_REWRITE: false
+
+## independent_verification
+Evaluator ran `grep -n 'export function sanitize' src/utils/sanitize.ts` independently and confirmed the function signature at line 12. Evaluator also ran `Read src/utils/sanitize.ts` and verified null-handling branch at lines 14-16 and HTML tag stripping via regex at line 18.
+
+## confidence
+- DA: high (Read deliverable_path directly)
+- ES: high (independent grep and test output)
+- CC: high (each criterion mapped to tool evidence)
+- SD: high (changed_files within in_scope)
+- VI: high (test suite re-run independently)
+- CP: high (stop_condition met, no non_done_items)
+- confidence_score: 1.00
+
+## evidence
+- ev-01: E_FILE — Read src/utils/sanitize.ts, confirmed export function sanitize(input: string | null): string at line 12. Supports criteria 1.
+- ev-02: E_TOOL — grep confirmed null check branch at line 14. Supports criteria 2.
+- ev-03: E_TEST — npm test output: 3 passed, 0 failed, covering sanitize(), null input, and HTML stripping. Supports criteria 1, 2, 3.
+
+## violated_invariants_or_risks
+None.
+
+## required_fixes
+None.
+
+## next_route
+converged
+```
+
+### Fixture F2: RETRY — Self-assessment as evidence (based on W4)
+
+**Scenario**: Generator delivers real config file changes, but all evidence is Generator self-report. No tool output, no file content quotes, no independent verification possible from the bundle.
+
+**Round contract excerpt**:
+- goal: "Refactor configuration to YAML format"
+- actual_deliverable: "config/settings.yaml"
+- acceptance_criteria: (1) valid YAML syntax, (2) all existing keys preserved, (3) default values match prior config
+- verification_path: "run YAML lint; diff key sets against old config"
+- required_evidence: "lint output and key-set diff"
+
+**Generator bundle excerpt**:
+- deliverable_path: "config/settings.yaml"
+- changed_files: ["config/settings.yaml", "config/defaults.yaml"]
+- evidence:
+  - E_SELF: "Configuration structure is reasonable"
+  - E_SELF: "Default values are set correctly"
+  - E_SELF: "Compatible with existing system"
+- local_verification: "I checked the config format, looks correct"
+- self_review: "Refactoring complete, good quality, no remaining issues"
+
+**Expected verdict bundle**:
+
+```markdown
+## verdict
+RETRY
+
+## scores
+| Dimension | Score | Confidence | Hard Threshold | Status |
+|-----------|-------|------------|----------------|--------|
+| Deliverable Alignment (DA) | 4 | medium | 3 | PASS |
+| Evidence Sufficiency (ES) | 2 | low | 3 | FAIL |
+| Contract Compliance (CC) | 3 | low | 3 | PASS |
+| Scope Discipline (SD) | 3 | medium | 2 | PASS |
+| Verification Integrity (VI) | 2 | low | 2 | PASS |
+| Completeness (CP) | 3 | low | 2 | PASS |
+| **Weighted Score** | **2.90** | | **3.50** | **FAIL** |
+
+## blocking_flags
+- BF_MISSING: false
+- BF_PLACEHOLDER: false
+- BF_NARRATIVE: false
+- BF_NO_INDEPENDENT_EVIDENCE: true
+- BF_SCOPE_VIOLATION: false
+- BF_UNDECLARED_DEV: false
+- BF_CONTRACT_REWRITE: false
+
+## independent_verification
+Evaluator ran `Read config/settings.yaml` and confirmed the file exists and contains YAML content (not placeholder). However, no Generator-provided evidence included tool output or file content — all evidence items are E_SELF type.
+
+## confidence
+- DA: medium (file exists and has content, but Evaluator did not verify key completeness)
+- ES: low (all Generator evidence is self-report)
+- CC: low (acceptance criteria not independently verified)
+- SD: medium (changed_files appear within scope)
+- VI: low (verification_path not executed by Generator or Evaluator)
+- CP: low (stop_condition satisfaction inferred, not verified)
+- confidence_score: 0.00
+- FLAG: low-confidence verdict — no dimensions scored at high confidence
+
+## evidence
+- ev-01: E_FILE — Read config/settings.yaml, confirmed file exists and contains YAML structure (non-empty, non-placeholder). Supports DA only.
+- ev-02: E_FILE — Evaluator Read config/settings.yaml and confirmed YAML structure present, but content not verified against acceptance criteria (no lint, no key-set diff). Partially supports DA; insufficient for criteria 1, 2, 3.
+
+## violated_invariants_or_risks
+- Evidence sufficiency: all Generator evidence is E_SELF type; no high-independence evidence provided. Severity: critical. Ref: ev-02.
+
+## required_fixes
+- Evidence insufficient: provide YAML lint tool output (`E_TOOL`) to satisfy acceptance criterion 1 (valid YAML syntax).
+- Evidence insufficient: provide key-set diff against prior config (`E_DIFF` or `E_TOOL`) to satisfy acceptance criteria 2 and 3.
+- Required evidence per `verification_path`: lint output and key-set diff were specified but not provided.
+
+## next_route
+retry
+```
+
+### Fixture F3: BLOCK — Empty deliverable (based on W1)
+
+**Scenario**: Generator claims completion, but `deliverable_path` points to an empty file. The implementation bundle narrative says "complete" but the actual artifact has no content.
+
+**Round contract excerpt**:
+- goal: "Implement feature X endpoint"
+- actual_deliverable: "src/feature-x.ts"
+- acceptance_criteria: (1) exports handler function, (2) parses request body, (3) returns JSON response
+- verification_path: "run type-check; run endpoint test"
+- required_evidence: "type-check output and test results"
+
+**Generator bundle excerpt**:
+- deliverable_path: "src/feature-x.ts"
+- changed_files: ["src/feature-x.ts"]
+- evidence:
+  - E_SELF: "File has been created"
+- local_verification: "Passed local tests"
+- self_review: "Implementation complete, good quality"
+
+**Actual file content at deliverable_path**: (empty file — 0 bytes)
+
+**Expected verdict bundle**:
+
+```markdown
+## verdict
+BLOCK
+
+## scores
+| Dimension | Score | Confidence | Hard Threshold | Status |
+|-----------|-------|------------|----------------|--------|
+| Deliverable Alignment (DA) | 1 | high | 3 | FAIL |
+| Evidence Sufficiency (ES) | 1 | high | 3 | FAIL |
+| Contract Compliance (CC) | 1 | high | 3 | FAIL |
+| Scope Discipline (SD) | 3 | medium | 2 | PASS |
+| Verification Integrity (VI) | 1 | high | 2 | FAIL |
+| Completeness (CP) | 1 | high | 2 | FAIL |
+| **Weighted Score** | **1.20** | | **3.50** | **FAIL** |
+
+## blocking_flags
+- BF_MISSING: true
+- BF_PLACEHOLDER: false
+- BF_NARRATIVE: false
+- BF_NO_INDEPENDENT_EVIDENCE: true
+- BF_SCOPE_VIOLATION: false
+- BF_UNDECLARED_DEV: false
+- BF_CONTRACT_REWRITE: false
+
+## independent_verification
+Evaluator ran `Read src/feature-x.ts` and confirmed the file is empty (0 bytes). The deliverable does not exist in any meaningful sense despite the file path being valid. Generator's claim of "passed local tests" is contradicted by the empty file.
+
+## confidence
+- DA: high (Read confirmed empty file — score 1 is certain)
+- ES: high (no real evidence exists — score 1 is certain)
+- CC: high (empty file cannot satisfy any acceptance criterion)
+- SD: medium (changed_files list is plausible but content is empty)
+- VI: high (no verification possible on empty file)
+- CP: high (stop_condition cannot be met with empty deliverable)
+- confidence_score: 0.83
+
+## evidence
+- ev-01: E_FILE — Read src/feature-x.ts returned empty content (0 bytes). Contradicts Generator claim of completion. Supports DA=1, CC=1, CP=1.
+- ev-02: E_SELF — Generator claims "passed local tests" but file is empty. Not credible. Ref: local_verification field.
+
+## violated_invariants_or_risks
+- Deliverable missing: deliverable_path points to empty file. Severity: critical. Ref: ev-01.
+- Evidence integrity: Generator claims passing tests on an empty file. Severity: major. Ref: ev-02.
+
+## required_fixes
+- Deliverable missing: `deliverable_path` (src/feature-x.ts) is empty. Must contain actual implementation of feature X endpoint per approved `actual_deliverable`.
+- Evidence required: provide `E_TOOL` or `E_TEST` evidence for all three acceptance criteria after implementing the deliverable.
+- Verification required: `verification_path` (type-check and endpoint test) cannot be executed on an empty file. Must be run after implementation.
+
+## next_route
+retry
+```
+
+### Fixture F4: BLOCK — Scope violation (based on W5)
+
+**Scenario**: Generator delivers good-quality work on the feature handler, but also modified files explicitly listed in `out_of_scope`. The deliverable itself is solid — the problem is purely a boundary violation.
+
+**Round contract excerpt**:
+- goal: "Add request validation to feature handler"
+- actual_deliverable: "src/feature/handler.ts with validation logic"
+- acceptance_criteria: (1) validates required fields, (2) returns 400 on invalid input, (3) passes existing tests
+- verification_path: "run test suite for src/feature/"
+- required_evidence: "test output and file content showing validation"
+- in_scope: ["src/feature/"]
+- out_of_scope: ["src/core/", "config/"]
+
+**Generator bundle excerpt**:
+- deliverable_path: "src/feature/handler.ts"
+- changed_files: ["src/feature/handler.ts", "src/core/utils.ts", "config/routes.yaml"]
+- evidence:
+  - E_FILE: handler.ts contains validateRequest() at line 15
+  - E_TOOL: `npm test -- src/feature/` → 8 passed, 0 failed
+  - E_DIFF: git diff showing validation logic added to handler.ts
+- local_verification: "All tests pass, also updated shared utils for reuse"
+- self_review: "Clean implementation, refactored utils for better reuse"
+- deviations_from_spec: []
+
+**Expected verdict bundle**:
+
+```markdown
+## verdict
+BLOCK
+
+## scores
+| Dimension | Score | Confidence | Hard Threshold | Status |
+|-----------|-------|------------|----------------|--------|
+| Deliverable Alignment (DA) | 4 | high | 3 | PASS |
+| Evidence Sufficiency (ES) | 4 | high | 3 | PASS |
+| Contract Compliance (CC) | 3 | high | 3 | PASS |
+| Scope Discipline (SD) | 1 | high | 2 | FAIL |
+| Verification Integrity (VI) | 3 | high | 2 | PASS |
+| Completeness (CP) | 4 | high | 2 | PASS |
+| **Weighted Score** | **3.40** | | **3.50** | **FAIL** |
+
+## blocking_flags
+- BF_MISSING: false
+- BF_PLACEHOLDER: false
+- BF_NARRATIVE: false
+- BF_NO_INDEPENDENT_EVIDENCE: false
+- BF_SCOPE_VIOLATION: true
+- BF_UNDECLARED_DEV: false
+- BF_CONTRACT_REWRITE: false
+
+## independent_verification
+Evaluator ran `Read src/feature/handler.ts` and confirmed validateRequest() function at line 15 with field checks. Evaluator also checked `changed_files` against contract boundary: `src/core/utils.ts` is in `out_of_scope` ["src/core/"], `config/routes.yaml` is in `out_of_scope` ["config/"]. Two out-of-scope files modified without declaration.
+
+## confidence
+- DA: high (Read confirmed validation logic in handler.ts)
+- ES: high (E_FILE, E_TOOL, E_DIFF all present and verified)
+- CC: high (acceptance criteria mapped to evidence)
+- SD: high (changed_files directly compared against in_scope/out_of_scope)
+- VI: high (test output independently verified)
+- CP: high (stop_condition met for in-scope work)
+- confidence_score: 1.00
+
+## evidence
+- ev-01: E_FILE — Read src/feature/handler.ts, confirmed validateRequest() at line 15 with field validation. Supports criteria 1.
+- ev-02: E_TOOL — npm test output: 8 passed, 0 failed for src/feature/. Supports criteria 3.
+- ev-03: E_DIFF — git diff shows validation logic and 400 response in handler.ts. Supports criteria 2.
+- ev-04: E_FILE — changed_files includes src/core/utils.ts (out_of_scope: src/core/) and config/routes.yaml (out_of_scope: config/). Boundary violation confirmed.
+
+## violated_invariants_or_risks
+- Scope violation: `changed_files` includes `src/core/utils.ts` and `config/routes.yaml`, both in `out_of_scope`. Severity: critical. Ref: ev-04.
+- Undeclared scope expansion: `deviations_from_spec` is empty despite out-of-scope changes. Severity: major. Ref: ev-04.
+
+## required_fixes
+- Boundary violation: revert changes to `src/core/utils.ts` and `config/routes.yaml`, or request scope expansion through Planner. Contract field: `out_of_scope`.
+- Deviation declaration: if out-of-scope changes are necessary, declare them in `deviations_from_spec` with justification. Contract field: `deviations_from_spec`.
+
+## next_route
+retry
+```
+
+### Fixture F5: ESCALATE — Silent contract rewrite (based on W6)
+
+**Scenario**: Generator was tasked with implementing a full API endpoint with validation and error handling. Generator delivered a "simplified version" that only handles the happy path, silently dropping 2 of 3 acceptance criteria without declaring any deviation. The implementation redefines what "complete" means.
+
+**Round contract excerpt**:
+- goal: "Implement user registration endpoint"
+- actual_deliverable: "src/api/register.ts"
+- acceptance_criteria: (1) endpoint returns correct JSON response for valid input, (2) error cases return appropriate HTTP status codes, (3) request validation covers all required fields
+- verification_path: "run type-check; run endpoint tests"
+- required_evidence: "type-check output and test results covering happy path and error cases"
+
+**Generator bundle excerpt**:
+- deliverable_path: "src/api/register.ts"
+- changed_files: ["src/api/register.ts"]
+- evidence:
+  - E_TOOL: `curl -X POST /register -d '{"name":"test"}' → 200 OK`
+  - E_SELF: "Core functionality implemented"
+- local_verification: "Endpoint accepts requests and returns responses"
+- self_review: "Core registration flow is working. Validation and error handling will be added in a follow-up iteration."
+- deviations_from_spec: []
+- non_done_items: []
+
+**Expected verdict bundle**:
+
+```markdown
+## verdict
+ESCALATE
+
+## scores
+| Dimension | Score | Confidence | Hard Threshold | Status |
+|-----------|-------|------------|----------------|--------|
+| Deliverable Alignment (DA) | 3 | high | 3 | PASS |
+| Evidence Sufficiency (ES) | 2 | high | 3 | FAIL |
+| Contract Compliance (CC) | 1 | high | 3 | FAIL |
+| Scope Discipline (SD) | 3 | medium | 2 | PASS |
+| Verification Integrity (VI) | 2 | medium | 2 | PASS |
+| Completeness (CP) | 2 | high | 2 | PASS |
+| **Weighted Score** | **2.15** | | **3.50** | **FAIL** |
+
+## blocking_flags
+- BF_MISSING: false
+- BF_PLACEHOLDER: false
+- BF_NARRATIVE: false
+- BF_NO_INDEPENDENT_EVIDENCE: false
+- BF_SCOPE_VIOLATION: false
+- BF_UNDECLARED_DEV: false
+- BF_CONTRACT_REWRITE: true
+
+## independent_verification
+Evaluator ran `Read src/api/register.ts` and confirmed: file contains a POST handler that accepts a request body and returns 200 with a JSON response. However, no error-handling branches exist (no 400/422/500 paths). No input validation logic found. Generator's `self_review` states "validation and error handling will be added in a follow-up iteration" but `deviations_from_spec` is empty and `non_done_items` is empty — Generator silently redefined the acceptance scope.
+
+## confidence
+- DA: high (Read confirmed partial implementation exists)
+- ES: high (only one E_TOOL item, covers only happy path)
+- CC: high (2 of 3 criteria clearly unmet, confirmed by file read)
+- SD: medium (changed_files within scope, no boundary issue)
+- VI: medium (partial verification executed but only for happy path)
+- CP: high (stop_condition not met — 2 criteria missing)
+- confidence_score: 0.67
+
+## evidence
+- ev-01: E_FILE — Read src/api/register.ts: POST handler at line 8, returns `{ success: true, userId }` for valid input. No error branches, no validation logic. Supports DA=3 (partial match), CC=1 (criteria 2 and 3 unmet).
+- ev-02: E_TOOL — curl output confirms 200 OK for happy path. Only covers criterion 1. Does not test error cases or validation.
+- ev-03: E_FILE — Generator self_review states "validation and error handling will be added in a follow-up iteration" but deviations_from_spec=[] and non_done_items=[]. Silent redefinition of acceptance scope detected.
+
+## violated_invariants_or_risks
+- Contract rewrite: Generator silently dropped acceptance criteria 2 (error status codes) and 3 (request validation) without declaring deviation. self_review acknowledges the omission but deviations_from_spec is empty. Severity: critical. Ref: ev-03.
+- Acceptance criteria 2 unmet: no error-handling code paths in deliverable. Severity: critical. Ref: ev-01.
+- Acceptance criteria 3 unmet: no request validation logic in deliverable. Severity: critical. Ref: ev-01.
+
+## required_fixes
+- Contract integrity: Generator silently redefined acceptance scope. This is not a local repair — the mismatch between Generator's interpretation and the contract requires Planner review. Contract field: `acceptance_criteria`, `deviations_from_spec`.
+- If criteria 2 and 3 are genuinely out of scope for this round, Planner must amend the contract. If they are in scope, Generator must implement them and provide evidence.
+
+## next_route
+return_to_planner
+```

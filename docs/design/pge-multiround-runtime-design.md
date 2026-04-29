@@ -1,9 +1,9 @@
 # PGE Multi-Round Runtime Design
 
-> Version: 0.2.0
+> Version: 0.3.0
 > Date: 2026-04-29
-> Status: Draft (post-review revision)
-> Scope: run / slice / round 层次、runtime-state、progress、evidence、verdict、route 结构定义，checkpoint/handoff/resume 机制，状态流转，多 slice 稳定执行，文件恢复上下文
+> Status: Draft (hybrid communication integration)
+> Scope: run / slice / round 层次、runtime-state、progress、evidence、verdict、route 结构定义，checkpoint/handoff/resume 机制，状态流转，多 slice 稳定执行，混合通信（message + file）上下文恢复
 
 ---
 
@@ -586,21 +586,23 @@ Do not re-run planner or preflight.
 
 ### 7.4 Handoff 机制
 
+> Handoff 使用混合通信：file artifacts 承载 durable state，SendMessage 承载 live interaction（handoff brief、retry brief、rebriefing）。详见 `pge-agent-teams-communication-design.md`。
+
 Handoff 发生在两个边界：
 
 **Phase 间 handoff**（round 内）：
-- Planner → Generator：通过 `planner_artifact`（round contract）
-- Generator → Evaluator：通过 `generator_artifact`（deliverable + evidence）
-- Evaluator → Router：通过 `evaluator_artifact`（verdict + route recommendation）
+- Planner → Generator：`main` 通过 SendMessage 发送 handoff brief（含 `planner_artifact` 路径引用），Generator 读取 artifact 文件获取 round contract
+- Generator → Evaluator：`main` 通过 SendMessage 发送 evaluation brief（含 `generator_artifact` 路径引用），Evaluator 读取 artifact 文件获取 deliverable + evidence
+- Evaluator → Router：Evaluator 通过 SendMessage 发送 verdict summary 给 `main`（快速路由决策），完整 verdict 写入 `evaluator_artifact`（审计/持久化）
 
 **Round 间 handoff**（slice 内）：
-- 通过 `round_checkpoint` 传递 `carry_forward` 信息
-- retry 时：Generator 读取上一 round 的 `required_fixes` + `carry_forward.valid_evidence`
-- return_to_planner 时：Planner 读取上一 round 的 `escalation_reason` + `preserve_from_current`
+- 通过 `round_checkpoint` 传递 `carry_forward` 信息（durable state）
+- retry 时：`main` 通过 SendMessage 发送 `retry_brief`（含 evaluator feedback 摘要 + 原 contract 路径引用），Generator 读取原 contract 文件获取完整内容
+- return_to_planner 时：`main` 通过 SendMessage 发送 rebriefing（含 `escalation_reason` + `preserve_from_current`），Planner 读取相关 artifact 文件
 
 **Slice 间 handoff**：
-- 通过 `slice_checkpoint` 传递 slice 汇总
-- 新 slice 的 Planner 读取：上游计划 + 已完成 slice 汇总 + 剩余目标
+- 通过 `slice_checkpoint` 传递 slice 汇总（durable state）
+- 新 slice 开始时，`main` 通过 SendMessage 发送 rebriefing 给 Planner（含 carry_forward 摘要 + 上游计划路径引用），Planner 读取 artifact 文件获取完整内容
 
 ### 7.5 Resume 流程
 
@@ -636,8 +638,8 @@ Resume entry
 
 1. 创建新 team，使用相同角色名（planner, generator, evaluator）
 2. 不依赖旧 team 的 chat history
-3. 通过 artifact 文件传递所有必要上下文
-4. 新 agent 启动时的 mandatory read list：
+3. 通过 SendMessage rebriefing 传递 checkpoint 摘要 context，agent 根据 rebriefing 中的路径引用读取 artifact 文件获取完整 durable state
+4. 新 agent 启动时的 mandatory read list（通过 rebriefing 消息指定）：
    - `state_artifact`（当前状态）
    - `progress_artifact`（进度）
    - 当前 round 的 `planner_artifact`（round contract）
@@ -760,8 +762,9 @@ Slice N 结束
   │   └─ 如果 team context 健康 → 继续使用
   │
   └─ Slice N+1 开始
-      ├─ Planner 读取：upstream_plan + slice_history + carry_forward
-      └─ 不读取：前 slice 的完整 chat history
+      ├─ main 通过 SendMessage rebriefing 传递: carry_forward 摘要 + upstream_plan 路径引用
+      ├─ Planner 读取 artifact 文件: upstream_plan + slice_history + carry_forward
+      └─ 不读取/不重放：前 slice 的完整 chat history 或 negotiation 消息
 ```
 
 **Context budget 分级**（借鉴 GSD）：
@@ -778,11 +781,12 @@ Slice N 结束
 
 ### 9.3 State 一致性保证
 
-**Artifact 是唯一真相源**：
+**Artifact 文件是 durable state 的唯一真相源**：
 
-- 所有跨 slice 的状态通过 artifact 文件传递
-- Chat history 不是 durable state
-- 每个 slice 开始时，agent 从 artifact 重建上下文
+- 所有跨 slice 的 durable state 通过 artifact 文件传递
+- 跨 slice 的 context transfer 使用 checkpoint 文件（durable）+ agent rebriefing 消息（runtime）
+- Chat history 和 negotiation 消息不是 durable state — 它们是瞬态的 runtime communication
+- 每个 slice 开始时，agent 从 rebriefing 消息获得 context 摘要，从 artifact 文件获得完整 durable state
 
 **Slice 间状态传递的最小集**：
 
@@ -916,12 +920,14 @@ Step 6: 重建 team（如果需要）
   │   ├─ active → 继续使用
   │   └─ lost/shutdown → 创建新 team
   ├─ 新 team 使用相同角色名
-  └─ 通过 artifact 传递上下文（不依赖 chat history）
+  └─ 通过 SendMessage rebriefing 传递 checkpoint 摘要 context
+      （agent 根据 rebriefing 中的 artifact 路径引用读取 durable state）
 
-Step 7: 构建 agent mandatory read list
-  ├─ 根据恢复点确定需要读取的 artifacts
-  ├─ 按依赖顺序排列
-  └─ 作为 agent dispatch 的 required_reading
+Step 7: Rebriefing（SendMessage）
+  ├─ 向每个需要的 agent 发送 rebriefing 消息
+  │   消息内容: checkpoint 摘要 + 当前 phase 的 context + artifact 路径引用
+  ├─ Agent 根据 rebriefing 读取 mandatory read list 中的 artifact 文件
+  └─ 不发送历史讨论内容，不重放旧 negotiation 消息
 
 Step 8: 继续执行
   ├─ 从恢复点的下一阶段开始
@@ -965,10 +971,49 @@ Step 8: 继续执行
 ### 10.5 恢复的不变量
 
 1. **永远不从 chat history 推断完成状态** — 只信任 artifact 文件
-2. **恢复后的 agent 必须读取 mandatory read list** — 不能假设 agent 记得之前的上下文
+2. **恢复后的 agent 必须通过 rebriefing 消息获得 context，并读取 mandatory read list** — 不能假设 agent 记得之前的上下文，不重放旧 negotiation 消息
 3. **恢复不改变 run_stop_condition** — 除非用户显式修改
 4. **恢复不跳过 gate** — 即使 artifact 存在，也要重新验证 gate
 5. **恢复不重置 loop counters** — slice_sequence, round_sequence, preflight_attempt 保持连续
+
+---
+
+## 11. Communication Model
+
+> 权威设计: `pge-agent-teams-communication-design.md`
+
+### 11.1 混合通信原则
+
+Multi-round runtime 使用混合通信模型（message + file），而非纯文件通信：
+
+| 通信平面 | 机制 | 用途 | 生命周期 |
+|----------|------|------|----------|
+| **Runtime Communication Plane** | Agent Teams SendMessage | 实时协作：handoff brief、negotiation、challenge、feedback、retry brief、rebriefing、status、verdict summary | 瞬态（session 内） |
+| **Durable Control Plane** | File artifacts | 持久化：locked contract、evidence、verdict、route、checkpoint、handoff | 持久（跨 session） |
+
+### 11.2 Multi-Round 循环中的通信分工
+
+**Retry 循环**（同 slice 内 round→round）：
+- `main` 通过 SendMessage 发送 `retry_brief` 给 Generator（含 evaluator feedback 摘要 + 原 contract 路径引用 + retry 约束）
+- Generator 读取原 contract 文件获取完整内容（durable state）
+- Evaluator feedback 的完整内容在 `evaluator.md` 中（durable），`retry_brief` 只携带摘要
+
+**Continue 循环**（slice→slice）：
+- `main` 写 `slice_checkpoint`（durable state）
+- `main` 通过 SendMessage 发送 rebriefing 给 Planner（含 carry_forward 摘要 + upstream_plan 路径引用）
+- Planner 读取 artifact 文件获取完整 durable state
+
+**Resume**（session 中断后恢复）：
+- 从 `checkpoint.json` + `state.json` 重建最小必要 context（durable state）
+- 通过 SendMessage rebriefing 重新 brief agents（runtime communication）
+- 不重放旧 negotiation 消息，不从 chat history 恢复
+
+### 11.3 关键规则
+
+1. **Round-to-round context transfer = checkpoint 文件（durable）+ rebriefing 消息（runtime）**，不是重放旧 artifact 文件
+2. **Negotiation 在 SendMessage 中完成**，只有最终锁定结果写入文件
+3. **文件不是消息总线** — 不为瞬态通信写文件（见 `pge-agent-teams-communication-design.md` §3.1）
+4. **Agent 是有 direct communication 能力的 team 角色**，不是只读写文件的独立 LLM 调用
 
 ---
 
@@ -1027,6 +1072,8 @@ Step 8: 继续执行
 | 状态机扩展来源 | 将规范性定义转为可执行实现 | 新增状态来自 `runtime-state-contract.md` 的规范性超集。这些状态在规范文档中已有定义，但在当前可执行子集中尚未实现。 |
 | 状态名统一 | 使用 `planning_round` | 对齐 `runtime-state-contract.md` 的规范名。当前 `ORCHESTRATION.md` 使用 `planning`，实施时需更新。 |
 | loop limits 硬上限 | 采用 | Anthropic 的 hard threshold 经验 + persistent-runner.md 已定义的 max_rounds/max_attempts。 |
+| 混合通信模型 | 采用 message + file | 文件只承载 durable state，SendMessage 承载 live interaction。消除了 file-as-message-bus 反模式。详见 `pge-agent-teams-communication-design.md`。 |
+| round-to-round context transfer | checkpoint 文件 + rebriefing 消息 | 不重放旧 artifact 文件。Checkpoint 提供 durable 恢复点，rebriefing 提供 runtime context brief。 |
 
 ---
 
@@ -1042,5 +1089,6 @@ Step 8: 继续执行
 | `contracts/routing-contract.md` | §6 route | 保持不变，新增 route 参数结构 |
 | `contracts/runtime-state-contract.md` | §2 runtime-state、§8 状态机 | 对齐（将规范性超集的状态提升为可执行） |
 | `contracts/entry-contract.md` | §10 恢复入口 | 保持不变 |
+| `docs/design/pge-agent-teams-communication-design.md` | §11 通信模型、§7.4 handoff、§7.5 resume、§9.2 context reset | 新增引用（混合通信模型的权威设计） |
 ```
 

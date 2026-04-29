@@ -93,7 +93,13 @@ sections:
   - preflight_status      # READY_FOR_EVALUATOR | BLOCKED
 ```
 
-### 3.3 关键约束
+### 3.3 通信方式
+
+Generator review 的讨论过程通过 Agent Teams direct communication（SendMessage）进行，不通过文件轮转。Generator 与 Evaluator 之间的 proposal/challenge/response 交互全部使用 SendMessage。只有最终锁定的 contract-proposal artifact 写入文件作为 durable record。
+
+> 通信模型详见 `pge-agent-teams-communication-design.md`。
+
+### 3.4 关键约束
 
 - **不修改 repo 文件** — preflight 阶段禁止 repo 编辑
 - **不静默覆盖 Planner 约束** — Planner 是 evidence/design authority
@@ -132,7 +138,13 @@ sections:
   - next_route            # ready_to_generate | return_to_planner
 ```
 
-### 4.3 Verdict 语义
+### 4.3 通信方式
+
+Evaluator review 的讨论过程通过 Agent Teams direct communication（SendMessage）进行。Evaluator 的 challenge、clarification request、inline feedback 全部使用 SendMessage 发送给 Generator。只有最终锁定的 preflight verdict artifact 写入文件作为 durable record。
+
+> 通信模型详见 `pge-agent-teams-communication-design.md`。
+
+### 4.4 Verdict 语义
 
 | Verdict | 含义 | 后续 |
 |---------|------|------|
@@ -140,7 +152,7 @@ sections:
 | `BLOCK` | 存在必须修复的问题，但 contract 框架本身可能仍然正确 | → `generator` 修复 或 `planner` 修复 |
 | `ESCALATE` | contract 本身有问题，需要 replanning | → `return_to_planner` |
 
-### 4.4 repair_owner 决策规则
+### 4.5 repair_owner 决策规则
 
 - `generator`: Planner contract 可以保持冻结，Generator proposal 可以在不猜测的情况下修复
 - `planner`: contract 本身歧义、不公平、自相矛盾、过大、或缺少可执行 round 所需的基础
@@ -148,6 +160,8 @@ sections:
 ---
 
 ## 5. 多轮 Negotiation 如何收敛
+
+> **通信通道**: Negotiation 走 Agent Teams direct communication，结果才落文件。状态机和收敛逻辑不变，但每一轮 negotiation turn（proposal、challenge、response、feedback）通过 SendMessage 进行，不通过文件写入。只有 phase boundary 的最终锁定结果（contract-proposal、preflight verdict）写入文件。详见 `pge-agent-teams-communication-design.md`。
 
 ### 5.1 状态机
 
@@ -777,9 +791,11 @@ Anthropic 的 contract 协商模式（ref-anthropic §4）证明：在 implement
 
 保持向后兼容。现有的 smoke test 和单轮执行不需要 `evaluator_thresholds` 或 `retry_policy`。渐进式引入新能力，不破坏已有流程。
 
-### D5: 通信方式选择文件而非对话
+### D5: 通信方式选择混合模型
 
-Anthropic 明确推荐 "通信通过文件"（ref-anthropic §4）：一个 agent 写文件，另一个读取并回应。这减少 token 消耗，避免 context window 膨胀，且提供持久化的审计轨迹。PGE 的 file-backed handoff 已经遵循这个模式。
+~~Anthropic 明确推荐 "通信通过文件"（ref-anthropic §4）。~~ 初始设计采用纯文件通信，但 Agent Teams 提供了 direct communication（SendMessage）能力。更新后的设计采用混合模型：negotiation 过程（proposal/challenge/response/feedback）使用 SendMessage 进行实时协作，只有最终锁定结果（contract、verdict、evidence、route）写入文件作为 durable record。这减少了中间文件 I/O，允许 G↔E 直接对话，同时保留了文件作为审计轨迹和 resume 依据的优势。
+
+> 权威通信模型: `pge-agent-teams-communication-design.md`
 
 ---
 
@@ -787,6 +803,7 @@ Anthropic 明确推荐 "通信通过文件"（ref-anthropic §4）：一个 agen
 
 | 来源 | 相关内容 |
 |------|---------|
+| `docs/design/pge-agent-teams-communication-design.md` | **权威通信模型** — runtime communication plane vs durable control plane 职责划分 |
 | `docs/design/research/ref-anthropic.md` §3-4 | Contract 协商、preflight negotiation |
 | `docs/design/research/ref-anthropic.md` §5 | Hard evaluator thresholds |
 | `docs/design/research/ref-superpowers.md` §1-2 | Hard-gate、前置澄清流程 |
