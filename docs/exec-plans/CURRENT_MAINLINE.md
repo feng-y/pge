@@ -2,58 +2,50 @@
 
 ## Current mainline
 
-Make `pge-execute` a runnable thin skill with persistent runtime `pge-planner` / `pge-generator` / `pge-evaluator` teammates.
+Converge the `0.5A / 0.5B` runtime lane so `pge-execute` uses a real P/G/E team with messaging-first coordination, durable phase artifacts, and lighter closure for simple deterministic tasks.
 
 ## Why this is the mainline
 
-Repo evidence supports the runtime team architecture:
-- `.claude-plugin/plugin.json` declares the plugin package and runtime agent entries
-- `skills/pge-execute/SKILL.md` is framed as a bounded execution entrypoint
-- `skills/pge-execute/ORCHESTRATION.md` defines `main` as the skill-internal orchestration shell
-- `skills/pge-execute/handoffs/` now defines planner, preflight, generator, evaluator, and route/teardown seams explicitly
-- `bin/pge-validate-contracts.sh` validates the current contract and workflow surface statically
-
-Historical proving runs suggest the runtime bootstrap direction is viable, but the current thin-skill architecture has not yet been re-proven through a fresh runnable smoke pass.
-
-The active problem is closing remaining dispatch/handoff gaps in the current workflow surfaces and preparing a trustworthy smoke-oriented validation path.
+Repo evidence supports the runtime-team architecture, but the active mismatch is now architectural, not packaging:
+- the repo already has stable `planner / generator / evaluator` agent surfaces
+- the current runtime still assumes file-backed handoff everywhere
+- smoke tasks still pay the full heavy workflow cost
+- the new design lane requires Agent Teams messaging for normal coordination and mode-aware closure for simple tasks
 
 ## Active stage
 
-Stage 3 — Team dispatch / handoff closure
+Stage 0.5 — Adaptive execution + Agent Teams communication closure
 
 ## Current blocker
 
-The current skill/runtime surfaces are substantially aligned, but there is still no fresh runnable smoke proof for the current thin-skill architecture with bounded preflight negotiation.
+The design intent for `0.5A / 0.5B` is now clear, but the runtime authority surfaces still partially encode the old file-only, one-heavy-path model.
 
-The current step is to close remaining dispatch/handoff gaps and make smoke validation explicit instead of inferred from older proving runs.
+The current step is to align design docs, runtime authority docs, and preflight/runtime state seams so later proving runs exercise one coherent architecture.
 
 ## What this round is optimizing for
 
-- keep `SKILL.md` thin
 - keep `main` as the orchestration shell, not a peer agent
-- treat `pge-planner`, `pge-generator`, and `pge-evaluator` as the persistent runtime teammates
-- ensure all dispatch/handoff seams are file-backed
-- verify no role simulation remains in `main`
-- prepare a current smoke-oriented validation path without broadening into Stage 4+ work
+- keep `planner`, `generator`, and `evaluator` as the only decision-bearing runtime roles
+- move normal coordination to `SendMessage`
+- reserve files for durable phase outputs and recovery state
+- introduce lighter closure paths for deterministic tasks without giving Planner fast-finish authority
+- keep the current lane bounded to single-run execution; do not silently claim Phase 2/5 behavior
 
 ## Explicit non-goals
 
-- Stage 4 thin-skill reshape work
-- per-task file protocol design
-- contract convergence work beyond what is needed to keep Stage 3 coherent
-- broad process expansion outside the staged plan
-- multi-round automation
-- self-hosting tasks
-- Ralph loop
+- multi-round automation beyond what is needed to define forward-compatible seams
+- checkpoint/resume execution claims beyond design/start-of-lane alignment
+- new agents or role proliferation
+- non-team direct-execution runtime as the default architecture
 
 ## Next single action
 
-Close remaining dispatch/handoff gaps in the current workflow surfaces and prepare the next runnable smoke validation step.
+Converge `0.5A / 0.5B` authority and runtime surfaces, then validate the updated lane with static checks before further proving.
 
 ## Stage exit criteria
 
-Stage 3 is done when:
-- dispatch/handoff gaps in the current workflow surfaces are closed
-- no role simulation remains in `main`
-- the runtime workflow surfaces are complete for the current stage
-- file-backed handoffs are confirmed for all seams
+This stage is done when:
+- Planner / Generator / Evaluator authority is consistent across design and runtime docs
+- preflight is messaging-first rather than file-only
+- durable artifact boundaries are explicit and mode-aware
+- simple deterministic tasks no longer require the full heavy artifact set by default

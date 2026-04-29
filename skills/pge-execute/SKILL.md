@@ -1,6 +1,6 @@
 ---
 name: pge-execute
-description: Run one bounded PGE execution using a real Claude Code Agent Team (planner, generator, evaluator) with file-backed artifacts.
+description: Run one bounded PGE execution using a real Claude Code Agent Team (planner, generator, evaluator) with messaging-first coordination and durable phase artifacts.
 version: 0.4.0
 argument-hint: "test | <task prompt>"
 allowed-tools:
@@ -18,12 +18,9 @@ allowed-tools:
 
 # PGE Execute
 
-Run one bounded PGE execution with a real Agent Team.
-
 This skill is the orchestration shell only. It is not a fourth agent.
 
 ## Progressive Disclosure
-
 Keep this entrypoint small. Load detail files only when the phase needs them:
 
 - Runtime artifacts/state/progress: `runtime/artifacts-and-state.md`
@@ -35,24 +32,19 @@ Keep this entrypoint small. Load detail files only when the phase needs them:
 - Route, summary, teardown: `handoffs/route-summary-teardown.md`
 - Contracts: `contracts/*.md` relative to this skill (authoritative for this skill)
 - Minimal lifecycle reference: `ORCHESTRATION.md`
-
 Design references live outside the skill at `docs/design/pge-execute/`; consult them when changing the skill, not during every normal run.
 
 ## Current Executable Claim
-
-Current goal: make `/pge-execute test` run end-to-end with the smallest honest closed loop.
-
-Supported now:
+Supported in the current implementation lane:
 
 - one Team
 - exactly three teammates: planner, generator, evaluator
-- file-backed handoffs
-- Planner contract
-- Generator/Evaluator preflight gate
-- one implementation round
+- messaging-first coordination for normal preflight interaction
+- durable phase outputs instead of turn-by-turn file churn
+- one bounded run with mode-aware closure (`FAST_PATH`, `LITE_PGE`, `FULL_PGE`)
 - independent final evaluation
 - explicit `unsupported_route` for recognized routes that are not yet redispatched
-- per-run progress artifact
+- progress artifact only when the chosen mode requires it
 
 Not supported yet:
 
@@ -61,28 +53,28 @@ Not supported yet:
 - return-to-planner loop
 - product/spec planner split
 - evaluator calibration fixtures
+- full `LONG_RUNNING_PGE` execution
 
 ## Execution Flow
-
 ```text
 User invokes /pge-execute
   -> pge-execute orchestrator skill
-     -> initialize input/state/progress artifacts
+     -> initialize input/state artifacts
      -> create one per-run resident team
         - teammate `planner` runs agent surface `pge-planner`
         - teammate `generator` runs agent surface `pge-generator`
         - teammate `evaluator` runs agent surface `pge-evaluator`
-     -> planner phase resource writes bounded round contract
-     -> preflight phase resource asks generator for proposal, evaluator for review
-     -> generator phase resource allows repo edits only after preflight PASS
+     -> planner writes locked task-shape contract
+     -> generator and evaluator negotiate preflight through SendMessage
+     -> evaluator decides execution mode and whether fast finish is allowed
+     -> orchestrator executes the chosen bounded path
      -> evaluator phase resource checks the actual deliverable independently
      -> route/summary/teardown phase records outcome and deletes the team
 ```
 
-The orchestrator routes from file artifacts. Agents do role work. Phase resources define the dispatch text, schemas, and gates.
+The orchestrator routes from durable phase outputs and runtime state. Agents do role work. Phase resources define the dispatch text, schemas, and gates.
 
 ## Hard Requirements
-
 - Use Claude Code native Agent Teams.
 - Create exactly one team for the run.
 - Spawn exactly three teammates:
@@ -90,12 +82,14 @@ The orchestrator routes from file artifacts. Agents do role work. Phase resource
   - `generator` using `pge-generator`
   - `evaluator` using `pge-evaluator`
 - Dispatch work through `SendMessage`.
-- Use file-backed handoff.
-- Maintain `progress_artifact` for the run.
+- Use messaging-first coordination for normal preflight interaction.
+- Use files only for durable phase outputs and runtime state.
+- Maintain `progress_artifact` only when the chosen mode requires it.
 - Do not simulate Planner / Generator / Evaluator in `main`.
 - Do not fall back to direct non-team Agent dispatch.
 - Do not require the user to pass a plan path.
 - Do not let Generator edit files before preflight passes.
+- Do not give Planner authority to decide fast finish or final execution mode.
 - Do not claim redispatch for `continue`, `retry`, or `return_to_planner`.
 
 If TeamCreate / Agent with `team_name` / SendMessage / TeamDelete cannot be used, stop immediately and report one concrete blocker.
@@ -131,7 +125,7 @@ For long-running or resumable behavior, also read `runtime/persistent-runner.md`
    - resolve task input
    - write `input_artifact`
    - write initial `state_artifact`
-   - write initial `progress_artifact`
+   - initialize `progress_artifact` only when required by the chosen mode later
    - verify the runtime can resolve the `pge-planner`, `pge-generator`, and `pge-evaluator` agent surfaces
 
 2. Create team
@@ -152,34 +146,40 @@ For long-running or resumable behavior, also read `runtime/persistent-runner.md`
 4. Contract preflight
    - read `handoffs/preflight.md`
    - send proposal task to generator
-   - wait for `contract_proposal_artifact`
-   - send preflight review to evaluator
-   - wait for `preflight_artifact`
-   - gate the artifacts
+   - allow Generator and Evaluator to negotiate preflight primarily through `SendMessage`
+   - wait for Evaluator's final preflight decision
+   - persist durable preflight outputs only when the chosen mode requires them
+   - gate the durable outputs that were written
    - allow bounded proposal repair attempts before any repo edits
    - continue only on `PASS + ready_to_generate`
 
-5. Generator
+5. Execute chosen path
+   - `FAST_PATH`: minimal artifacts + deterministic check + final Evaluator approval
+   - `LITE_PGE`: reduced artifact surface + final Evaluator approval
+   - `FULL_PGE`: full bounded flow
+   - `LONG_RUNNING_PGE`: record unsupported path; do not pretend later phases already exist
+
+6. Generator
    - read `handoffs/generator.md`
    - send implementation task to generator
-   - wait for `generator_artifact`
-   - gate the artifact and actual deliverable
-   - update state and progress
+   - wait for `generator_artifact` only when the chosen mode requires it
+   - gate the deliverable and any required durable generator output
+   - update state and progress when enabled
 
-6. Evaluator
+7. Evaluator
    - read `handoffs/evaluator.md`
    - send evaluation task to evaluator
    - wait for `evaluator_artifact`
    - gate the artifact and final verdict
-   - update state and progress
+   - update state and progress when enabled
 
-7. Route, summary, teardown
+8. Route, summary, teardown
    - read `handoffs/route-summary-teardown.md`
    - route from Evaluator verdict and next_route
-   - write summary
+   - write summary only when the chosen mode requires it
    - request teammate shutdown
    - delete team
-   - update progress
+   - update progress when enabled
 
 ## Final Response
 
@@ -192,16 +192,16 @@ Return only:
 - verdict: <verdict>
 - route: <route>
 - artifacts:
-  - <input_artifact>
-  - <planner_artifact>
-  - <contract_proposal_artifact>
-  - <preflight_artifact>
-  - <generator_artifact>
-  - <evaluator_artifact>
-  - <state_artifact>
-  - <summary_artifact>
-  - <progress_artifact>
-  - .pge-artifacts/pge-smoke.txt
+    - <input_artifact>
+    - <planner_artifact>
+    - <contract_proposal_artifact if written>
+    - <preflight_artifact if written>
+    - <generator_artifact if written>
+    - <evaluator_artifact>
+    - <state_artifact>
+    - <summary_artifact if written>
+    - <progress_artifact if written>
+    - <deliverable if produced>
 - blocker: <single concrete blocker or null>
 ```
 
@@ -213,6 +213,7 @@ Do not:
 - require a plan path from the user
 - simulate agents in `main`
 - replace Team flow with direct role-play
+- use artifact files as the turn-by-turn preflight message bus
 - auto-retry multiple rounds
 - bury phase progress only in chat; update progress artifacts
 - stop before waiting for the dispatched teammate artifact handoff

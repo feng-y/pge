@@ -155,7 +155,7 @@ For ongoing review, treat these five checks as the non-negotiable comparison sur
 1. whether Planner can or should own raw-prompt-to-spec expansion
 2. whether preflight is truly multi-turn and runtime-proven
 3. whether Generator executes at sprint/feature granularity instead of one isolated round
-4. whether Evaluator uses hard-threshold criteria instead of only narrative critique
+4. whether Evaluator uses a compact, independent acceptance surface instead of only narrative critique
 5. whether runtime actually supports long-running execution and recovery rather than only documenting it
 
 If one of these is still missing, the docs should say "partially aligned" or "not yet aligned" rather than implying parity with the article.

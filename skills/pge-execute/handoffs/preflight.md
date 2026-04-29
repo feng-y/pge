@@ -2,6 +2,12 @@
 
 Preflight shifts quality left before Generator edits files.
 
+Communication rule for this phase:
+
+- Generator and Evaluator negotiate primarily through Agent Teams `SendMessage`
+- `main` dispatches, observes, and routes; it is not the turn-by-turn message bus
+- files are reserved for durable phase outputs, not intermediate discussion turns
+
 ## Generator Proposal
 
 Send this task to `generator`.
@@ -20,8 +26,9 @@ Preflight only. Do not modify repo files.
 Read the Planner contract and confirm whether it is executable without guessing.
 Treat Planner as the evidence/design authority for the current round; do not silently override its constraints.
 If this is a repair attempt, also read the prior preflight feedback and address it explicitly without broadening scope.
+Use direct messages with @evaluator for clarification, challenge-response, and proposal repair. Do not treat <contract_proposal_artifact> as a turn-by-turn message log.
 
-Write markdown to <contract_proposal_artifact> with exactly these top-level sections:
+If the final chosen mode requires a durable proposal artifact, write markdown to <contract_proposal_artifact> with exactly these top-level sections:
 - ## current_task
 - ## execution_boundary_ack
 - ## deliverable_ack
@@ -66,9 +73,14 @@ Preflight only. Do not modify repo files.
 
 Review whether the Planner contract plus Generator proposal create a fair, executable, independently evaluable current round.
 Do not approve vague, untestable, overbroad, or self-contradictory contracts.
+You own the Execution Cost Gate for this phase:
+- classify the attempt as `FAST_PATH`, `LITE_PGE`, `FULL_PGE`, or `LONG_RUNNING_PGE`
+- confirm whether fast finish is allowed
+- communicate with @generator directly for challenge, clarification, and repair before you write the final durable verdict
 
-Write markdown to <preflight_artifact> with exactly these top-level sections:
+If the final chosen mode requires a durable preflight artifact, write markdown to <preflight_artifact> with exactly these top-level sections:
 - ## preflight_verdict
+- ## execution_mode
 - ## evidence
 - ## contract_risks
 - ## required_contract_fixes
@@ -92,10 +104,11 @@ Use `generator` only when the Planner contract can remain frozen and the Generat
 Use `planner` when the contract itself is ambiguous, unfair, contradictory, oversized, or missing the basis needed for an executable round.
 ```
 
-Gate:
+Gate when `preflight_artifact` is written:
 
 - artifact exists
 - `## preflight_verdict` exists
+- `## execution_mode` exists
 - `## evidence` exists
 - `## contract_risks` exists
 - `## required_contract_fixes` exists
@@ -104,7 +117,7 @@ Gate:
 
 ## Routing
 
-- `PASS + ready_to_generate`: set `state = "ready_to_generate"`, set `preflight_called = true`, persist proposal/preflight refs, write state, update progress.
+- `PASS + ready_to_generate`: set `state = "ready_to_generate"`, set `preflight_called = true`, persist proposal/preflight refs only when the chosen mode requires them, record `mode`, `mode_decision_owner = "evaluator"`, and `fast_finish_approved` in state, then update progress if enabled.
 - `BLOCK + repair_owner = generator` with attempts remaining: persist proposal/preflight refs, record fixes/risks, increment `preflight_attempt_id`, keep `state = "preflight_pending"`, update progress, redispatch Generator proposal repair, and keep repo edits forbidden.
 - Any gate failure: set `state = "failed"`, set `preflight_called = true`, record blocker, write state, update progress, stop.
 - `BLOCK + repair_owner = planner`, `ESCALATE`, or exhausted preflight attempts: set `state = "unsupported_route"`, set `preflight_called = true`, set route to `return_to_planner` when present, record fixes/risks, persist refs, write state, update progress, stop without redispatch.

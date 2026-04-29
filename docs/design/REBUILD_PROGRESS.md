@@ -9,7 +9,9 @@ Updated: 2026-04-29
 | Phase | 名称 | 状态 | 依赖 | 优先级 |
 |-------|------|------|------|--------|
 | 0 | 设计文档对齐 | DONE | 无 | - |
-| 1 | Evaluator 硬阈值 | TODO | 无 | P0 |
+| 0.5A | Adaptive Execution | IN_PROGRESS | Phase 0 | P0 |
+| 0.5B | Agent Teams Communication | IN_PROGRESS | Phase 0 | P0 |
+| 1 | Evaluator 验收面 | TODO | Phase 0.5A | P0 |
 | 2 | Multi-round 路由 | TODO | 无（可与 P1 并行） | P0 |
 | 3 | Preflight 协商增强 | TODO | Phase 1 | P1 |
 | 4 | Planner intake negotiation | TODO | 建议 Phase 1-2 后 | P1 |
@@ -29,30 +31,63 @@ Updated: 2026-04-29
 
 ---
 
-## Phase 1: Evaluator 硬阈值 — TODO
+## Phase 0.5A: Adaptive Execution — IN_PROGRESS
 
-**目标**: Evaluator 从叙述性判断升级为量化评分 + 硬阈值。
+**目标**: 用 team-backed quick triage 解决简单任务流程过重的问题，同时保留 Evaluator 的最终确认权。
+
+**当前对齐结论**:
+
+- [x] Planner 不拥有 fast-finish 决策权
+- [x] Generator 负责提出执行/验证方式
+- [x] Evaluator 拥有 Execution Cost Gate
+- [x] FAST_PATH 保留 Evaluator verdict
+- [ ] runtime handoffs 与 artifact budget 仍需继续落地
+
+---
+
+## Phase 0.5B: Agent Teams Communication — IN_PROGRESS
+
+**目标**: 常规协商默认走 Agent Teams messaging；文件只承担 durable 输出和状态职责。
+
+**当前对齐结论**:
+
+- [x] negotiation/challenge/clarification/feedback/status 默认走 `SendMessage`
+- [x] 文件不再被定义为 turn-by-turn 消息总线
+- [x] durable artifact 边界已重新定义为“阶段结果”和“恢复状态”
+- [ ] preflight/evaluation handoff 的具体执行细节仍需继续落地
+
+---
+
+## Phase 1: Evaluator 验收面 — TODO
+
+**目标**: Evaluator 从松散叙述性判断升级为紧凑、稳定、可路由的验收面。
 
 **为什么优先**: Evaluator 质量是整个 harness 的瓶颈。multi-round 执行只会放大不可靠的 Evaluator 的错误。
+
+**职责边界**:
+
+- 应承担：独立验收、路由裁决、成本门控
+- 不应承担：长篇审计写作、默认大评分矩阵、替 Planner/Generator 做工作
 
 **改动文件**:
 
 | 文件 | 改动 | 状态 |
 |------|------|------|
-| `skills/pge-execute/contracts/evaluation-contract.md` | 增加评分维度定义、硬阈值规则、AI slop 检测规则 | TODO |
-| `agents/pge-evaluator.md` | 增加校准 fixtures（2-3 个 few-shot examples）、置信度标注要求 | TODO |
-| `skills/pge-execute/handoffs/evaluator.md` | 增加结构化评分输出格式 | TODO |
+| `skills/pge-execute/contracts/evaluation-contract.md` | 定义 compact acceptance surface、mode-aware 评估深度、AI slop 检测规则 | IN_PROGRESS |
+| `agents/pge-evaluator.md` | 明确职责边界和 mode-aware 输出要求 | IN_PROGRESS |
+| `skills/pge-execute/handoffs/evaluator.md` | 定义 lightweight / compact / deeper-audit 输出格式 | IN_PROGRESS |
 
 **验收标准**:
 
-- [ ] evaluation-contract.md 包含至少 2 个评分维度，每个有 1-10 分范围和硬阈值
-- [ ] pge-evaluator.md 包含至少 2 个 few-shot examples（1 PASS + 1 RETRY/BLOCK）
-- [ ] Evaluator 输出包含 `dimension_scores`、`confidence_score`、`evidence_type`
+- [ ] evaluation-contract.md 明确定义三类职责：独立验收、路由裁决、成本门控
+- [ ] pge-evaluator.md 明确限制默认输出重度审计内容
+- [ ] evaluator handoff 支持 `FAST_PATH` 的 lightweight verdict
+- [ ] evaluator handoff 支持 `LITE_PGE` / `FULL_PGE` 的 compact acceptance surface
 - [ ] evaluation-contract.md 包含至少 3 条 AI slop 检测规则
 - [ ] `bin/pge-validate-contracts.sh` 通过
-- [ ] proving run 中 Evaluator 产出维度评分 + 置信度（非纯叙述）
+- [ ] proving run 中 Evaluator 产出足以驱动路由的紧凑 verdict（不是冗长评审稿）
 
-**设计参考**: `docs/design/pge-evaluator-threshold-design.md`
+**设计参考**: `docs/design/pge-evaluator-threshold-design.md`, `docs/design/pge-adaptive-execution-design.md`
 
 ---
 
@@ -89,7 +124,7 @@ Updated: 2026-04-29
 
 **目标**: Preflight 协商结构化、能收敛或明确失败。
 
-**依赖**: Phase 1（结构化评分格式是 preflight feedback 的基础）
+**依赖**: Phase 1（紧凑、可路由的 verdict surface 是 preflight feedback 结构化的基础）
 
 **改动文件**:
 
@@ -170,11 +205,8 @@ Updated: 2026-04-29
 | `docs/design/pge-rebuild-plan.md` | 总体改建方案：状态分析 + 差距 + 路线 |
 | `docs/design/pge-multiround-runtime-design.md` | 多轮运行时：状态机 + schema + checkpoint |
 | `docs/design/pge-contract-negotiation-design.md` | 合约协商：preflight + negotiation + hard gate |
-| `docs/design/pge-evaluator-threshold-design.md` | Evaluator：评分维度 + 阈值 + fixtures + verdict |
+| `docs/design/pge-evaluator-threshold-design.md` | Evaluator：紧凑验收面、mode-aware 输出、AI slop 规则、示例 |
 | `docs/design/pge-reference-learning-notes.md` | 参考项目：学什么 / 不学什么 / 映射到哪 |
-| `docs/design/pge-rebuild-review-report.md` | Review 报告：4 轮 findings + 修订记录 |
-| `docs/design/pge-codex-review.md` | Codex 独立 review |
-| `docs/design/pge-final-codex-review.md` | 最终 Codex review（CONDITIONAL PASS） |
 | `docs/design/research/` | 调研原始资料（8 份） |
 
 ---
@@ -186,7 +218,7 @@ Updated: 2026-04-29
 | 1. Planner raw-prompt ownership | Planner 是 round shaper，无结构化澄清 | Phase 4 | 模糊 prompt → intake negotiation → clarification → contract |
 | 2. Preflight multi-turn negotiation | 存在但 max 2 attempts，无结构化反馈 | Phase 3 | structured feedback + 收敛检测 + max 3 attempts |
 | 3. Generator sprint/feature granularity | 单轮执行，retry/continue 停在 unsupported_route | Phase 2 | multi-round loop + 自动路由调度 |
-| 4. Evaluator hard-threshold grading | 叙述性判断，gate 只检查 section 存在 | Phase 1 | 量化评分 + 硬阈值 + AI slop 检测 + fixtures |
+| 4. Evaluator acceptance surface | 叙述性判断，gate 只检查 section 存在 | Phase 1 | 紧凑验收面 + mode-aware 输出 + AI slop 检测 + 示例 |
 | 5. Runtime long-running execution | 无 checkpoint/resume，无 context budget | Phase 2 + 5 | round loop (P2) + checkpoint/resume (P5) |
 
 ---

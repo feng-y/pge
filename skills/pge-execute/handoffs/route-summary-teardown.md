@@ -24,11 +24,13 @@ Otherwise:
 - set `error_or_blocker` to evaluator `required_fixes` or `violated_invariants_or_risks`
 - do not redispatch automatically in this version
 
-Write state and update progress after route selection.
+Write state after route selection. Update progress only when progress is enabled for the current mode.
 
 ## Summary
 
-Write `summary_artifact` with:
+Only write `summary_artifact` when the chosen mode requires it.
+
+When written, include:
 
 - run_id
 - task input summary
@@ -37,15 +39,15 @@ Write `summary_artifact` with:
 - verdict
 - route
 - artifact paths
-- progress path
+- progress path when `progress_artifact` exists
 - for `test`, smoke result and exact smoke file path
 - blocker if any
 
-Update progress after writing summary.
+Update progress after writing summary only when progress is enabled.
 
 ## Teardown
 
-After summary is written:
+After route selection, perform teardown. Do not make summary a prerequisite for teardown in lighter modes.
 
 ```python
 SendMessage(to="planner", message={"type": "shutdown_request"})
@@ -59,5 +61,6 @@ If teardown fails after route selection and artifacts are already written:
 - keep the execution result
 - mention teardown failure in final text
 - do not rewrite PASS to failure solely because shutdown was noisy
+- do not leave the run stuck in `evaluating` solely because shutdown is slow
 
-Update progress after the teardown attempt.
+Update progress after the teardown attempt only when progress is enabled.

@@ -115,24 +115,23 @@ Updated: 2026-04-29
 - 在 `skills/pge-execute/contracts/routing-contract.md` 中定义 multi-round 的 stop condition 和 max_rounds 限制
 - 在 `skills/pge-execute/ORCHESTRATION.md` 中增加 multi-round 生命周期定义
 
-### Gate 4: Evaluator hard-threshold grading
+### Gate 4: Evaluator acceptance surface
 
-**参考标准**: Evaluator 有硬阈值，任一标准低于阈值则 sprint 失败。使用 few-shot examples 校准。明确惩罚 AI slop 模式。
+**参考标准**: Evaluator 必须独立验收真实交付物，并给出足以驱动路由的稳定裁决。Anthropic 的经验支持“强 evaluator gate”，但不要求所有任务都输出重型审计矩阵。对简单任务，重评分会直接变成收敛瓶颈。
 
-**当前状态**: Evaluator 使用叙述性判断（PASS/RETRY/BLOCK/ESCALATE），有 verdict 选择规则（"choose the narrowest verdict"）。但没有量化阈值、没有评分维度、没有校准 fixtures。
+**当前状态**: Evaluator 已有独立 verdict（PASS/RETRY/BLOCK/ESCALATE）和基本路由语义，但 repo 里仍残留“6 维评分 + weighted score + blocking flag matrix”的旧设计预期，与 `0.5A` 的轻量闭环目标冲突。
 
 **缺口**:
-1. **无量化评分维度**: 没有类似 Anthropic 的 Design Quality / Originality / Craft / Functionality 维度
-2. **无硬阈值**: verdict 完全依赖 Evaluator agent 的主观判断
-3. **无校准 fixtures**: 没有 few-shot examples 来校准 Evaluator 的判断标准
-4. **无 AI slop 检测**: 没有明确惩罚模板化/低质量输出的机制
-5. **无置信度标注**: 不像 gstack 那样要求每个发现附带置信度分数
+1. **默认输出面过重**: `FAST_PATH` 和简单 `FULL_PGE` 任务不该默认写大型评分矩阵
+2. **mode-aware 深度还未完全统一**: 简单任务、常规任务、复杂任务仍缺少一致的验收面定义
+3. **无足够明确的 AI slop 规则**: 需要明确哪些“看起来像评估、实际上没验证”的模式直接禁止 PASS
+4. **示例不足**: 缺少 compact PASS / RETRY / BLOCK 的对照样例来帮助稳定收敛
 
 **改建动作**:
-- 在 `skills/pge-execute/contracts/evaluation-contract.md` 中增加 **评分维度定义**: 根据任务类型定义 2-4 个评分维度，每个维度有 1-10 分和硬阈值
-- 在 `agents/pge-evaluator.md` 中增加 **校准 fixtures**: 提供 2-3 个 few-shot examples（一个 PASS、一个 RETRY、一个 BLOCK），展示期望的评估深度和判断标准
-- 在 `skills/pge-execute/contracts/evaluation-contract.md` 中增加 **AI slop 检测规则**: 定义具体的 slop 模式（模板化输出、模糊表述、未验证的声明）及其对 verdict 的影响
-- 在 Evaluator 输出字段中增加 `confidence_score` (1-10) 和 `evidence_type` (code-verified / pattern-matched / inferred)
+- 在 `skills/pge-execute/contracts/evaluation-contract.md` 中定义 **compact acceptance surface**：`FAST_PATH` 用 lightweight verdict，`LITE_PGE` / `FULL_PGE` 用 compact core scores
+- 在 `agents/pge-evaluator.md` 中增加 **mode-aware 示例与边界**：突出独立验收、路由裁决、成本门控，而不是长篇审计
+- 在 `skills/pge-execute/contracts/evaluation-contract.md` 中增加 **AI slop 检测规则**：明确“praise without substance / existence as quality / self-report as primary evidence / issue minimization” 不能 PASS
+- 在 handoff 模板中保持 verdict 可路由、可压缩，而不是引入默认 `confidence matrix` 或 weighted totals
 
 ### Gate 5: Runtime long-running execution and recovery
 
@@ -162,7 +161,7 @@ Updated: 2026-04-29
 | G1 | Planner 能处理模糊 raw prompt | 给定一个 2 句话的模糊 prompt，Planner 产出 clarification artifact 或 bounded round contract（不是两者都不产出） |
 | G2 | Preflight 协商能收敛或明确失败 | 3 次 preflight attempt 内达成 contract，或升级为 return_to_planner，不会原地打转 |
 | G3 | 支持 multi-round 执行 | retry/continue/return_to_planner 三条路由可自动重新调度，有 max_rounds 限制 |
-| G4 | Evaluator 有量化评分和硬阈值 | 每个 verdict 附带维度评分和置信度，硬阈值低于 X 则自动 RETRY/BLOCK |
+| G4 | Evaluator 有紧凑、稳定、可路由的验收面 | `FAST_PATH` 用 lightweight verdict；`LITE_PGE` / `FULL_PGE` 用 compact core scores；AI slop 模式不能 PASS |
 | G5 | 支持从 checkpoint 恢复执行 | session 中断后，从 state artifact 恢复到最近完成的阶段，继续执行 |
 | G6 | 跨 round 进度追踪 | progress artifact 累积记录每轮结果，新 round 的 Planner 能读取历史进度 |
 | **G7** | **执行流程根据任务复杂度自适应** | 简单确定性任务（如 smoke test）通过 Agent Teams quick triage 快速收敛，Evaluator 批准 FAST_PATH 后 deterministic check 即可完成，不创建大量管理 artifacts |
@@ -209,21 +208,21 @@ Updated: 2026-04-29
 **理由**: 这是后续所有 Phase 的前提。如果不解决，multi-round（Phase 2）、checkpoint（Phase 5）等都建立在过重流程上，成本不可控。Smoke test 已证明问题存在。
 
 **核心设计决策**:
-- Planner 只做 round shaping + 验收门控定义，不判断任务复杂度
-- Generator 提出实现方案 + 可行性说明
-- **Evaluator 拥有 Execution Cost Gate**：看到 Planner 的 contract + Generator 的方案后，决策执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE）
-- Orchestrator 只执行 Evaluator 的 mode decision
+- Planner 只做 task shaping + 验收门控定义，负责识别任务形态与边界，不负责 fast finish 决策
+- Generator 基于 Planner contract 提出执行方式、验证方式和风险说明
+- **Evaluator 拥有 Execution Cost Gate**：看到 Planner 的 contract + Generator 的方案后，决策执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE），并确认是否允许快速结束
+- Orchestrator 只执行 Evaluator 的 mode decision，不自行决定 fast finish
 - 简单任务用 Agent Teams quick triage 快速收敛，不是跳过 Agent Teams
-- Fast path 跳过重 artifacts，**不跳过 Evaluator verdict**
+- Fast path 跳过重 artifacts，但**不跳过 Evaluator verdict**
 
 **产出**:
 - `docs/design/pge-adaptive-execution-design.md`（已创建）
 - 更新 `skills/pge-execute/SKILL.md`: 增加 mode selection 流程
 - 更新 `skills/pge-execute/ORCHESTRATION.md`: 增加 triage 阶段和 mode-specific 生命周期
-- 更新 `skills/pge-execute/contracts/routing-contract.md`: 增加 FAST_PATH route
+- 更新 `skills/pge-execute/contracts/routing-contract.md`: 明确 execution mode 不是 route，并补充 mode-aware early-converge 规则
 - 更新 `skills/pge-execute/runtime/artifacts-and-state.md`: per-mode artifact budget
 
-**依赖**: Phase 0 完成。
+**依赖**: Phase 0 完成。建议先于 Phase 1 落地。
 
 **验收标准**: 见 §7 Phase 0.5A 验收标准。
 
@@ -235,7 +234,7 @@ Updated: 2026-04-29
 
 **核心设计决策**:
 - **默认走 Agent Teams messaging**: negotiation、clarification、challenge、feedback、status 全走 SendMessage
-- **例外才写文件**: 只有 locked contract、final evidence、final verdict、checkpoint/resume 写文件
+- **例外才写文件**: 只有 durable phase outputs 才写文件，包括 locked contract、最终 contract/proposal 结果、final evidence、final verdict、runtime state、checkpoint/resume，以及 mode 需要时的 summary/progress
 - Agent 主动读文件的场景极少：只有 resume 读 checkpoint、Evaluator 独立读 deliverable 验证
 - 文件不是 message bus，不模拟聊天记录
 - Resume 从 checkpoint 重建上下文，不重播文件历史
@@ -246,24 +245,40 @@ Updated: 2026-04-29
 - 更新 `skills/pge-execute/ORCHESTRATION.md`: 通信方式从 file-only 改为 hybrid
 - 更新 `skills/pge-execute/runtime/artifacts-and-state.md`: 标注哪些 artifacts 是 durable（必须写文件）、哪些是 transient（走消息）
 
-**依赖**: Phase 0 完成。可与 Phase 0.5A 并行。
+**依赖**: Phase 0 完成。与 Phase 0.5A 强相关，建议并行设计、串行落地（先通信面，再轻量模式）。
 
 **验收标准**: 见 §7 Phase 0.5B 验收标准。
 
-### Phase 1: Evaluator 硬阈值
+### Phase 1: Evaluator 验收面
 
-**范围**: 让 Evaluator 从叙述性判断升级为量化评分 + 硬阈值。
+**范围**: 让 Evaluator 从松散叙述性判断升级为**紧凑、可复用、可路由**的验收裁决面。
 
 **理由**: Anthropic 明确指出 "开箱即用的 Claude 是糟糕的 QA agent"。Evaluator 质量是整个 harness 的瓶颈——如果 Evaluator 不可靠，multi-round 执行只会放大错误。
+
+**Evaluator 在 PGE 中应承担的职责**:
+- 独立验收：直接检查 deliverable 和关键证据
+- 路由裁决：输出足以驱动 runtime 的 verdict + next_route
+- 成本门控：在 preflight / triage 阶段判定执行模式
+
+**Evaluator 不应默认承担的职责**:
+- 不做 Planner 的工作
+- 不做 Generator 的工作
+- 不默认输出长篇审计报告
+- 不因为能评分就默认写大评分矩阵
+
+**设计原则**:
+- Evaluator 的输出必须足够让 orchestrator 决策
+- 但 Evaluator 不能重到自己变成收敛瓶颈
+- `FAST_PATH` 用 lightweight verdict
+- `LITE_PGE` / `FULL_PGE` 默认都用 compact acceptance surface
+- 更深的评分和审计只能是显式请求的扩展模式，不是默认模式
 
 **依赖**: Phase 0.5A（Evaluator 的 Execution Cost Gate 职责在 Phase 0.5A 中定义）。
 
 **产出**:
-- 更新 `skills/pge-execute/contracts/evaluation-contract.md`: 增加评分维度定义、硬阈值规则、AI slop 检测规则
-- 更新 `agents/pge-evaluator.md`: 增加校准 fixtures（2-3 个 few-shot examples）、置信度标注要求
-- 更新 `skills/pge-execute/handoffs/evaluator.md`: 增加结构化评分输出格式
-
-**依赖**: 无。可独立进行。
+- 更新 `skills/pge-execute/contracts/evaluation-contract.md`: 定义 compact acceptance surface、mode-aware 评估深度、AI slop 检测规则
+- 更新 `agents/pge-evaluator.md`: 明确职责边界和 mode-aware 输出要求
+- 更新 `skills/pge-execute/handoffs/evaluator.md`: 定义 lightweight / compact / deeper-audit 三层输出格式
 
 **验收标准**: 见 Phase 1 验收标准（§7）。
 
@@ -280,7 +295,7 @@ Updated: 2026-04-29
 - 更新 `skills/pge-execute/handoffs/route-summary-teardown.md`: 增加 retry/continue/return_to_planner 的调度文本
 - 新增 `skills/pge-execute/handoffs/retry.md`: retry 路由的具体调度（带 Evaluator 反馈）
 
-**依赖**: 无硬依赖。当前 Evaluator 已产出 `required_fixes`（叙述性）和 `next_route`，足以支撑基本的 retry 路由。Phase 1 的结构化评分会增强 retry 质量，但不是 retry 的前提条件。Phase 1 和 Phase 2 可并行推进。
+**依赖**: 无硬依赖。当前 Evaluator 已产出 `required_fixes`（叙述性）和 `next_route`，足以支撑基本的 retry 路由。Phase 1 的紧凑验收面会增强 retry 质量，但不是 retry 的前提条件。Phase 1 和 Phase 2 可并行推进。
 
 **验收标准**: 见 Phase 2 验收标准（§7）。
 ### Phase 3: Preflight 协商增强
@@ -294,7 +309,7 @@ Updated: 2026-04-29
 - 更新 `skills/pge-execute/handoffs/preflight.md`: 增加收敛检测逻辑、max_preflight_attempts 提升到 3
 - 更新 `skills/pge-execute/runtime/artifacts-and-state.md`: max_preflight_attempts 从 2 改为 3
 
-**依赖**: Phase 1（结构化评分格式是 preflight feedback 的基础）。
+**依赖**: Phase 1（紧凑、可路由的 verdict surface 是 preflight feedback 结构化的基础）。
 
 **验收标准**: 见 Phase 3 验收标准（§7）。
 
@@ -337,29 +352,31 @@ Updated: 2026-04-29
 ### Phase 0.5A 验收标准: Adaptive Execution
 
 1. `docs/design/pge-adaptive-execution-design.md` 定义 4 种执行模式（FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE），每种模式有明确的 artifact budget
-2. Evaluator 拥有 Execution Cost Gate：mode decision 不来自 Planner 或 Orchestrator
-3. Planner 不输出 mode recommendation、不判断任务复杂度
+2. Evaluator 拥有 Execution Cost Gate：mode decision 和 fast-finish approval 不来自 Planner 或 Orchestrator
+3. Planner 不输出 mode recommendation，不拥有 fast-finish 决策权
 4. FAST_PATH 仍保留 Evaluator verdict（deterministic check 或 lightweight），不跳过 Evaluator
-5. 简单任务（如 smoke test）通过 Agent Teams quick triage 收敛，不创建超过 3 个 artifacts
-6. 执行一次 smoke test proving run，使用 FAST_PATH mode，验证 artifact 数量 ≤ 3
+5. 简单任务（如 smoke test）通过 Agent Teams quick triage 收敛，管理 artifacts（不含 `input_artifact` 和最终 deliverable）不超过 3 个
+6. 执行一次 smoke test proving run，使用 FAST_PATH mode，验证管理 artifact 数量（不含 `input_artifact` 和最终 deliverable）≤ 3
 
 ### Phase 0.5B 验收标准: Agent Teams Communication
 
 1. `docs/design/pge-agent-teams-communication-design.md` 定义 Runtime Communication Plane（SendMessage）和 Durable Control Plane（文件），有明确的使用边界
 2. Preflight negotiation 使用 Agent Teams direct communication（SendMessage），不使用文件轮转
-3. 只有 locked contract、final evidence、final verdict、checkpoint/resume 写文件
+3. 只有 durable phase outputs 写文件；negotiation 中间态不写文件轮转
 4. Handoff 模板区分 message dispatch（runtime）和 file write（durable）
 5. Resume 从 checkpoint 重建上下文，不重播文件历史
 6. 执行一次 proving run，preflight 阶段的 G↔E 交互走 SendMessage，最终 locked contract 写文件
 
-### Phase 1 验收标准: Evaluator 硬阈值
+### Phase 1 验收标准: Evaluator 验收面
 
-1. `skills/pge-execute/contracts/evaluation-contract.md` 包含至少 2 个评分维度，每个维度有 1-10 分范围和硬阈值定义
-2. `agents/pge-evaluator.md` 包含至少 2 个 few-shot examples（一个 PASS case、一个 RETRY/BLOCK case），每个 example 展示完整的评分过程
-3. Evaluator 输出字段包含 `dimension_scores` (dict)、`confidence_score` (1-10)、`evidence_type` (enum)
-4. `skills/pge-execute/contracts/evaluation-contract.md` 包含至少 3 条 AI slop 检测规则，每条规则有具体的模式描述和 verdict 影响
-5. 运行 `bin/pge-validate-contracts.sh` 通过（新增的 section 被检测到）
-6. 执行一次 proving run，Evaluator 产出包含维度评分和置信度的 verdict（不是纯叙述性判断）
+1. `skills/pge-execute/contracts/evaluation-contract.md` 明确定义 Evaluator 的三类职责：独立验收、路由裁决、成本门控
+2. `agents/pge-evaluator.md` 明确定义 Evaluator 不默认输出长篇审计报告或大评分矩阵
+3. `skills/pge-execute/handoffs/evaluator.md` 支持 mode-aware 输出：
+   `FAST_PATH` = lightweight verdict
+   `LITE_PGE` / `FULL_PGE` = compact acceptance surface
+4. `skills/pge-execute/contracts/evaluation-contract.md` 包含至少 3 条 AI slop 检测规则，每条规则有具体模式描述和 verdict 影响
+5. 运行 `bin/pge-validate-contracts.sh` 通过
+6. 执行一次 proving run，Evaluator 产出足以驱动 routing 的紧凑 verdict，而不是冗长评审稿
 
 ### Phase 2 验收标准: Multi-round 路由
 

@@ -35,14 +35,14 @@ Use this checklist when judging whether PGE is merely structurally similar to th
 - Planner: can PGE truthfully handle raw prompt -> spec expansion, or is it intentionally bounded to round shaping?
 - Preflight: is contract negotiation just documented, or proven as a real multi-turn runtime loop?
 - Generator: does execution happen one bounded round at a time only, or across sprint/feature slices?
-- Evaluator: does QA use explicit hard-threshold criteria, or only free-form acceptance language?
+- Evaluator: does QA use an explicit, compact acceptance surface, or only free-form acceptance language?
 - Runtime: can the system recover and continue long-running work, or does it still stop on unsupported canonical routes?
 
 Current answer:
 - Planner: bounded round shaping only
 - Preflight: specified, not yet runtime-proven
 - Generator: single round only
-- Evaluator: independent, but not yet threshold-calibrated
+- Evaluator: independent, but not yet compact-surface-calibrated
 - Runtime: artifact-recovery model defined, long-running redispatch not yet implemented
 
 ## Task List
@@ -188,18 +188,18 @@ Status: queued.
 
 Goal:
 
-Make Evaluator less generous and more consistent by maintaining examples of correct verdicts and by grading against clearer hard-threshold criteria.
+Make Evaluator less generous and more consistent by maintaining examples of correct verdicts and by grading against a clearer compact acceptance surface.
 
 Tasks:
 
 - Add fixtures for false PASS, RETRY, BLOCK, and ESCALATE cases.
 - Include expected verdict, expected route, and rationale.
-- Add explicit acceptance dimensions for at least product depth, functionality, design/UX quality, and code quality.
-- Define minimum thresholds that force non-PASS when one critical dimension fails.
+- Add explicit compact acceptance dimensions appropriate to the mode and task type.
+- Define non-PASS rules for missing evidence, contract misalignment, and anti-slop failures.
 - Add a validation command that checks prompt/schema consistency against fixtures.
 
 Acceptance:
 
 - Evaluator prompt changes can be reviewed against known failure modes.
-- Evaluator judgments are anchored to explicit dimensions instead of only free-form critique.
+- Evaluator judgments are anchored to explicit compact dimensions and anti-slop rules instead of only free-form critique.
 - The harness has a practical way to tune QA behavior without relying only on prose.

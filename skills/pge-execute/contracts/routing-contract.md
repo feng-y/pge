@@ -9,6 +9,7 @@ Main routes based on:
 - run_stop_condition
 
 ## routing semantics
+- `FAST_PATH`, `LITE_PGE`, `FULL_PGE`, and `LONG_RUNNING_PGE` are execution modes, not routes
 - `continue`: current round is complete, accepted, and `run_stop_condition` is not yet satisfied
 - `retry`: the current round should run again without reopening upstream planning
 - `return_to_planner`: the round contract is too ambiguous, too large, conflicting, or needs repair before execution can continue

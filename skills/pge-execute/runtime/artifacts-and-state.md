@@ -20,6 +20,15 @@ smoke_deliverable = .pge-artifacts/pge-smoke.txt
 team_name = pge-runtime-<run_id>
 ```
 
+Artifacts are mode-aware:
+
+- `FAST_PATH`: `planner_artifact`, `evaluator_artifact`, `state_artifact`, plus deliverable
+- `LITE_PGE`: `planner_artifact`, `generator_artifact`, `evaluator_artifact`, `state_artifact`, plus deliverable
+- `FULL_PGE`: all listed artifacts except optional checkpoint/resume files
+- `LONG_RUNNING_PGE`: future lane; current stage may classify it but must not silently claim full execution support
+
+`input_artifact` is intake capture. It is durable when written, but it is not counted against the mode's management-artifact budget.
+
 ## Runtime State
 
 This file defines the current executable subset of runtime state for `pge-execute`.
@@ -32,6 +41,10 @@ It is intentionally smaller than `skills/pge-execute/contracts/runtime-state-con
 {
   "run_id": "<run_id>",
   "state": "initialized",
+  "mode": "FULL_PGE",
+  "mode_decision_owner": null,
+  "fast_finish_approved": false,
+  "artifact_budget": null,
   "team_created": false,
   "planner_called": false,
   "preflight_called": false,
@@ -41,6 +54,7 @@ It is intentionally smaller than `skills/pge-execute/contracts/runtime-state-con
   "evaluator_called": false,
   "verdict": null,
   "route": null,
+  "check": null,
   "artifact_refs": {},
   "error_or_blocker": null
 }
@@ -60,11 +74,18 @@ Allowed `state` values only:
 - `stopped`
 - `failed`
 
+Allowed `mode` values only:
+
+- `FAST_PATH`
+- `LITE_PGE`
+- `FULL_PGE`
+- `LONG_RUNNING_PGE`
+
 ## Progress Artifact
 
-Maintain `progress_artifact` throughout the run. It is an observer artifact written by main, not a fourth agent output.
+Maintain `progress_artifact` throughout the run only when the chosen mode requires it. It is an observer artifact written by main, not a fourth agent output.
 
-It must record:
+When written, it must record:
 
 - run_id
 - current phase
@@ -74,7 +95,7 @@ It must record:
 - latest evaluator gate status
 - whether Generator has been allowed to edit
 
-Update `progress_artifact` after every phase transition:
+Update `progress_artifact` after every phase transition when mode is `FULL_PGE` or `LONG_RUNNING_PGE`:
 
 - initialization
 - team creation

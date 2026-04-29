@@ -4,11 +4,12 @@
 
 This file records the minimal orchestration behavior for `/pge-execute` in the current stage.
 
-Current priority is only this:
-- make `/pge-execute test` run through a real Agent Team
-- prove planner -> generator -> evaluator handoff
-- write the required artifacts
-- stop after one bounded round
+Current priority is this:
+- keep one real Agent Team for the run
+- shift normal coordination to Agent Teams messaging
+- preserve durable artifacts only for phase results and state
+- allow lighter closure for simple deterministic tasks
+- keep the current executable lane bounded to one run
 
 Do not broaden this seam into a larger workflow framework.
 
@@ -23,23 +24,26 @@ Do not broaden this seam into a larger workflow framework.
 
 ## Required lifecycle
 
-Single round only:
+Single-run lifecycle:
 1. initialize run
 2. create team
 3. planner handoff
-4. contract preflight handoff
-5. generator handoff
-6. evaluator handoff
+4. preflight triage and mode decision
+5. execute chosen path (`FAST_PATH`, `LITE_PGE`, or `FULL_PGE`)
+6. evaluator handoff / final verdict
 7. route
-8. summary
+8. summary when mode requires it
 9. teardown
 
 ## Core rule
 
-Each handoff is file-backed.
-`main` continues only after the required artifact file exists and passes its minimal structural gate.
+Normal coordination is message-first.
+`main` continues only after the required durable phase output exists and passes its minimal structural gate.
 
-For the current stage, this is more important than richer state-machine detail.
+For the current stage:
+- Planner writes the locked task-shape artifact
+- Generator and Evaluator negotiate preflight primarily through `SendMessage`
+- only durable phase outputs are written to disk
 
 ## Smoke task
 
@@ -51,17 +55,12 @@ For `/pge-execute test`:
 
 ## Required run artifacts
 
-Each run must write at least:
-- `.pge-artifacts/<run_id>-input.md`
-- `.pge-artifacts/<run_id>-planner.md`
-- `.pge-artifacts/<run_id>-contract-proposal.md`
-- `.pge-artifacts/<run_id>-preflight.md`
-- `.pge-artifacts/<run_id>-generator.md`
-- `.pge-artifacts/<run_id>-evaluator.md`
-- `.pge-artifacts/<run_id>-state.json`
-- `.pge-artifacts/<run_id>-summary.md`
-- `.pge-artifacts/<run_id>-progress.md`
-- `.pge-artifacts/pge-smoke.txt`
+Required artifacts are mode-aware:
+- all modes: `.pge-artifacts/<run_id>-planner.md`, `.pge-artifacts/<run_id>-evaluator.md`, `.pge-artifacts/<run_id>-state.json`
+- `LITE_PGE` and `FULL_PGE`: `.pge-artifacts/<run_id>-generator.md`
+- `FULL_PGE`: `.pge-artifacts/<run_id>-contract-proposal.md`, `.pge-artifacts/<run_id>-preflight.md`
+- mode-required only: `.pge-artifacts/<run_id>-summary.md`, `.pge-artifacts/<run_id>-progress.md`
+- deliverable when applicable: `.pge-artifacts/pge-smoke.txt`
 
 ## Minimal runtime state
 
@@ -81,6 +80,10 @@ Allowed states only:
 Required fields only:
 - `run_id`
 - `state`
+- `mode`
+- `mode_decision_owner`
+- `fast_finish_approved`
+- `artifact_budget`
 - `team_created`
 - `planner_called`
 - `preflight_called`
@@ -94,8 +97,9 @@ Required fields only:
 - `error_or_blocker`
 
 Progress tracking:
-- each run must maintain `.pge-artifacts/<run_id>-progress.md`
-- progress must show current phase, phase status, open issues, and latest evaluator gate status
+- `FULL_PGE` runs must maintain `.pge-artifacts/<run_id>-progress.md`
+- lighter modes may omit `progress.md`
+- when present, progress must show current phase, phase status, open issues, and latest evaluator gate status
 - progress is an observer artifact written by `main`, not a fourth agent output
 
 ## Route behavior
@@ -112,6 +116,7 @@ If evaluator returns anything else:
 
 Preflight returns before generation:
 - `PASS` + `ready_to_generate` advances to Generator work
+- Evaluator owns preflight mode decision and fast-finish approval
 - repairable proposal issues may loop through bounded preflight repair attempts while state remains `preflight_pending`
 - `BLOCK` or `ESCALATE` records the contract issue and stops at `unsupported_route` once repair must return to Planner
 - preflight never performs repo edits
@@ -120,7 +125,8 @@ Preflight returns before generation:
 
 - Use real Agent Teams or stop with a blocker.
 - Do not simulate planner/generator/evaluator inside `main`.
+- Do not give Planner authority to decide `FAST_PATH` or fast finish.
 - Do not stop early after dispatch while the required artifact handoff is still pending.
-- Keep the run bounded to one round.
+- Keep the current lane bounded to one run.
 - Do not let Generator perform repo edits before preflight accepts the round contract.
 - Keep changes minimal and execution-first.

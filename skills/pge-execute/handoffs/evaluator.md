@@ -8,6 +8,7 @@ Send this task to `evaluator`.
 You are @evaluator in the PGE runtime team.
 
 run_id: <run_id>
+mode: <mode>
 planner_artifact: <planner_artifact>
 contract_proposal_artifact: <contract_proposal_artifact>
 preflight_artifact: <preflight_artifact>
@@ -23,13 +24,14 @@ For `test`, independently read `.pge-artifacts/pge-smoke.txt`.
 Only output PASS if the file exists and its full content equals exactly `pge smoke`.
 If PASS, next_route must be `converged`.
 
-Write markdown to <evaluator_artifact> with exactly these top-level sections:
+Always write markdown to <evaluator_artifact> with these top-level sections:
 - ## verdict
 - ## evidence
 - ## violated_invariants_or_risks
 - ## required_fixes
 - ## next_route
 - ## route_reason
+- ## independent_verification
 
 Allowed verdicts:
 - PASS
@@ -43,42 +45,41 @@ Allowed next_route values:
 - retry
 - return_to_planner
 
-Produce structured scoring in your verdict bundle.
+Mode-aware evaluation rules:
 
-Required additional sections beyond verdict/evidence/violated_invariants_or_risks/required_fixes/next_route:
+- If `mode = FAST_PATH`:
+  - keep the verdict bundle minimal and fast to produce
+  - treat deterministic verification as the primary evidence basis
+  - do not produce weighted scoring, dimension scoring, blocking-flag matrices, or confidence matrices
+  - focus only on:
+    - deliverable exists
+    - exact-match / deterministic check result
+    - no obvious scope violation
+    - verdict and route
 
-- ## scores
-  Include dimension scores table:
-  | Dimension | Score | Hard Threshold | Status |
-  |-----------|-------|----------------|--------|
-  | Deliverable Alignment (DA) | <1-5> | 3 | PASS/FAIL |
-  | Evidence Sufficiency (ES) | <1-5> | 3 | PASS/FAIL |
-  | Contract Compliance (CC) | <1-5> | 3 | PASS/FAIL |
-  | Scope Discipline (SD) | <1-5> | 2 | PASS/FAIL |
-  | Verification Integrity (VI) | <1-5> | 2 | PASS/FAIL |
-  | Completeness (CP) | <1-5> | 2 | PASS/FAIL |
-  | **Weighted Score** | **<float>** | **3.50** | **PASS/FAIL** |
+- If `mode = LITE_PGE`:
+  - use compact scoring only
+  - add one extra section:
+    - ## compact_scores
+  - include only these three dimensions:
+    - correctness
+    - contract_compliance
+    - evidence_sufficiency
+  - keep the rationale short
 
-- ## blocking_flags
-  List all flags with true/false:
-  - BF_MISSING: true/false
-  - BF_PLACEHOLDER: true/false
-  - BF_NARRATIVE: true/false
-  - BF_NO_INDEPENDENT_EVIDENCE: true/false
-  - BF_SCOPE_VIOLATION: true/false
-  - BF_UNDECLARED_DEV: true/false
-  - BF_CONTRACT_REWRITE: true/false
-
-- ## independent_verification
-  At least one check you performed independently using your own tools.
-
-- ## confidence
-  Overall confidence score and per-dimension confidence (high/medium/low).
+- If `mode = FULL_PGE`:
+  - use compact scoring, not heavyweight scoring
+  - add these additional sections:
+    - ## compact_scores
+  - include only these three dimensions:
+    - deliverable_alignment
+    - evidence_sufficiency
+    - contract_compliance
+  - optional: mention a blocking issue inline in `## violated_invariants_or_risks`
+  - do not produce weighted score, blocking-flag matrix, or confidence matrix unless the orchestrator explicitly asks for a deeper audit
 
 Scoring rules are defined in skills/pge-execute/contracts/evaluation-contract.md.
-Hard threshold rule: any dimension below its hard threshold → verdict cannot be PASS.
-Any blocking flag true → verdict cannot be PASS.
-Any anti-slop flag triggered → verdict cannot be PASS.
+For scored modes: any core dimension below 3 means the verdict cannot be PASS.
 ```
 
 ## Gate
@@ -89,13 +90,11 @@ Any anti-slop flag triggered → verdict cannot be PASS.
 - `## violated_invariants_or_risks` exists
 - `## required_fixes` exists
 - `## next_route` exists
-- for `test`, PASS is valid only when next_route is `converged`
-- `## scores` exists
-- `## blocking_flags` exists
 - `## independent_verification` exists
-- dimension scores are present in scores table
-- `## confidence` exists
+- for `test`, PASS is valid only when next_route is `converged`
 - `## route_reason` exists
+- if `mode = LITE_PGE`, `## compact_scores` exists
+- if `mode = FULL_PGE`, `## compact_scores` exists
 
 On failure: set `state = "failed"`, mark planner/preflight/generator/evaluator called, record blocker, write state, update progress, stop.
 
