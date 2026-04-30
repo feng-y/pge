@@ -1,6 +1,6 @@
 # PGE 改建方案
 
-Updated: 2026-04-29
+Updated: 2026-04-30
 
 ---
 
@@ -16,8 +16,8 @@ Updated: 2026-04-29
 | 三个 agent 定义 | `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` |
 | SKILL.md orchestration shell | `skills/pge-execute/SKILL.md` — v0.4.0, <220 行 |
 | 最小编排行为定义 | `skills/pge-execute/ORCHESTRATION.md` — 单轮生命周期 |
-| 六个运行时合约 | `skills/pge-execute/contracts/` — entry, round, evaluation, routing, runtime-event, runtime-state |
-| 五个 handoff 模板 | `skills/pge-execute/handoffs/` — planner, preflight, generator, evaluator, route-summary-teardown |
+| 六个运行时合约 | `skills/pge-execute/contracts/` — entry, round, evaluation, routing, runtime-event, runtime-state（其中 runtime-state 当前为 archived future-design seam） |
+| 五个 handoff 模板 | `skills/pge-execute/handoffs/` — planner, preflight, generator, evaluator, route-summary-teardown（其中 preflight 当前不在 executable lane） |
 | 运行时 artifact 路径定义 | `skills/pge-execute/runtime/artifacts-and-state.md` |
 | 历史运行产物 | `.pge-artifacts/` 下 3 个早期 run（使用 pre-ORCHESTRATION 命名约定：`-planner-output.md`, `-generator-output.md`, `-evaluator-verdict.md`, `-round-summary.md`，每个 run 4 个文件，不是当前 ORCHESTRATION.md 定义的完整 9-artifact 格式） |
 | 证明运行记录 | `docs/proving/runs/run-001..005/` |
@@ -29,9 +29,9 @@ Updated: 2026-04-29
 | 项目 | 推断依据 |
 |------|---------|
 | Marketplace 安装可用 | `marketplace.json` 存在，但端到端安装未验证 |
-| Preflight 修复循环有效 | 合约定义 max 2 attempts，但实际修复质量依赖 Claude 行为 |
+| Preflight 修复循环有效 | 当前只能作为 future-design seam 推断；`handoffs/preflight.md` 已退出 executable lane |
 | Gate 检查有效阻止低质量产物 | Gate 只检查 section 存在，不检查内容质量 |
-| 状态机转换正确 | 状态转换规则在 markdown 中定义，由 Claude 解释执行，无确定性保证 |
+| 状态机转换正确 | 当前 executable lane 只验证到 single-run skeleton；更丰富的 runtime-state / preflight 状态仍属设计层 |
 
 ### 关键架构事实
 
@@ -50,8 +50,8 @@ Updated: 2026-04-29
 | 能力 | 成熟度 | 说明 |
 |------|--------|------|
 | P/G/E 三角色分离 | 可用 | 三个 agent 有明确的职责、输入/输出字段、工具权限、行为约束 |
-| 单轮 bounded execution | 可用 | 完整的 7 步生命周期：initialize → team → planner → preflight → generator → evaluator → route/summary/teardown |
-| Preflight negotiation | 可用（有限） | Generator proposal + Evaluator review，max 2 repair attempts |
+| 单轮 bounded execution | 可用 | 当前 executable lane 是 single-run skeleton：initialize → team → planner（test 可 shortcut）→ generator → evaluator → route/summary/teardown |
+| Preflight negotiation | 设计存在，当前未执行 | `handoffs/preflight.md` 保留为 archived seam，等待后续重新接回 runtime |
 | 合约体系 | 可用 | 6 个合约文件定义完整的 verdict/route/state/event 语义 |
 | Handoff 模板 | 可用 | 5 个 handoff 文件定义调度文本/gate/路由行为 |
 | Artifact-backed 状态 | 可用 | 每个阶段产出写入 `.pge-artifacts/`，不依赖 chat history |
@@ -85,7 +85,7 @@ Updated: 2026-04-29
 
 **参考标准**: Generator 提出要构建什么以及如何验证成功，Evaluator 审查提案，双方迭代直到达成 sprint contract。通信通过文件。
 
-**当前状态**: Preflight 存在且可用。Generator 产出 contract-proposal，Evaluator review。有 max 2 repair attempts。PASS + ready_to_generate 继续，BLOCK + generator repair 进入修复循环。
+**当前状态**: Preflight 设计仍在，但当前 executable lane 已先收敛为 `planner -> generator -> evaluator`。`skills/pge-execute/handoffs/preflight.md` 明确标注为 archived seam，因此这里描述的是 future re-entry 目标，不是当前已运行能力。
 
 **缺口**:
 1. **修复循环太短**: max 2 attempts 可能不够复杂任务的协商
@@ -122,17 +122,16 @@ Updated: 2026-04-29
 
 **参考标准**: Evaluator 必须独立验收真实交付物，并给出足以驱动路由的稳定裁决。Anthropic 的经验支持“强 evaluator gate”，但不要求所有任务都输出重型审计矩阵。对简单任务，重评分会直接变成收敛瓶颈。
 
-**当前状态**: Evaluator 已有独立 verdict（PASS/RETRY/BLOCK/ESCALATE）和基本路由语义，但 repo 里仍残留“6 维评分 + weighted score + blocking flag matrix”的旧设计预期，与 `0.5A` 的轻量闭环目标冲突。
+**当前状态**: Evaluator 已有独立 verdict（PASS/RETRY/BLOCK/ESCALATE）、compact verdict bundle、AI slop 规则，以及基本路由语义；但 `LITE_PGE` / `FULL_PGE` 的 mode-aware 输出还没有在 handoff / gate / runtime proving 上完全贯通。
 
 **缺口**:
-1. **默认输出面过重**: `FAST_PATH` 和简单 `FULL_PGE` 任务不该默认写大型评分矩阵
-2. **mode-aware 深度还未完全统一**: 简单任务、常规任务、复杂任务仍缺少一致的验收面定义
-3. **无足够明确的 AI slop 规则**: 需要明确哪些“看起来像评估、实际上没验证”的模式直接禁止 PASS
-4. **示例不足**: 缺少 compact PASS / RETRY / BLOCK 的对照样例来帮助稳定收敛
+1. **mode-aware 深度还未完全贯通**: `LITE_PGE` / `FULL_PGE` 仍缺少从 contract → handoff → gate → runtime proving 的闭环
+2. **agent prompt 与 handoff 还未完全同构**: contract 已支持 compact acceptance surface，但 evaluator handoff 还偏向当前 lightweight lane
+3. **示例不足**: 缺少 compact PASS / RETRY / BLOCK 的对照样例来帮助稳定收敛
 
 **改建动作**:
 - 在 `skills/pge-execute/contracts/evaluation-contract.md` 中定义 **compact acceptance surface**：`FAST_PATH` 用 lightweight verdict，`LITE_PGE` / `FULL_PGE` 用 compact core scores
-- 在 `agents/pge-evaluator.md` 中增加 **mode-aware 示例与边界**：突出独立验收、路由裁决、成本门控，而不是长篇审计
+- 在 `agents/pge-evaluator.md` 中增加 **mode-aware 示例与边界**：突出独立验收、路由裁决、成本门控，而不是长篇审计（已基本落地）
 - 在 `skills/pge-execute/contracts/evaluation-contract.md` 中增加 **AI slop 检测规则**：明确“praise without substance / existence as quality / self-report as primary evidence / issue minimization” 不能 PASS
 - 在 handoff 模板中保持 verdict 可路由、可压缩，而不是引入默认 `confidence matrix` 或 weighted totals
 

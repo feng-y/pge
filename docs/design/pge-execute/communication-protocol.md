@@ -10,17 +10,20 @@ PGE uses one team with exactly three teammates:
 
 `main` is the orchestrator and observer. It is not a fourth agent and must not perform role work.
 
-All semantic handoff happens through files. `SendMessage` is used only to dispatch a phase with artifact paths and constraints.
+Current executable lane is hybrid:
+- runtime progression is event/message-driven
+- durable phase outputs are file-backed
+- archived preflight and richer runtime-state designs remain on disk as future seams
 
 ## Communication Rules
 
 - Agents do not rely on chat history as the source of truth.
 - Agents read the input artifacts named in the dispatch message.
-- Agents write exactly the output artifact named in the dispatch message.
+- Agents write the durable output artifact(s) named in the dispatch message.
 - Agents may write the actual deliverable only when their role allows it.
-- Main gates artifacts before routing to the next phase.
-- Main updates `state_artifact` and `progress_artifact` after each phase transition.
-- Direct agent-to-agent semantic decisions are not authoritative unless captured in file-backed artifacts.
+- Main advances from valid runtime events, then gates the referenced artifact side effects.
+- Main appends to `progress_artifact`; current executable lane does not require a `state_artifact`.
+- Direct agent-to-agent semantic decisions are not authoritative unless captured as runtime events and/or durable phase outputs.
 
 ## Current Single-Round Message Flow
 
@@ -32,27 +35,17 @@ main -> planner
 
 main -> generator
   inputs: planner_artifact
-  output: contract_proposal_artifact
-  purpose: preflight execution proposal; no repo edits
-
-main -> evaluator
-  inputs: planner_artifact, contract_proposal_artifact
-  output: preflight_artifact
-  purpose: independent preflight gate
-
-main -> generator
-  inputs: planner_artifact, contract_proposal_artifact, preflight_artifact
   output: generator_artifact + actual deliverable
   purpose: implementation, local verification, local self-review
 
 main -> evaluator
-  inputs: planner_artifact, contract_proposal_artifact, preflight_artifact, generator_artifact, actual deliverable
+  inputs: planner_artifact, generator_artifact, actual deliverable
   output: evaluator_artifact
   purpose: independent final verdict and next_route
 
 main routes
-  inputs: evaluator_artifact, state_artifact
-  outputs: state_artifact, summary_artifact, progress_artifact
+  inputs: evaluator_artifact
+  outputs: summary_artifact, progress_artifact
 ```
 
 ## Future Persistent Routes
@@ -98,6 +91,14 @@ main -> planner
   purpose: select the next slice
 ```
 
+Archived future-design note:
+
+- `contract_proposal_artifact`
+- `preflight_artifact`
+- `state_artifact`
+
+are still relevant for future preflight / resume designs, but are not required dependencies of the current executable lane.
+
 ## Artifact Discipline
 
 Every artifact must be:
@@ -106,22 +107,14 @@ Every artifact must be:
 - bounded to one phase
 - written before main advances state
 - structurally gated by main
-- referenced from `artifact_refs`
+- referenced from the run's durable outputs or future state/checkpoint schema when that lane is implemented
 
 For robust long-running execution, agents should write complete artifacts in one pass. If a tool/runtime supports atomic writes, prefer temp file then rename; otherwise main must gate only after the expected final sections are present.
 
 ## Progress Discipline
 
-`progress_artifact` is the human and recovery-facing view of the run.
+`progress_artifact` is the current lane's append-only observability log.
 
-It should include:
-
-- phase table
-- current route
-- current blocker
-- artifact paths
-- whether Generator edits are allowed
-- latest evaluator/preflight result
-- next expected dispatch
-
-`progress_artifact` is updated by main, not by teammates.
+`main` is the only authoritative writer.
+Teammates produce runtime events and durable artifacts; `main` records the orchestration-visible consequences.
+It must never advance the run by itself.

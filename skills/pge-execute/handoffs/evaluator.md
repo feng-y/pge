@@ -8,11 +8,9 @@ Send this task to `evaluator`.
 You are @evaluator in the PGE runtime team.
 
 run_id: <run_id>
-mode: <mode>
 planner_artifact: <planner_artifact>
-contract_proposal_artifact: <contract_proposal_artifact or None for FAST_PATH>
-preflight_artifact: <preflight_artifact or None for FAST_PATH>
-generator_artifact: <generator_artifact or None for FAST_PATH>
+generator_artifact: <generator_artifact or None>
+smoke_deliverable: <smoke_deliverable or None>
 output_artifact: <evaluator_artifact>
 
 Evaluate independently.
@@ -20,7 +18,7 @@ You must read the actual deliverable yourself.
 Do not trust generator claims without checking the file.
 Do not modify repo files.
 
-For `test`, independently read `.pge-artifacts/pge-smoke.txt`.
+For `test`, independently read <smoke_deliverable>.
 Only output PASS if the file exists and its full content equals exactly `pge smoke`.
 If PASS, next_route must be `converged`.
 
@@ -45,42 +43,14 @@ Allowed next_route values:
 - retry
 - return_to_planner
 
-Mode-aware evaluation rules:
+For `test` specifically:
+- if verdict is `PASS`, `next_route` must be `converged`
+- if verdict is not `PASS`, do not emit `continue`
+- never use `continue` for a completed smoke task
 
-- If `mode = FAST_PATH`:
-  - keep the verdict bundle minimal and fast to produce
-  - treat deterministic verification as the primary evidence basis
-  - do not require `contract_proposal_artifact`, `preflight_artifact`, or `generator_artifact`
-  - do not produce weighted scoring, dimension scoring, blocking-flag matrices, or confidence matrices
-  - focus only on:
-    - deliverable exists
-    - exact-match / deterministic check result
-    - no obvious scope violation
-    - verdict and route
-
-- If `mode = LITE_PGE`:
-  - use compact scoring only
-  - add one extra section:
-    - ## compact_scores
-  - include only these three dimensions:
-    - correctness
-    - contract_compliance
-    - evidence_sufficiency
-  - keep the rationale short
-
-- If `mode = FULL_PGE`:
-  - use compact scoring, not heavyweight scoring
-  - add these additional sections:
-    - ## compact_scores
-  - include only these three dimensions:
-    - deliverable_alignment
-    - evidence_sufficiency
-    - contract_compliance
-  - optional: mention a blocking issue inline in `## violated_invariants_or_risks`
-  - do not produce weighted score, blocking-flag matrix, or confidence matrix unless the orchestrator explicitly asks for a deeper audit
-
-Scoring rules are defined in skills/pge-execute/contracts/evaluation-contract.md.
-For scored modes: any core dimension below 3 means the verdict cannot be PASS.
+Keep the verdict bundle compact.
+Task size changes audit depth, not the event shape.
+If orchestration omitted `generator_artifact`, rely on the real deliverable, Planner contract, direct reads, and tool output instead of inventing missing artifacts.
 
 After writing <evaluator_artifact>, send this runtime event to `main`:
 
@@ -104,9 +74,7 @@ route_reason: <short reason>
 - `## independent_verification` exists
 - for `test`, PASS is valid only when next_route is `converged`
 - `## route_reason` exists
-- if `mode = LITE_PGE`, `## compact_scores` exists
-- if `mode = FULL_PGE`, `## compact_scores` exists
 
-On failure: set `state = "failed"`, mark planner/preflight/generator/evaluator called, record blocker, write state, update progress, stop.
+On failure: stop and let `main` record the gate failure in progress.
 
-On pass: set `evaluator_called = true`, persist evaluator ref, write state, update progress.
+On pass: let `main` record gate success in progress after receiving the runtime event and validating the artifact.

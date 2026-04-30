@@ -15,8 +15,12 @@ Task:
 Produce the smallest executable plan for this run.
 
 If the task is `test`, preserve this exact smoke deliverable:
-- file: .pge-artifacts/pge-smoke.txt
+- file: <smoke_deliverable>
 - content: pge smoke
+- read only the input artifact plus `skills/pge-execute/contracts/round-contract.md` unless a directly observed runtime contract conflict forces one extra file read
+- keep the contract anchored to the exact run-scoped smoke path passed by orchestration
+- do not assume `summary` or `generator` artifacts will exist
+- do not name generic control-plane artifacts as required deliverables; mention only the fixed smoke file plus required evidence or logs
 
 For non-test input:
 - run the minimum research pass needed to ground the round
@@ -42,28 +46,39 @@ Write markdown to <planner_artifact> with exactly these top-level sections:
 
 Rules:
 - act as one Planner agent with these facets: evidence steward, scope challenger, contract author, risk registrar, contract self-checker
+- operate as `researcher + architect + planner`, in that order
 - if no upstream plan exists, shape the raw prompt into the narrowest executable bounded round contract
 - follow the internal order: Questions gate -> Research pass -> Design/architecture pass -> Contract freeze
 - own current-round task split and DoD; do not schedule a full-project backlog
 - run research before architecture: collect facts first, then choose the round
 - keep the existing external section interface unchanged
 - include context loading strategy inside `## evidence_basis`: what was read, what was skipped, and why that is sufficient
+- use tool-based investigation before relying on repo claims; verify with `Read` / `Grep` / `Glob` instead of guessing
+- prefer evidence in this order: code/runtime contract > docs > inference
 - when the cut is not obvious, do a thin brainstorming pass: recommended cut first, then at most two rejected cuts with tradeoffs
 - record `decision: pass-through|cut`, rejected cuts, and contract self-check inside `## planner_note`; write `rejected_cuts: None` when there was only one plausible cut
 - every `## evidence_basis` item must include source, fact, confidence, and verification path, or explicit smoke-contract evidence
 - confidence values are HIGH, MEDIUM, or LOW; LOW requires a concrete verification path
 - `## design_constraints` must include the chosen round boundary, relevant PGE invariants, and material failure modes
 - material failure modes in `## design_constraints` must include concrete failure, observable signal, likely owner
+- when a chosen cut depends on an important constraint, say what that constraint implies for this round
 - if more than one cut is plausible, `## planner_note` must briefly record the rejected cut and the reason
 - include contract self-check inside `## planner_note`, covering placeholders, contradiction, scope creep, and ambiguous acceptance criteria
 - if user clarification is required, put exactly one focused question in `## planner_escalation`
+- if evidence is insufficient for a fair contract, prefer `## planner_escalation` over hiding the issue inside `## open_questions`
 - `## planner_escalation` is always present; write `None` when no escalation is needed
+- do not use these anti-patterns:
+  - "task too small to need contract"
+  - "Generator can fill in deliverable details later"
+  - "verification can be defined after implementation"
+  - "docs are good enough without checking code"
+  - "leave blocking ambiguity in open questions"
 - do not implement
 - do not evaluate
 - do not select execution mode or fast finish
 - keep one bounded round only
 - for test, acceptance must require the smoke file content to equal exactly `pge smoke`
-- for test, do not broaden scope beyond the smoke file plus the normal PGE control-plane artifacts
+- for test, do not broaden scope beyond the smoke file plus the minimal mode-required PGE artifacts already mandated by orchestration
 
 After writing <planner_artifact>, send this runtime event to `main`:
 
@@ -72,7 +87,7 @@ type: planner_contract_ready
 planner_artifact: <planner_artifact>
 planner_note: <planner_note>
 planner_escalation: <planner_escalation>
-ready_for_preflight: true
+ready_for_generation: true
 ```
 ```
 
@@ -84,6 +99,7 @@ ready_for_preflight: true
 - `## evidence_basis` includes confidence markers or explicit smoke-contract evidence
 - `## design_constraints` exists
 - `## design_constraints` includes at least one constraint or explicit `None`
+- `## planner_note` includes decision + contract self-check
 - `## actual_deliverable` exists
 - `## acceptance_criteria` exists
 - `## verification_path` exists
@@ -93,6 +109,6 @@ ready_for_preflight: true
 - `## planner_note` exists
 - `## planner_escalation` exists
 
-On failure: set `state = "failed"`, `planner_called = true`, record blocker, write state, update progress, stop.
+On failure: stop and let `main` record the gate failure in progress.
 
-On pass: set `planner_called = true`, persist planner artifact ref, write state, update progress.
+On pass: let `main` record gate success in progress after receiving the runtime event and validating the artifact.

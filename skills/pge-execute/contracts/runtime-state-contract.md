@@ -1,5 +1,9 @@
 # Runtime State Contract
 
+Archived future-design note:
+This file is not part of the current executable lane.
+Current execution uses planner/generator/evaluator artifacts plus the shared progress log instead of a required runtime state file.
+
 ## purpose
 This contract defines the minimum explicit state record for one PGE run.
 

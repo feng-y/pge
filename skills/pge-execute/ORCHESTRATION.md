@@ -7,8 +7,8 @@ This file records the minimal orchestration behavior for `/pge-execute` in the c
 Current priority is this:
 - keep one real Agent Team for the run
 - shift normal coordination to Agent Teams messaging
-- preserve durable artifacts only for phase results and state
-- allow lighter closure for simple deterministic tasks
+- preserve durable artifacts only for phase results and the shared progress log
+- keep one execution skeleton for all tasks
 - keep the current executable lane bounded to one run
 
 Do not broaden this seam into a larger workflow framework.
@@ -16,24 +16,35 @@ Do not broaden this seam into a larger workflow framework.
 ## Runtime roles
 
 - `main` = orchestration shell only
-- `planner` = produce minimal execution brief
-- `generator` = do the real repo work and self-check
+- `planner` = researcher + architect + contract author for one bounded round
+- `generator` = coder + integrator + local reviewer for one bounded round
 - `evaluator` = independently validate and issue verdict/route
 
 `main` is not a fourth agent.
+
+`main` owns:
+- dispatch
+- correction / repair routing
+- exception handling
+- run-level progress
+- quality-governance gates
+
+`main` does not own:
+- research
+- implementation
+- final independent quality judgment
 
 ## Required lifecycle
 
 Single-run lifecycle:
 1. initialize run
 2. create team
-3. planner handoff
-4. Evaluator cost-gate triage and mode decision
-5. execute chosen path (`FAST_PATH`, `LITE_PGE`, or `FULL_PGE`)
-6. evaluator handoff / final verdict
-7. route
-8. summary when mode requires it
-9. teardown
+3. `/pge-execute test`: generator handoff
+4. normal tasks: planner handoff, then generator handoff
+5. evaluator handoff / final verdict
+6. route
+7. optional summary
+8. teardown
 
 ## Core rule
 
@@ -41,73 +52,68 @@ Normal coordination is message-first.
 `main` advances only from runtime events defined in `skills/pge-execute/contracts/runtime-event-contract.md`.
 
 Durable artifacts are side effects validated after the matching event is received.
+Progress log entries are best-effort observability only and must never advance the run.
 
 For the current stage:
 - Planner writes the locked task-shape artifact
-- Generator and Evaluator negotiate preflight primarily through `SendMessage`
-- only durable phase outputs are written to disk
+- Generator first reviews Planner's frozen contract for executability, then executes against it
+- Evaluator performs the only approval gate
+- only durable phase outputs plus the shared progress log are written to disk
 
 ## Smoke task
 
 For `/pge-execute test`:
-- generator must write `.pge-artifacts/pge-smoke.txt`
+- planner is not on the critical path
+- generator must write `.pge-artifacts/<run_id>-smoke.txt`
 - file content must be exactly `pge smoke`
 - evaluator must independently read that file
 - PASS requires `verdict = PASS` and `next_route = converged`
-- expected mode is `FAST_PATH` when Evaluator approves the deterministic contract
-- management artifacts, excluding `input_artifact` and the smoke deliverable, must be at most 3: `planner_artifact`, `evaluator_artifact`, and `state_artifact`
+- management artifacts, excluding `input_artifact` and the smoke deliverable, should stay minimal: `planner_artifact`, `evaluator_artifact`, and the shared `progress_artifact`
+  For the fastest smoke path, `planner_artifact` may be omitted.
 
 ## Required run artifacts
 
-Required artifacts are mode-aware:
-- all modes: `.pge-artifacts/<run_id>-planner.md`, `.pge-artifacts/<run_id>-evaluator.md`, `.pge-artifacts/<run_id>-state.json`
-- `LITE_PGE` and `FULL_PGE`: `.pge-artifacts/<run_id>-generator.md`
-- `FULL_PGE`: `.pge-artifacts/<run_id>-contract-proposal.md`, `.pge-artifacts/<run_id>-preflight.md`
-- mode-required only: `.pge-artifacts/<run_id>-summary.md`, `.pge-artifacts/<run_id>-progress.md`
-- deliverable when applicable: `.pge-artifacts/pge-smoke.txt`
+Required artifacts in the current executable lane:
+- all runs: `.pge-artifacts/<run_id>-planner.md`, `.pge-artifacts/<run_id>-evaluator.md`, `.pge-artifacts/<run_id>-progress.jsonl`
+- larger runs may additionally persist `.pge-artifacts/<run_id>-generator.md`
+- summary is optional: `.pge-artifacts/<run_id>-summary.md`
+- deliverable when applicable: run-scoped repo work such as `.pge-artifacts/<run_id>-smoke.txt`
 
-`FAST_PATH` must not require or write `.pge-artifacts/<run_id>-contract-proposal.md`, `.pge-artifacts/<run_id>-preflight.md`, `.pge-artifacts/<run_id>-generator.md`, `.pge-artifacts/<run_id>-summary.md`, or `.pge-artifacts/<run_id>-progress.md`.
+## Execution depth
 
-## Minimal runtime state
+All tasks use the same skeleton: `planner -> generator -> evaluator`.
 
-Allowed states only:
-- `initialized`
-- `team_created`
-- `planning`
-- `preflight_pending`
-- `ready_to_generate`
-- `generating`
-- `evaluating`
-- `unsupported_route`
-- `converged`
-- `stopped`
-- `failed`
+Task scale changes:
+- how much context Planner loads
+- whether Generator writes a durable implementation bundle
+- how deep Evaluator audits the result
 
-Required fields only:
-- `run_id`
-- `state`
-- `mode`
-- `mode_decision_owner`
-- `fast_finish_approved`
-- `artifact_budget`
-- `team_created`
-- `planner_called`
-- `preflight_called`
-- `preflight_attempt_id`
-- `max_preflight_attempts`
-- `generator_called`
-- `evaluator_called`
-- `verdict`
-- `route`
-- `artifact_refs`
-- `error_or_blocker`
+Task scale does not create new required orchestration stages in the current lane.
 
-Progress tracking:
-- `FULL_PGE` runs must maintain `.pge-artifacts/<run_id>-progress.md`
-- lighter modes may omit `progress.md`
-- when present, progress must show current phase, phase status, open issues, and latest evaluator gate status
-- progress is an observer artifact written by `main`, not a fourth agent output
-- initial `mode` is null until Evaluator makes the mode decision; do not initialize as `FULL_PGE`
+## Progress tracking
+
+The progress artifact is one shared append-only execution log:
+- `.pge-artifacts/<run_id>-progress.jsonl`
+- `main` is the only authoritative writer
+- it records scheduler actions, gate outcomes, route outcomes, repeated failures, and friction
+- it is useful for debugging and later PGE iteration
+- it is not a gate, not a state machine, and not a recovery primitive
+
+Agents do not append authoritative progress directly.
+They emit runtime events and artifacts; `main` records the orchestration-visible consequences.
+
+## Generator plan-review consumption
+
+When a durable Generator artifact exists, `main` must inspect `self_review.generator_plan_review` after the `generator_completion` event and before dispatching Evaluator.
+
+Use this rule:
+
+- if `review_verdict = BLOCK`, stop and record a blocked run-level result; do not dispatch Evaluator
+- if `missing_prerequisites` or `repair_direction` show a material execution blocker, stop and record the blocker even if the deliverable technically exists
+- if `review_verdict = PASS` but `scope_risk`, `known_limits`, or weak evidence remain, record friction and continue to Evaluator
+- if no durable Generator artifact exists, `main` cannot inspect `generator_plan_review`; rely on deliverable existence plus `verification_result` and continue with the lightweight lane rules
+
+`main` may classify and route these outcomes, but it must not rewrite Generator's technical judgment into a different contract interpretation.
 
 ## Route behavior
 
@@ -116,26 +122,76 @@ Current version supports only one successful terminal route:
 
 If evaluator returns anything else:
 - record it
-- write state + summary
-- transition to `unsupported_route` for canonical `continue`, `retry`, or `return_to_planner`
+- append the route/blocker to the progress log
+- treat canonical `continue`, `retry`, or `return_to_planner` as `unsupported_route`
 - stop without redispatch
 - do not auto-retry in the current smoke stage
 
-Preflight returns before generation:
-- `PASS` + `ready_to_generate` advances to Generator work
-- Evaluator owns preflight mode decision and fast-finish approval
-- For deterministic `FAST_PATH`, Evaluator may approve mode and fast finish from the Planner contract through `SendMessage`; do not write proposal/preflight artifacts.
-- repairable proposal issues may loop through bounded preflight repair attempts while state remains `preflight_pending`
-- `BLOCK` or `ESCALATE` records the contract issue and stops at `unsupported_route` once repair must return to Planner
-- preflight never performs repo edits
+## Evaluator verdict consumption
+
+After the `final_verdict` event and evaluator artifact gate:
+
+- if `verdict = PASS` and `next_route = converged`, record success-path route data and continue to teardown
+- if `verdict = PASS` and `next_route = continue`, record canonical route, downgrade to `unsupported_route` in the current stage, and stop cleanly
+- if `verdict = RETRY`, treat it as an execution-level non-acceptance result, record required fixes and friction, downgrade to `unsupported_route`, and stop cleanly
+- if `verdict = BLOCK` and the required fixes describe missing execution evidence or incomplete delivery under a still-fair contract, record an execution blocker and downgrade to `unsupported_route`
+- if `verdict = BLOCK` and the route reason shows the contract is no longer a fair repair frame, classify it as contract friction and downgrade to `unsupported_route`
+- if `verdict = ESCALATE`, classify it as a contract-level failure signal, record the escalation reason, downgrade to `unsupported_route`, and stop cleanly
+
+`main` may classify the result as:
+- success-path
+- execution blocker
+- contract blocker
+- protocol blocker
+
+But `main` must not rewrite the evaluator verdict into a different acceptance judgment.
+
+## Failure ownership matrix
+
+Use this ownership split:
+
+- **Planner failure**
+  - missing or unfair contract
+  - unresolved blocking ambiguity
+  - evidence gathering failure
+  - owner: `planner`
+
+- **Generator failure**
+  - missing deliverable
+  - unverifiable execution
+  - silent boundary drift
+  - insufficient execution evidence
+  - owner: `generator`
+
+- **Evaluator failure**
+  - invalid verdict bundle
+  - missing independent verification
+  - unsupported acceptance reasoning
+  - owner: `evaluator`
+
+- **Protocol / control-plane failure**
+  - invalid event shape
+  - route reduction contradiction
+  - progress schema violation
+  - teardown command-shape failure
+  - owner: `main`
+
+- **Runtime / substrate failure**
+  - TeamCreate / SendMessage / TeamDelete failure
+  - permission / hook / session transport failure
+  - owner: runtime environment, surfaced by `main`
+
+`main` owns failure classification and logging.
+Agents own repairing their own role outputs.
+`main` must not repair role semantics directly.
 
 ## Guardrails
 
 - Use real Agent Teams or stop with a blocker.
 - Do not simulate planner/generator/evaluator inside `main`.
-- Do not give Planner authority to decide `FAST_PATH` or fast finish.
+- Do not let Planner or Generator decide the final verdict.
+- Do not let `main` become a fourth domain expert; it may route, gate, and correct, but it must not rewrite Planner or Generator semantics itself.
 - Do not advance from artifact existence alone; require the matching runtime event first.
 - Keep the current lane bounded to one run.
-- Do not let Generator perform repo edits before preflight accepts the round contract.
-- Do not create FULL_PGE-only artifacts after Evaluator approves `FAST_PATH`.
+- Do not turn progress logging into an execution dependency.
 - Keep changes minimal and execution-first.

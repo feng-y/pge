@@ -4,27 +4,40 @@
 
 Read the evaluator artifact.
 
+Route/status mapping in the current executable lane:
+- `status = SUCCESS` is valid only when `verdict = PASS` and `route = converged`
+- any other route must not be reported as `SUCCESS`
+- for `test`, `PASS + continue` is invalid and must be treated as a blocker or contract failure, not a successful closeout
+
 If:
 
 - verdict = `PASS`
 - next_route = `converged`
 
 then:
-
-- set `state = "converged"`
-- set `verdict = "PASS"`
-- set `route = "converged"`
-- set `error_or_blocker = null`
+- record `verdict = "PASS"`
+- record `route = "converged"`
 
 Otherwise:
 
-- set `state = "unsupported_route"` when next_route is `continue`, `retry`, or `return_to_planner`
-- set `state = "stopped"` only when no canonical next_route can be read
-- set `verdict` and `route` from evaluator verdict and next_route when present
-- set `error_or_blocker` to evaluator `required_fixes` or `violated_invariants_or_risks`
+- record `route = "unsupported_route"` when next_route is `continue`, `retry`, or `return_to_planner`
+- record `route = "blocked"` only when no canonical next_route can be read
+- record `verdict` and `route` from evaluator verdict and next_route when present
+- record the blocker from evaluator `required_fixes` or `violated_invariants_or_risks`
 - do not redispatch automatically in this version
 
-Write state after route selection. Update progress only when progress is enabled for the current mode.
+Append a best-effort progress log entry after route selection.
+Use the canonical progress fields:
+- `ts`
+- `run_id`
+- `actor = "main"`
+- `phase = "route"`
+- `event`
+- `status`
+- `artifact`
+- `detail`
+- `blocker`
+- optional: `latency_ms`, `bytes`, `command`
 
 Emit this runtime event after route selection:
 
@@ -32,39 +45,41 @@ Emit this runtime event after route selection:
 type: route_selected
 verdict: <verdict>
 route: <route>
-state: <state>
 reason: <short reason>
 ```
 
 ## Summary
 
-Only write `summary_artifact` when the chosen mode requires it.
+Only write `summary_artifact` when the run actually needs a human-readable closeout.
 
 When written, include:
 
 - run_id
 - task input summary
 - team name
-- planner/preflight/generator/evaluator called flags
 - verdict
 - route
 - artifact paths
-- progress path when `progress_artifact` exists
+- progress log path when `progress_artifact` exists
 - for `test`, smoke result and exact smoke file path
 - blocker if any
 
-Update progress after writing summary only when progress is enabled.
+Append a best-effort progress log entry after writing summary.
 
 ## Teardown
 
-After route selection, perform teardown. Do not make summary a prerequisite for teardown in lighter modes.
+After route selection, perform teardown. Do not make summary a prerequisite for teardown.
 
 ```python
-SendMessage(to="planner", message={"type": "shutdown_request"})
-SendMessage(to="generator", message={"type": "shutdown_request"})
-SendMessage(to="evaluator", message={"type": "shutdown_request"})
+SendMessage(to="planner", message="type: shutdown_request")
+SendMessage(to="generator", message="type: shutdown_request")
+SendMessage(to="evaluator", message="type: shutdown_request")
 TeamDelete()
 ```
+
+`TeamDelete` must be called with no parameters.
+Do not attach logging commands, descriptions, or any extra fields to `TeamDelete`.
+If you need to log route/teardown, do that through the progress log separately before or after the call.
 
 If teardown fails after route selection and artifacts are already written:
 
@@ -73,4 +88,5 @@ If teardown fails after route selection and artifacts are already written:
 - do not rewrite PASS to failure solely because shutdown was noisy
 - do not leave the run stuck in `evaluating` solely because shutdown is slow
 
-Update progress after the teardown attempt only when progress is enabled.
+Append a best-effort progress log entry after the teardown attempt.
+Use `actor = "main"` and `phase = "teardown"` for teardown log lines.

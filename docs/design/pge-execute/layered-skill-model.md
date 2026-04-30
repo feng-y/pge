@@ -11,7 +11,7 @@ The model:
 - **Orchestrator skill**: `SKILL.md` owns invocation, sequencing, artifact paths, progress, routing, and teardown.
 - **Resident agents**: Planner, Generator, and Evaluator stay alive for one run and do role-specific work.
 - **Skill resources**: `runtime/`, `handoffs/`, and `skills/pge-execute/contracts/` provide reusable procedures, schemas, and gates loaded only when needed.
-- **Artifacts**: phase outputs and state files carry the durable truth.
+- **Artifacts**: phase outputs carry the durable truth in the current lane; richer state files remain future-design seams.
 
 ## Component Summary
 
@@ -30,7 +30,7 @@ The model:
 
 | Source | Skill-writing pattern | PGE adoption |
 | --- | --- | --- |
-| Superpowers `brainstorming` | Hard gate before implementation, context exploration, one-question-at-a-time clarification, alternatives, design/spec self-review, explicit transition to planning | Planner owns context-backed bounded round shaping; preflight acts as spec self-review; Generator edits are forbidden until preflight passes |
+| Superpowers `brainstorming` | Hard gate before implementation, context exploration, one-question-at-a-time clarification, alternatives, design/spec self-review, explicit transition to planning | Planner owns context-backed bounded round shaping; archived preflight design captures one possible future spec self-review seam, but current executable lane does not depend on it |
 | Superpowers `executing-plans` | Load plan, critically review it, execute bite-sized tasks in order, update task state, run specified verification, stop on blocker or repeated failure | Generator executes only the accepted round; progress artifact records phase movement; verification is required; non-PASS routes stop or redispatch only when implemented |
 | Claude orchestration workflow | Command/skill coordinates agent-with-skill and independent skill resources; component table; flow diagram; execution flow; concrete file outputs; single responsibility per component | `SKILL.md` is the orchestrator; resident agents do role work; `runtime/`, `handoffs/`, and `skills/pge-execute/contracts/` are skill resources; outputs are file artifacts |
 
@@ -71,14 +71,12 @@ Non-adoptions:
          └──────────────┬─────────────────┬────────────────────┘
                         │                 │
                         ▼                 ▼
-         ┌──────────────────────┐  ┌───────────────────────────┐
-         │ Planner phase         │  │ Preflight phase            │
-         │ handoffs/planner.md   │  │ handoffs/preflight.md      │
-         │ -> planner artifact   │  │ -> proposal + preflight    │
-         └───────────┬──────────┘  └────────────┬──────────────┘
-                     │                          │
-                     └──────────────┬───────────┘
-                                    ▼
+         ┌─────────────────────────────────────────────────────┐
+         │ Planner phase                                       │
+         │ handoffs/planner.md -> planner artifact             │
+         └─────────────────────────┬───────────────────────────┘
+                                   │
+                                   ▼
          ┌─────────────────────────────────────────────────────┐
          │ Generator phase                                     │
          │ handoffs/generator.md -> deliverable + evidence      │
@@ -106,7 +104,7 @@ Location: `skills/pge-execute/SKILL.md`
 Purpose:
 
 - parse `ARGUMENTS`
-- initialize `input_artifact`, `state_artifact`, and `progress_artifact`
+- initialize `input_artifact` and `progress_artifact`
 - create one per-run resident team
 - load phase resources progressively
 - dispatch work through the team
@@ -143,7 +141,7 @@ Purpose:
 Lifetime:
 
 - created once per `pge-execute` run
-- stay resident through planner, preflight, generator, evaluator, and teardown phases
+- stay resident through planner, generator, evaluator, and teardown phases
 - not reused across separate skill invocations
 - not the durable source of truth
 
@@ -152,7 +150,6 @@ Lifetime:
 Locations:
 
 - `handoffs/planner.md`
-- `handoffs/preflight.md`
 - `handoffs/generator.md`
 - `handoffs/evaluator.md`
 - `handoffs/route-summary-teardown.md`
@@ -178,7 +175,7 @@ Locations:
 Purpose:
 
 - define shared route/state/round/evaluation vocabulary
-- define artifact paths and durable state
+- define artifact paths and the executable lane's durable record surface
 - define what is executable now versus future design
 - keep recovery independent of chat history
 
@@ -188,12 +185,10 @@ Purpose:
 2. **Runtime Initialization**: orchestrator creates artifact paths, initial state, and progress.
 3. **Team Creation**: orchestrator creates one resident team with planner, generator, and evaluator.
 4. **Planner Dispatch**: orchestrator loads `handoffs/planner.md`, sends input artifact, waits for planner artifact, and gates it.
-5. **Preflight Proposal**: orchestrator loads `handoffs/preflight.md`, asks Generator for an execution proposal with no repo edits.
-6. **Preflight Review**: Evaluator reviews the Planner contract plus Generator proposal. Only `PASS + ready_to_generate` permits implementation.
-7. **Generation**: Generator performs the real deliverable, local verification, and self-review.
-8. **Evaluation**: Evaluator independently reads the actual deliverable and emits verdict plus `next_route`.
-9. **Routing**: orchestrator routes from artifacts. `PASS + converged` succeeds; other canonical routes stop at `unsupported_route` until redispatch is implemented.
-10. **Teardown**: orchestrator writes summary/progress and deletes the team.
+5. **Generation**: Generator performs the real deliverable, local verification, and self-review.
+6. **Evaluation**: Evaluator independently reads the actual deliverable and emits verdict plus `next_route`.
+7. **Routing**: orchestrator routes from artifacts. `PASS + converged` succeeds; other canonical routes stop at `unsupported_route` until redispatch is implemented.
+8. **Teardown**: orchestrator writes summary/progress and deletes the team.
 
 ## Example Execution
 
@@ -204,16 +199,13 @@ Input: /pge-execute test
 │  ├─ teammate planner -> pge-planner
 │  ├─ teammate generator -> pge-generator
 │  └─ teammate evaluator -> pge-evaluator
-├─ Step 3: Planner -> bounded smoke contract
-├─ Step 4: Generator preflight -> contract proposal, no repo edits
-├─ Step 5: Evaluator preflight -> PASS + ready_to_generate
-├─ Step 6: Generator -> writes .pge-artifacts/pge-smoke.txt
-├─ Step 7: Evaluator -> independently reads pge-smoke.txt
+├─ Step 3: Planner -> bounded smoke contract (or shortcut when orchestration omits planner on critical path)
+├─ Step 4: Generator -> writes .pge-artifacts/<run_id>-smoke.txt
+├─ Step 5: Evaluator -> independently reads .pge-artifacts/<run_id>-smoke.txt
 └─ Output:
    ├─ verdict: PASS
    ├─ route: converged
    ├─ summary artifact
-   ├─ state artifact
    └─ progress artifact
 ```
 
@@ -231,7 +223,7 @@ PGE mapping:
 
 - Planner owns context-backed round shaping.
 - Planner output must include evidence, constraints, scope, acceptance, verification, and escalation fields.
-- Preflight is the automated version of spec self-review before implementation.
+- Archived preflight materials remain one possible future version of spec self-review before implementation.
 
 From Superpowers `executing-plans`:
 
@@ -243,7 +235,6 @@ From Superpowers `executing-plans`:
 
 PGE mapping:
 
-- Generator may not edit before preflight passes.
 - Generator implements the accepted round exactly, verifies locally, and records evidence.
 - BLOCK changes context, route, scope, or attempt; it does not trigger blind repetition.
 
@@ -263,11 +254,11 @@ PGE mapping:
 
 ## Key Design Principles
 
-1. **Orchestrator as coordinator**: `pge-execute` sequences phases, gates artifacts, and records state.
+1. **Orchestrator as coordinator**: `pge-execute` sequences phases, gates artifacts, and records progress.
 2. **Resident agents for role work**: planner/generator/evaluator stay alive for one run but do not persist across runs.
 3. **Skill resources for procedure**: phase and contract details live below `SKILL.md`.
-4. **Clean separation**: plan -> preflight -> generate -> evaluate -> route.
-5. **Artifact-backed truth**: state, progress, and phase artifacts are durable; chat history is not.
+4. **Clean separation**: plan -> generate -> evaluate -> route in the current lane; archived preflight remains future design.
+5. **Artifact-backed truth**: progress and phase artifacts are durable in the current lane; chat history is not.
 6. **Honest capability boundary**: retry, continue, and return-to-planner are future loops until implemented and validated.
 
 ## Architecture Patterns
@@ -280,6 +271,14 @@ PGE agents do not receive one huge prompt. The orchestrator supplies the relevan
 planner agent + handoffs/planner.md + skills/pge-execute/contracts/round-contract.md
 generator agent + handoffs/preflight.md or handoffs/generator.md
 evaluator agent + handoffs/preflight.md or handoffs/evaluator.md
+```
+
+Current executable lane simplification:
+
+```text
+planner agent + handoffs/planner.md + skills/pge-execute/contracts/round-contract.md
+generator agent + handoffs/generator.md
+evaluator agent + handoffs/evaluator.md
 ```
 
 ### Direct Skill Resource Invocation

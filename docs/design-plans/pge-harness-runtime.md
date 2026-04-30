@@ -113,9 +113,9 @@ So the truthful current position is:
 What does **not** yet exist:
 - no `runtime/` implementation substrate
 - no mechanized orchestration loop
-- no fully normalized progress-consensus contract
+- no fully normalized long-running progress-consensus contract
 - no proven hook/capture pipeline
-- no evidence yet that the current seams remain stable across real multi-round work
+- no evidence yet that the current seams remain stable across real bounded proving runs
 
 ## 4. Current normalization status
 
@@ -147,6 +147,7 @@ Examples:
 - `progress-md.md` still treats `progress.md` as the canonical state file and uses `Main / Scheduler` language
 - `contracts/runtime-state-contract.md` defines the canonical minimum runtime state record more abstractly
 - `phase-contract.md` still carries stronger phase/task and plan-fidelity semantics than the current `round-contract.md`
+- the active executable lane has moved to `progress.jsonl` with `main` as the only authoritative writer, while several older docs still describe `progress.md` / `state_artifact`
 
 Alignment rule for v1 proof:
 - routes used in proof must be expressible through `contracts/routing-contract.md`

@@ -5,11 +5,17 @@
 > Status: Draft
 > Scope: execution mode 选择、authority chain、artifact budget、deterministic check、轻量闭环与完整闭环的边界
 
+> Current-repo note (2026-04-30):
+> this file is an adaptive-execution design reference, not the authoritative description of the current executable lane.
+> The active lane is still the simpler `planner -> generator -> evaluator` skeleton documented in
+> `skills/pge-execute/SKILL.md`, `skills/pge-execute/ORCHESTRATION.md`, and `docs/exec-plans/PGE_RUNTIME_ROLES_AND_PIPELINE.md`.
+> Treat `FAST_PATH / LITE_PGE / FULL_PGE / LONG_RUNNING_PGE` here as future or partial design intent unless the active execution-core seams say otherwise.
+
 ---
 
 ## 1. 问题定义
 
-当前 PGE 把所有任务都送进同一条重流水线。`/pge-execute test` 这种简单确定性任务，也要经历完整的 Planner → Preflight → Generator → Evaluator，并产出大量管理 artifact。
+当前 PGE 的设计问题最初来自把所有任务都送进同一条过重的流水线。历史草案里，`/pge-execute test` 这类简单确定性任务也会被描述成经历 Planner → Preflight → Generator → Evaluator，并产出大量管理 artifact。
 
 问题不是 P/G/E 三角色本身，而是：
 
@@ -166,7 +172,7 @@ else:
 
 ---
 
-## 5. 每种模式的执行闭环
+## 5. 每种模式的执行闭环（future / partial design）
 
 ### 5.1 FAST_PATH
 
@@ -184,7 +190,7 @@ else:
 4. Generator 产出 deliverable
 5. Orchestrator 执行 deterministic check
 6. Evaluator 基于 deliverable + check 结果给出最终 verdict
-7. 写 `state.json` + `evaluator.md`
+7. 写最终可接受的轻量 closeout artifact（当前 repo 不再把 `state.json` 作为 executable-lane 必需物）
 
 关键约束：
 
@@ -192,7 +198,7 @@ else:
 - 不写 `preflight.md`
 - 不写 `generator.md`
 - 不写 `summary.md` / `progress.md`
-- 必须保留 `planner.md`、`evaluator.md`、`state.json`
+- 当前 active lane 至少保留 `planner.md` 与 `evaluator.md`；`state.json` 属于旧设计/未来恢复面，不是现行必需物
 - Evaluator 使用 lightweight verdict，不要求完整评分矩阵
 
 ### 5.2 LITE_PGE
@@ -217,7 +223,7 @@ else:
 - 默认不写 `contract-proposal.md`
 - 默认不写 `preflight.md`
 - 保留 `generator.md`
-- 默认不写 `progress.md`
+- 当前 active lane 使用 `progress.jsonl`，且只由 `main` 记录；这里的 `progress.md` 仅代表旧的人类可读派生面
 - Evaluator 使用 compact core scoring，而不是完整评分矩阵
 
 ### 5.3 FULL_PGE
@@ -260,9 +266,9 @@ else:
 | `preflight.md` | 禁止 | 默认不写 | 必须 | 未来定义 |
 | `generator.md` | 禁止 | 必须 | 必须 | 未来定义 |
 | `evaluator.md` | 必须 | 必须 | 必须 | 必须 |
-| `state.json` | 必须 | 必须 | 必须 | 必须 |
-| `summary.md` | 禁止 | 默认不写 | 必须 | 未来定义 |
-| `progress.md` | 禁止 | 默认不写 | 必须 | 未来定义 |
+| `state.json` | 旧设计 / 未来恢复面 | 旧设计 / 未来恢复面 | 旧设计 / 未来恢复面 | 未来定义 |
+| `summary.md` | 旧的人类可读派生面 | 旧的人类可读派生面 | 旧的人类可读派生面 | 未来定义 |
+| `progress.md` | 旧的人类可读派生面 | 旧的人类可读派生面 | 旧的人类可读派生面 | 未来定义 |
 
 强制规则：
 
@@ -293,9 +299,13 @@ deterministic check 仍由 orchestrator 执行，而不是由 Planner 或 Genera
 
 ---
 
-## 8. state.json 与 progress.md
+## 8. state.json 与 progress.md（historical / future design note）
 
-`state.json` 是唯一 machine-readable source of truth。
+这节保留的是较早的设计思路，不是当前 executable lane 的权威描述。
+当前 active lane:
+- 不要求 `state.json`
+- 使用 `progress.jsonl`
+- 且 progress 只由 `main` 记录
 
 新增的核心字段：
 

@@ -20,7 +20,7 @@ Planner hands Generator exactly one current-task / bounded round contract with:
 ## meaning
 - `goal`: what this current task must settle now
 - `evidence_basis`: the concrete facts, sources, confidence boundaries, and verification paths Planner used to choose this round
-- `design_constraints`: the design, harness, invariant, scope, and risk constraints Generator must preserve
+- `design_constraints`: the design, harness, invariant, scope, and risk constraints Generator must preserve, including how the most relevant constraints affect this round
 - `in_scope`: what this current task is allowed to change
 - `actual_deliverable`: the real artifact this current task must produce
 - `verification_path`: the primary way this current task will be checked
@@ -48,6 +48,11 @@ Confidence meaning:
 
 LOW-confidence evidence cannot silently carry the contract. It must either have a verification path or be reflected in `open_questions` / `planner_escalation`.
 
+Evidence priority rule:
+- prefer `code > docs > inference`
+- when code/runtime contracts and prose docs disagree, treat code/runtime contracts as truth and record the conflict
+- do not rely on repo claims that could have been checked directly with tools
+
 ## context loading strategy shape
 
 Within `evidence_basis`, Planner should include:
@@ -61,6 +66,7 @@ Within `evidence_basis`, Planner should include:
 `design_constraints` should include:
 - the chosen round boundary
 - PGE invariants relevant to this round
+- how the most relevant constraints affect this round
 - any rejected cut when it materially affects downstream behavior
 
 Do not use `design_constraints` to prescribe Generator implementation details.
@@ -81,6 +87,7 @@ Use `None` only when the task is deterministic and has no material failure mode 
 - `decision`: `pass-through` or `cut`
 - `rejected_cuts`: at most two rejected cuts, or `None`
 - `contract_self_check`: placeholders, contradiction, scope creep, and ambiguous acceptance criteria check
+- `major_failure_mode`: the most likely way this round fails if the chosen cut is wrong
 
 ## rejected cuts shape
 
@@ -91,6 +98,12 @@ When the round was selected from multiple plausible cuts, `planner_note` should 
 Use `rejected_cuts: None` when there was only one plausible current-round task.
 
 This is the PGE-thin version of brainstorming: enough opposition research to avoid a bad round, not a separate design process.
+
+## escalation rule
+
+`open_questions` is for residual uncertainty that does not block freezing.
+
+If missing evidence would make the contract unfair, underspecified, or guess-driven, Planner should use `planner_escalation` instead of hiding the issue in `open_questions`.
 
 ## task split boundary
 

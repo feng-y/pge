@@ -1,5 +1,9 @@
 # PGE Persistent Runner
 
+Archived future-design note:
+This file describes a future recovery model.
+It is not part of the current executable lane, which does not require runtime state for normal execution.
+
 ## Purpose
 
 Define how PGE can run for longer than one phase while remaining recoverable, bounded, and honest about unsupported routes.

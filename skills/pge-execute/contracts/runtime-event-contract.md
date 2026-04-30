@@ -2,11 +2,9 @@
 
 ## purpose
 
-This contract defines the only runtime events that may advance `main`.
+This contract defines the only runtime events that may advance `main` in the current executable lane.
 
-`main` must not advance from a mix of ad-hoc shell polling, artifact existence alone, mailbox filenames, or phase-name folklore.
-
-Artifacts remain durable side effects. Events are the progression contract.
+`main` must not advance from ad-hoc shell polling, artifact existence alone, progress-log lines, or phase-name folklore.
 
 ## progression rule
 
@@ -14,7 +12,7 @@ Artifacts remain durable side effects. Events are the progression contract.
 
 When an event references a durable artifact:
 - the event is the progression trigger
-- the artifact gate validates the referenced durable side effect
+- the artifact gate validates the durable side effect
 - artifact existence alone is never enough to advance
 
 ## event source rule
@@ -34,73 +32,11 @@ Required fields:
 - `planner_artifact`
 - `planner_note`
 - `planner_escalation`
-- `ready_for_preflight: true`
+- `ready_for_generation: true`
 
 Meaning:
 - Planner finished the current-round contract
-- `main` may now gate `planner_artifact` and enter cost gate / preflight
-
-## cost gate event
-
-### `mode_decision`
-
-Producer: `evaluator`
-
-Required fields:
-- `type: mode_decision`
-- `preflight_verdict`
-- `execution_mode`
-- `fast_finish_approved`
-- `next_route`
-- `requires_durable_proposal`
-- `requires_durable_preflight`
-- `reason`
-
-Allowed `execution_mode`:
-- `FAST_PATH`
-- `LITE_PGE`
-- `FULL_PGE`
-- `LONG_RUNNING_PGE`
-
-Meaning:
-- Evaluator has made the execution cost-gate decision
-- `main` updates runtime state from this event
-- if `requires_durable_proposal = false` and `requires_durable_preflight = false`, `main` must not wait for those artifacts
-
-## proposal event
-
-### `proposal_ready`
-
-Producer: `generator`
-
-Required fields:
-- `type: proposal_ready`
-- `contract_proposal_artifact`
-- `preflight_status`
-- `unresolved_blockers`
-
-Meaning:
-- Generator finished the durable proposal required for non-FAST preflight
-- `main` may gate `contract_proposal_artifact` and request Evaluator preflight review
-
-## preflight decision event
-
-### `preflight_decision`
-
-Producer: `evaluator`
-
-Required fields:
-- `type: preflight_decision`
-- `preflight_verdict`
-- `execution_mode`
-- `repair_owner`
-- `next_route`
-- `preflight_artifact`
-- `reason`
-
-Meaning:
-- Evaluator completed non-FAST preflight review
-- `main` may gate `preflight_artifact` when one is required and then route to generation or stop
+- `main` may gate `planner_artifact` and dispatch Generator
 
 ## generation event
 
@@ -117,7 +53,7 @@ Required fields:
 
 Meaning:
 - Generator finished the real deliverable
-- `generator_artifact` may be `null` in `FAST_PATH`
+- `generator_artifact` may be `null` for very small deterministic tasks
 - `main` may gate the deliverable and any required durable Generator output, then request final evaluation
 
 ## evaluation event
@@ -147,7 +83,6 @@ Required fields:
 - `type: route_selected`
 - `verdict`
 - `route`
-- `state`
 - `reason`
 
 Meaning:
@@ -159,12 +94,12 @@ Meaning:
 `main` must not advance solely because:
 - an artifact file exists
 - a shell polling command succeeds
-- a mailbox path exists
+- a progress-log line exists
 - a teammate writes narrative text without a valid event shape
 - a phase name suggests a likely next step
 
 ## current-stage note
 
-The current implementation stage still uses artifact gates for durable outputs.
+The current executable lane uses one skeleton: `planner -> generator -> evaluator`.
 
-That is allowed only as validation after the matching event is received.
+Task scale changes how much work each role performs, not which extra runtime events are required.

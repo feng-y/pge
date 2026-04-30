@@ -1,4 +1,4 @@
-# PGE Execute Runtime Artifacts And State
+# PGE Execute Runtime Artifacts And Progress
 
 ## Artifact Paths
 
@@ -9,106 +9,98 @@ run_id = "run-" + current UTC timestamp in YYYYMMDDTHHMMSSZ
 artifact_dir = .pge-artifacts
 input_artifact = .pge-artifacts/<run_id>-input.md
 planner_artifact = .pge-artifacts/<run_id>-planner.md
-contract_proposal_artifact = .pge-artifacts/<run_id>-contract-proposal.md
-preflight_artifact = .pge-artifacts/<run_id>-preflight.md
 generator_artifact = .pge-artifacts/<run_id>-generator.md
 evaluator_artifact = .pge-artifacts/<run_id>-evaluator.md
-state_artifact = .pge-artifacts/<run_id>-state.json
 summary_artifact = .pge-artifacts/<run_id>-summary.md
-progress_artifact = .pge-artifacts/<run_id>-progress.md
-smoke_deliverable = .pge-artifacts/pge-smoke.txt
+progress_artifact = .pge-artifacts/<run_id>-progress.jsonl
+smoke_deliverable = .pge-artifacts/<run_id>-smoke.txt
 team_name = pge-runtime-<run_id>
 ```
 
-Artifacts are mode-aware:
+Current executable lane artifacts:
 
-- `FAST_PATH`: `planner_artifact`, `evaluator_artifact`, `state_artifact`, plus deliverable
-- `LITE_PGE`: `planner_artifact`, `generator_artifact`, `evaluator_artifact`, `state_artifact`, plus deliverable
-- `FULL_PGE`: all listed artifacts except optional checkpoint/resume files
-- `LONG_RUNNING_PGE`: future lane; current stage may classify it but must not silently claim full execution support
+- all runs: `input_artifact`, `planner_artifact`, `evaluator_artifact`, `progress_artifact`
+- larger runs may additionally persist `generator_artifact`
+- `summary_artifact` is optional human-readable closeout
+- deliverables are task-defined repo artifacts; for `test`, use `smoke_deliverable`
 
-`input_artifact` is intake capture. It is durable when written, but it is not counted against the mode's management-artifact budget.
-
-`FAST_PATH` must not write `contract_proposal_artifact`, `preflight_artifact`, `generator_artifact`, `summary_artifact`, or `progress_artifact`.
-
-## Runtime State
-
-This file defines the current executable subset of runtime state for `pge-execute`.
-
-It is intentionally smaller than `skills/pge-execute/contracts/runtime-state-contract.md`, which is the normative semantic superset for richer and future runtime states.
-
-`state_artifact` must always be valid JSON with at least these fields:
-
-```json
-{
-  "run_id": "<run_id>",
-  "state": "initialized",
-  "mode": null,
-  "mode_decision_owner": null,
-  "fast_finish_approved": false,
-  "artifact_budget": null,
-  "team_created": false,
-  "planner_called": false,
-  "preflight_called": false,
-  "preflight_attempt_id": 1,
-  "max_preflight_attempts": 2,
-  "generator_called": false,
-  "evaluator_called": false,
-  "verdict": null,
-  "route": null,
-  "check": null,
-  "artifact_refs": {},
-  "error_or_blocker": null
-}
-```
-
-Allowed `state` values only:
-
-- `initialized`
-- `team_created`
-- `planning`
-- `preflight_pending`
-- `ready_to_generate`
-- `generating`
-- `evaluating`
-- `unsupported_route`
-- `converged`
-- `stopped`
-- `failed`
-
-Allowed `mode` values only:
-
-- `null` until Evaluator makes the execution-mode decision
-- `FAST_PATH`
-- `LITE_PGE`
-- `FULL_PGE`
-- `LONG_RUNNING_PGE`
-
-Initial state must not default to `FULL_PGE`; doing so forces deterministic smoke tasks through the heavyweight artifact path before Evaluator has made the cost-gate decision.
+There is no required `state_artifact` in the current executable lane.
+Legacy runtime-state materials may remain on disk as future design references, but they are not a required dependency for normal execution.
 
 ## Progress Artifact
 
-Maintain `progress_artifact` throughout the run only when the chosen mode requires it. It is an observer artifact written by main, not a fourth agent output.
+`progress_artifact` is one shared append-only execution log.
 
-When written, it must record:
+- format: JSONL
+- ownership: `main` only
+- write mode: append-only
+- dependency level: weak
+- write failures must not block execution
+- the progress log must never advance the run by itself
 
-- run_id
-- current phase
-- phase status table
-- preflight attempt counters
-- open issues / blockers
-- latest evaluator gate status
-- whether Generator has been allowed to edit
+Planner, Generator, and Evaluator do not write authoritative progress directly.
+They produce artifacts and runtime events; `main` records the orchestration-visible facts, friction, retries, blockers, and gate outcomes.
 
-Update `progress_artifact` after every phase transition when mode is `FULL_PGE` or `LONG_RUNNING_PGE`:
+Each line should record one externally visible fact.
+`ts` is mandatory. A progress line without timestamp has little diagnostic value.
 
-- initialization
-- team creation
-- planner handoff
-- preflight proposal
-- preflight evaluation
-- generation
-- evaluation
-- route
-- summary
-- teardown attempt
+```json
+{
+  "ts": "<UTC ISO8601 timestamp>",
+  "run_id": "<run_id>",
+  "actor": "main|planner|generator|evaluator",
+  "phase": "init|planning|generation|evaluation|route|teardown",
+  "event": "<short event name>",
+  "status": "ok|blocked|error",
+  "artifact": "<path or null>",
+  "detail": "<short factual note>",
+  "blocker": "<short blocker or null>",
+  "latency_ms": "<optional integer or null>",
+  "bytes": "<optional integer or null>",
+  "command": "<optional short command or null>"
+}
+```
+
+Recommended quantitative fields:
+
+- `latency_ms`: how long the operation or wait took
+- `bytes`: useful for file writes / reads
+- `command`: useful for deterministic verification commands
+
+At minimum, the log should be rich enough to answer:
+
+- when a teammate finished its work
+- when `main` received the event
+- when the gate started
+- when the gate passed or failed
+- where the largest queue / wait gap happened
+
+Recommended event names:
+
+- `run_started`
+- `team_created`
+- `dispatch_sent`
+- `task_started`
+- `context_read`
+- `artifact_written`
+- `file_changed`
+- `command_run`
+- `deliverable_read`
+- `gate_passed`
+- `gate_failed`
+- `final_verdict`
+- `route_selected`
+- `teardown_started`
+- `teardown_finished`
+- `friction`
+
+Recommended friction examples:
+
+- `message_timeout`
+- `artifact_gate_failed`
+- `agent_disconnect`
+- `human_intervention`
+- `phase_slow`
+
+The progress log is for observability and later PGE improvement.
+It is not a state machine, not a recovery primitive, and not a success gate.

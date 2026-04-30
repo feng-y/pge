@@ -47,10 +47,14 @@ Guardrails should be structural and artifact-backed where possible.
 
 OpenAI tracing records agent runs, tool calls, handoffs, guardrails, and custom events. PGE's equivalent is not an observability backend yet, but it needs the same shape:
 
-- `state_artifact` for machine-readable state
+- richer machine-readable state for future recovery lanes
 - `progress_artifact` for human-readable trace
 - phase artifacts as spans
 - `artifact_refs` as trace links
+
+Current-repo note:
+- the active executable lane does **not** require `state_artifact`
+- the active lane does require `progress_artifact`, with `main` as the only authoritative writer
 
 ## Anthropic Lessons To Absorb
 
@@ -90,9 +94,9 @@ Surface-aligned now:
 - three-agent split: planner / generator / evaluator
 - file-backed communication and artifact handoff
 - independent evaluator instead of generator self-grading
-- preflight seam exists before implementation
+- archived preflight seam exists as future design, but is not in the current executable lane
 - bounded round framing instead of open-ended build scope
-- artifact-backed state model instead of chat history
+- artifact-backed progress + phase outputs instead of chat history
 
 But these are mostly architecture-shape matches, not proof that the runtime already behaves like the article's harness.
 
@@ -203,7 +207,7 @@ From Superpowers and local Superpowers:
 
 PGE adaptation:
 
-- Preflight is the spec-compliance review before implementation.
+- Archived preflight design is the spec-compliance review candidate before implementation; the active lane currently uses planner gate -> generator gate -> evaluator gate.
 - Evaluator final pass is code/behavior quality gate.
 - Future retry loops must not re-dispatch the same prompt unchanged after a blocker.
 

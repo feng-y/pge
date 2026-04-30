@@ -20,57 +20,53 @@ allowed-tools:
 
 This skill is the orchestration shell only. It is not a fourth agent.
 
+`main` is the only control-plane owner for the active lane: initialize run, create exactly one team, dispatch planner / generator / evaluator, gate artifacts and runtime events, reduce route deterministically, record authoritative progress / friction, classify failures, and perform teardown. `main` must not replace Planner / Generator / Evaluator specialist judgment.
+
 ## Progressive Disclosure
 Keep this entrypoint small. Load detail files only when the phase needs them:
 
-- Runtime artifacts/state/progress: `runtime/artifacts-and-state.md`
-- Persistent runner model: `runtime/persistent-runner.md`
+- Runtime artifacts/progress: `runtime/artifacts-and-state.md`
 - Planner handoff: `handoffs/planner.md`
-- Contract preflight: `handoffs/preflight.md`
 - Generator handoff: `handoffs/generator.md`
 - Evaluator handoff: `handoffs/evaluator.md`
 - Route, summary, teardown: `handoffs/route-summary-teardown.md`
 - Runtime events: `contracts/runtime-event-contract.md`
 - Contracts: `contracts/*.md` relative to this skill (authoritative for this skill)
 - Minimal lifecycle reference: `ORCHESTRATION.md`
-Design references live outside the skill at `docs/design/pge-execute/`; consult them when changing the skill, not during every normal run.
+Design references live outside the skill at `docs/design/pge-execute/`; consult them when changing the skill, not during every normal run. The archived preflight and runtime-state materials remain on disk for future design work, not for the current executable lane.
 
 ## Current Executable Claim
 Supported in the current implementation lane:
 - one Team
 - exactly three teammates: planner, generator, evaluator
-- messaging-first coordination for normal preflight interaction
-- durable phase outputs instead of turn-by-turn file churn
-- one bounded run with mode-aware closure (`FAST_PATH`, `LITE_PGE`, `FULL_PGE`)
+- one bounded run with `planner -> generator -> evaluator` for normal tasks
+- task size changes role depth, not stage count
+- durable phase outputs plus one shared progress log
 - independent final evaluation
-- explicit `unsupported_route` for recognized routes that are not yet redispatched
-- progress artifact only when the chosen mode requires it
+- progress log is weak dependency only
 
 Not supported yet:
 - automatic multi-round redispatch
 - bounded retry loop
 - return-to-planner loop
-- product/spec planner split
-- evaluator calibration fixtures
-- full `LONG_RUNNING_PGE` execution
+- checkpoint/resume execution
 
 ## Execution Flow
 ```text
 User invokes /pge-execute
   -> pge-execute orchestrator skill
-     -> initialize input/state artifacts
+     -> initialize input/progress artifacts
      -> create one per-run resident team
         - teammate `planner` runs agent surface `pge-planner`
         - teammate `generator` runs agent surface `pge-generator`
         - teammate `evaluator` runs agent surface `pge-evaluator`
      -> planner writes locked task-shape contract
-     -> evaluator decides mode/fast finish; generator/evaluator negotiate only when mode requires it
-     -> orchestrator executes the chosen bounded path
-     -> evaluator phase resource checks the actual deliverable independently
+     -> generator reviews then executes the task
+     -> evaluator independently checks the deliverable
      -> route/summary/teardown phase records outcome and deletes the team
 ```
 
-The orchestrator advances from runtime events and then validates any referenced durable side effects. Agents do role work. Phase resources define the dispatch text, event schemas, and artifact gates.
+The orchestrator advances from runtime events and then validates any referenced durable side effects.
 
 ## Hard Requirements
 - Use Claude Code native Agent Teams.
@@ -80,14 +76,15 @@ The orchestrator advances from runtime events and then validates any referenced 
   - `generator` using `pge-generator`
   - `evaluator` using `pge-evaluator`
 - Dispatch work through `SendMessage`.
-- Use messaging-first coordination for normal preflight interaction.
-- Use files only for durable phase outputs and runtime state.
-- Maintain `progress_artifact` only when the chosen mode requires it.
+- Use files only for durable phase outputs and one shared append-only progress log.
+- Maintain `progress_artifact` as best-effort execution logging only; it must not gate execution.
+- `main` is the only authoritative writer of progress / friction / repeated-failure logs.
 - Do not simulate Planner / Generator / Evaluator in `main`.
 - Do not fall back to direct non-team Agent dispatch.
+- Only `main` may talk directly to the user; teammates may surface clarification needs, but `main` owns the actual user-facing question.
 - Do not require the user to pass a plan path.
-- Do not let Generator edit files before preflight passes.
-- Do not give Planner authority to decide fast finish or final execution mode.
+- Do not insert a separate preflight or mode-decision phase into the current executable lane.
+- Do not give Planner authority to decide final verdict.
 - Do not claim redispatch for `continue`, `retry`, or `return_to_planner`.
 
 If TeamCreate / Agent with `team_name` / SendMessage / TeamDelete cannot be used, stop immediately and report one concrete blocker.
@@ -101,24 +98,44 @@ Supported inputs:
 If the argument is `test`, use this fixed smoke task:
 
 ```text
-Create .pge-artifacts/pge-smoke.txt with content exactly: pge smoke
+Create the run-scoped smoke file .pge-artifacts/<run_id>-smoke.txt with content exactly: pge smoke
 ```
 
-If the argument is not `test`:
+For `test`, use the smallest possible Agent Teams path:
+- keep the skeleton `planner -> generator -> evaluator`
+- do not read additional handoff/runtime docs during execution
+- do not redispatch teammates
+- ignore teammate `idle_notification` messages completely
+- do not emit user-facing "waiting for ..." chatter between dispatch and the required runtime event
 
+If the argument is not `test`:
 - use the prompt as the task input
 - Planner may inspect repo plans/docs if helpful
 - if no plan exists, Planner should produce a minimal execution brief directly from the prompt
 - do not ask the user for a plan path
 
 ## Execution Protocol
-Before executing, read `runtime/artifacts-and-state.md`, `ORCHESTRATION.md`, and `contracts/runtime-event-contract.md`. For long-running or resumable behavior, also read `runtime/persistent-runner.md`.
+For normal non-test runs, read `runtime/artifacts-and-state.md`, `ORCHESTRATION.md`, and `contracts/runtime-event-contract.md`.
+
+For `test`, use this inline minimal protocol instead of reading extra runtime/handoff docs:
+- initialize `run_id`, `input_artifact`, `progress_artifact`, and `smoke_deliverable`
+- create one team with `planner`, `generator`, and `evaluator`
+- send planner one compact smoke-task dispatch; wait only for `type: planner_contract_ready`
+- gate `planner_artifact` by required top-level sections
+- send generator one compact smoke-task dispatch; wait only for `type: generator_completion`
+- gate the smoke deliverable by existence, exact bytes, and exact content
+- send evaluator one compact smoke-task dispatch; wait only for `type: final_verdict`
+- gate `evaluator_artifact` by required sections plus `PASS / converged`
+- route immediately, request shutdown once, delete team once, and return the final result
+- ignore teammate `idle_notification` and keep waiting for the required runtime event
+- for `test`, never redispatch planner, generator, or evaluator after an idle notification
+
+For all runs:
 
 1. Initialize
-   - resolve task input
+   - resolve task input and `smoke_deliverable = .pge-artifacts/<run_id>-smoke.txt` for `test`
    - write `input_artifact`
-   - write initial `state_artifact` with `mode = null`; do not default to `FULL_PGE`
-   - do not initialize `progress_artifact` until mode requires it
+   - initialize `progress_artifact` as one shared append-only execution log
    - verify the runtime can resolve the `pge-planner`, `pge-generator`, and `pge-evaluator` agent surfaces
 
 2. Create team
@@ -126,54 +143,31 @@ Before executing, read `runtime/artifacts-and-state.md`, `ORCHESTRATION.md`, and
    - spawn teammate `planner` using `pge-planner`
    - spawn teammate `generator` using `pge-generator`
    - spawn teammate `evaluator` using `pge-evaluator`
-   - set `team_created = true`
-   - update state; update progress only when enabled
+   - append a best-effort `run_started` / `team_created` log entry
 
 3. Planner
-   - read `handoffs/planner.md`
-   - send work to planner
-   - wait for `type: planner_contract_ready`
-   - gate `planner_artifact`
-   - update state; update progress only when enabled
+   - for `test`, use one compact dispatch and a minimal section gate
+   - otherwise read `handoffs/planner.md`, send work, wait for `type: planner_contract_ready`, gate `planner_artifact`
+   - append a best-effort planner gate log entry; this is the first hard review point
 
-4. Contract preflight
-   - read `handoffs/preflight.md`
-   - ask Evaluator for the execution-mode cost gate from the Planner contract
-   - for deterministic `FAST_PATH`, accept only a `type: mode_decision` message and do not write proposal/preflight artifacts
-   - for `LITE_PGE` / `FULL_PGE`, send proposal task to Generator and negotiate through `SendMessage`
-   - wait for Evaluator's final preflight decision before Generator edits files
-   - persist durable preflight outputs only when the matching event says they are required
-   - gate the durable outputs referenced by the event
-   - allow bounded proposal repair attempts before any repo edits
-   - continue only on `PASS + ready_to_generate`
+4. Generator
+   - for non-test runs, read `handoffs/generator.md`
+   - for `test`, send implementation task to generator with `output_artifact = None` and the resolved `smoke_deliverable`
+   - otherwise send implementation task to generator with the configured durable `generator_artifact`
+   - wait for `type: generator_completion`, gate deliverable and any required durable generator output
+   - when a durable generator artifact exists, inspect `self_review.generator_plan_review`
+   - append a best-effort generator gate log entry; this is the second hard review point
 
-5. Execute chosen path
-   - `FAST_PATH`: minimal artifacts + deterministic check + final Evaluator approval
-   - `LITE_PGE`: reduced artifact surface + final Evaluator approval
-   - `FULL_PGE`: full bounded flow
-   - `LONG_RUNNING_PGE`: record unsupported path; do not pretend later phases already exist
+5. Evaluator
+   - for non-test runs, read `handoffs/evaluator.md`
+   - send evaluation task to evaluator, wait for `type: final_verdict`, gate `evaluator_artifact` and final verdict
+   - append a best-effort evaluator gate log entry; this is the third hard review point
 
-6. Generator
-   - read `handoffs/generator.md`
-   - send implementation task to generator
-   - wait for `type: generator_completion` in `FAST_PATH`; wait for `generator_artifact` only when mode requires it
-   - gate the deliverable and any required durable generator output
-   - update state and progress when enabled
-
-7. Evaluator
-   - read `handoffs/evaluator.md`
-   - send evaluation task to evaluator
-   - wait for `type: final_verdict`
-   - gate `evaluator_artifact` and final verdict
-   - update state and progress when enabled
-
-8. Route, summary, teardown
-   - read `handoffs/route-summary-teardown.md`
+6. Route, summary, teardown
+   - for non-test runs, read `handoffs/route-summary-teardown.md`
    - route from Evaluator verdict and next_route
-   - write summary only when the chosen mode requires it
-   - request teammate shutdown
-   - delete team
-   - update progress when enabled
+   - write summary only when the run actually needs a human-readable closeout
+   - request teammate shutdown, delete team, append best-effort route / teardown log entries
 
 ## Final Response
 
@@ -188,16 +182,17 @@ Return only:
 - artifacts:
     - <input_artifact>
     - <planner_artifact>
-    - <contract_proposal_artifact if written>
-    - <preflight_artifact if written>
     - <generator_artifact if written>
     - <evaluator_artifact>
-    - <state_artifact>
-    - <summary_artifact if written>
     - <progress_artifact if written>
+    - <summary_artifact if written>
     - <deliverable if produced>
 - blocker: <single concrete blocker or null>
 ```
+
+Final result mapping:
+- `status = SUCCESS` only when `verdict = PASS` and `route = converged`
+- `route = continue | retry | return_to_planner | unsupported_route | blocked` must not be reported as `SUCCESS`
 
 ## Forbidden Behavior
 
@@ -207,9 +202,14 @@ Do not:
 - require a plan path from the user
 - simulate agents in `main`
 - replace Team flow with direct role-play
-- use artifact files as the turn-by-turn preflight message bus
+- insert a separate preflight or mode-decision gate into the current executable lane
 - advance from shell polling or mailbox file existence instead of a valid runtime event
+- react to teammate `idle_notification` as if it were a runtime event
+- emit user-facing "waiting for ..." chatter for `test`
+- redispatch a `test` teammate because of silence or idle notification alone
 - auto-retry multiple rounds
-- bury phase progress only in chat; update progress artifacts
+- treat the progress log as a state machine or execution gate
 - stop before waiting for the dispatched teammate artifact handoff
-- accept `test` without the evaluator independently reading `.pge-artifacts/pge-smoke.txt`
+- accept `test` without the evaluator independently reading the run-scoped smoke deliverable
+- report `status: SUCCESS` together with any non-terminal route
+- let teammates write authoritative progress directly

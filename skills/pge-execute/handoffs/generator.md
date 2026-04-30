@@ -2,40 +2,40 @@
 
 ## Dispatch
 
-Send this task to `generator` only after preflight has passed.
+Send this task to `generator` after the planner artifact gates.
 
 ```text
 You are @generator in the PGE runtime team.
 
 run_id: <run_id>
 planner_artifact: <planner_artifact>
-contract_proposal_artifact: <contract_proposal_artifact or None for FAST_PATH>
-preflight_artifact: <preflight_artifact or None for FAST_PATH>
-output_artifact: <generator_artifact or None for FAST_PATH>
+output_artifact: <generator_artifact or None>
+smoke_deliverable: <smoke_deliverable or None>
 
 Execute the planner contract.
-Use the accepted preflight proposal as execution guidance, but do not expand scope beyond the Planner contract.
-For `FAST_PATH`, use the Planner contract and Evaluator mode approval as execution guidance; no durable Generator artifact is required.
+Use Planner's contract as the only execution authority. Do not expand scope beyond that contract.
+Before editing, review whether the contract is executable as written. If it is materially blocked, report that honestly in `deviations_from_spec` instead of silently broadening scope.
+If <output_artifact> is `None`, produce the real deliverable and return a direct completion message instead of writing a durable implementation bundle.
 
 For `test`, perform a real write in this run:
-- write `.pge-artifacts/pge-smoke.txt`
+- write <smoke_deliverable>
 - set its full content to exactly `pge smoke`
 - do this even if the file already exists
 - verify the file exists and its full content equals exactly `pge smoke`
 
-If mode is `FAST_PATH`, do not write <generator_artifact>. After local verification, report completion through `SendMessage` with deliverable path and exact verification result.
+If <output_artifact> is `None`, do not write a durable Generator artifact. After local verification, report completion through `SendMessage` with deliverable path and exact verification result.
 
-FAST_PATH completion message shape:
+Direct completion message shape:
 
 ```text
 type: generator_completion
 handoff_status: READY_FOR_EVALUATOR
-deliverable_path: .pge-artifacts/pge-smoke.txt
-verification_result: exact content equals `pge smoke`
+deliverable_path: <actual deliverable path>
+verification_result: <exact check performed and result>
 generator_artifact: null
 ```
 
-If mode requires a durable Generator artifact, write markdown to <generator_artifact> with exactly these top-level sections:
+If <output_artifact> is present, write markdown to <output_artifact> with exactly these top-level sections:
 - ## current_task
 - ## boundary
 - ## actual_deliverable
@@ -49,26 +49,47 @@ If mode requires a durable Generator artifact, write markdown to <generator_arti
 - ## deviations_from_spec
 - ## handoff_status
 
+Inside `## self_review`, include an explicit `generator_plan_review` block with:
+- `review_verdict: PASS | BLOCK`
+- `deliverable_clarity`
+- `verification_readiness`
+- `evidence_readiness`
+- `missing_prerequisites`
+- `scope_risk`
+- `repair_direction`
+
+This is Generator's explicit executability review record.
+It does not create a new runtime event or a new top-level orchestration stage.
+
 Rules:
+- read the planner contract carefully before acting
 - perform the real file work
 - run local verification
 - perform local self-review, but do not self-approve
+- do not silently reinterpret the contract
+- stop on blocker rather than guessing through major ambiguity
 - do not issue final PASS
-- for test, `changed_files` must include `.pge-artifacts/pge-smoke.txt`
+- do not use these anti-patterns:
+  - "I'll fill in contract details while coding"
+  - "I'll verify later"
+  - "I'll silently repair the contract in code"
+  - "while I'm here, I'll broaden the slice a bit"
+- for test, `changed_files` must include <smoke_deliverable>
 - for test, evidence must include proof of exact content equality
 ```
 
 ## Gate
 
-- for `test`, `.pge-artifacts/pge-smoke.txt` exists
-- for `test`, reading `.pge-artifacts/pge-smoke.txt` returns exactly `pge smoke`
-- when mode requires durable Generator output, artifact exists
-- when mode requires durable Generator output, `## deliverable_path` exists
-- when mode requires durable Generator output, `## changed_files` exists
-- when mode requires durable Generator output, `## local_verification` exists
-- when mode requires durable Generator output, `## evidence` exists
-- when mode requires durable Generator output, `## self_review` exists
+- for `test`, <smoke_deliverable> exists
+- for `test`, reading <smoke_deliverable> returns exactly `pge smoke`
+- when durable Generator output is required, artifact exists
+- when durable Generator output is required, `## deliverable_path` exists
+- when durable Generator output is required, `## changed_files` exists
+- when durable Generator output is required, `## local_verification` exists
+- when durable Generator output is required, `## evidence` exists
+- when durable Generator output is required, `## self_review` exists
+- when durable Generator output is required, `## deviations_from_spec` exists
 
-On failure: set `state = "failed"`, mark planner/preflight/generator called, record blocker, write state, update progress only when enabled, stop.
+On failure: stop and let `main` record the gate failure in progress.
 
-On pass: set `generator_called = true`, persist deliverable ref, persist generator ref only when the artifact was written, write state, update progress only when enabled.
+On pass: let `main` record gate success in progress after receiving the runtime event and validating the artifact.

@@ -171,14 +171,17 @@ For proving runs, the following files define the normative execution-core semant
 - `skills/pge-execute/SKILL.md` — invocation surface
 - `skills/pge-execute/ORCHESTRATION.md` — skill-internal run orchestration
 
-These seams are the source of truth for runtime state, verdict, routing, and stop-condition decisions.
-For proving runs, preflight, route, state, and stop-condition vocabulary must come from these seams; legacy/reference docs may provide context but must not override them.
+These seams are the source of truth for planner/generator/evaluator execution, verdict, routing, progress logging, and stop-condition decisions.
+For proving runs, route, progress-log, and stop-condition vocabulary must come from these seams; legacy/reference docs may provide context but must not override them.
 
 ## Harness support surface
 
 For current repo driving and proving/development rounds, start here:
 - [`CLAUDE.md`](./CLAUDE.md) — repo-level working constraints for Claude Code
 - [`docs/exec-plans/CURRENT_MAINLINE.md`](./docs/exec-plans/CURRENT_MAINLINE.md) — current goal, P0 blockers, non-goals, next action
+- [`docs/exec-plans/PGE_WORKFLOW_IDENTITY.md`](./docs/exec-plans/PGE_WORKFLOW_IDENTITY.md) — what PGE is as an independent workflow, when to use it, and what it is not
+- [`docs/exec-plans/PGE_RUNTIME_ROLES_AND_PIPELINE.md`](./docs/exec-plans/PGE_RUNTIME_ROLES_AND_PIPELINE.md) — fixed runtime pipeline, role matrix, deterministic boundaries
+- [`docs/exec-plans/PGE_EXECUTION_REFERENCE_LEARNINGS.md`](./docs/exec-plans/PGE_EXECUTION_REFERENCE_LEARNINGS.md) — execution-layer learnings from Claude Code, GSD, gstack, and mattpocock/skills
 - [`docs/exec-plans/ISSUES_LEDGER.md`](./docs/exec-plans/ISSUES_LEDGER.md) — P0 / P1 / P2 / resolved / decisions ledger
 - [`docs/exec-plans/ROUND_TEMPLATE.md`](./docs/exec-plans/ROUND_TEMPLATE.md) — reusable round structure
 - [`docs/proving/README.md`](./docs/proving/README.md) — entrypoint for proving/development runs
