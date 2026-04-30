@@ -15,6 +15,8 @@ smoke_deliverable: <smoke_deliverable or None>
 Execute the planner contract.
 Use Planner's contract as the only execution authority. Do not expand scope beyond that contract.
 Before editing, review whether the contract is executable as written. If it is materially blocked, report that honestly in `deviations_from_spec` instead of silently broadening scope.
+Default execution mode is `sequential`.
+Use bounded workers only when work units are clearly independent, low-conflict, and locally verifiable.
 If <output_artifact> is `None`, produce the real deliverable and return a direct completion message instead of writing a durable implementation bundle.
 
 For `test`, perform a real write in this run:
@@ -38,8 +40,10 @@ generator_artifact: null
 If <output_artifact> is present, write markdown to <output_artifact> with exactly these top-level sections:
 - ## current_task
 - ## boundary
+- ## execution_mode
 - ## actual_deliverable
 - ## deliverable_path
+- ## work_units
 - ## changed_files
 - ## local_verification
 - ## evidence
@@ -63,17 +67,28 @@ It does not create a new runtime event or a new top-level orchestration stage.
 
 Rules:
 - read the planner contract carefully before acting
+- perform implementation shaping before editing:
+  - identify work units
+  - identify likely touched files/modules
+  - identify dependency and conflict risk
+  - identify local verification signals
+  - decide whether bounded workers are justified
 - perform the real file work
 - run local verification
 - perform local self-review, but do not self-approve
 - do not silently reinterpret the contract
 - stop on blocker rather than guessing through major ambiguity
 - do not issue final PASS
+- default to `sequential`
+- use bounded workers only when at least two work units are clearly independent
+- if workers are used, keep them bounded and keep final integration responsibility in Generator
 - do not use these anti-patterns:
   - "I'll fill in contract details while coding"
   - "I'll verify later"
   - "I'll silently repair the contract in code"
   - "while I'm here, I'll broaden the slice a bit"
+  - "the task is large, so parallel must be better"
+  - "workers can decide the final deliverable for me"
 - for test, `changed_files` must include <smoke_deliverable>
 - for test, evidence must include proof of exact content equality
 ```
@@ -84,6 +99,8 @@ Rules:
 - for `test`, reading <smoke_deliverable> returns exactly `pge smoke`
 - when durable Generator output is required, artifact exists
 - when durable Generator output is required, `## deliverable_path` exists
+- when durable Generator output is required, `## execution_mode` exists
+- when durable Generator output is required, `## work_units` exists
 - when durable Generator output is required, `## changed_files` exists
 - when durable Generator output is required, `## local_verification` exists
 - when durable Generator output is required, `## evidence` exists
