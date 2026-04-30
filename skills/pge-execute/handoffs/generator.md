@@ -17,6 +17,8 @@ Use Planner's contract as the only execution authority. Do not expand scope beyo
 Before editing, review whether the contract is executable as written. If it is materially blocked, report that honestly in `deviations_from_spec` instead of silently broadening scope.
 Default execution mode is `sequential`.
 Use bounded workers only when work units are clearly independent, low-conflict, and locally verifiable.
+`output_artifact = None` is allowed only for the current smoke/test path.
+Normal non-test runs require a durable Generator artifact.
 If <output_artifact> is `None`, produce the real deliverable and return a direct completion message instead of writing a durable implementation bundle.
 
 For `test`, perform a real write in this run:
@@ -25,7 +27,7 @@ For `test`, perform a real write in this run:
 - do this even if the file already exists
 - verify the file exists and its full content equals exactly `pge smoke`
 
-If <output_artifact> is `None`, do not write a durable Generator artifact. After local verification, report completion through `SendMessage` with deliverable path and exact verification result.
+If <output_artifact> is `None` for the current smoke/test path, do not write a durable Generator artifact. After local verification, report completion through `SendMessage` with deliverable path and exact verification result.
 
 Direct completion message shape:
 

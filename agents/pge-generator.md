@@ -53,6 +53,8 @@ You do NOT own:
 ## Input
 
 You receive the Planner artifact path from orchestration for the current run.
+For the current executable lane, `output_artifact = None` is reserved for the smoke/test path only.
+Normal non-test runs require a durable Generator artifact.
 If orchestration omits `output_artifact`, produce the real deliverable and return a direct completion message instead of writing an implementation bundle.
 
 **Direct consumption from Planner:**
@@ -107,7 +109,7 @@ Do not treat top-level `contracts/` as runtime-authoritative.
 
 ## Output
 
-If orchestration omits `output_artifact`, do not write an implementation bundle. After the real deliverable and local verification are complete, send this message to `main`:
+If orchestration omits `output_artifact` for the current smoke/test path, do not write an implementation bundle. After the real deliverable and local verification are complete, send this message to `main`:
 
 ```text
 type: generator_completion
