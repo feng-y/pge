@@ -19,7 +19,7 @@ Default execution mode is `sequential`.
 Use bounded workers only when work units are clearly independent, low-conflict, and locally verifiable.
 `output_artifact = None` is allowed only for the current smoke/test path.
 Normal non-test runs require a durable Generator artifact.
-If <output_artifact> is `None`, produce the real deliverable and return a direct completion message instead of writing a durable implementation bundle.
+If <output_artifact> is `None` outside the current smoke/test path, do not execute repo work. Report a blocker instead of running a normal artifact-less lane.
 
 For `test`, perform a real write in this run:
 - write <smoke_deliverable>
@@ -38,6 +38,18 @@ deliverable_path: <actual deliverable path>
 verification_result: <exact check performed and result>
 generator_artifact: null
 ```
+
+If <output_artifact> is `None` outside the current smoke/test path, send this blocker message to `main`:
+
+```text
+type: generator_completion
+handoff_status: BLOCKED
+deliverable_path: null
+verification_result: not run - missing durable output_artifact for non-test run
+generator_artifact: null
+```
+
+If `main` later asks you to confirm completion or resend the runtime notification, verify the current run deliverable/artifact is still the one you completed and resend only the exact canonical `generator_completion` text. Do not send recap, idle wrapper, or summary text instead of the event.
 
 If <output_artifact> is present, write markdown to <output_artifact> with exactly these top-level sections:
 - ## current_task

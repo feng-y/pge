@@ -61,6 +61,8 @@ next_route: continue | converged | retry | return_to_planner
 evaluator_artifact: <evaluator_artifact>
 route_reason: <short reason>
 ```
+
+If `main` later asks you to confirm completion or resend the runtime notification, verify `<evaluator_artifact>` still matches this run and resend only the exact canonical `final_verdict` text above. Do not send recap, idle wrapper, or summary text instead of the event.
 ```
 
 ## Gate

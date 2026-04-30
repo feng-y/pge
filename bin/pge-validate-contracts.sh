@@ -79,8 +79,10 @@ require_pattern skills/pge-execute/SKILL.md 'progress log is weak dependency onl
   "progress weak dependency note"
 require_pattern skills/pge-execute/SKILL.md 'Create the run-scoped smoke file \.pge-artifacts/<run_id>/deliverables/smoke\.txt' \
   "run-scoped smoke task"
-require_pattern skills/pge-execute/SKILL.md 'ignore teammate `idle_notification` messages completely' \
-  "ignore idle notifications rule"
+require_pattern skills/pge-execute/SKILL.md 'do not treat teammate `idle_notification` as completion' \
+  "idle notifications are not completion"
+require_pattern skills/pge-execute/SKILL.md 'use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present' \
+  "recovery recap non-canonical rule"
 require_pattern skills/pge-execute/SKILL.md 'do not emit user-facing "waiting for \.\.\." chatter between dispatch and the required runtime event' \
   "no waiting chatter rule"
 require_pattern skills/pge-execute/SKILL.md 'Do not insert a separate preflight or mode-decision phase into the current executable lane' \
@@ -102,6 +104,10 @@ require_pattern skills/pge-execute/ORCHESTRATION.md '\.pge-artifacts/<run_id>/de
   "orchestration run-scoped smoke path"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'append-only execution log' \
   "orchestration progress log note"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'teammate notification plus the matching phase gate' \
+  "notification plus gate rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim' \
+  "recovery recap orchestration rule"
 require_absent_pattern skills/pge-execute/ORCHESTRATION.md 'state\.json|state_artifact' \
   "stale orchestration state artifact reference"
 
@@ -134,6 +140,14 @@ require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'final_ve
   "evaluator event"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'route_selected' \
   "route event"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'confirm whether the phase is complete and, if complete, to resend the canonical notification shape' \
+  "notification repair rule"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'recovery / resume recap' \
+  "recovery recap runtime hint"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'canonical notification text only, with no recap, summary wrapper, idle wrapper, or explanatory prefix' \
+  "canonical resend only rule"
+require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'advances only when it receives a valid runtime event' \
+  "stale event-only progression rule"
 require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'mode_decision|proposal_ready|preflight_decision|ready_for_preflight' \
   "stale preflight events"
 
@@ -142,6 +156,8 @@ require_pattern skills/pge-execute/handoffs/preflight.md 'not part of the curren
 
 require_pattern skills/pge-execute/handoffs/planner.md 'ready_for_generation: true' \
   "planner ready_for_generation event"
+require_pattern skills/pge-execute/handoffs/planner.md 'resend only the exact canonical event text above' \
+  "planner canonical resend rule"
 require_absent_pattern skills/pge-execute/handoffs/planner.md 'write state|update progress only when enabled|ready_for_preflight' \
   "planner stale state logic"
 
@@ -149,6 +165,8 @@ require_pattern skills/pge-execute/handoffs/generator.md 'smoke_deliverable: <sm
   "generator smoke path input"
 require_pattern skills/pge-execute/handoffs/generator.md 'type: generator_completion' \
   "generator completion event schema"
+require_pattern skills/pge-execute/handoffs/generator.md 'resend only the exact canonical `generator_completion` text' \
+  "generator canonical resend rule"
 require_absent_pattern skills/pge-execute/handoffs/generator.md 'preflight_artifact|contract_proposal_artifact|write state' \
   "generator stale preflight/state logic"
 
@@ -156,6 +174,8 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'smoke_deliverable: <sm
   "evaluator smoke path input"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'type: final_verdict' \
   "evaluator final verdict event schema"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'resend only the exact canonical `final_verdict` text above' \
+  "evaluator canonical resend rule"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'if verdict is `PASS`, `next_route` must be `converged`' \
   "test pass implies converged rule"
 require_absent_pattern skills/pge-execute/handoffs/evaluator.md 'preflight_artifact|contract_proposal_artifact|write state|compact_scores' \
@@ -178,6 +198,10 @@ require_pattern agents/pge-generator.md 'If orchestration omits `output_artifact
   "generator optional durable artifact rule"
 require_pattern agents/pge-generator.md 'type: generator_completion' \
   "generator runtime event rule"
+require_pattern agents/pge-generator.md 'tools: Read, Write, Edit, Bash, Grep, Glob, SendMessage' \
+  "generator SendMessage tool"
+require_pattern agents/pge-generator.md 'resend only the canonical `generator_completion` text' \
+  "generator resend wording"
 require_absent_pattern agents/pge-generator.md 'proposal_ready|preflight validated' \
   "generator stale preflight role text"
 
@@ -185,11 +209,19 @@ require_pattern agents/pge-evaluator.md 'You own final independent deliverable v
   "evaluator ownership rule"
 require_pattern agents/pge-evaluator.md 'final_verdict' \
   "evaluator final verdict rule"
+require_pattern agents/pge-evaluator.md 'tools: Read, Write, Bash, Grep, Glob, SendMessage' \
+  "evaluator SendMessage tool"
+require_pattern agents/pge-evaluator.md 'resend only the canonical `final_verdict` text' \
+  "evaluator resend wording"
 require_absent_pattern agents/pge-evaluator.md 'mode_decision|pre-generation execution mode decision|runtime-state-contract' \
   "evaluator stale preflight/state role text"
 
 require_absent_pattern agents/pge-planner.md 'FAST_PATH|LITE_PGE|FULL_PGE|LONG_RUNNING_PGE' \
   "planner stale mode labels"
+require_pattern agents/pge-planner.md 'tools: Read, Write, Grep, Glob, SendMessage' \
+  "planner SendMessage tool"
+require_pattern agents/pge-planner.md 'resend only the canonical event text' \
+  "planner resend wording"
 
 planner_sections=(
   goal

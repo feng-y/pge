@@ -2,24 +2,31 @@
 
 ## purpose
 
-This contract defines the only runtime events that may advance `main` in the current executable lane.
+This contract defines the canonical runtime notifications that coordinate `main` in the current executable lane.
 
 `main` must not advance from ad-hoc shell polling, artifact existence alone, progress-log lines, or phase-name folklore.
 
 ## progression rule
 
-`main` advances only when it receives a valid runtime event defined here.
+`main` advances a phase only after:
+- receiving a valid runtime notification for the currently dispatched teammate
+- validating the referenced artifact/data gate for that same phase
 
 When an event references a durable artifact:
-- the event is the progression trigger
+- the event is the teammate notification that inspection should start
 - the artifact gate validates the durable side effect
 - artifact existence alone is never enough to advance
 
+If the expected notification is missing, `main` must not advance from data alone.
+Instead, `main` must explicitly ask the currently dispatched teammate to confirm whether the phase is complete and, if complete, to resend the canonical notification shape.
+
+If a teammate confirms completion but the data gate fails, the phase is not accepted and the teammate must repair or re-execute the phase work rather than merely resend the notification.
+
 ## event source rule
 
-Events may arrive through Agent Teams `SendMessage` or an equivalent runtime delivery mechanism.
+Notifications may arrive through Agent Teams `SendMessage` or an equivalent runtime delivery mechanism.
 
-The transport is not the contract. The event shape is the contract.
+The transport is not the contract. The notification shape is the contract.
 
 ## planner event
 
@@ -89,13 +96,29 @@ Meaning:
 - `main` finalized the bounded run route decision
 - this is the final progression event before teardown
 
+## notification repair rule
+
+If `main` observes non-canonical completion hints from the currently dispatched teammate, such as:
+- `idle_notification`
+- natural-language summary
+- artifact-written claim
+- task-completed claim
+- recovery / resume recap
+- "I already completed task #N" replay
+
+then `main` may use those hints only to initiate a clarification / resend request to that same teammate.
+
+Those hints do not authorize phase advancement by themselves.
+
+When requesting resend, `main` should ask for the canonical notification text only, with no recap, summary wrapper, idle wrapper, or explanatory prefix.
+
 ## forbidden progression inputs
 
 `main` must not advance solely because:
 - an artifact file exists
 - a shell polling command succeeds
 - a progress-log line exists
-- a teammate writes narrative text without a valid event shape
+- a teammate writes narrative text without a valid notification shape
 - a phase name suggests a likely next step
 
 ## current-stage note

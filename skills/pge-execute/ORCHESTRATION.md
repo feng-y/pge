@@ -16,7 +16,7 @@ Do not broaden this seam into a larger workflow framework.
 ## Runtime roles
 
 - `main` = orchestration shell only
-- `planner` = researcher + architect + contract author for one bounded round
+- `planner` = round contract owner applying research grounding, architecture judgment, and engineering-review pressure for one bounded round
 - `generator` = coder + integrator + local reviewer for one bounded round
 - `evaluator` = independently validate and issue verdict/route
 
@@ -39,8 +39,8 @@ Do not broaden this seam into a larger workflow framework.
 Single-run lifecycle:
 1. initialize run
 2. create team
-3. `/pge-execute test`: generator handoff
-4. normal tasks: planner handoff, then generator handoff
+3. planner handoff
+4. generator handoff
 5. evaluator handoff / final verdict
 6. route
 7. optional summary
@@ -49,10 +49,14 @@ Single-run lifecycle:
 ## Core rule
 
 Normal coordination is message-first.
-`main` advances only from runtime events defined in `skills/pge-execute/contracts/runtime-event-contract.md`.
+`main` advances only after teammate notification plus the matching phase gate defined in `skills/pge-execute/contracts/runtime-event-contract.md`.
 
-Durable artifacts are side effects validated after the matching event is received.
+Durable artifacts are side effects validated after the matching notification is received.
 Progress log entries are best-effort observability only and must never advance the run.
+
+If the currently dispatched teammate sends only non-canonical completion hints, `main` must ask that teammate to confirm completion and resend the canonical notification before running the phase gate.
+`main` must not advance from artifact presence alone.
+Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim.
 
 For the current stage:
 - Planner writes the locked task-shape artifact
@@ -69,13 +73,14 @@ For `/pge-execute test`:
 - evaluator must independently read that file
 - PASS requires `verdict = PASS` and `next_route = converged`
 - management artifacts, excluding `input_artifact` and the smoke deliverable, should stay minimal: `planner_artifact`, `evaluator_artifact`, and the shared `progress_artifact`
-  For the fastest smoke path, `planner_artifact` may be omitted.
+- smoke is a lighter verification lane, not a different orchestration skeleton
 
 ## Required run artifacts
 
 Required artifacts in the current executable lane:
 - all runs: `.pge-artifacts/<run_id>/planner.md`, `.pge-artifacts/<run_id>/evaluator.md`, `.pge-artifacts/<run_id>/progress.jsonl`, `.pge-artifacts/<run_id>/manifest.json`
-- larger runs may additionally persist `.pge-artifacts/<run_id>/generator.md`
+- smoke/test may omit `.pge-artifacts/<run_id>/generator.md`
+- normal non-test runs must persist `.pge-artifacts/<run_id>/generator.md`
 - summary is optional: `.pge-artifacts/<run_id>/summary.md`
 - deliverable when applicable: run-scoped repo work such as `.pge-artifacts/<run_id>/deliverables/smoke.txt`
 
@@ -88,7 +93,7 @@ All tasks use the same skeleton: `planner -> generator -> evaluator`.
 
 Task scale changes:
 - how much context Planner loads
-- whether Generator writes a durable implementation bundle
+- how deep Generator's durable implementation bundle needs to be
 - how deep Evaluator audits the result
 
 Task scale does not create new required orchestration stages in the current lane.
@@ -104,6 +109,7 @@ The progress artifact is one shared append-only execution log:
 
 Agents do not append authoritative progress directly.
 They emit runtime events and artifacts; `main` records the orchestration-visible consequences.
+If runtime-event delivery is malformed or incomplete, `main` records protocol friction and requests canonical resend from the same teammate instead of guessing phase completion.
 
 ## Generator plan-review consumption
 
@@ -114,7 +120,7 @@ Use this rule:
 - if `review_verdict = BLOCK`, stop and record a blocked run-level result; do not dispatch Evaluator
 - if `missing_prerequisites` or `repair_direction` show a material execution blocker, stop and record the blocker even if the deliverable technically exists
 - if `review_verdict = PASS` but `scope_risk`, `known_limits`, or weak evidence remain, record friction and continue to Evaluator
-- if no durable Generator artifact exists, `main` cannot inspect `generator_plan_review`; rely on deliverable existence plus `verification_result` and continue with the lightweight lane rules
+- if no durable Generator artifact exists in the smoke/test lane, `main` cannot inspect `generator_plan_review`; rely on deliverable existence plus `verification_result` and continue with the lightweight lane rules
 
 `main` may classify and route these outcomes, but it must not rewrite Generator's technical judgment into a different contract interpretation.
 

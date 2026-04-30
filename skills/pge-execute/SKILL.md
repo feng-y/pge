@@ -105,7 +105,7 @@ For `test`, use the smallest possible Agent Teams path:
 - keep the skeleton `planner -> generator -> evaluator`
 - do not read additional handoff/runtime docs during execution
 - do not redispatch teammates
-- ignore teammate `idle_notification` messages completely
+- do not treat teammate `idle_notification` as completion
 - do not emit user-facing "waiting for ..." chatter between dispatch and the required runtime event
 
 If the argument is not `test`:
@@ -120,14 +120,14 @@ For normal non-test runs, read `runtime/artifacts-and-state.md`, `ORCHESTRATION.
 For `test`, use this inline minimal protocol instead of reading extra runtime/handoff docs:
 - initialize `run_id`, `input_artifact`, `progress_artifact`, and `smoke_deliverable`
 - create one team with `planner`, `generator`, and `evaluator`
-- send planner one compact smoke-task dispatch; wait only for `type: planner_contract_ready`
+- send planner one compact smoke-task dispatch; wait for `type: planner_contract_ready`
 - gate `planner_artifact` by required top-level sections
-- send generator one compact smoke-task dispatch; wait only for `type: generator_completion`
+- send generator one compact smoke-task dispatch; wait for `type: generator_completion`
 - gate the smoke deliverable by existence, exact bytes, and exact content
-- send evaluator one compact smoke-task dispatch; wait only for `type: final_verdict`
+- send evaluator one compact smoke-task dispatch; wait for `type: final_verdict`
 - gate `evaluator_artifact` by required sections plus `PASS / converged`
 - route immediately, request shutdown once, delete team once, and return the final result
-- ignore teammate `idle_notification` and keep waiting for the required runtime event
+- use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present
 - for `test`, never redispatch planner, generator, or evaluator after an idle notification
 
 For all runs:
@@ -148,20 +148,23 @@ For all runs:
 
 3. Planner
    - for `test`, use one compact dispatch and a minimal section gate
-   - otherwise read `handoffs/planner.md`, send work, wait for `type: planner_contract_ready`, gate `planner_artifact`
+   - otherwise read `handoffs/planner.md`, send work, wait for `type: planner_contract_ready`, and if only non-canonical completion hints arrive, ask planner to confirm completion and resend the canonical notification
+   - after receiving the planner notification, gate `planner_artifact`
    - append a best-effort planner gate log entry; this is the first hard review point
 
 4. Generator
    - for non-test runs, read `handoffs/generator.md`
    - for `test`, send implementation task to generator with `output_artifact = None` and the resolved `smoke_deliverable`
-   - otherwise send implementation task to generator with the configured durable `generator_artifact`
-   - wait for `type: generator_completion`, gate deliverable and any required durable generator output
+   - otherwise send implementation task to generator with the configured durable `generator_artifact`; non-test runs must not omit it
+   - wait for `type: generator_completion`, and if only non-canonical completion hints arrive, ask generator to confirm completion and resend the canonical notification
+   - after receiving the generator notification, gate deliverable and any required durable generator output
    - when a durable generator artifact exists, inspect `self_review.generator_plan_review`
    - append a best-effort generator gate log entry; this is the second hard review point
 
 5. Evaluator
    - for non-test runs, read `handoffs/evaluator.md`
-   - send evaluation task to evaluator, wait for `type: final_verdict`, gate `evaluator_artifact` and final verdict
+   - send evaluation task to evaluator, wait for `type: final_verdict`, and if only non-canonical completion hints arrive, ask evaluator to confirm completion and resend the canonical notification
+   - after receiving the evaluator notification, gate `evaluator_artifact` and final verdict
    - append a best-effort evaluator gate log entry; this is the third hard review point
 
 6. Route, summary, teardown
@@ -205,8 +208,8 @@ Do not:
 - simulate agents in `main`
 - replace Team flow with direct role-play
 - insert a separate preflight or mode-decision gate into the current executable lane
-- advance from shell polling or mailbox file existence instead of a valid runtime event
-- react to teammate `idle_notification` as if it were a runtime event
+- advance from shell polling or mailbox file existence instead of teammate notification plus gate
+- react to teammate `idle_notification` as if it were canonical completion
 - emit user-facing "waiting for ..." chatter for `test`
 - redispatch a `test` teammate because of silence or idle notification alone
 - auto-retry multiple rounds

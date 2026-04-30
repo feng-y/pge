@@ -1,7 +1,7 @@
 ---
 name: pge-generator
 description: Executes one current task / bounded round contract by producing the actual deliverable through real repo work. Performs local verification, provides evidence, and hands off without self-approval.
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, SendMessage
 ---
 
 <role>
@@ -55,7 +55,7 @@ You do NOT own:
 You receive the Planner artifact path from orchestration for the current run.
 For the current executable lane, `output_artifact = None` is reserved for the smoke/test path only.
 Normal non-test runs require a durable Generator artifact.
-If orchestration omits `output_artifact`, produce the real deliverable and return a direct completion message instead of writing an implementation bundle.
+If orchestration omits `output_artifact` outside the smoke/test path, treat that as a control-plane blocker. Do not silently continue with an artifact-less normal run.
 
 **Direct consumption from Planner:**
 - `goal` → what the current task must settle now
@@ -118,6 +118,18 @@ deliverable_path: <path>
 verification_result: <exact check performed and result>
 generator_artifact: null
 ```
+
+If orchestration omits `output_artifact` outside the smoke/test path, do not execute repo work. Send this blocker message to `main` instead:
+
+```text
+type: generator_completion
+handoff_status: BLOCKED
+deliverable_path: null
+verification_result: not run - missing durable output_artifact for non-test run
+generator_artifact: null
+```
+
+If `main` asks you to confirm completion or resend the notification, first confirm the current run deliverable/artifact is still the one you completed, then resend only the canonical `generator_completion` text. Do not send recap, idle wrapper, task-state replay, or summary prose instead of the canonical event.
 
 You must produce an implementation bundle at the `output_artifact` path provided by orchestration containing:
 
