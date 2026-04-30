@@ -6,26 +6,62 @@ Use `repo_root` as the current working directory. Create `.pge-artifacts/` if ne
 
 ```text
 run_id = "run-" + current UTC timestamp in YYYYMMDDTHHMMSSZ
-artifact_dir = .pge-artifacts
-input_artifact = .pge-artifacts/<run_id>-input.md
-planner_artifact = .pge-artifacts/<run_id>-planner.md
-generator_artifact = .pge-artifacts/<run_id>-generator.md
-evaluator_artifact = .pge-artifacts/<run_id>-evaluator.md
-summary_artifact = .pge-artifacts/<run_id>-summary.md
-progress_artifact = .pge-artifacts/<run_id>-progress.jsonl
-smoke_deliverable = .pge-artifacts/<run_id>-smoke.txt
+artifact_dir = .pge-artifacts/<run_id>
+input_artifact = .pge-artifacts/<run_id>/input.md
+planner_artifact = .pge-artifacts/<run_id>/planner.md
+generator_artifact = .pge-artifacts/<run_id>/generator.md
+evaluator_artifact = .pge-artifacts/<run_id>/evaluator.md
+summary_artifact = .pge-artifacts/<run_id>/summary.md
+progress_artifact = .pge-artifacts/<run_id>/progress.jsonl
+smoke_deliverable = .pge-artifacts/<run_id>/deliverables/smoke.txt
+manifest_artifact = .pge-artifacts/<run_id>/manifest.json
 team_name = pge-runtime-<run_id>
 ```
 
 Current executable lane artifacts:
 
-- all runs: `input_artifact`, `planner_artifact`, `evaluator_artifact`, `progress_artifact`
+- all runs: `input_artifact`, `planner_artifact`, `evaluator_artifact`, `progress_artifact`, `manifest_artifact`
 - larger runs may additionally persist `generator_artifact`
 - `summary_artifact` is optional human-readable closeout
 - deliverables are task-defined repo artifacts; for `test`, use `smoke_deliverable`
 
+The current lane treats each run as one task directory under `.pge-artifacts/<run_id>/`.
+Old flat `<run_id>-*.md` layouts may still exist in historical runs, but they are not the current authoritative format.
+
 There is no required `state_artifact` in the current executable lane.
 Legacy runtime-state materials may remain on disk as future design references, but they are not a required dependency for normal execution.
+
+## Manifest Artifact
+
+`manifest_artifact` is the run-directory index for humans and tooling.
+
+- format: JSON
+- ownership: `main` only
+- lifecycle: created during initialization and updated as authoritative artifact refs become available
+- dependency level: weak for current execution, strong for inspection/debugging convenience
+
+Minimum shape:
+
+```json
+{
+  "run_id": "<run_id>",
+  "artifact_dir": ".pge-artifacts/<run_id>",
+  "artifacts": {
+    "input": "input.md",
+    "planner": "planner.md",
+    "generator": "generator.md or null",
+    "evaluator": "evaluator.md",
+    "progress": "progress.jsonl",
+    "summary": "summary.md or null"
+  },
+  "deliverables_dir": "deliverables/",
+  "status": "RUNNING|SUCCESS|BLOCKED",
+  "route": "<route or null>"
+}
+```
+
+The manifest is not a progression trigger.
+It is the authoritative directory index for the current run.
 
 ## Progress Artifact
 

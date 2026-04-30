@@ -98,7 +98,7 @@ Supported inputs:
 If the argument is `test`, use this fixed smoke task:
 
 ```text
-Create the run-scoped smoke file .pge-artifacts/<run_id>-smoke.txt with content exactly: pge smoke
+Create the run-scoped smoke file .pge-artifacts/<run_id>/deliverables/smoke.txt with content exactly: pge smoke
 ```
 
 For `test`, use the smallest possible Agent Teams path:
@@ -133,9 +133,10 @@ For `test`, use this inline minimal protocol instead of reading extra runtime/ha
 For all runs:
 
 1. Initialize
-   - resolve task input and `smoke_deliverable = .pge-artifacts/<run_id>-smoke.txt` for `test`
+   - resolve task input and `smoke_deliverable = .pge-artifacts/<run_id>/deliverables/smoke.txt` for `test`
    - write `input_artifact`
    - initialize `progress_artifact` as one shared append-only execution log
+   - initialize `manifest_artifact` as the run-directory index
    - verify the runtime can resolve the `pge-planner`, `pge-generator`, and `pge-evaluator` agent surfaces
 
 2. Create team
@@ -184,6 +185,7 @@ Return only:
     - <planner_artifact>
     - <generator_artifact if written>
     - <evaluator_artifact>
+    - <manifest_artifact>
     - <progress_artifact if written>
     - <summary_artifact if written>
     - <deliverable if produced>

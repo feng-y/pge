@@ -8,6 +8,10 @@ fi
 
 progress_file="$1"
 
+if [[ -d "$progress_file" ]]; then
+  progress_file="${progress_file%/}/progress.jsonl"
+fi
+
 if [[ ! -f "$progress_file" ]]; then
   echo "missing file: $progress_file" >&2
   exit 1

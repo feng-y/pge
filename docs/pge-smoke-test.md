@@ -39,7 +39,7 @@ This static pass does not count as runtime smoke proof.
 After a runtime smoke run completes, inspect timing with:
 
 ```bash
-./bin/pge-progress-report.sh .pge-artifacts/<run_id>-progress.jsonl
+./bin/pge-progress-report.sh .pge-artifacts/<run_id>/progress.jsonl
 ```
 
 This report is only useful when the progress log contains timestamps.
@@ -55,7 +55,7 @@ Run:
 The required smoke task is:
 
 ```text
-Create .pge-artifacts/<run_id>-smoke.txt with content exactly: pge smoke
+Create .pge-artifacts/<run_id>/deliverables/smoke.txt with content exactly: pge smoke
 ```
 
 ## Runtime Success Criteria
@@ -79,10 +79,11 @@ The smoke run passes only if all of the following are true:
 
 For the active `run_id`, inspect:
 
-- `.pge-artifacts/<run_id>-input.md`
-- `.pge-artifacts/<run_id>-progress.jsonl`
-- `.pge-artifacts/<run_id>-evaluator.md`
-- `.pge-artifacts/<run_id>-smoke.txt`
+- `.pge-artifacts/<run_id>/manifest.json`
+- `.pge-artifacts/<run_id>/input.md`
+- `.pge-artifacts/<run_id>/progress.jsonl`
+- `.pge-artifacts/<run_id>/evaluator.md`
+- `.pge-artifacts/<run_id>/deliverables/smoke.txt`
 
 ## Failure Classification
 

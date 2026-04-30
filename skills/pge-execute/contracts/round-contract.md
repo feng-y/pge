@@ -69,6 +69,12 @@ Within `evidence_basis`, Planner should include:
 - how the most relevant constraints affect this round
 - any rejected cut when it materially affects downstream behavior
 
+The chosen cut should also survive an engineering review pass:
+- Generator should not need to invent a new execution path
+- `verification_path` should be runnable or concretely actionable
+- `required_evidence` should be realistically collectable
+- hidden integration burden should be named rather than silently pushed downstream
+
 Do not use `design_constraints` to prescribe Generator implementation details.
 
 ## failure mode register shape
@@ -104,6 +110,9 @@ This is the PGE-thin version of brainstorming: enough opposition research to avo
 `open_questions` is for residual uncertainty that does not block freezing.
 
 If missing evidence would make the contract unfair, underspecified, or guess-driven, Planner should use `planner_escalation` instead of hiding the issue in `open_questions`.
+
+`planner_escalation` is fallback-only.
+Planner should first exhaust bounded research and architecture choices before escalating to the user.
 
 ## task split boundary
 

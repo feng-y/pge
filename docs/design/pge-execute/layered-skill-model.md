@@ -194,14 +194,14 @@ Purpose:
 
 ```text
 Input: /pge-execute test
-├─ Step 1: Orchestrator initializes .pge-artifacts/<run_id>-*
+├─ Step 1: Orchestrator initializes .pge-artifacts/<run_id>/
 ├─ Step 2: TeamCreate
 │  ├─ teammate planner -> pge-planner
 │  ├─ teammate generator -> pge-generator
 │  └─ teammate evaluator -> pge-evaluator
 ├─ Step 3: Planner -> bounded smoke contract (or shortcut when orchestration omits planner on critical path)
-├─ Step 4: Generator -> writes .pge-artifacts/<run_id>-smoke.txt
-├─ Step 5: Evaluator -> independently reads .pge-artifacts/<run_id>-smoke.txt
+├─ Step 4: Generator -> writes .pge-artifacts/<run_id>/deliverables/smoke.txt
+├─ Step 5: Evaluator -> independently reads .pge-artifacts/<run_id>/deliverables/smoke.txt
 └─ Output:
    ├─ verdict: PASS
    ├─ route: converged

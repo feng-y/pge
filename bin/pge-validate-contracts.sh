@@ -77,7 +77,7 @@ require_pattern skills/pge-execute/SKILL.md 'one bounded run with `planner -> ge
   "single skeleton claim"
 require_pattern skills/pge-execute/SKILL.md 'progress log is weak dependency only' \
   "progress weak dependency note"
-require_pattern skills/pge-execute/SKILL.md 'Create the run-scoped smoke file \.pge-artifacts/<run_id>-smoke\.txt' \
+require_pattern skills/pge-execute/SKILL.md 'Create the run-scoped smoke file \.pge-artifacts/<run_id>/deliverables/smoke\.txt' \
   "run-scoped smoke task"
 require_pattern skills/pge-execute/SKILL.md 'ignore teammate `idle_notification` messages completely' \
   "ignore idle notifications rule"
@@ -98,15 +98,19 @@ require_absent_pattern skills/pge-execute/SKILL.md 'state_artifact' \
 
 require_pattern skills/pge-execute/ORCHESTRATION.md 'All tasks use the same skeleton: `planner -> generator -> evaluator`' \
   "orchestration skeleton rule"
-require_pattern skills/pge-execute/ORCHESTRATION.md '\.pge-artifacts/<run_id>-smoke\.txt' \
+require_pattern skills/pge-execute/ORCHESTRATION.md '\.pge-artifacts/<run_id>/deliverables/smoke\.txt' \
   "orchestration run-scoped smoke path"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'append-only execution log' \
   "orchestration progress log note"
 require_absent_pattern skills/pge-execute/ORCHESTRATION.md 'state\.json|state_artifact' \
   "stale orchestration state artifact reference"
 
-require_pattern skills/pge-execute/runtime/artifacts-and-state.md 'progress_artifact = \.pge-artifacts/<run_id>-progress\.jsonl' \
+require_pattern skills/pge-execute/runtime/artifacts-and-state.md 'progress_artifact = \.pge-artifacts/<run_id>/progress\.jsonl' \
   "progress artifact path"
+require_pattern skills/pge-execute/runtime/artifacts-and-state.md 'manifest_artifact = \.pge-artifacts/<run_id>/manifest\.json' \
+  "manifest artifact path"
+require_pattern skills/pge-execute/runtime/artifacts-and-state.md 'run-directory index' \
+  "manifest index description"
 require_pattern skills/pge-execute/runtime/artifacts-and-state.md 'ownership: `main` only' \
   "main-only progress ownership rule"
 require_pattern skills/pge-execute/runtime/artifacts-and-state.md 'write mode: append-only' \
@@ -216,9 +220,11 @@ require_count agents/pge-planner.md '^- `## (goal|evidence_basis|design_constrai
 require_count skills/pge-execute/handoffs/planner.md '^- ## (goal|evidence_basis|design_constraints|in_scope|out_of_scope|actual_deliverable|acceptance_criteria|verification_path|required_evidence|stop_condition|handoff_seam|open_questions|planner_note|planner_escalation)$' 14 \
   "Planner handoff exact output section list"
 
-require_pattern docs/pge-smoke-test.md '\.pge-artifacts/<run_id>-smoke\.txt' \
+require_pattern docs/pge-smoke-test.md '\.pge-artifacts/<run_id>/deliverables/smoke\.txt' \
   "smoke doc run-scoped deliverable"
-require_pattern docs/pge-smoke-test.md '\.pge-artifacts/<run_id>-progress\.jsonl' \
+require_pattern docs/pge-smoke-test.md '\.pge-artifacts/<run_id>/manifest\.json' \
+  "smoke doc manifest artifact"
+require_pattern docs/pge-smoke-test.md '\.pge-artifacts/<run_id>/progress\.jsonl' \
   "smoke doc progress log"
 require_pattern docs/pge-smoke-test.md 'pge-progress-report\.sh' \
   "smoke doc progress report script"

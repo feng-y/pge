@@ -64,7 +64,7 @@ For the current stage:
 
 For `/pge-execute test`:
 - planner is not on the critical path
-- generator must write `.pge-artifacts/<run_id>-smoke.txt`
+- generator must write `.pge-artifacts/<run_id>/deliverables/smoke.txt`
 - file content must be exactly `pge smoke`
 - evaluator must independently read that file
 - PASS requires `verdict = PASS` and `next_route = converged`
@@ -74,10 +74,13 @@ For `/pge-execute test`:
 ## Required run artifacts
 
 Required artifacts in the current executable lane:
-- all runs: `.pge-artifacts/<run_id>-planner.md`, `.pge-artifacts/<run_id>-evaluator.md`, `.pge-artifacts/<run_id>-progress.jsonl`
-- larger runs may additionally persist `.pge-artifacts/<run_id>-generator.md`
-- summary is optional: `.pge-artifacts/<run_id>-summary.md`
-- deliverable when applicable: run-scoped repo work such as `.pge-artifacts/<run_id>-smoke.txt`
+- all runs: `.pge-artifacts/<run_id>/planner.md`, `.pge-artifacts/<run_id>/evaluator.md`, `.pge-artifacts/<run_id>/progress.jsonl`, `.pge-artifacts/<run_id>/manifest.json`
+- larger runs may additionally persist `.pge-artifacts/<run_id>/generator.md`
+- summary is optional: `.pge-artifacts/<run_id>/summary.md`
+- deliverable when applicable: run-scoped repo work such as `.pge-artifacts/<run_id>/deliverables/smoke.txt`
+
+`manifest.json` is the run-directory index written by `main`.
+It does not advance the run, but it should always point to the current authoritative artifacts for inspection and tooling.
 
 ## Execution depth
 
@@ -93,7 +96,7 @@ Task scale does not create new required orchestration stages in the current lane
 ## Progress tracking
 
 The progress artifact is one shared append-only execution log:
-- `.pge-artifacts/<run_id>-progress.jsonl`
+- `.pge-artifacts/<run_id>/progress.jsonl`
 - `main` is the only authoritative writer
 - it records scheduler actions, gate outcomes, route outcomes, repeated failures, and friction
 - it is useful for debugging and later PGE iteration
