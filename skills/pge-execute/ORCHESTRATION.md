@@ -63,7 +63,7 @@ For the current stage:
 ## Smoke task
 
 For `/pge-execute test`:
-- planner is not on the critical path
+- planner remains part of the active skeleton; the smoke path only keeps Planner as thin as possible
 - generator must write `.pge-artifacts/<run_id>/deliverables/smoke.txt`
 - file content must be exactly `pge smoke`
 - evaluator must independently read that file

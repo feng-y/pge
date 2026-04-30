@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 For proving runs, the authoritative execution-core seams are:
 - `agents/*.md`
-- `contracts/*.md`
+- `skills/pge-execute/contracts/*.md`
 - `skills/pge-execute/SKILL.md`
 
 Supporting/reference docs may provide context, but they must not override normalized route/state/verdict vocabulary during proving.
