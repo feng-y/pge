@@ -15,13 +15,13 @@ Repo evidence supports the runtime-team architecture, but the active mismatch is
 
 ## Active stage
 
-Stage 0.5 — Adaptive execution + Agent Teams communication closure + Planner stabilization
+Stage 0.5 — Adaptive execution + Agent Teams communication closure + resident Planner/Generator responsibility split
 
 ## Current blocker
 
-The design intent for `0.5A / 0.5B` is now clear. The active blocker is now role precision: Planner must ground and freeze the round without leaving Generator or Evaluator to invent missing semantics.
+The design intent for `0.5A / 0.5B` is now clear. The active blocker is operational closure in real repos: Planner must not silently skip parallel repo research when the task scale warrants it, `main` must not turn missing messages into noisy foreground polling, and Generator handoff gaps must be repaired before selecting a blocked route.
 
-The current step is to finish Planner stabilization and event-contract alignment so `main` advances from one runtime event contract instead of mixed artifact/mailbox heuristics, then move to Generator responsibility stabilization.
+The current step is to enforce a visible Planner `multi_agent_research_decision` with a scale threshold before broad repo research, keep artifact-gated recovery as an exception path, run a bounded evaluator-to-generator repair loop for retryable failures, and keep progress observation concise and structured.
 
 ## What this round is optimizing for
 
@@ -31,6 +31,11 @@ The current step is to finish Planner stabilization and event-contract alignment
 - reserve files for durable phase outputs and recovery state
 - introduce lighter closure paths for deterministic tasks without giving Planner fast-finish authority
 - make Planner run research pass + thin counter-research + architecture pass before freezing the round
+- make Planner record whether the helper scale threshold was met, which helper lanes were used, or why helpers were intentionally skipped
+- keep Planner resident as the post-plan research / architecture support lane for `main` and Generator
+- keep Generator local-first; only escalate to Planner for broad repo archaeology, architecture interpretation, contract-scope ambiguity, or multi-file pattern discovery
+- treat a visible Generator deliverable plus missing `generator.md` / `generator_completion` as a recoverable handoff gap before route selection
+- loop Evaluator feedback back to Generator while the same Planner contract remains fair, with repeated-failure snapshotting and main decision points
 - keep the current lane bounded to single-run execution; do not silently claim Phase 2/5 behavior
 
 ## Explicit non-goals
@@ -42,13 +47,14 @@ The current step is to finish Planner stabilization and event-contract alignment
 
 ## Next single action
 
-Finish Planner stabilization, validate the updated contracts, then start Generator responsibility stabilization.
+Validate that a nontrivial repo run records Planner `multi_agent_research_decision` before broad repo research, loops Evaluator retry feedback back to Generator, snapshots repeated same failures for main decision, and keeps `main` progress quiet while waiting/recovering.
 
 ## Stage exit criteria
 
 This stage is done when:
 - Planner / Generator / Evaluator authority is consistent across design and runtime docs
 - Planner emits evidence-backed contracts with source/fact/confidence/verification path
+- Planner records helper scale-threshold decisions before non-test contracts
 - Planner records thin rejected-cut reasoning when the round cut is not obvious
 - preflight is messaging-first rather than file-only
 - durable artifact boundaries are explicit and mode-aware

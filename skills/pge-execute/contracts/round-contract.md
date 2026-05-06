@@ -91,9 +91,12 @@ Use `None` only when the task is deterministic and has no material failure mode 
 
 `planner_note` should include:
 - `decision`: `pass-through` or `cut`
+- `multi_agent_research_decision`: `mode`, `scale_threshold_met`, `researcher_count`, `research_questions`, `dispatch_timing`, `research_report_refs`, and `not_parallel_reason`
 - `rejected_cuts`: at most two rejected cuts, or `None`
 - `contract_self_check`: placeholders, contradiction, scope creep, and ambiguous acceptance criteria check
 - `major_failure_mode`: the most likely way this round fails if the chosen cut is wrong
+
+For non-test planning, make the multi-agent research decision before broad repo research, after only small intake. The scale threshold is met when repo understanding requires at least two independent evidence questions, spans two or more relevant subsystems/directories, or targets an unfamiliar nontrivial repo area. When the threshold is unclear after small intake on an unfamiliar or nontrivial repo task, treat it as met. When the threshold is met and Planner chooses `mode: solo_research`, `multi_agent_research_decision.not_parallel_reason` must state the concrete exception.
 
 ## rejected cuts shape
 

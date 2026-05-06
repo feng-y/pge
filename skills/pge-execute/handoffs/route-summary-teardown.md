@@ -74,9 +74,14 @@ After route selection, perform teardown. Do not make summary a prerequisite for 
 SendMessage(to="planner", message="type: shutdown_request")
 SendMessage(to="generator", message="type: shutdown_request")
 SendMessage(to="evaluator", message="type: shutdown_request")
+Wait boundedly for shutdown_response messages to team-lead from planner, generator, and evaluator
 TeamDelete()
 ```
 
+Each teammate must answer shutdown with `SendMessage(to="team-lead", message="<plain-string shutdown_response>")`.
+Do not synthesize shutdown responses from `main`; only teammates send their own `shutdown_response`.
+Do not call `TeamDelete` until the bounded shutdown_response wait has completed.
+Missing shutdown_response messages after the bounded wait are teardown friction, not a reason to rewrite the already selected route.
 `TeamDelete` must be called with no parameters.
 Do not attach logging commands, descriptions, or any extra fields to `TeamDelete`.
 If you need to log route/teardown, do that through the progress log separately before or after the call.
@@ -90,3 +95,6 @@ If teardown fails after route selection and artifacts are already written:
 
 Append a best-effort progress log entry after the teardown attempt.
 Use `actor = "main"` and `phase = "teardown"` for teardown log lines.
+
+Final text artifact paths must be copied from the manifest/progress values as complete absolute paths.
+Do not stream partial path fragments, concatenate adjacent list items, or include paths that fail a basic existence/readability check unless they are explicitly marked missing.

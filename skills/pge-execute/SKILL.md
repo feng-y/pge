@@ -39,7 +39,7 @@ Design references live outside the skill at `docs/design/pge-execute/`; consult 
 Supported in the current implementation lane:
 - one Team
 - exactly three teammates: planner, generator, evaluator
-- one bounded run with `planner -> generator -> evaluator` for normal tasks
+- one bounded run with `planner -> generator -> evaluator`, plus a bounded evaluator-to-generator repair loop for retryable failures
 - task size changes role depth, not stage count
 - durable phase outputs plus one shared progress log
 - independent final evaluation
@@ -47,7 +47,6 @@ Supported in the current implementation lane:
 
 Not supported yet:
 - automatic multi-round redispatch
-- bounded retry loop
 - return-to-planner loop
 - checkpoint/resume execution
 
@@ -85,7 +84,7 @@ The orchestrator advances from runtime events and then validates any referenced 
 - Do not require the user to pass a plan path.
 - Do not insert a separate preflight or mode-decision phase into the current executable lane.
 - Do not give Planner authority to decide final verdict.
-- Do not claim redispatch for `continue`, `retry`, or `return_to_planner`.
+- Do not claim redispatch for `continue` or `return_to_planner`; `retry` supports a bounded Generator repair loop in the same resident team when Evaluator says the current contract remains fair.
 
 If TeamCreate / Agent with `team_name` / SendMessage / TeamDelete cannot be used, stop immediately and report one concrete blocker.
 
@@ -128,6 +127,8 @@ For `test`, use this inline minimal protocol instead of reading extra runtime/ha
 - gate `evaluator_artifact` by required sections plus `PASS / converged`
 - route immediately, request shutdown once, delete team once, and return the final result
 - use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present
+- ignore or log support messages such as `planner_support_request` / `planner_support_response` while waiting for phase completion; they are not completion hints
+- keep wait/recovery observation quiet; do not expose foreground polling scripts or verbose verification transcripts as the progress model
 - treat `TaskUpdate(status: completed)` as bookkeeping only; it is not a teammate-to-main completion event
 - for `test`, never redispatch planner, generator, or evaluator after an idle notification
 
@@ -150,7 +151,10 @@ For all runs:
 3. Planner
    - for `test`, use one compact dispatch and a minimal section gate
    - otherwise read `handoffs/planner.md`, send work, wait for the canonical teammate-to-main `type: planner_contract_ready` message, and if needed send exactly one protocol repair message asking planner to resend only that event
+   - while waiting, support messages may be logged but must not trigger phase advancement or the one-shot completion repair
+   - if `planner_contract_ready` has `ready_for_generation: false`, record Planner blocker/escalation, do not dispatch Generator, route/status as blocked, then teardown
    - if no planner message arrives after repair but `planner_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
+   - if no planner message arrives and degraded recovery cannot be proven, stop with `protocol_violation: missing_team_message_event`, record blocker/friction, then teardown when a team exists
    - after receiving the planner message or recording degraded progression, gate `planner_artifact`
    - append a best-effort planner gate log entry; this is the first hard review point
 
@@ -158,8 +162,12 @@ For all runs:
    - for non-test runs, read `handoffs/generator.md`
    - for `test`, send implementation task to generator with `output_artifact = None` and the resolved `smoke_deliverable`
    - otherwise send implementation task to generator with the configured durable `generator_artifact`; non-test runs must not omit it
-   - wait for the canonical teammate-to-main `type: generator_completion` message, and if needed send exactly one protocol repair message asking generator to resend only that event
+   - wait for the canonical teammate-to-main `type: generator_completion` message, and if needed send exactly one protocol repair message asking generator to write any missing required durable `generator_artifact` and send that event with `handoff_status: READY_FOR_EVALUATOR` or `handoff_status: BLOCKED`
+   - while waiting, `planner_support_request` / `planner_support_response` traffic between Generator and Planner may be logged but must not trigger completion repair or phase advancement
+   - if the real deliverable appears but `generator_artifact` or `generator_completion` is missing, treat it as a recoverable Generator handoff gap first; do not route blocked until the repair request fails or returns canonical BLOCKED
+   - if `generator_completion` has `handoff_status: BLOCKED`, record the Generator blocker, do not dispatch Evaluator, route/status as blocked or unsupported, then teardown
    - if no generator message arrives after repair but the deliverable and required generator artifact exist and pass the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
+   - if no generator message arrives and degraded recovery cannot be proven, stop with `protocol_violation: missing_team_message_event`, record blocker/friction, then teardown when a team exists
    - after receiving the generator message or recording degraded progression, gate deliverable and any required durable generator output
    - when a durable generator artifact exists, inspect `self_review.generator_plan_review`
    - append a best-effort generator gate log entry; this is the second hard review point
@@ -167,15 +175,22 @@ For all runs:
 5. Evaluator
    - for non-test runs, read `handoffs/evaluator.md`
    - send evaluation task to evaluator, wait for the canonical teammate-to-main `type: final_verdict` message, and if needed send exactly one protocol repair message asking evaluator to resend only that event
+   - while waiting, support messages may be logged but must not trigger phase advancement or the one-shot completion repair
+   - treat failed acceptance verification, including command crash/signal/non-zero results such as exit code `139`, as task non-acceptance even if the team later has teardown friction
    - if no evaluator message arrives after repair but `evaluator_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
+   - if no evaluator message arrives and degraded recovery cannot be proven, stop with `protocol_violation: missing_team_message_event`, record blocker/friction, then teardown when a team exists
    - after receiving the evaluator message or recording degraded progression, gate `evaluator_artifact` and final verdict
+   - if verdict is `RETRY`, or `BLOCK` with current contract still fair and required fixes are local to Generator, send Evaluator `required_fixes` back to resident Generator, then dispatch bounded re-evaluation to Evaluator
+   - repeat the Generator repair -> Evaluator re-check loop until PASS, return_to_planner/ESCALATE, repeated same-failure threshold, or max generator attempts per round is reached
+   - max generator attempts per round is 10 total attempts, including the initial generation; same `failure_signature` repeated on 3 consecutive evaluations requires a saved repair snapshot and explicit main decision before continuing
+   - when a loop threshold is hit, save the current repair snapshot, then main chooses continue one more attempt, return to Planner, or stop failed; ask the user only when main cannot justify that decision from artifacts
    - append a best-effort evaluator gate log entry; this is the third hard review point
 
 6. Route, summary, teardown
    - for non-test runs, read `handoffs/route-summary-teardown.md`
    - route from Evaluator verdict and next_route
    - write summary only when the run actually needs a human-readable closeout
-   - request teammate shutdown, delete team, append best-effort route / teardown log entries
+   - request teammate shutdown, wait boundedly for teammate `shutdown_response` messages to `team-lead`, delete team, append best-effort route / teardown log entries
 
 ## Final Response
 
@@ -187,6 +202,8 @@ Return only:
 - run_id: <run_id>
 - verdict: <verdict>
 - route: <route>
+- task_status: <passed | failed | blocked | unsupported>
+- teardown_status: <ok | friction | failed | not_attempted>
 - artifacts:
     - <input_artifact>
     - <planner_artifact>
@@ -194,14 +211,22 @@ Return only:
     - <evaluator_artifact>
     - <manifest_artifact>
     - <progress_artifact if written>
+    - <repair_snapshot_artifact if written>
     - <summary_artifact if written>
     - <deliverable if produced>
 - blocker: <single concrete blocker or null>
 ```
 
+Final response path rule:
+- artifact and deliverable entries must be complete absolute paths copied from manifest/progress values
+- each path must be one list item; do not concatenate adjacent artifact paths or stream partial path fragments
+- include a path only when it exists/readable, or mark it explicitly as missing
+
 Final result mapping:
 - `status = SUCCESS` only when `verdict = PASS` and `route = converged`
 - `route = continue | retry | return_to_planner | unsupported_route | blocked` must not be reported as `SUCCESS`
+- `task_status` is derived from Planner/Generator/Evaluator deliverable evidence and verification, not from teardown
+- `teardown_status` records shutdown/delete friction separately and must not rewrite a failed task as infrastructure-only failure
 
 ## Forbidden Behavior
 
@@ -216,7 +241,7 @@ Do not:
 - react to teammate `idle_notification` as if it were canonical completion
 - emit user-facing "waiting for ..." chatter for `test`
 - redispatch a `test` teammate because of silence or idle notification alone
-- auto-retry multiple rounds
+- auto-retry multiple rounds beyond the bounded same-contract generator repair loop
 - treat the progress log as a state machine or execution gate
 - treat `TaskUpdate(status: completed)` as phase completion
 - stop before waiting for the dispatched teammate artifact handoff

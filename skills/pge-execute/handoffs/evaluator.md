@@ -17,6 +17,14 @@ Evaluate independently.
 You must read the actual deliverable yourself.
 Do not trust generator claims without checking the file.
 Do not modify repo files.
+Act as a resident independent validation teammate, not a one-shot verdict writer.
+Before evaluating deeply, make a visible `verification_helper_decision`.
+Use bounded read-only verification helpers when independent evidence checks would materially reduce risk or latency.
+When using multiple helpers, launch independent verification lanes concurrently rather than as a long serial chain.
+You remain the only verdict owner, route owner, artifact owner, and `final_verdict` sender.
+If two or more independent evidence/deliverable checks exist, use verification helpers unless helper overhead would make evaluation slower or weaker.
+If Generator used coder workers, use at least one read-only verification helper unless the changed surface is trivial or smoke/test-only.
+If you do not use helpers despite these trigger conditions, record the reason in `verification_helper_decision.not_using_helpers_reason`.
 
 For `test`, independently read <smoke_deliverable>.
 Only output PASS if the file exists and its full content equals exactly `pge smoke`.
@@ -66,9 +74,28 @@ Do not only write the artifact.
 Do not only summarize in your own pane.
 Do not rely on task status as completion.
 Do not call `TaskUpdate(status: completed)` as the completion signal instead of sending the canonical event to `main`.
-If you use TaskCreate/TaskUpdate for internal tracking, those actions must happen before the final SendMessage; the final action must still be SendMessage.
+Do not call `TaskUpdate(status: completed)` for the evaluation phase at all.
+If you use TaskCreate/TaskUpdate for internal tracking, do not use `completed` status for PGE phase completion.
+The final action must still be SendMessage for the initial evaluation deliverable.
+After this SendMessage, do not exit; remain resident, available, and responsive for bounded verdict clarification until shutdown.
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify `<evaluator_artifact>` still matches this run and resend only the exact canonical `final_verdict` text above. Do not send recap, idle wrapper, or summary text instead of the event.
+
+Rules:
+- verification helpers are read-only; they may inspect deliverables, evidence, verification output, scope, and invariants
+- verification helpers may not edit files, approve deliverables, choose verdict, choose route, or send PGE runtime events to `main`
+- record `verification_helper_decision` in `## independent_verification` with count, reason, parallel checks, not-using reason, and helper report identifiers or `None`
+- if helpers are used, record material unresolved concerns in `## evidence`, `## violated_invariants_or_risks`, or `## required_fixes`
+- independently check Planner's `verification_path` and acceptance criteria when practical; do not rely on Generator's build-only verification when runtime behavior is part of the contract
+- if an acceptance-required command fails, crashes, exits by signal, or returns a non-zero code such as `139`, verdict must not be `PASS`; record the command/result in `## evidence` and the required fix in `## required_fixes`
+- record a stable `failure_signature` for non-PASS verdicts in `## independent_verification`, based on the failed acceptance criterion, failed command/path, and normalized error class such as `exit_139`
+- distinguish deliverable correctness failure from runtime-team teardown failure; teardown noise must not hide a failed verification path
+- answer bounded post-verdict clarification about evidence, violated criteria, required fixes, and route reasoning
+- do not use Planner or Generator clarification as a substitute for independent verification
+- do not issue a changed verdict unless `main` dispatches bounded re-evaluation
+- after `final_verdict`, respond to bounded clarification questions from `main`, Planner, or Generator without changing the verdict unless `main` dispatches bounded re-evaluation
+- when `main` dispatches bounded re-evaluation after a Generator repair, re-check the repaired deliverable independently against the same Planner contract, record the repair attempt number, and state whether each previously failed verification path now passes
+- if the same `failure_signature` remains after repair, keep `next_route: retry` only when another bounded attempt remains, the current contract is still fair, and `main` has not stopped at a repair checkpoint; otherwise use the appropriate non-retryable route
 
 ## Gate
 

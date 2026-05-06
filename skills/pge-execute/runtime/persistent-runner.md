@@ -8,12 +8,12 @@ It is not part of the current executable lane, which does not require runtime st
 
 Define how PGE can run for longer than one phase while remaining recoverable, bounded, and honest about unsupported routes.
 
-The current executable runtime is still one implementation round. This document defines the persistence model needed for future retry, return-to-planner, and continue loops.
+The current executable runtime is one implementation round plus a bounded Generator repair loop when Evaluator selects `retry` under a still-fair contract. This document defines the persistence model needed for broader future return-to-planner and continue loops.
 
 ## Current Runtime Invariants
 
-- The current executable runtime is still a single implementation round.
-- `retry`, `continue`, and `return_to_planner` have communication and persistence models, but automatic redispatch is not implemented yet.
+- The current executable runtime supports one implementation round plus bounded Generator repairs up to `max_attempts_per_round`.
+- Open-ended `continue` and `return_to_planner` loops have communication and persistence models, but automatic redispatch beyond the same-contract retry loop is not implemented yet.
 - Durable truth is `state_artifact`, `progress_artifact`, and phase artifacts. Chat history is not durable state.
 - If a team is lost, future recovery must recreate a same-role team from artifacts instead of relying on old conversational context.
 
@@ -39,7 +39,8 @@ Future persistent runtime state should extend the current state with:
   "attempt_id": 1,
   "preflight_attempt_id": 1,
   "max_rounds": 5,
-  "max_attempts_per_round": 3,
+  "max_attempts_per_round": 10,
+  "max_consecutive_same_failure": 3,
   "max_preflight_attempts": 2,
   "state": "<state>",
   "team_name": "<team_name>",
@@ -145,7 +146,8 @@ Timeouts must not be converted into PASS or convergence.
 Persistent routes need hard caps:
 
 - max preflight proposal repairs: 2
-- max generator attempts per round: 3
+- max generator attempts per round: 10
+- max consecutive same failure signature: 3, then save a repair snapshot and require a main decision before continuing
 - max rounds per run: 5 by default
 
 At the cap:

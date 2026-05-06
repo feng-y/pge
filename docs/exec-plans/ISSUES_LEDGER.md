@@ -6,9 +6,33 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 - **Persistent runtime-team architecture is not yet operationally closed**
   - Impact: High (the target architecture is settled, but the runtime still needs authoritative orchestration closure before persistent team lifecycle can be claimed as implemented)
-  - Next: keep `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`, canonical contracts, runtime-facing contract copies, and `skills/pge-execute/SKILL.md` aligned while the next implementation round closes the remaining runtime lifecycle mechanics
+  - Next: validate Planner helper scale-threshold decisions in a nontrivial repo run, then close the remaining runtime lifecycle mechanics
+
+- **Planner can silently skip parallel repo research on large/unfamiliar repos**
+  - Impact: High (Generator may receive an under-researched contract and `main` cannot distinguish a justified local research pass from an accidental non-use of helpers)
+  - Next: require `multi_agent_research_decision` before broad repo research and repeat it in `planner_note`, with scale threshold, mode, researcher count, report refs, and concrete solo-research reason
+
+- **`main` recovery observation can become noisy foreground polling**
+  - Impact: Medium to High (raw listener scripts and verbose verification output harm reading experience without improving canonical communication)
+  - Next: keep `SendMessage` as the primary wait path; use artifact-gated recovery only after repair/timeout, with quiet structured progress events
+
+- **Generator handoff gaps can be routed as final BLOCK too early**
+  - Impact: High (a real deliverable can exist while missing `generator.md` / `generator_completion`; direct route blocking loses recoverable work)
+  - Next: require `main` to ask resident Generator to complete the durable handoff or send canonical BLOCKED before blocked route selection
+
+- **Evaluator retry feedback was not a real loop**
+  - Impact: High (deliverable failures such as repeated exit 139 could stop as route output instead of feeding required fixes back to Generator)
+  - Next: support a bounded evaluator-to-generator repair loop with same-failure signatures, repair snapshots, and explicit main continue/stop decisions
+
+- **Shutdown acknowledgement target is underspecified**
+  - Impact: Medium (runtime can reject teardown with `shutdown_response must be sent to "team-lead"`)
+  - Next: require each teammate to send `shutdown_response` to `team-lead`, while `main` only sends `shutdown_request` and calls `TeamDelete`
 
 ## P1 / Follow-up
+
+- **Helper report artifact naming and minimum fields are not yet normalized**
+  - Impact: Medium (Planner/Generator/Evaluator can now use helper lanes, but helper report refs are only described generically)
+  - Next: define small helper report naming/minimum-field conventions under run-scoped `.pge-artifacts/<run_id>/` after the resident role split is validated
 
 - **Artifact-chain validation before final routing must be implemented in runtime behavior**
   - Impact: Medium to High (the control-plane gates are now explicit, but the runtime surface must still enforce planner/generator/evaluator artifact usability before final routing)

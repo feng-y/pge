@@ -16,11 +16,13 @@ Do not broaden this seam into a larger workflow framework.
 ## Runtime roles
 
 - `main` = orchestration shell only
-- `planner` = round contract owner applying research grounding, architecture judgment, and engineering-review pressure for one bounded round
-- `generator` = coder + integrator + local reviewer for one bounded round
-- `evaluator` = independently validate and issue verdict/route
+- `planner` = resident researcher + architect teammate; owns initial evidence-backed plan workflow and later bounded research / architecture support for `main` and Generator
+- `generator` = resident implementation teammate; owns bounded execution, integration, local verification, and later implementation clarification; asks Planner only for broad repo / architecture research that would otherwise pull Generator out of implementation
+- `evaluator` = resident independent validation teammate; owns verdict workflow and later bounded verdict clarification
 
 `main` is not a fourth agent.
+
+Each teammate is a workflow actor, not a one-shot persona. Initial phase completion is a handoff event, not agent termination.
 
 `main` owns:
 - dispatch
@@ -59,11 +61,22 @@ If the currently dispatched teammate sends only non-canonical completion hints, 
 If the canonical message still does not arrive after repair but the current-phase artifact passes the full gate and unambiguously belongs to the current run, `main` may continue with degraded progression recorded as `protocol_recovery: missing_team_message_event_artifact_gate`.
 Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim.
 `TaskUpdate(status: completed)` is teammate bookkeeping only; it is not a phase-completion event and must not replace the canonical teammate-to-main `SendMessage`.
+Foreground polling scripts and verbose verification transcripts are not the user-facing progress model. `main` should keep waiting/recovery observation quiet, append only structured progress events, and surface a concise status only when a gate passes, blocks, repairs, or degrades.
 
 For the current stage:
 - Planner writes the locked task-shape artifact
+- Planner records a visible `multi_agent_research_decision` before broad repo research for a non-test contract; when the scale threshold is met, Planner chooses `mode: parallel_multi_agent_research` and launches bounded internal researcher subagents in parallel before continuing serial research unless a concrete exception is recorded
+- Helper scale threshold: at least two independent evidence questions, two or more relevant subsystems/directories, or an unfamiliar nontrivial repo area
+- Planner helper lanes are read-only evidence collectors; helpers are not PGE runtime stages and do not own contract authority
+- After `planner_contract_ready`, Planner does not exit; it remains resident, available, and responsive for bounded clarification, architecture guidance, and repo research until shutdown
 - Generator first reviews Planner's frozen contract for executability, then executes against it
+- Generator may run bounded coder workers and read-only reviewer helpers in parallel, but helpers are not PGE runtime stages and do not own integration, approval, or `generator_completion`
+- Generator handles directly relevant local context itself; it asks resident Planner only for broad repo archaeology, architecture interpretation, contract-scope ambiguity, or multi-file research that would overload implementation
+- Generator records this boundary in `planner_support_decision`; Planner support messages are advisory evidence, not phase progression events
+- After `generator_completion`, Generator does not exit; it remains resident, available, and responsive for bounded implementation clarification or repair investigation until shutdown
 - Evaluator performs the only approval gate
+- Evaluator may run bounded read-only verification helpers in parallel for independent evidence checks, but helpers are not PGE runtime stages and do not own verdict/route authority
+- After `final_verdict`, Evaluator does not exit; it remains resident, available, and responsive for bounded verdict clarification until shutdown
 - only durable phase outputs plus the shared progress log are written to disk
 
 ## Smoke task
@@ -112,6 +125,20 @@ The progress artifact is one shared append-only execution log:
 Agents do not append authoritative progress directly.
 They emit canonical teammate-to-main runtime events and artifacts; `main` records the orchestration-visible consequences.
 If runtime-event delivery is malformed or incomplete, `main` records protocol friction, sends one canonical resend request to the same teammate, then either continues through explicit degraded artifact-gated recovery or stops with `protocol_violation: missing_team_message_event`.
+Support messages are coordination traffic. They may be logged, but they do not advance phases and do not consume the one repair attempt for missing phase-completion events.
+
+## Main exception handling
+
+`main` must protect the run from stuck resident teammates:
+
+- Missing completion event: send one canonical resend request to the currently dispatched teammate; then either use explicit degraded artifact-gated recovery or stop with `protocol_violation: missing_team_message_event`.
+- Malformed completion event: request one resend of the canonical event shape; if the resend is still malformed, stop with `protocol_violation: invalid_team_message_event`.
+- Generator handoff gap: if the real deliverable exists but `generator.md` or `generator_completion` is missing, ask resident Generator to complete the durable handoff or send canonical BLOCKED before selecting a blocked route.
+- Explicit blocked completion: record the blocker, do not dispatch downstream phases that depend on the missing work, route/status as blocked or unsupported, and teardown.
+- Support-message traffic: log when useful and keep waiting for the current phase completion event.
+- Substrate failure: record runtime/substrate blocker and teardown when a team exists.
+
+`main` must not wait indefinitely after the single protocol repair attempt.
 
 ## Generator plan-review consumption
 
@@ -128,15 +155,22 @@ Use this rule:
 
 ## Route behavior
 
-Current version supports only one successful terminal route:
+Current version supports one successful terminal route:
 - `converged`
+
+Current version also supports a bounded evaluator-to-generator repair loop:
+- `retry` may redispatch resident Generator when Evaluator says the current contract remains fair and the required fixes are local to Generator
+- after each repair, `main` dispatches bounded re-evaluation to Evaluator
+- max generator attempts per round: 10 total attempts, including the initial generation
+- same `failure_signature` repeated on 3 consecutive evaluations triggers a repair decision checkpoint
+- stop the loop on `PASS`, `return_to_planner`, `ESCALATE`, max attempts exhausted, or main decision to stop after a checkpoint
 
 If evaluator returns anything else:
 - record it
 - append the route/blocker to the progress log
-- treat canonical `continue`, `retry`, or `return_to_planner` as `unsupported_route`
-- stop without redispatch
-- do not auto-retry in the current smoke stage
+- treat canonical `continue` or `return_to_planner` as `unsupported_route`
+- stop without redispatch except for the supported bounded same-contract `retry` loop
+- do not retry beyond max generator attempts or checkpoint decision in the current stage
 
 ## Evaluator verdict consumption
 
@@ -144,10 +178,14 @@ After the `final_verdict` event and evaluator artifact gate:
 
 - if `verdict = PASS` and `next_route = converged`, record success-path route data and continue to teardown
 - if `verdict = PASS` and `next_route = continue`, record canonical route, downgrade to `unsupported_route` in the current stage, and stop cleanly
-- if `verdict = RETRY`, treat it as an execution-level non-acceptance result, record required fixes and friction, downgrade to `unsupported_route`, and stop cleanly
-- if `verdict = BLOCK` and the required fixes describe missing execution evidence or incomplete delivery under a still-fair contract, record an execution blocker and downgrade to `unsupported_route`
+- if `verdict = RETRY`, record required fixes and dispatch Generator repair while attempts remain; otherwise stop as unsupported/failed
+- if `verdict = BLOCK` and the required fixes describe missing execution evidence or incomplete delivery under a still-fair contract, dispatch Generator repair while attempts remain; otherwise record an execution blocker and stop
 - if `verdict = BLOCK` and the route reason shows the contract is no longer a fair repair frame, classify it as contract friction and downgrade to `unsupported_route`
 - if `verdict = ESCALATE`, classify it as a contract-level failure signal, record the escalation reason, downgrade to `unsupported_route`, and stop cleanly
+
+When the same failure signature repeats or the total attempt budget is hit, `main` must save a repair snapshot before deciding. The snapshot records run id, attempt count, failure signature, last failed command/result, current artifacts, changed files, Evaluator required fixes, Generator repair notes, and the next main decision: continue one more attempt, return to Planner, or stop failed. If artifacts do not justify the decision, `main` may ask the user one focused question.
+
+Task outcome and teardown outcome are separate. A failed verification path, including a crash/signal/non-zero result such as exit code `139`, is a deliverable correctness failure even if teardown later also fails. A noisy or failed teardown is teardown friction and must not overwrite the task verdict/route.
 
 `main` may classify the result as:
 - success-path
