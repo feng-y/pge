@@ -128,6 +128,7 @@ For `test`, use this inline minimal protocol instead of reading extra runtime/ha
 - gate `evaluator_artifact` by required sections plus `PASS / converged`
 - route immediately, request shutdown once, delete team once, and return the final result
 - use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present
+- treat `TaskUpdate(status: completed)` as bookkeeping only; it is not a teammate-to-main completion event
 - for `test`, never redispatch planner, generator, or evaluator after an idle notification
 
 For all runs:
@@ -149,7 +150,8 @@ For all runs:
 3. Planner
    - for `test`, use one compact dispatch and a minimal section gate
    - otherwise read `handoffs/planner.md`, send work, wait for the canonical teammate-to-main `type: planner_contract_ready` message, and if needed send exactly one protocol repair message asking planner to resend only that event
-   - after receiving the planner message, gate `planner_artifact`
+   - if no planner message arrives after repair but `planner_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
+   - after receiving the planner message or recording degraded progression, gate `planner_artifact`
    - append a best-effort planner gate log entry; this is the first hard review point
 
 4. Generator
@@ -157,14 +159,16 @@ For all runs:
    - for `test`, send implementation task to generator with `output_artifact = None` and the resolved `smoke_deliverable`
    - otherwise send implementation task to generator with the configured durable `generator_artifact`; non-test runs must not omit it
    - wait for the canonical teammate-to-main `type: generator_completion` message, and if needed send exactly one protocol repair message asking generator to resend only that event
-   - after receiving the generator message, gate deliverable and any required durable generator output
+   - if no generator message arrives after repair but the deliverable and required generator artifact exist and pass the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
+   - after receiving the generator message or recording degraded progression, gate deliverable and any required durable generator output
    - when a durable generator artifact exists, inspect `self_review.generator_plan_review`
    - append a best-effort generator gate log entry; this is the second hard review point
 
 5. Evaluator
    - for non-test runs, read `handoffs/evaluator.md`
    - send evaluation task to evaluator, wait for the canonical teammate-to-main `type: final_verdict` message, and if needed send exactly one protocol repair message asking evaluator to resend only that event
-   - after receiving the evaluator message, gate `evaluator_artifact` and final verdict
+   - if no evaluator message arrives after repair but `evaluator_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
+   - after receiving the evaluator message or recording degraded progression, gate `evaluator_artifact` and final verdict
    - append a best-effort evaluator gate log entry; this is the third hard review point
 
 6. Route, summary, teardown
@@ -208,12 +212,13 @@ Do not:
 - simulate agents in `main`
 - replace Team flow with direct role-play
 - insert a separate preflight or mode-decision gate into the current executable lane
-- advance from shell polling or mailbox file existence instead of canonical teammate-to-main notification plus gate
+- advance from shell polling or mailbox file existence without either canonical teammate-to-main notification plus gate or explicit degraded artifact-gated recovery
 - react to teammate `idle_notification` as if it were canonical completion
 - emit user-facing "waiting for ..." chatter for `test`
 - redispatch a `test` teammate because of silence or idle notification alone
 - auto-retry multiple rounds
 - treat the progress log as a state machine or execution gate
+- treat `TaskUpdate(status: completed)` as phase completion
 - stop before waiting for the dispatched teammate artifact handoff
 - accept `test` without the evaluator independently reading the run-scoped smoke deliverable
 - report `status: SUCCESS` together with any non-terminal route

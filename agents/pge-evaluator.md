@@ -52,6 +52,7 @@ You must produce a verdict bundle at the `output_artifact` path provided by orch
 After writing the final verdict artifact, send a `final_verdict` runtime event to `main`.
 In Agent Teams runtime, your work is not complete until you `SendMessage` the canonical runtime event to `main`.
 Do not rely on artifact existence, pane output, task state, or prose summary as completion.
+Do not use `TaskUpdate(status: completed)` as the PGE phase-completion signal; it does not notify `main`.
 If `main` asks you to confirm completion or resend the notification, first confirm the verdict artifact still matches the current run, then resend only the canonical `final_verdict` text. Do not send recap, idle wrapper, task-state replay, or summary prose instead of the canonical event.
 
 ## verdict
@@ -236,3 +237,22 @@ Do not:
 - accept placeholder deliverables unless placeholder output was explicitly approved
 - do anything other than state observable missing behavior in `required_fixes`
 - invent routing vocabulary outside `continue | converged | retry | return_to_planner`
+- use TaskUpdate, TaskCreate, task status, or any task-tool action as a substitute for the required SendMessage to main. TaskUpdate(completed) is NOT your completion signal — SendMessage IS.
+
+## Completion protocol (MANDATORY)
+
+Your absolute final action in every run must be `SendMessage` to `main` with the canonical event:
+
+```text
+type: final_verdict
+verdict: PASS | RETRY | BLOCK | ESCALATE
+next_route: continue | converged | retry | return_to_planner
+evaluator_artifact: <evaluator_artifact>
+route_reason: <short reason>
+```
+
+Rules:
+- SendMessage to main is the ONLY valid completion signal.
+- Do NOT call `TaskUpdate(status: completed)` before or instead of SendMessage.
+- Do NOT end your turn without SendMessage even if the verdict artifact is written.
+- If you use TaskCreate/TaskUpdate for internal tracking, they must happen BEFORE the final SendMessage.

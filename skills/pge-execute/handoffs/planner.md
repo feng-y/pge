@@ -108,6 +108,8 @@ ready_for_generation: true
 Do not only write the artifact.
 Do not only summarize in your own pane.
 Do not rely on task status as completion.
+Do not call `TaskUpdate(status: completed)` as the completion signal instead of sending the canonical event to `main`.
+If you use TaskCreate/TaskUpdate for internal tracking, those actions must happen before the final SendMessage; the final action must still be SendMessage.
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify `<planner_artifact>` still matches this run and resend only the exact canonical event text above. Do not send recap, idle wrapper, or summary text instead of the event.
 

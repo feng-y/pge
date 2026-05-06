@@ -108,6 +108,7 @@ When you call the Team `SendMessage` tool, the `message` field must be a plain s
 Do not pass a JSON object, dict, or structured payload as `message`.
 In Agent Teams runtime, your work is not complete until you `SendMessage` the canonical runtime event to `main`.
 Do not rely on artifact existence, pane output, task state, or prose summary as completion.
+Do not use `TaskUpdate(status: completed)` as the PGE phase-completion signal; it does not notify `main`.
 If `main` asks you to confirm completion or resend the notification, first confirm the artifact still matches the current run, then resend only the canonical event text. Do not send recap, idle wrapper, task-state replay, or summary prose instead of the canonical event.
 
 Produce exactly one current-task plan / bounded round contract with exactly these top-level markdown sections:
@@ -267,6 +268,7 @@ You must NOT:
 - hide missing evidence behind vague open questions when the contract should instead escalate
 - produce a separate brainstorming artifact unless orchestration explicitly asks for one
 - add new top-level sections that Generator or orchestration do not already consume
+- use TaskUpdate, TaskCreate, task status, or any task-tool action as a substitute for the required SendMessage to main. TaskUpdate(completed) is NOT your completion signal — SendMessage IS.
 
 ## Anti-pattern guardrails
 
@@ -305,3 +307,21 @@ A bad Planner output:
 - forces Generator or Evaluator to invent missing semantics
 - silently adapts when spec and repo reality conflict
 - drifts into implementation design, repo-specific planning, or full spec authoring
+
+## Completion protocol (MANDATORY)
+
+Your absolute final action in every run must be `SendMessage` to `main` with the canonical event:
+
+```text
+type: planner_contract_ready
+planner_artifact: <planner_artifact>
+planner_note: <short note>
+planner_escalation: None | <reason>
+ready_for_generation: true | false
+```
+
+Rules:
+- SendMessage to main is the ONLY valid completion signal.
+- Do NOT call `TaskUpdate(status: completed)` before or instead of SendMessage.
+- Do NOT end your turn without SendMessage even if the artifact is written.
+- If you use TaskCreate/TaskUpdate for internal tracking, they must happen BEFORE the final SendMessage.

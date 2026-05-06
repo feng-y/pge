@@ -54,6 +54,8 @@ If <output_artifact> is present, your final action must still be `SendMessage` t
 Do not only write the artifact.
 Do not only say completion in your own pane.
 Do not send a prose summary instead of the event.
+Do not call `TaskUpdate(status: completed)` as the completion signal instead of sending the canonical event to `main`.
+If you use TaskCreate/TaskUpdate for internal tracking, those actions must happen before the final SendMessage; the final action must still be SendMessage.
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify the current run deliverable/artifact is still the one you completed and resend only the exact canonical `generator_completion` text. Do not send recap, idle wrapper, or summary text instead of the event.
 

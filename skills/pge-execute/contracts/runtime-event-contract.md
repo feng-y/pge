@@ -17,7 +17,7 @@ When an event references a durable artifact:
 - the artifact gate validates the durable side effect
 - artifact existence alone is never enough to advance
 
-If the expected notification is missing, `main` must not advance from data alone.
+If the expected notification is missing, `main` must not advance from artifact existence alone.
 Instead, `main` must explicitly ask the currently dispatched teammate to confirm whether the phase is complete and, if complete, to resend the canonical notification shape.
 
 If a teammate confirms completion but the data gate fails, the phase is not accepted and the teammate must repair or re-execute the phase work rather than merely resend the notification.
@@ -32,6 +32,7 @@ The transport is not the contract. The notification shape is the contract.
 
 The teammate-to-main message is the only legal progression trigger in the current Agent Teams lane.
 Artifact existence, progress logs, pane output, task state, or prose summaries do not replace it.
+`TaskUpdate(status: completed)` is task bookkeeping only; it is not a PGE phase-completion event and must not be the teammate's substitute for the canonical `SendMessage`.
 
 ## planner event
 
@@ -108,6 +109,7 @@ If `main` observes non-canonical completion hints from the currently dispatched 
 - natural-language summary
 - artifact-written claim
 - task-completed claim
+- `TaskUpdate(status: completed)` / task-list completion
 - recovery / resume recap
 - "I already completed task #N" replay
 
@@ -117,7 +119,21 @@ Those hints do not authorize phase advancement by themselves.
 
 When requesting resend, `main` should ask for the canonical notification text only, with no recap, summary wrapper, idle wrapper, or explanatory prefix.
 
-If artifact side effects exist but the canonical teammate-to-main message never arrives, `main` must stop with:
+## bounded recovery rule
+
+If the canonical teammate-to-main message still does not arrive after one protocol repair request, `main` may continue only when all of these are true:
+
+- the expected current-phase artifact exists under the current run directory
+- the full phase gate for that artifact passes
+- the artifact unambiguously belongs to the currently dispatched teammate and current run
+- `main` records degraded progression in `progress_artifact`
+
+This is degraded progression, not a normal pass.
+The progress event must include:
+
+`protocol_recovery: missing_team_message_event_artifact_gate`
+
+If any condition is not met, `main` must stop with:
 
 `protocol_violation: missing_team_message_event`
 

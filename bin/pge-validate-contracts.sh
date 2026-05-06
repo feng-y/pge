@@ -69,8 +69,12 @@ do
 done
 
 skill_lines="$(wc -l < skills/pge-execute/SKILL.md | tr -d ' ')"
+if [[ "$skill_lines" -gt 260 ]]; then
+  fail "skills/pge-execute/SKILL.md has ${skill_lines} lines; keep the entrypoint under 260 lines"
+fi
+
 if [[ "$skill_lines" -gt 220 ]]; then
-  fail "skills/pge-execute/SKILL.md has ${skill_lines} lines; keep the entrypoint small"
+  printf 'WARN: skills/pge-execute/SKILL.md has %s lines; consider slimming the entrypoint toward <= 220 lines\n' "$skill_lines" >&2
 fi
 
 require_pattern skills/pge-execute/SKILL.md 'one bounded run with `planner -> generator -> evaluator` for normal tasks' \
@@ -87,6 +91,8 @@ require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message 
   "generator canonical teammate message wait rule"
 require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: final_verdict`' \
   "evaluator canonical teammate message wait rule"
+require_pattern skills/pge-execute/SKILL.md 'protocol_recovery: missing_team_message_event_artifact_gate' \
+  "degraded artifact-gated recovery rule"
 require_pattern skills/pge-execute/SKILL.md 'use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present' \
   "recovery recap non-canonical rule"
 require_pattern skills/pge-execute/SKILL.md 'do not emit user-facing "waiting for \.\.\." chatter between dispatch and the required runtime event' \
@@ -101,6 +107,10 @@ require_pattern skills/pge-execute/SKILL.md 'send evaluation task to evaluator' 
   "final evaluator dispatch"
 require_pattern skills/pge-execute/SKILL.md 'for `test`, never redispatch planner, generator, or evaluator after an idle notification' \
   "no redispatch on idle rule"
+require_pattern skills/pge-execute/SKILL.md 'treat `TaskUpdate\(status: completed\)` as bookkeeping only; it is not a teammate-to-main completion event' \
+  "taskupdate is not completion"
+require_pattern skills/pge-execute/SKILL.md 'treat `TaskUpdate\(status: completed\)` as phase completion' \
+  "forbidden taskupdate completion"
 require_absent_pattern skills/pge-execute/SKILL.md 'state_artifact' \
   "stale state artifact reference"
 
@@ -118,6 +128,10 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'Recovery/resume recap and t
   "recovery recap orchestration rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'protocol_violation: missing_team_message_event' \
   "missing team message protocol violation rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'protocol_recovery: missing_team_message_event_artifact_gate' \
+  "degraded recovery orchestration rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'TaskUpdate\(status: completed\)` is teammate bookkeeping only; it is not a phase-completion event' \
+  "taskupdate orchestration non-completion rule"
 require_absent_pattern skills/pge-execute/ORCHESTRATION.md 'state\.json|state_artifact' \
   "stale orchestration state artifact reference"
 
@@ -158,12 +172,20 @@ require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'canonica
   "teammate to main sendmessage rule"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'The teammate-to-main message is the only legal progression trigger in the current Agent Teams lane' \
   "only legal progression trigger rule"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'TaskUpdate\(status: completed\)` is task bookkeeping only' \
+  "taskupdate runtime non-completion rule"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'recovery / resume recap' \
   "recovery recap runtime hint"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'TaskUpdate\(status: completed\)` / task-list completion' \
+  "taskupdate runtime non-canonical hint"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'canonical notification text only, with no recap, summary wrapper, idle wrapper, or explanatory prefix' \
   "canonical resend only rule"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'protocol_violation: missing_team_message_event' \
   "missing team message runtime violation"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'protocol_recovery: missing_team_message_event_artifact_gate' \
+  "missing team message degraded runtime recovery"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'This is degraded progression, not a normal pass' \
+  "degraded progression distinction"
 require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'terminal_response|push_event' \
   "no codex terminal response branch"
 require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'advances only when it receives a valid runtime event' \
@@ -182,6 +204,10 @@ require_pattern skills/pge-execute/handoffs/planner.md 'resend only the exact ca
   "planner canonical resend rule"
 require_pattern skills/pge-execute/handoffs/planner.md 'Do not only write the artifact' \
   "planner artifact existence not completion"
+require_pattern skills/pge-execute/handoffs/planner.md 'Do not call `TaskUpdate\(status: completed\)` as the completion signal' \
+  "planner taskupdate not completion"
+require_pattern skills/pge-execute/handoffs/planner.md 'final action must still be SendMessage' \
+  "planner task tracking before final sendmessage"
 require_absent_pattern skills/pge-execute/handoffs/planner.md 'write state|update progress only when enabled|ready_for_preflight' \
   "planner stale state logic"
 
@@ -195,6 +221,10 @@ require_pattern skills/pge-execute/handoffs/generator.md 'resend only the exact 
   "generator canonical resend rule"
 require_pattern skills/pge-execute/handoffs/generator.md 'Do not only write the artifact' \
   "generator artifact existence not completion"
+require_pattern skills/pge-execute/handoffs/generator.md 'Do not call `TaskUpdate\(status: completed\)` as the completion signal' \
+  "generator taskupdate not completion"
+require_pattern skills/pge-execute/handoffs/generator.md 'final action must still be SendMessage' \
+  "generator task tracking before final sendmessage"
 require_absent_pattern skills/pge-execute/handoffs/generator.md 'preflight_artifact|contract_proposal_artifact|write state' \
   "generator stale preflight/state logic"
 
@@ -208,6 +238,10 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'resend only the exact 
   "evaluator canonical resend rule"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'Do not only write the artifact' \
   "evaluator artifact existence not completion"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'Do not call `TaskUpdate\(status: completed\)` as the completion signal' \
+  "evaluator taskupdate not completion"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'final action must still be SendMessage' \
+  "evaluator task tracking before final sendmessage"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'if verdict is `PASS`, `next_route` must be `converged`' \
   "test pass implies converged rule"
 require_absent_pattern skills/pge-execute/handoffs/evaluator.md 'preflight_artifact|contract_proposal_artifact|write state|compact_scores' \
@@ -236,6 +270,12 @@ require_pattern agents/pge-generator.md 'resend only the canonical `generator_co
   "generator resend wording"
 require_pattern agents/pge-generator.md 'your work is not complete until you `SendMessage` the canonical runtime event to `main`' \
   "generator work not complete until sendmessage"
+require_pattern agents/pge-generator.md 'Do not use `TaskUpdate\(status: completed\)` as the PGE phase-completion signal' \
+  "generator taskupdate not completion"
+require_pattern agents/pge-generator.md '## Completion protocol \(MANDATORY\)' \
+  "generator mandatory completion protocol"
+require_pattern agents/pge-generator.md 'Do NOT call `TaskUpdate\(status: completed\)` before or instead of SendMessage' \
+  "generator final sendmessage before taskupdate"
 require_absent_pattern agents/pge-generator.md 'proposal_ready|preflight validated' \
   "generator stale preflight role text"
 
@@ -249,6 +289,12 @@ require_pattern agents/pge-evaluator.md 'resend only the canonical `final_verdic
   "evaluator resend wording"
 require_pattern agents/pge-evaluator.md 'your work is not complete until you `SendMessage` the canonical runtime event to `main`' \
   "evaluator work not complete until sendmessage"
+require_pattern agents/pge-evaluator.md 'Do not use `TaskUpdate\(status: completed\)` as the PGE phase-completion signal' \
+  "evaluator taskupdate not completion"
+require_pattern agents/pge-evaluator.md '## Completion protocol \(MANDATORY\)' \
+  "evaluator mandatory completion protocol"
+require_pattern agents/pge-evaluator.md 'Do NOT call `TaskUpdate\(status: completed\)` before or instead of SendMessage' \
+  "evaluator final sendmessage before taskupdate"
 require_absent_pattern agents/pge-evaluator.md 'mode_decision|pre-generation execution mode decision|runtime-state-contract' \
   "evaluator stale preflight/state role text"
 
@@ -260,6 +306,12 @@ require_pattern agents/pge-planner.md 'resend only the canonical event text' \
   "planner resend wording"
 require_pattern agents/pge-planner.md 'your work is not complete until you `SendMessage` the canonical runtime event to `main`' \
   "planner work not complete until sendmessage"
+require_pattern agents/pge-planner.md 'Do not use `TaskUpdate\(status: completed\)` as the PGE phase-completion signal' \
+  "planner taskupdate not completion"
+require_pattern agents/pge-planner.md '## Completion protocol \(MANDATORY\)' \
+  "planner mandatory completion protocol"
+require_pattern agents/pge-planner.md 'Do NOT call `TaskUpdate\(status: completed\)` before or instead of SendMessage' \
+  "planner final sendmessage before taskupdate"
 
 planner_sections=(
   goal

@@ -56,7 +56,9 @@ Progress log entries are best-effort observability only and must never advance t
 
 If the currently dispatched teammate sends only non-canonical completion hints, `main` must send exactly one protocol repair message asking that teammate to resend only the canonical teammate-to-main notification before running the phase gate.
 `main` must not advance from artifact presence alone.
+If the canonical message still does not arrive after repair but the current-phase artifact passes the full gate and unambiguously belongs to the current run, `main` may continue with degraded progression recorded as `protocol_recovery: missing_team_message_event_artifact_gate`.
 Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim.
+`TaskUpdate(status: completed)` is teammate bookkeeping only; it is not a phase-completion event and must not replace the canonical teammate-to-main `SendMessage`.
 
 For the current stage:
 - Planner writes the locked task-shape artifact
@@ -109,7 +111,7 @@ The progress artifact is one shared append-only execution log:
 
 Agents do not append authoritative progress directly.
 They emit canonical teammate-to-main runtime events and artifacts; `main` records the orchestration-visible consequences.
-If runtime-event delivery is malformed or incomplete, `main` records protocol friction, sends one canonical resend request to the same teammate, and then stops with `protocol_violation: missing_team_message_event` if no canonical message arrives.
+If runtime-event delivery is malformed or incomplete, `main` records protocol friction, sends one canonical resend request to the same teammate, then either continues through explicit degraded artifact-gated recovery or stops with `protocol_violation: missing_team_message_event`.
 
 ## Generator plan-review consumption
 
