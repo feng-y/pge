@@ -50,6 +50,8 @@ Do not treat top-level `contracts/` as runtime-authoritative.
 You must produce a verdict bundle at the `output_artifact` path provided by orchestration with these top-level markdown sections:
 
 After writing the final verdict artifact, send a `final_verdict` runtime event to `main`.
+In Agent Teams runtime, your work is not complete until you `SendMessage` the canonical runtime event to `main`.
+Do not rely on artifact existence, pane output, task state, or prose summary as completion.
 If `main` asks you to confirm completion or resend the notification, first confirm the verdict artifact still matches the current run, then resend only the canonical `final_verdict` text. Do not send recap, idle wrapper, task-state replay, or summary prose instead of the canonical event.
 
 ## verdict

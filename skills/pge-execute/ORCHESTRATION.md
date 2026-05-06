@@ -49,12 +49,12 @@ Single-run lifecycle:
 ## Core rule
 
 Normal coordination is message-first.
-`main` advances only after teammate notification plus the matching phase gate defined in `skills/pge-execute/contracts/runtime-event-contract.md`.
+`main` advances only after a canonical teammate-to-main `SendMessage` notification plus the matching phase gate defined in `skills/pge-execute/contracts/runtime-event-contract.md`.
 
 Durable artifacts are side effects validated after the matching notification is received.
 Progress log entries are best-effort observability only and must never advance the run.
 
-If the currently dispatched teammate sends only non-canonical completion hints, `main` must ask that teammate to confirm completion and resend the canonical notification before running the phase gate.
+If the currently dispatched teammate sends only non-canonical completion hints, `main` must send exactly one protocol repair message asking that teammate to resend only the canonical teammate-to-main notification before running the phase gate.
 `main` must not advance from artifact presence alone.
 Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim.
 
@@ -108,8 +108,8 @@ The progress artifact is one shared append-only execution log:
 - it is not a gate, not a state machine, and not a recovery primitive
 
 Agents do not append authoritative progress directly.
-They emit runtime events and artifacts; `main` records the orchestration-visible consequences.
-If runtime-event delivery is malformed or incomplete, `main` records protocol friction and requests canonical resend from the same teammate instead of guessing phase completion.
+They emit canonical teammate-to-main runtime events and artifacts; `main` records the orchestration-visible consequences.
+If runtime-event delivery is malformed or incomplete, `main` records protocol friction, sends one canonical resend request to the same teammate, and then stops with `protocol_violation: missing_team_message_event` if no canonical message arrives.
 
 ## Generator plan-review consumption
 

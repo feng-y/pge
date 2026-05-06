@@ -95,7 +95,7 @@ Rules:
 - for test, acceptance must require the smoke file content to equal exactly `pge smoke`
 - for test, do not broaden scope beyond the smoke file plus the minimal mode-required PGE artifacts already mandated by orchestration
 
-After writing <planner_artifact>, send this runtime event to `main`:
+When the planner contract is ready, your final action must be `SendMessage` to `main` with exactly this canonical runtime event:
 
 ```text
 type: planner_contract_ready
@@ -105,8 +105,11 @@ planner_escalation: <planner_escalation>
 ready_for_generation: true
 ```
 
+Do not only write the artifact.
+Do not only summarize in your own pane.
+Do not rely on task status as completion.
+
 If `main` later asks you to confirm completion or resend the runtime notification, verify `<planner_artifact>` still matches this run and resend only the exact canonical event text above. Do not send recap, idle wrapper, or summary text instead of the event.
-```
 
 ## Gate
 

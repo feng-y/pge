@@ -52,7 +52,7 @@ Keep the verdict bundle compact.
 Task size changes audit depth, not the event shape.
 If orchestration omitted `generator_artifact`, rely on the real deliverable, Planner contract, direct reads, and tool output instead of inventing missing artifacts.
 
-After writing <evaluator_artifact>, send this runtime event to `main`:
+When evaluation is complete, your final action must be `SendMessage` to `main` with exactly this canonical runtime event:
 
 ```text
 type: final_verdict
@@ -62,8 +62,11 @@ evaluator_artifact: <evaluator_artifact>
 route_reason: <short reason>
 ```
 
+Do not only write the artifact.
+Do not only summarize in your own pane.
+Do not rely on task status as completion.
+
 If `main` later asks you to confirm completion or resend the runtime notification, verify `<evaluator_artifact>` still matches this run and resend only the exact canonical `final_verdict` text above. Do not send recap, idle wrapper, or summary text instead of the event.
-```
 
 ## Gate
 

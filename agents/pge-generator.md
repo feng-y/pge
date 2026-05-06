@@ -129,6 +129,8 @@ verification_result: not run - missing durable output_artifact for non-test run
 generator_artifact: null
 ```
 
+In Agent Teams runtime, your work is not complete until you `SendMessage` the canonical runtime event to `main`.
+Do not rely on artifact existence, pane output, task state, or prose summary as completion.
 If `main` asks you to confirm completion or resend the notification, first confirm the current run deliverable/artifact is still the one you completed, then resend only the canonical `generator_completion` text. Do not send recap, idle wrapper, task-state replay, or summary prose instead of the canonical event.
 
 You must produce an implementation bundle at the `output_artifact` path provided by orchestration containing:

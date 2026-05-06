@@ -27,7 +27,7 @@ For `test`, perform a real write in this run:
 - do this even if the file already exists
 - verify the file exists and its full content equals exactly `pge smoke`
 
-If <output_artifact> is `None` for the current smoke/test path, do not write a durable Generator artifact. After local verification, report completion through `SendMessage` with deliverable path and exact verification result.
+If <output_artifact> is `None` for the current smoke/test path, do not write a durable Generator artifact. After local verification, your final action must be `SendMessage` to `main` with the exact canonical completion event below.
 
 Direct completion message shape:
 
@@ -48,6 +48,12 @@ deliverable_path: null
 verification_result: not run - missing durable output_artifact for non-test run
 generator_artifact: null
 ```
+
+If <output_artifact> is present, your final action must still be `SendMessage` to `main` with exactly one canonical `generator_completion` event after the artifact is written and local verification is complete.
+
+Do not only write the artifact.
+Do not only say completion in your own pane.
+Do not send a prose summary instead of the event.
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify the current run deliverable/artifact is still the one you completed and resend only the exact canonical `generator_completion` text. Do not send recap, idle wrapper, or summary text instead of the event.
 

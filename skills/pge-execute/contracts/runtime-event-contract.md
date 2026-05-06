@@ -24,9 +24,14 @@ If a teammate confirms completion but the data gate fails, the phase is not acce
 
 ## event source rule
 
-Notifications may arrive through Agent Teams `SendMessage` or an equivalent runtime delivery mechanism.
+PGE currently targets Claude Code Agent Teams for runtime execution.
+
+In the current executable lane, the canonical runtime event must be delivered as a teammate-to-main team message through `SendMessage`.
 
 The transport is not the contract. The notification shape is the contract.
+
+The teammate-to-main message is the only legal progression trigger in the current Agent Teams lane.
+Artifact existence, progress logs, pane output, task state, or prose summaries do not replace it.
 
 ## planner event
 
@@ -106,11 +111,15 @@ If `main` observes non-canonical completion hints from the currently dispatched 
 - recovery / resume recap
 - "I already completed task #N" replay
 
-then `main` may use those hints only to initiate a clarification / resend request to that same teammate.
+then `main` may use those hints only to initiate a single clarification / resend request to that same teammate.
 
 Those hints do not authorize phase advancement by themselves.
 
 When requesting resend, `main` should ask for the canonical notification text only, with no recap, summary wrapper, idle wrapper, or explanatory prefix.
+
+If artifact side effects exist but the canonical teammate-to-main message never arrives, `main` must stop with:
+
+`protocol_violation: missing_team_message_event`
 
 ## forbidden progression inputs
 

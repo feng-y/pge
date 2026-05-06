@@ -106,6 +106,8 @@ Do not treat top-level `contracts/` as runtime-authoritative.
 After writing the round contract artifact, send a `planner_contract_ready` runtime event to `main`.
 When you call the Team `SendMessage` tool, the `message` field must be a plain string containing the exact event text.
 Do not pass a JSON object, dict, or structured payload as `message`.
+In Agent Teams runtime, your work is not complete until you `SendMessage` the canonical runtime event to `main`.
+Do not rely on artifact existence, pane output, task state, or prose summary as completion.
 If `main` asks you to confirm completion or resend the notification, first confirm the artifact still matches the current run, then resend only the canonical event text. Do not send recap, idle wrapper, task-state replay, or summary prose instead of the canonical event.
 
 Produce exactly one current-task plan / bounded round contract with exactly these top-level markdown sections:

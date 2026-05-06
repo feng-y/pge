@@ -81,6 +81,12 @@ require_pattern skills/pge-execute/SKILL.md 'Create the run-scoped smoke file \.
   "run-scoped smoke task"
 require_pattern skills/pge-execute/SKILL.md 'do not treat teammate `idle_notification` as completion' \
   "idle notifications are not completion"
+require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: planner_contract_ready`' \
+  "planner canonical teammate message wait rule"
+require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: generator_completion`' \
+  "generator canonical teammate message wait rule"
+require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: final_verdict`' \
+  "evaluator canonical teammate message wait rule"
 require_pattern skills/pge-execute/SKILL.md 'use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present' \
   "recovery recap non-canonical rule"
 require_pattern skills/pge-execute/SKILL.md 'do not emit user-facing "waiting for \.\.\." chatter between dispatch and the required runtime event' \
@@ -104,10 +110,14 @@ require_pattern skills/pge-execute/ORCHESTRATION.md '\.pge-artifacts/<run_id>/de
   "orchestration run-scoped smoke path"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'append-only execution log' \
   "orchestration progress log note"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'teammate notification plus the matching phase gate' \
+require_pattern skills/pge-execute/ORCHESTRATION.md 'canonical teammate-to-main `SendMessage` notification plus the matching phase gate' \
   "notification plus gate rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'canonical teammate-to-main `SendMessage` notification plus the matching phase gate' \
+  "agent teams sendmessage gate rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim' \
   "recovery recap orchestration rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'protocol_violation: missing_team_message_event' \
+  "missing team message protocol violation rule"
 require_absent_pattern skills/pge-execute/ORCHESTRATION.md 'state\.json|state_artifact' \
   "stale orchestration state artifact reference"
 
@@ -142,10 +152,20 @@ require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'route_se
   "route event"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'confirm whether the phase is complete and, if complete, to resend the canonical notification shape' \
   "notification repair rule"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'PGE currently targets Claude Code Agent Teams for runtime execution' \
+  "agent teams runtime target"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'canonical runtime event must be delivered as a teammate-to-main team message through `SendMessage`' \
+  "teammate to main sendmessage rule"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'The teammate-to-main message is the only legal progression trigger in the current Agent Teams lane' \
+  "only legal progression trigger rule"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'recovery / resume recap' \
   "recovery recap runtime hint"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'canonical notification text only, with no recap, summary wrapper, idle wrapper, or explanatory prefix' \
   "canonical resend only rule"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'protocol_violation: missing_team_message_event' \
+  "missing team message runtime violation"
+require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'terminal_response|push_event' \
+  "no codex terminal response branch"
 require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'advances only when it receives a valid runtime event' \
   "stale event-only progression rule"
 require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'mode_decision|proposal_ready|preflight_decision|ready_for_preflight' \
@@ -156,8 +176,12 @@ require_pattern skills/pge-execute/handoffs/preflight.md 'not part of the curren
 
 require_pattern skills/pge-execute/handoffs/planner.md 'ready_for_generation: true' \
   "planner ready_for_generation event"
+require_pattern skills/pge-execute/handoffs/planner.md 'your final action must be `SendMessage` to `main`' \
+  "planner final action sendmessage rule"
 require_pattern skills/pge-execute/handoffs/planner.md 'resend only the exact canonical event text above' \
   "planner canonical resend rule"
+require_pattern skills/pge-execute/handoffs/planner.md 'Do not only write the artifact' \
+  "planner artifact existence not completion"
 require_absent_pattern skills/pge-execute/handoffs/planner.md 'write state|update progress only when enabled|ready_for_preflight' \
   "planner stale state logic"
 
@@ -165,8 +189,12 @@ require_pattern skills/pge-execute/handoffs/generator.md 'smoke_deliverable: <sm
   "generator smoke path input"
 require_pattern skills/pge-execute/handoffs/generator.md 'type: generator_completion' \
   "generator completion event schema"
+require_pattern skills/pge-execute/handoffs/generator.md 'your final action must be `SendMessage` to `main`' \
+  "generator final action sendmessage rule"
 require_pattern skills/pge-execute/handoffs/generator.md 'resend only the exact canonical `generator_completion` text' \
   "generator canonical resend rule"
+require_pattern skills/pge-execute/handoffs/generator.md 'Do not only write the artifact' \
+  "generator artifact existence not completion"
 require_absent_pattern skills/pge-execute/handoffs/generator.md 'preflight_artifact|contract_proposal_artifact|write state' \
   "generator stale preflight/state logic"
 
@@ -174,8 +202,12 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'smoke_deliverable: <sm
   "evaluator smoke path input"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'type: final_verdict' \
   "evaluator final verdict event schema"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'your final action must be `SendMessage` to `main`' \
+  "evaluator final action sendmessage rule"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'resend only the exact canonical `final_verdict` text above' \
   "evaluator canonical resend rule"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'Do not only write the artifact' \
+  "evaluator artifact existence not completion"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'if verdict is `PASS`, `next_route` must be `converged`' \
   "test pass implies converged rule"
 require_absent_pattern skills/pge-execute/handoffs/evaluator.md 'preflight_artifact|contract_proposal_artifact|write state|compact_scores' \
@@ -202,6 +234,8 @@ require_pattern agents/pge-generator.md 'tools: Read, Write, Edit, Bash, Grep, G
   "generator SendMessage tool"
 require_pattern agents/pge-generator.md 'resend only the canonical `generator_completion` text' \
   "generator resend wording"
+require_pattern agents/pge-generator.md 'your work is not complete until you `SendMessage` the canonical runtime event to `main`' \
+  "generator work not complete until sendmessage"
 require_absent_pattern agents/pge-generator.md 'proposal_ready|preflight validated' \
   "generator stale preflight role text"
 
@@ -213,6 +247,8 @@ require_pattern agents/pge-evaluator.md 'tools: Read, Write, Bash, Grep, Glob, S
   "evaluator SendMessage tool"
 require_pattern agents/pge-evaluator.md 'resend only the canonical `final_verdict` text' \
   "evaluator resend wording"
+require_pattern agents/pge-evaluator.md 'your work is not complete until you `SendMessage` the canonical runtime event to `main`' \
+  "evaluator work not complete until sendmessage"
 require_absent_pattern agents/pge-evaluator.md 'mode_decision|pre-generation execution mode decision|runtime-state-contract' \
   "evaluator stale preflight/state role text"
 
@@ -222,6 +258,8 @@ require_pattern agents/pge-planner.md 'tools: Read, Write, Grep, Glob, SendMessa
   "planner SendMessage tool"
 require_pattern agents/pge-planner.md 'resend only the canonical event text' \
   "planner resend wording"
+require_pattern agents/pge-planner.md 'your work is not complete until you `SendMessage` the canonical runtime event to `main`' \
+  "planner work not complete until sendmessage"
 
 planner_sections=(
   goal
