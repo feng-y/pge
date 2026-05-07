@@ -11,7 +11,10 @@ Use this command when you are maintaining PGE itself and need local source chang
 1. run `! ./bin/pge-local-install.sh`
 2. confirm the helper reports installation targets under `~/.claude/skills` and `~/.claude/agents`
 3. reload plugin discovery with `/reload-plugins`
-4. smoke-test with `! claude -p "/pge-execute test"`
+4. optionally run `! claude -p "/pge-execute test"` as a plugin-load / packaging check when that CLI is authenticated and exposes an Agent dispatch surface
+5. run the real smoke test in a Claude Code runtime surface that supports either Agent Teams control-plane APIs or bounded direct Agent dispatch
+
+Do not treat `claude -p "/pge-execute test"` as proof of any specific runtime path by itself. It can still prove installed skill loading and direct-agent compatibility when the CLI is authenticated and exposes direct Agent dispatch; otherwise keep the concrete substrate blocker from the attempted runtime call. Do not add a separate capability check before execution.
 
 If you need to install into another outer directory, run:
 

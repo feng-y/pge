@@ -90,16 +90,18 @@ This installs the minimum runtime-facing PGE payload into Claude's standard loca
 Recommended proving check sequence:
 1. run the helper
 2. if Claude Code is already running, run `/reload-plugins`
-3. `claude -p "/pge-execute test"`
-4. confirm the installed files changed where expected:
+3. confirm the installed files changed where expected:
    - `~/.claude/skills/pge-execute/SKILL.md`
    - `~/.claude/agents/pge-planner.md`
    - `~/.claude/agents/pge-generator.md`
    - `~/.claude/agents/pge-evaluator.md`
+4. optionally run `claude -p "/pge-execute test"` as a plugin-load / packaging check when that CLI is authenticated and exposes an Agent dispatch surface
+
+Do not treat `claude -p "/pge-execute test"` as proof of any specific PGE runtime path by itself. The proving rule is direct execution: run the real `/pge-execute ...` command in the target Claude surface, let it attempt TeamCreate first when that mode is preferred, and if a runtime call fails, keep the concrete call error as the proving result instead of replacing it with a pre-check.
 
 The helper prints the installed plugin `name`, `version`, and `description` after each run.
 For a visible install proof, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm both the helper output and the installed files changed under `~/.claude/skills/pge-execute` and `~/.claude/agents/`.
 
-For a visible runtime proof, prefer a harmless text change in `skills/pge-execute/SKILL.md`, rerun the helper, reload plugins, and confirm the smoke invocation reflects the updated skill content after reinstall.
+For a visible runtime proof, use a Claude Code runtime surface that actually supports either Agent Teams control-plane APIs or bounded direct Agent dispatch, then run `/pge-execute test` there after reinstall/reload. A `claude -p` invocation is only a load check unless that runtime is authenticated and explicitly exposes one of those dispatch paths.
 
 This helper is only for local validation. Marketplace/plugin install remains the formal distribution path.

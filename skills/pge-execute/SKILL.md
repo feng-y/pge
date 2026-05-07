@@ -1,6 +1,6 @@
 ---
 name: pge-execute
-description: Run one bounded PGE execution using a real Claude Code Agent Team (planner, generator, evaluator) with messaging-first coordination and durable phase artifacts.
+description: Run one bounded PGE execution with Planner, Generator, and Evaluator agents, using Agent Teams when available and direct Agent dispatch when team control-plane tools are unavailable.
 version: 0.4.0
 argument-hint: "test | <task prompt>"
 allowed-tools:
@@ -20,7 +20,7 @@ allowed-tools:
 
 This skill is the orchestration shell only. It is not a fourth agent.
 
-`main` is the only control-plane owner for the active lane: initialize run, create exactly one team, dispatch planner / generator / evaluator, gate artifacts and runtime events, reduce route deterministically, record authoritative progress / friction, classify failures, and perform teardown. `main` must not replace Planner / Generator / Evaluator specialist judgment.
+`main` is the only control-plane owner for the active lane: initialize run, choose the available agent transport, dispatch planner / generator / evaluator, gate artifacts and runtime events, reduce route deterministically, record authoritative progress / friction, classify failures, and perform teardown. `main` must not replace Planner / Generator / Evaluator specialist judgment.
 
 ## Progressive Disclosure
 Keep this entrypoint small. Load detail files only when the phase needs them:
@@ -37,8 +37,9 @@ Design references live outside the skill at `docs/design/pge-execute/`; consult 
 
 ## Current Executable Claim
 Supported in the current implementation lane:
-- one Team
-- exactly three teammates: planner, generator, evaluator
+- Agent Teams mode when TeamCreate / Agent with `team_name` / SendMessage / TeamDelete are available
+- direct Agent compatibility mode when Team control-plane tools are unavailable
+- exactly three phase owners: planner, generator, evaluator
 - one bounded run where Planner freezes the contract, Generator implements, and Evaluator validates
 - a bounded same-contract `generator <-> evaluator` repair loop for retryable failures
 - task size changes role depth, not stage count
@@ -56,7 +57,7 @@ Not supported yet:
 User invokes /pge-execute
   -> pge-execute orchestrator skill
      -> initialize input/progress artifacts
-     -> create one per-run resident team
+     -> use Agent Teams mode when available, otherwise direct Agent compatibility mode
         - teammate `planner` runs agent surface `pge-planner`
         - teammate `generator` runs agent surface `pge-generator`
         - teammate `evaluator` runs agent surface `pge-evaluator`
@@ -65,31 +66,35 @@ User invokes /pge-execute
      -> evaluator independently checks the deliverable
      -> if Evaluator returns retryable required fixes under the same fair contract,
         main dispatches bounded Generator repair and bounded Evaluator re-check
-     -> route/summary/teardown phase records outcome and deletes the team
+     -> route/summary/teardown phase records outcome and tears down the selected runtime mode
 ```
 
 The orchestrator advances from runtime events and then validates any referenced durable side effects.
 
 ## Hard Requirements
-- Use Claude Code native Agent Teams.
-- Create exactly one team for the run.
-- Spawn exactly three teammates:
+- Prefer Claude Code native Agent Teams.
+- Do not add a separate capability-check phase before execution. Attempt the required runtime action directly and treat a real call failure as the signal.
+- Attempt Agent Teams mode first by calling `TeamCreate`.
+- If the attempted Agent Teams call fails but direct Agent dispatch is available in the same runtime, use direct Agent compatibility mode instead of blocking at entry.
+- In Agent Teams mode, create exactly one team for the run.
+- In all modes, dispatch exactly three phase owners:
   - `planner` using `pge-planner`
   - `generator` using `pge-generator`
   - `evaluator` using `pge-evaluator`
-- Dispatch work through `SendMessage`.
+- In Agent Teams mode, dispatch and complete phases through `SendMessage`.
+- In direct Agent compatibility mode, dispatch installed agents sequentially through the Agent tool and treat the direct Agent result's canonical event text plus the matching artifact gate as the phase completion signal.
 - Use files only for durable phase outputs and one shared append-only progress log.
 - Maintain `progress_artifact` as best-effort execution logging only; it must not gate execution.
 - `main` is the only authoritative writer of progress / friction / repeated-failure logs.
 - Do not simulate Planner / Generator / Evaluator in `main`.
-- Do not fall back to direct non-team Agent dispatch.
+- Do not replace agent dispatch with main-session roleplay.
 - Only `main` may talk directly to the user; teammates may surface clarification needs, but `main` owns the actual user-facing question.
 - Do not require the user to pass a plan path.
 - Do not insert a separate preflight or mode-decision phase into the current executable lane.
 - Do not give Planner authority to decide final verdict.
 - Do not claim redispatch for `continue` or `return_to_planner`; `retry` supports a bounded Generator repair loop in the same resident team when Evaluator says the current contract remains fair.
 
-If TeamCreate / Agent with `team_name` / SendMessage / TeamDelete cannot be used, stop immediately and report one concrete blocker.
+If an attempted Agent Teams call fails and direct Agent compatibility mode also cannot start through a real dispatch attempt, stop immediately and report that concrete blocker. Do not fail from tool-list inspection or other speculative pre-checks.
 
 ## Accepted Inputs
 Read the final `ARGUMENTS:` block for this skill invocation.
@@ -103,7 +108,7 @@ If the argument is `test`, use this fixed smoke task:
 Create the run-scoped smoke file .pge-artifacts/<run_id>/deliverables/smoke.txt with content exactly: pge smoke
 ```
 
-For `test`, use the smallest possible Agent Teams path:
+For `test`, use the smallest possible selected-runtime path:
 - keep the initial Planner / Generator / Evaluator progression thin
 - do not read additional handoff/runtime docs during execution
 - do not redispatch teammates
@@ -121,18 +126,19 @@ For normal non-test runs, read `runtime/artifacts-and-state.md`, `ORCHESTRATION.
 
 For `test`, use this inline minimal protocol instead of reading extra runtime/handoff docs:
 - initialize `run_id`, `input_artifact`, `progress_artifact`, and `smoke_deliverable`
-- create one team with `planner`, `generator`, and `evaluator`
-- send planner one compact smoke-task dispatch; wait for the canonical teammate-to-main message whose first non-empty line is `type: planner_contract_ready`
+- choose Agent Teams mode when available; otherwise choose direct Agent compatibility mode
+- in Agent Teams mode, create one team with `planner`, `generator`, and `evaluator`
+- send planner one compact smoke-task dispatch; wait for the canonical teammate-to-main message, or direct Agent result in compatibility mode, whose first non-empty line is `type: planner_contract_ready`
 - gate `planner_artifact` by required top-level sections
-- send generator one compact smoke-task dispatch; wait for the canonical teammate-to-main message whose first non-empty line is `type: generator_completion`
+- send generator one compact smoke-task dispatch; wait for the canonical teammate-to-main message, or direct Agent result in compatibility mode, whose first non-empty line is `type: generator_completion`
 - gate the smoke deliverable by existence, exact bytes, and exact content
-- send evaluator one compact smoke-task dispatch; wait for the canonical teammate-to-main message whose first non-empty line is `type: final_verdict`
+- send evaluator one compact smoke-task dispatch; wait for the canonical teammate-to-main message, or direct Agent result in compatibility mode, whose first non-empty line is `type: final_verdict`
 - gate `evaluator_artifact` by required sections plus `PASS / converged`
-- route immediately, request shutdown once, delete team once, and return the final result
+- route immediately; in Agent Teams mode request shutdown once and delete team once; in direct Agent compatibility mode record no-teardown-needed, then return the final result
 - use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present
 - ignore or log support messages such as `planner_support_request` / `planner_support_response` while waiting for phase completion; they are not completion hints
 - keep wait/recovery observation quiet; do not expose foreground polling scripts or verbose verification transcripts as the progress model
-- treat `TaskUpdate(status: completed)` as bookkeeping only; it is not a teammate-to-main completion event
+- treat `TaskUpdate(status: completed)` as bookkeeping only; it is not a PGE phase-completion event
 - for `test`, never redispatch planner, generator, or evaluator after an idle notification
 
 For all runs:
@@ -144,16 +150,14 @@ For all runs:
    - initialize `manifest_artifact` as the run-directory index
    - verify the runtime can resolve the `pge-planner`, `pge-generator`, and `pge-evaluator` agent surfaces
 
-2. Create team
-   - `TeamCreate(team_name=team_name, description="PGE runtime team")`
-   - spawn teammate `planner` using `pge-planner`
-   - spawn teammate `generator` using `pge-generator`
-   - spawn teammate `evaluator` using `pge-evaluator`
-   - append a best-effort `run_started` / `team_created` log entry
+2. Select runtime mode
+   - if TeamCreate / Agent with `team_name` / SendMessage / TeamDelete are available, create one team and spawn teammate `planner`, `generator`, and `evaluator` using the matching PGE agent surfaces
+   - otherwise dispatch `pge-planner`, `pge-generator`, and `pge-evaluator` directly through the Agent tool in sequence
+   - append a best-effort `run_started` / `runtime_mode_selected` log entry
 
 3. Planner
    - for `test`, use one compact dispatch and a minimal section gate
-   - otherwise read `handoffs/planner.md`, send work, wait for the canonical teammate-to-main `type: planner_contract_ready` message, and if needed send exactly one protocol repair message asking planner to resend only that event
+   - otherwise read `handoffs/planner.md`, send work, wait for the canonical `type: planner_contract_ready` message from SendMessage or direct Agent result, and if needed send exactly one protocol repair message asking planner to resend only that event when the selected runtime mode supports it
    - while waiting, support messages may be logged but must not trigger phase advancement or the one-shot completion repair
    - if `planner_contract_ready` has `ready_for_generation: false`, record Planner blocker/escalation, do not dispatch Generator, route/status as blocked, then teardown
    - if no planner message arrives after repair but `planner_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
@@ -165,7 +169,7 @@ For all runs:
    - for non-test runs, read `handoffs/generator.md`
    - for `test`, send implementation task to generator with `output_artifact = None` and the resolved `smoke_deliverable`
    - otherwise send implementation task to generator with the configured durable `generator_artifact`; non-test runs must not omit it
-   - wait for the canonical teammate-to-main `type: generator_completion` message, and if needed send exactly one protocol repair message asking generator to write any missing required durable `generator_artifact` and send that event with `handoff_status: READY_FOR_EVALUATOR` or `handoff_status: BLOCKED`
+   - wait for the canonical `type: generator_completion` message from SendMessage or direct Agent result, and if needed send exactly one protocol repair message asking generator to write any missing required durable `generator_artifact` and send that event with `handoff_status: READY_FOR_EVALUATOR` or `handoff_status: BLOCKED` when the selected runtime mode supports it
    - while waiting, `planner_support_request` / `planner_support_response` traffic between Generator and Planner may be logged but must not trigger completion repair or phase advancement
    - if the real deliverable appears but `generator_artifact` or `generator_completion` is missing, treat it as a recoverable Generator handoff gap first; do not route blocked until the repair request fails or returns canonical BLOCKED
    - if `generator_completion` has `handoff_status: BLOCKED`, record the Generator blocker, do not dispatch Evaluator, route/status as blocked or unsupported, then teardown
@@ -177,7 +181,7 @@ For all runs:
 
 5. Evaluator
    - for non-test runs, read `handoffs/evaluator.md`
-   - send evaluation task to evaluator, wait for the canonical teammate-to-main `type: final_verdict` message, and if needed send exactly one protocol repair message asking evaluator to resend only that event
+   - send evaluation task to evaluator, wait for the canonical `type: final_verdict` message from SendMessage or direct Agent result, and if needed send exactly one protocol repair message asking evaluator to resend only that event when the selected runtime mode supports it
    - while waiting, support messages may be logged but must not trigger phase advancement or the one-shot completion repair
    - treat failed acceptance verification, including command crash/signal/non-zero results such as exit code `139`, as task non-acceptance even if the team later has teardown friction
    - if no evaluator message arrives after repair but `evaluator_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
@@ -193,7 +197,8 @@ For all runs:
    - for non-test runs, read `handoffs/route-summary-teardown.md`
    - route from Evaluator verdict and next_route
    - write summary only when the run actually needs a human-readable closeout
-   - request teammate shutdown, wait boundedly for teammate `shutdown_response` messages to `team-lead`, delete team, append best-effort route / teardown log entries
+   - in Agent Teams mode, request teammate shutdown, wait boundedly for teammate `shutdown_response` messages to `team-lead`, delete team, append best-effort route / teardown log entries
+   - in direct Agent compatibility mode, no team teardown is required; record teardown as ok after route/progress logging
 
 ## Final Response
 
@@ -238,9 +243,9 @@ Do not:
 - require `--plan`
 - require a plan path from the user
 - simulate agents in `main`
-- replace Team flow with direct role-play
+- replace agent dispatch with direct role-play
 - insert a separate preflight or mode-decision gate into the current executable lane
-- advance from shell polling or mailbox file existence without either canonical teammate-to-main notification plus gate or explicit degraded artifact-gated recovery
+- advance from shell polling or mailbox file existence without either the selected runtime mode's canonical notification plus gate or explicit degraded artifact-gated recovery
 - react to teammate `idle_notification` as if it were canonical completion
 - emit user-facing "waiting for ..." chatter for `test`
 - redispatch a `test` teammate because of silence or idle notification alone

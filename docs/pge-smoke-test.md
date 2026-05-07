@@ -4,18 +4,18 @@
 
 Define the current smoke-oriented validation path for `pge-execute`.
 
-This document is for proving the current thin-skill architecture in a real Claude Code runtime that supports TeamCreate, Agent binding, SendMessage, and TeamDelete.
+This document is for proving the current thin-skill architecture by executing the real `/pge-execute` path in a Claude Code runtime and keeping the concrete runtime result.
 
 It is not a historical proving log. It is the current manual validation procedure.
 
 ## Preconditions
 
-- Claude Code runtime supports TeamCreate, Agent, SendMessage, and TeamDelete.
 - The plugin is available through either:
   - marketplace/plugin install, or
   - local dev override from `./bin/pge-local-install.sh`
 - `agents/pge-planner.md`, `agents/pge-generator.md`, and `agents/pge-evaluator.md` are the active runtime agent surfaces.
 - The active skill entrypoint is `skills/pge-execute/SKILL.md`.
+- Do not replace execution with a capability pre-check. Attempt the preferred runtime action directly, keep the concrete TeamCreate / Agent / SendMessage / TeamDelete or direct Agent dispatch result, and treat that real call result as the smoke outcome.
 
 ## Static Validation Before Runtime Smoke
 
