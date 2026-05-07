@@ -15,7 +15,7 @@ It is not a historical proving log. It is the current manual validation procedur
   - local dev override from `./bin/pge-local-install.sh`
 - `agents/pge-planner.md`, `agents/pge-generator.md`, and `agents/pge-evaluator.md` are the active runtime agent surfaces.
 - The active skill entrypoint is `skills/pge-execute/SKILL.md`.
-- Do not replace execution with a capability pre-check. Attempt the preferred runtime action directly, keep the concrete TeamCreate / Agent / SendMessage / TeamDelete or direct Agent dispatch result, and treat that real call result as the smoke outcome.
+- Do not replace execution with a capability pre-check. Attempt the real Agent Team control-plane action directly, keep the concrete TeamCreate / team-bound Agent / SendMessage / TeamDelete result, and treat that real call result as the smoke outcome.
 
 ## Static Validation Before Runtime Smoke
 

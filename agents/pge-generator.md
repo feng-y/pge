@@ -332,6 +332,8 @@ Generator MUST satisfy ALL of these conditions:
 - Self-review MUST NOT declare final PASS
 - Self-review MUST NOT replace Evaluator review
 - For non-trivial code changes, self-review should include an independent reviewer helper report unless `helper_decision.not_using_helpers_reason` explains why that would add no value or was unavailable
+- If local verification exposes a narrow development bug that Generator can fix within the same Planner contract, Generator should fix it during self-review instead of handing the first failed attempt to `main`
+- Only terminal blockers such as missing prerequisites, contract unfairness, or verification that still fails after bounded internal repair should leave Generator with `review_verdict: BLOCK`
 
 Within `self_review`, Generator MUST include an explicit `generator_plan_review` structure covering:
 - `review_verdict`: `PASS` or `BLOCK`
@@ -553,6 +555,7 @@ Correct behavior:
 - Check changed files align with the declared in-scope / out-of-scope boundary
 - Check if work addresses acceptance criteria
 - **Verification is required, not optional**
+- If verification exposes a narrow development bug that can be fixed inside the same Planner contract, Generator should repair it before handoff instead of surfacing the first failed attempt as a terminal blocker
 
 **Local verification provides confidence, NOT final approval:**
 - Generator runs checks and reports results (PASS/FAIL/PARTIAL)
@@ -703,9 +706,9 @@ If the contract cannot be executed as specified:
 
 ## Retry Behavior
 
-Runtime retry is the current bounded same-contract Generator repair loop. It is not open-ended multi-round redispatch and it does not reopen Planner's contract. When `main` explicitly dispatches a retry attempt after Evaluator feedback:
+Runtime retry is the current bounded same-contract Generator repair loop. It is not open-ended multi-round redispatch and it does not reopen Planner's contract. `main` only decides whether to redispatch the resident Generator; Generator owns the actual repair workflow. When `main` explicitly dispatches a retry attempt after Generator-marked or Evaluator-reported issues:
 
-1. Read the prior verdict and required fixes from Evaluator
+1. Read the prior issue record from Generator self-review/local verification or the prior verdict and required fixes from Evaluator
 2. Understand what specific issues were raised
 3. Address the specific issues raised (do not restart from scratch)
 4. Preserve working parts from prior attempt
@@ -715,7 +718,7 @@ Runtime retry is the current bounded same-contract Generator repair loop. It is 
 8. Send a new canonical `generator_completion` to `main`
 
 **Escalation triggers (when to report blocker):**
-- After 3 consecutive failures on the same issue or `failure_signature`
+- After bounded internal repair still cannot clear the same local verification failure or `failure_signature`
 - When required precondition is missing
 - When contract ambiguity prevents fair execution
 - When verification consistently fails despite fixes
@@ -742,7 +745,7 @@ A bad Generator output:
 
 ## Completion protocol (MANDATORY)
 
-Your final action for the initial generation deliverable must be `SendMessage` to `main` with the canonical event:
+In Agent Teams mode, your final action for the initial generation deliverable must be `SendMessage` to `main` with the canonical event:
 
 ```text
 type: generator_completion
@@ -757,6 +760,7 @@ Rules:
 - Do NOT call `TaskUpdate(status: completed)` for the generation phase.
 - Do NOT end your turn without SendMessage even if the artifact/deliverable is written.
 - If you use TaskCreate/TaskUpdate for internal tracking, do not use `completed` status for PGE phase completion.
+- If local verification finds a narrow development bug that can be repaired within the same Planner contract, fix it before sending the first canonical `generator_completion`.
 - If `main` sends a protocol repair request after a deliverable exists but `generator_artifact` or `generator_completion` is missing, write/repair the required durable Generator artifact first, then send the canonical `generator_completion`; if you cannot, send canonical `generator_completion` with `handoff_status: BLOCKED`.
 - After SendMessage, do not exit; remain resident, available, and responsive for bounded implementation clarification until `main` sends `shutdown_request`.
 

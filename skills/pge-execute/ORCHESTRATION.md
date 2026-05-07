@@ -6,10 +6,12 @@ This file records the minimal orchestration behavior for `/pge-execute` in the c
 
 Current priority is this:
 - keep one real Agent Team for the run
+- require the exact `pge-planner`, `pge-generator`, and `pge-evaluator` agent surfaces
 - shift normal coordination to Agent Teams messaging
 - preserve durable artifacts only for phase results and the shared progress log
 - keep one execution skeleton for all tasks
 - keep the current executable lane bounded to one run
+- never replace the required Team control-plane calls with speculative capability or tool-list pre-checks
 
 Do not broaden this seam into a larger workflow framework.
 
@@ -143,9 +145,10 @@ Support messages are coordination traffic. They may be logged, but they do not a
 - Missing completion event: send one canonical resend request to the currently dispatched teammate; then either use explicit degraded artifact-gated recovery or stop with `protocol_violation: missing_team_message_event`.
 - Malformed completion event: request one resend of the canonical event shape; if the resend is still malformed, stop with `protocol_violation: invalid_team_message_event`.
 - Generator handoff gap: if the real deliverable exists but `generator.md` or `generator_completion` is missing, ask resident Generator to complete the durable handoff or send canonical BLOCKED before selecting a blocked route.
-- Explicit blocked completion: record the blocker, do not dispatch downstream phases that depend on the missing work, route/status as blocked or unsupported, and teardown.
+- Explicit blocked completion: if the Generator artifact shows a still-local same-contract issue with a narrow `repair_direction`, redispatch resident Generator; otherwise record the blocker, do not dispatch downstream phases that depend on the missing work, route/status as blocked or unsupported, and teardown.
 - Support-message traffic: log when useful and keep waiting for the current phase completion event.
 - Substrate failure: record runtime/substrate blocker and teardown when a team exists.
+- Capability uncertainty: do not inspect the apparent tool list and stop before execution. Attempt `TeamCreate`, team-bound `Agent`, `SendMessage`, and `TeamDelete` directly; only a real call failure is evidence that the control plane is unavailable in the current runtime.
 
 `main` must not wait indefinitely after the single protocol repair attempt.
 
@@ -155,8 +158,9 @@ When a durable Generator artifact exists, `main` must inspect `self_review.gener
 
 Use this rule:
 
+- if `review_verdict = BLOCK` and `repair_direction` shows a narrow same-contract local fix, redispatch resident Generator before any Evaluator dispatch
 - if `review_verdict = BLOCK`, stop and record a blocked run-level result; do not dispatch Evaluator
-- if `missing_prerequisites` or `repair_direction` show a material execution blocker, stop and record the blocker even if the deliverable technically exists
+- if `missing_prerequisites` show a material execution blocker, stop and record the blocker even if the deliverable technically exists
 - if `review_verdict = PASS` but `scope_risk`, `known_limits`, or weak evidence remain, record friction and continue to Evaluator
 - if no durable Generator artifact exists in the smoke/test lane, `main` cannot inspect `generator_plan_review`; rely on deliverable existence plus `verification_result` and continue with the lightweight lane rules
 
@@ -167,24 +171,25 @@ Use this rule:
 Current version supports one successful terminal route:
 - `converged`
 
-Current version also supports a bounded evaluator-to-generator repair loop:
-- `retry` may redispatch resident Generator when Evaluator says the current contract remains fair and the required fixes are local to Generator
-- after each repair, `main` dispatches bounded re-evaluation to Evaluator
+Current version also supports a bounded same-contract Generator repair path:
+- `main` may redispatch resident Generator when the current contract remains fair and the required fix is still local to Generator, whether the issue was first surfaced by Generator or by Evaluator
+- after each Generator repair that reaches ready handoff, `main` dispatches bounded re-evaluation to Evaluator when independent final validation is needed
 - max generator attempts per round: 10 total attempts, including the initial generation
 - same `failure_signature` repeated on 3 consecutive evaluations triggers a repair decision checkpoint
+- when Generator marks the issue first, count the bounded Generator repair plus the follow-on evaluation under the same checkpoint discipline
 - stop the loop on `PASS`, `return_to_planner`, `ESCALATE`, max attempts exhausted, or main decision to stop after a checkpoint
 
 ## Repair loop communication protocol
 
 The `generator <-> evaluator` loop is driven by `main`; Generator and Evaluator do not message each other to advance the loop.
 
-For each retryable verdict:
-1. `main` reads Evaluator `required_fixes`, `failure_signature`, `verdict`, `next_route`, and `route_reason`.
+For each retryable Generator-local issue:
+1. `main` reads either Generator-local repair evidence (`local_verification`, `self_review.generator_plan_review.repair_direction`, `failure_signature`) or Evaluator `required_fixes`, `failure_signature`, `verdict`, `next_route`, and `route_reason`.
 2. `main` checks that the Planner contract is still fair, the fix is local to Generator, total Generator attempts are below 10, and no same-failure checkpoint has stopped the loop.
-3. `main` sends `generator_repair_request` to `generator` with attempt number, Planner artifact, current Generator artifact, Evaluator artifact, required fixes, failure signature, and same-contract scope boundary.
+3. `main` sends `generator_repair_request` to `generator` with attempt number, Planner artifact, current Generator artifact, Evaluator artifact when present, required fixes, failure signature, and same-contract scope boundary.
 4. `main` waits for a fresh canonical `generator_completion`, then gates the repaired deliverable and durable Generator artifact.
-5. `main` sends `evaluator_recheck_request` to `evaluator` with attempt number, Planner artifact, repaired Generator artifact, prior Evaluator artifact, prior failure signature, and required fixes.
-6. `main` waits for a fresh canonical `final_verdict`, gates the Evaluator artifact, and either routes on PASS/non-retryable output or repeats the loop.
+5. If the repaired Generator handoff is ready for independent validation, `main` sends `evaluator_recheck_request` to `evaluator` with attempt number, Planner artifact, repaired Generator artifact, prior Evaluator artifact when present, prior failure signature, and required fixes.
+6. `main` waits for a fresh canonical `final_verdict` only when Evaluator was dispatched, gates the Evaluator artifact, and either routes on PASS/non-retryable output or repeats the loop.
 
 If the same `failure_signature` appears on 3 consecutive evaluations, or total Generator attempts reaches 10, `main` saves a repair snapshot before deciding whether to stop, ask one focused user question, or allow one more bounded attempt.
 
@@ -203,6 +208,7 @@ After the `final_verdict` event and evaluator artifact gate:
 - if `verdict = PASS` and `next_route = continue`, record canonical route, downgrade to `unsupported_route` in the current stage, and stop cleanly
 - if `verdict = RETRY`, record required fixes and dispatch Generator repair while attempts remain; otherwise stop as unsupported/failed
 - if `verdict = BLOCK` and the required fixes describe missing execution evidence or incomplete delivery under a still-fair contract, dispatch Generator repair while attempts remain; otherwise record an execution blocker and stop
+- if Generator reaches `handoff_status: BLOCKED` but the artifact shows a narrow same-contract development issue with a concrete `repair_direction`, dispatch resident Generator repair while attempts remain; otherwise record an execution blocker and stop
 - if `verdict = BLOCK` and the route reason shows the contract is no longer a fair repair frame, classify it as contract friction and downgrade to `unsupported_route`
 - if `verdict = ESCALATE`, classify it as a contract-level failure signal, record the escalation reason, downgrade to `unsupported_route`, and stop cleanly
 
@@ -246,10 +252,11 @@ Use this ownership split:
   - route reduction contradiction
   - progress schema violation
   - teardown command-shape failure
+  - speculative control-plane pre-check without an attempted runtime call
   - owner: `main`
 
 - **Runtime / substrate failure**
-  - TeamCreate / SendMessage / TeamDelete failure
+  - TeamCreate / team-bound Agent dispatch / SendMessage / TeamDelete failure
   - permission / hook / session transport failure
   - owner: runtime environment, surfaced by `main`
 
@@ -259,7 +266,9 @@ Agents own repairing their own role outputs.
 
 ## Guardrails
 
-- Use real Agent Teams or stop with a blocker.
+- Use real Agent Teams or stop with a concrete runtime-call blocker.
+- Only the named agent surfaces `pge-planner`, `pge-generator`, and `pge-evaluator` are valid runtime teammates in the current lane.
+- Do not stop from tool-list inspection before attempting the required Agent Team calls.
 - Do not simulate planner/generator/evaluator inside `main`.
 - Do not let Planner or Generator decide the final verdict.
 - Do not let `main` become a fourth domain expert; it may route, gate, and correct, but it must not rewrite Planner or Generator semantics itself.

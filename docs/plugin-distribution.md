@@ -127,9 +127,9 @@ The local install should not include repo-only material such as docs, proving ar
 After installing locally:
 1. run `/reload-plugins` if Claude Code is already running
 2. confirm the active installed surfaces changed under `~/.claude/skills/pge-execute` and `~/.claude/agents/`
-3. optionally run `claude -p "/pge-execute test"` as a plugin-load / packaging check when that CLI is authenticated and exposes an Agent dispatch surface
+3. optionally run `claude -p "/pge-execute test"` only as a plugin-load / packaging check when that CLI is authenticated
 
-Do not treat `claude -p "/pge-execute test"` as proof of any specific PGE runtime path by itself. Use it only as a load check. Real proving comes from executing `/pge-execute ...` in the target Claude surface and preserving the concrete runtime call result, whether that is successful TeamCreate, a direct Agent compatibility path, or the exact failure that blocks execution.
+Do not treat `claude -p "/pge-execute test"` as proof of the Agent Team runtime path by itself. Use it only as a load check. Real proving comes from executing `/pge-execute ...` in the target Claude surface and preserving the concrete runtime call result, whether that is successful TeamCreate/team-bound Agent/SendMessage/TeamDelete or the exact failure that blocks execution.
 
 The helper prints the installed plugin `name`, `version`, and `description` after each run.
 For a visible install check, temporarily change `.claude-plugin/plugin.json` `version` or `description`, rerun the helper, and confirm the helper output changed together with the installed files under `~/.claude/skills/pge-execute` and `~/.claude/agents/`.

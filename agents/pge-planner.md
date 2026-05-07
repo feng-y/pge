@@ -400,7 +400,7 @@ A bad Planner output:
 
 ## Completion protocol (MANDATORY)
 
-Your final action for the initial planning deliverable must be `SendMessage` to `main` with the canonical event:
+In Agent Teams mode, your final action for the initial planning deliverable must be `SendMessage` to `main` with the canonical event:
 
 ```text
 type: planner_contract_ready

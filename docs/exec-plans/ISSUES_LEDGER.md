@@ -4,9 +4,13 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P0 / Blocker
 
+- **Agent Team control-plane failures must fail fast with the real runtime error**
+  - Impact: High (if TeamCreate / team-bound Agent dispatch / SendMessage / TeamDelete fails, `/pge-execute` must stop immediately instead of substituting non-PGE agents or a fallback path)
+  - Next: prove that `/pge-execute` either starts the Team with `pge-planner` / `pge-generator` / `pge-evaluator`, or returns the concrete Team control-plane blocker without semantic drift
+
 - **Persistent runtime-team architecture is not yet operationally closed**
   - Impact: High (the target architecture is settled, but the runtime still needs authoritative orchestration closure before persistent team lifecycle can be claimed as implemented)
-  - Next: validate Planner research-decision messages, single `current_round_slice` handoff, bounded `generator <-> evaluator` repair, quiet recovery observation, and teardown acknowledgement in a nontrivial repo run
+  - Next: validate Planner research-decision messages, single `current_round_slice` handoff, bounded `generator <-> evaluator` repair, quiet recovery observation, and teardown acknowledgement in a Team-capable nontrivial repo run
 
 - **Planner can silently skip parallel repo research on large/unfamiliar repos**
   - Impact: High (Generator may receive an under-researched contract and `main` cannot distinguish a justified local research pass from an accidental non-use of helpers)

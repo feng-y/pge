@@ -34,6 +34,8 @@ The teammate-to-main message is the only legal progression trigger in the curren
 Artifact existence, progress logs, pane output, task state, or prose summaries do not replace it.
 `TaskUpdate(status: completed)` is task bookkeeping only; it is not a PGE phase-completion event and must not be the teammate's substitute for the canonical `SendMessage`.
 
+`main` must not infer control-plane absence from an apparent tool list or capability pre-check. Only a real failed TeamCreate, team-bound Agent, SendMessage, or TeamDelete call is valid evidence of a runtime substrate blocker.
+
 ## planner event
 
 ### `planner_contract_ready`
@@ -105,7 +107,7 @@ Meaning:
 
 ## repair loop dispatch messages
 
-Repair loop dispatch messages are `main`-to-teammate instructions inside the supported same-contract `generator <-> evaluator` loop. They are not phase-completion events. The completion events remain `generator_completion` and `final_verdict`.
+Repair loop dispatch messages are `main`-to-teammate instructions inside the supported same-contract repair path. They are not phase-completion events. The completion events remain `generator_completion` and `final_verdict`.
 
 ### `generator_repair_request`
 
@@ -125,7 +127,8 @@ Required fields:
 - `reply_to: main`
 
 Meaning:
-- `main` asks resident Generator to repair only the Evaluator-reported gaps while the Planner contract remains fair
+- `main` asks resident Generator to repair a still-local same-contract issue that was surfaced either by Generator self-review/local verification or by Evaluator
+- `main` owns only the dispatch/stability decision; Generator owns the actual repair workflow
 - Generator must not reopen or mutate the Planner contract
 - Generator must answer with a fresh canonical `generator_completion`
 
@@ -225,10 +228,10 @@ Generator must not wait indefinitely for Planner support.
 
 For each dispatched Planner / Generator / Evaluator phase, `main` must handle abnormal communication in this order:
 
-1. If a canonical BLOCKED / not-ready event arrives, stop the current phase, record the blocker, route/status as blocked or unsupported as appropriate, and proceed to teardown.
+1. If a canonical BLOCKED / not-ready event arrives, stop the current phase unless the Generator artifact shows a still-local same-contract development issue with a narrow `repair_direction`; in that Generator-only case, redispatch resident Generator with `generator_repair_request`, otherwise record the blocker, route/status as blocked or unsupported as appropriate, and proceed to teardown.
 2. If a ready canonical event arrives, run the matching phase gate.
 3. If a support message arrives, optionally log it and continue waiting for the canonical event.
-4. For Generator only: if a real deliverable or artifact-written hint exists but the required `generator_artifact` or `generator_completion` is missing, treat this as a recoverable handoff gap and use the one repair request to ask Generator to either finish the durable artifact plus canonical event or return canonical BLOCKED.
+4. For Generator only: if a real deliverable or artifact-written hint exists but the required `generator_artifact` or `generator_completion` is missing, treat this as a recoverable handoff gap and use the one repair request to ask Generator to either finish the durable artifact plus canonical event or return canonical BLOCKED. If the canonical event is present and the Generator artifact marks a narrow local development failure that still fits the same Planner contract, `main` may also use `generator_repair_request` to redispatch resident Generator instead of tearing down immediately.
 5. If another non-canonical completion hint arrives, send exactly one protocol repair request to the currently dispatched teammate asking for only the canonical event, with blocked / not-ready status when appropriate.
 6. If the canonical event is still missing after one repair, use degraded artifact-gated recovery only when the current-phase gate passes and the artifact unambiguously belongs to the current run.
 7. If degraded recovery cannot be proven, stop with `protocol_violation: missing_team_message_event`, record progress friction, and proceed to teardown when a team exists.

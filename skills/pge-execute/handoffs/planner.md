@@ -154,6 +154,7 @@ Do not rely on task status as completion.
 Do not call `TaskUpdate(status: completed)` as the completion signal instead of sending the canonical event to `main`.
 Do not call `TaskUpdate(status: completed)` for the planning phase at all.
 If you use TaskCreate/TaskUpdate for internal tracking, do not use `completed` status for PGE phase completion.
+In Agent Teams mode, your final action for the initial planning deliverable must be SendMessage to `main`.
 The final action must still be SendMessage for the initial planning deliverable.
 After this SendMessage, do not exit; remain resident, available, and responsive for bounded clarification, guidance, and research until shutdown.
 

@@ -69,7 +69,7 @@ Do not call `TaskUpdate(status: completed)` as the completion signal instead of 
 Do not call `TaskUpdate(status: completed)` for the generation phase at all.
 If you use TaskCreate/TaskUpdate for internal tracking, do not use `completed` status for PGE phase completion.
 The final action must still be SendMessage for the initial generation deliverable.
-After this SendMessage, do not exit; remain resident, available, and responsive for bounded implementation clarification, evidence questions, and repair investigation until shutdown.
+After SendMessage in Agent Teams mode, do not exit; remain resident, available, and responsive for bounded implementation clarification, evidence questions, and repair investigation until shutdown.
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify the current run deliverable/artifact is still the one you completed and resend only the exact canonical `generator_completion` text. Do not send recap, idle wrapper, or summary text instead of the event.
 
@@ -89,6 +89,7 @@ reply_to: main
 ```
 
 For a repair request, change only what is needed to address `required_fixes`, preserve working parts from prior attempts, update <output_artifact> with repair attempt evidence, rerun the failed verification path when practical, and send a fresh canonical `generator_completion` to `main`.
+This same repair request may be used when Generator itself marked a still-local development issue that should be fixed by resident Generator before stable handoff.
 
 If <output_artifact> is present, write markdown to <output_artifact> with exactly these top-level sections:
 - ## current_task
@@ -141,8 +142,10 @@ Rules:
   - record `planner_support_decision` with used/not-used, reason, refs, impact, and any `replan_needed` signal
 - perform the real file work
 - run local verification against Planner's `verification_path` and acceptance criteria when practical
-- if a required verification command fails, crashes, exits by signal, or returns a non-zero code such as `139`, record the exact command/result in `## local_verification` and do not claim `handoff_status: READY_FOR_EVALUATOR`
-- if required verification cannot be run, record why in `## known_limits` / `## deviations_from_spec` and use `handoff_status: BLOCKED` unless Planner explicitly allowed that gap
+- if a required verification command fails, crashes, exits by signal, or returns a non-zero code such as `139`, record the exact command/result in `## local_verification`, perform local self-review, and attempt the narrow repair direction that stays inside the same Planner contract before handoff
+- after local repair attempts, claim `handoff_status: READY_FOR_EVALUATOR` only when the required verification path is passing or Planner explicitly allowed the remaining gap
+- if required verification still cannot be made to pass after bounded internal repair, record why in `## known_limits` / `## deviations_from_spec` and use `handoff_status: BLOCKED`
+- if required verification cannot be run because of a missing prerequisite, contract unfairness, or Planner-directed replan, record why in `## known_limits` / `## deviations_from_spec` and use `handoff_status: BLOCKED` unless Planner explicitly allowed that gap
 - perform local self-review, but do not self-approve
 - do not silently reinterpret the contract
 - stop on blocker rather than guessing through major ambiguity

@@ -93,12 +93,20 @@ require_pattern skills/pge-execute/SKILL.md 'Create the run-scoped smoke file \.
   "run-scoped smoke task"
 require_pattern skills/pge-execute/SKILL.md 'do not treat teammate `idle_notification` as completion' \
   "idle notifications are not completion"
+require_pattern skills/pge-execute/SKILL.md 'Use Claude Code native Agent Teams' \
+  "agent teams executable claim"
+require_pattern skills/pge-execute/SKILL.md 'Do not add a separate capability-check phase before execution' \
+  "skill no capability pre-check rule"
+require_pattern skills/pge-execute/SKILL.md 'Do not fail from tool-list inspection or other speculative pre-checks' \
+  "skill no tool-list failure rule"
+require_pattern skills/pge-execute/SKILL.md 'Spawn exactly three teammates:' \
+  "exact three teammates rule"
 require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: planner_contract_ready`' \
-  "planner canonical teammate message wait rule"
+  "planner canonical event wait rule"
 require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: generator_completion`' \
-  "generator canonical teammate message wait rule"
+  "generator canonical event wait rule"
 require_pattern skills/pge-execute/SKILL.md 'canonical teammate-to-main message whose first non-empty line is `type: final_verdict`' \
-  "evaluator canonical teammate message wait rule"
+  "evaluator canonical event wait rule"
 require_pattern skills/pge-execute/SKILL.md 'protocol_recovery: missing_team_message_event_artifact_gate' \
   "degraded artifact-gated recovery rule"
 require_pattern skills/pge-execute/SKILL.md 'use non-canonical teammate hints, including recovery/resume recap or task-state replay, only to trigger a clarification / resend request to the same teammate; do not advance from them unless the canonical notification text is present' \
@@ -111,18 +119,26 @@ require_pattern skills/pge-execute/SKILL.md 'do not emit user-facing "waiting fo
   "no waiting chatter rule"
 require_pattern skills/pge-execute/SKILL.md 'Do not insert a separate preflight or mode-decision phase into the current executable lane' \
   "no preflight gate rule"
-require_pattern skills/pge-execute/SKILL.md 'spawn teammate `planner` using `pge-planner`' \
-  "planner spawn binding"
+require_pattern skills/pge-execute/SKILL.md '`planner` using `pge-planner`' \
+  "planner agent binding"
 require_pattern skills/pge-execute/SKILL.md 'for `test`, send implementation task to generator with `output_artifact = None` and the resolved `smoke_deliverable`' \
   "test direct generator dispatch"
 require_pattern skills/pge-execute/SKILL.md 'send evaluation task to evaluator' \
   "final evaluator dispatch"
-require_pattern skills/pge-execute/SKILL.md 'if `generator_completion` has `handoff_status: BLOCKED`, record the Generator blocker, do not dispatch Evaluator' \
-  "generator blocked completion stops evaluator dispatch"
+require_pattern skills/pge-execute/SKILL.md 'if `generator_completion` has `handoff_status: BLOCKED` and the artifact shows a still-local same-contract issue with a narrow `repair_direction`, send `generator_repair_request` to the resident `generator` instead of tearing down immediately' \
+  "generator blocked completion redispatches resident generator when repairable"
+require_pattern skills/pge-execute/SKILL.md 'if `generator_completion` has `handoff_status: BLOCKED` and the artifact does not show a still-local same-contract repair path, record the Generator blocker, do not dispatch Evaluator' \
+  "generator blocked completion stops evaluator dispatch only when not repairable"
+require_pattern skills/pge-execute/handoffs/generator.md 'attempt the narrow repair direction that stays inside the same Planner contract before handoff' \
+  "generator internal repair before handoff"
+require_pattern agents/pge-generator.md 'If local verification exposes a narrow development bug that Generator can fix within the same Planner contract, Generator should fix it during self-review instead of handing the first failed attempt to `main`' \
+  "generator self-review repairs development bugs"
+require_pattern agents/pge-generator.md 'If verification exposes a narrow development bug that can be fixed inside the same Planner contract, Generator should repair it before handoff instead of surfacing the first failed attempt as a terminal blocker' \
+  "generator verification repairs before handoff"
 require_pattern skills/pge-execute/SKILL.md 'if `planner_contract_ready` has `ready_for_generation: false`, record Planner blocker/escalation, do not dispatch Generator' \
   "planner not-ready stops generator dispatch"
 require_pattern skills/pge-execute/SKILL.md 'asking generator to write any missing required durable `generator_artifact` and send that event with `handoff_status: READY_FOR_EVALUATOR` or `handoff_status: BLOCKED`' \
-  "generator repair can return blocked completion"
+  "generator handoff-gap repair can return blocked completion"
 require_pattern skills/pge-execute/SKILL.md 'if the real deliverable appears but `generator_artifact` or `generator_completion` is missing, treat it as a recoverable Generator handoff gap first' \
   "generator deliverable-before-event recovery rule"
 require_pattern skills/pge-execute/SKILL.md 'treat failed acceptance verification, including command crash/signal/non-zero results such as exit code `139`, as task non-acceptance' \
@@ -141,7 +157,7 @@ require_pattern skills/pge-execute/SKILL.md 'if no generator message arrives and
   "generator missing message hard stop"
 require_pattern skills/pge-execute/SKILL.md 'for `test`, never redispatch planner, generator, or evaluator after an idle notification' \
   "no redispatch on idle rule"
-require_pattern skills/pge-execute/SKILL.md 'treat `TaskUpdate\(status: completed\)` as bookkeeping only; it is not a teammate-to-main completion event' \
+require_pattern skills/pge-execute/SKILL.md 'treat `TaskUpdate\(status: completed\)` as bookkeeping only; it is not a PGE phase-completion event' \
   "taskupdate is not completion"
 require_pattern skills/pge-execute/SKILL.md 'treat `TaskUpdate\(status: completed\)` as phase completion' \
   "forbidden taskupdate completion"
@@ -149,16 +165,18 @@ require_absent_pattern skills/pge-execute/SKILL.md 'state_artifact' \
   "stale state artifact reference"
 
 require_pattern skills/pge-execute/ORCHESTRATION.md 'All tasks use the same resident P/G/E progression' \
-  "orchestration resident progression rule"
+  "orchestration P/G/E progression rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'retryable Evaluator feedback may loop back to resident Generator while the same contract remains fair' \
   "orchestration same-contract retry loop rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'require the exact `pge-planner`, `pge-generator`, and `pge-evaluator` agent surfaces' \
+  "exact PGE runtime teammate surfaces rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'never replace the required Team control-plane calls with speculative capability or tool-list pre-checks' \
+  "orchestration no speculative control-plane precheck"
 require_pattern skills/pge-execute/ORCHESTRATION.md '\.pge-artifacts/<run_id>/deliverables/smoke\.txt' \
   "orchestration run-scoped smoke path"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'append-only execution log' \
   "orchestration progress log note"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'canonical teammate-to-main `SendMessage` notification plus the matching phase gate' \
-  "notification plus gate rule"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'canonical teammate-to-main `SendMessage` notification plus the matching phase gate' \
+require_pattern skills/pge-execute/ORCHESTRATION.md '`main` advances only after a canonical teammate-to-main `SendMessage` notification plus the matching phase gate' \
   "agent teams sendmessage gate rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'resident researcher \+ architect teammate' \
   "resident planner orchestration role"
@@ -182,8 +200,8 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'Durable helper outputs foll
   "orchestration helper report contract rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Foreground polling scripts and verbose verification transcripts are not the user-facing progress model' \
   "main quiet progress orchestration rule"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'Planner does not exit; it remains resident, available, and responsive for bounded clarification, architecture guidance, and repo research until shutdown' \
-  "planner resident after contract rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'After `planner_contract_ready`, Planner does not exit; it remains resident, available, and responsive for bounded clarification, architecture guidance, and repo research until shutdown' \
+  "planner resident support rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'resident implementation teammate' \
   "resident generator orchestration role"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Generator handles directly relevant local context itself' \
@@ -194,14 +212,14 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'Generator records this boun
   "generator planner support decision orchestration rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'bounded coder workers and read-only reviewer helpers in parallel' \
   "generator helper orchestration rule"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'Generator does not exit; it remains resident, available, and responsive for bounded implementation clarification or repair investigation until shutdown' \
-  "generator resident after completion rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'After `generator_completion`, Generator does not exit; it remains resident, available, and responsive for bounded implementation clarification or repair investigation until shutdown' \
+  "generator resident support rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'resident independent validation teammate' \
   "resident evaluator orchestration role"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'bounded read-only verification helpers in parallel' \
   "evaluator helper orchestration rule"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'Evaluator does not exit; it remains resident, available, and responsive for bounded verdict clarification until shutdown' \
-  "evaluator resident after verdict rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'After `final_verdict`, Evaluator does not exit; it remains resident, available, and responsive for bounded verdict clarification until shutdown' \
+  "evaluator resident support rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Recovery/resume recap and task-state replay are still non-canonical hints unless the canonical notification text is present verbatim' \
   "recovery recap orchestration rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'protocol_violation: missing_team_message_event' \
@@ -214,6 +232,8 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'Support messages are coordi
   "orchestration support traffic rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Main exception handling' \
   "orchestration main exception handling section"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'Capability uncertainty: do not inspect the apparent tool list and stop before execution' \
+  "orchestration capability uncertainty rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Missing completion event: send one canonical resend request' \
   "orchestration missing completion handling"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Generator handoff gap: if the real deliverable exists but `generator.md` or `generator_completion` is missing' \
@@ -222,8 +242,10 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'Task outcome and teardown o
   "orchestration task teardown separation"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'A failed verification path, including a crash/signal/non-zero result such as exit code `139`, is a deliverable correctness failure' \
   "orchestration crash verification is task failure"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'bounded evaluator-to-generator repair loop' \
-  "orchestration evaluator generator loop"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'bounded same-contract Generator repair path' \
+  "orchestration generator repair path"
+require_pattern skills/pge-execute/ORCHESTRATION.md '`main` may redispatch resident Generator when the current contract remains fair and the required fix is still local to Generator, whether the issue was first surfaced by Generator or by Evaluator' \
+  "orchestration main redispatches resident generator for local issues"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'max generator attempts per round: 10 total attempts, including the initial generation' \
   "orchestration max generator attempts"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'same `failure_signature` repeated on 3 consecutive evaluations triggers a repair decision checkpoint' \
@@ -234,8 +256,8 @@ require_pattern skills/pge-execute/ORCHESTRATION.md '`main` sends `generator_rep
   "orchestration generator repair request dispatch"
 require_pattern skills/pge-execute/ORCHESTRATION.md '`main` sends `evaluator_recheck_request` to `evaluator`' \
   "orchestration evaluator recheck request dispatch"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'Explicit blocked completion: record the blocker' \
-  "orchestration blocked completion handling"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'Explicit blocked completion: if the Generator artifact shows a still-local same-contract issue with a narrow `repair_direction`, redispatch resident Generator' \
+  "orchestration blocked completion redispatch handling"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'must not wait indefinitely after the single protocol repair attempt' \
   "orchestration no indefinite wait rule"
 require_absent_pattern skills/pge-execute/ORCHESTRATION.md 'state\.json|state_artifact' \
@@ -272,6 +294,8 @@ require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'route_se
   "route event"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'generator_repair_request' \
   "generator repair request message"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'asks resident Generator to repair a still-local same-contract issue that was surfaced either by Generator self-review/local verification or by Evaluator' \
+  "generator repair request local issue semantics"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'evaluator_recheck_request' \
   "evaluator recheck request message"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'planner_research_decision' \
@@ -317,7 +341,9 @@ require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'PGE curr
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'canonical runtime event must be delivered as a teammate-to-main team message through `SendMessage`' \
   "teammate to main sendmessage rule"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'The teammate-to-main message is the only legal progression trigger in the current Agent Teams lane' \
-  "only legal progression trigger rule"
+  "team-only legal progression trigger rule"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'must not infer control-plane absence from an apparent tool list or capability pre-check' \
+  "runtime no speculative control-plane inference"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'TaskUpdate\(status: completed\)` is task bookkeeping only' \
   "taskupdate runtime non-completion rule"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'recovery / resume recap' \
@@ -399,7 +425,9 @@ require_pattern skills/pge-execute/handoffs/preflight.md 'not part of the curren
 require_pattern skills/pge-execute/handoffs/planner.md 'ready_for_generation: true' \
   "planner ready_for_generation event"
 require_pattern skills/pge-execute/handoffs/planner.md 'your final action for the initial planning deliverable must be `SendMessage` to `main`' \
-  "planner final action sendmessage rule"
+  "planner sendmessage completion rule"
+require_pattern skills/pge-execute/handoffs/planner.md 'The final action must still be SendMessage for the initial planning deliverable' \
+  "planner sendmessage completion rule"
 require_pattern skills/pge-execute/handoffs/planner.md 'resident researcher \+ architect workflow actor' \
   "planner handoff resident role"
 require_pattern skills/pge-execute/handoffs/planner.md 'stay alive for the whole PGE run, do not exit after writing the plan, and remain responsive until `main` sends `shutdown_request`' \
@@ -460,9 +488,7 @@ require_pattern skills/pge-execute/handoffs/planner.md 'Do not call `TaskUpdate\
   "planner taskupdate not completion"
 require_pattern skills/pge-execute/handoffs/planner.md 'Do not call `TaskUpdate\(status: completed\)` for the planning phase at all' \
   "planner no completed taskupdate"
-require_pattern skills/pge-execute/handoffs/planner.md 'final action must still be SendMessage' \
-  "planner task tracking before final sendmessage"
-require_pattern skills/pge-execute/handoffs/planner.md 'do not exit; remain resident, available, and responsive for bounded clarification, guidance, and research until shutdown' \
+require_pattern skills/pge-execute/handoffs/planner.md 'After this SendMessage, do not exit; remain resident, available, and responsive for bounded clarification, guidance, and research until shutdown' \
   "planner handoff remain responsive after sendmessage"
 require_absent_pattern skills/pge-execute/handoffs/planner.md 'write state|update progress only when enabled|ready_for_preflight' \
   "planner stale state logic"
@@ -471,8 +497,8 @@ require_pattern skills/pge-execute/handoffs/generator.md 'smoke_deliverable: <sm
   "generator smoke path input"
 require_pattern skills/pge-execute/handoffs/generator.md 'type: generator_completion' \
   "generator completion event schema"
-require_pattern skills/pge-execute/handoffs/generator.md 'your final action must be `SendMessage` to `main`' \
-  "generator final action sendmessage rule"
+require_pattern skills/pge-execute/handoffs/generator.md 'your final action must be `SendMessage` to `main` with the exact canonical completion event below' \
+  "generator sendmessage completion rule"
 require_pattern skills/pge-execute/handoffs/generator.md 'resend only the exact canonical `generator_completion` text' \
   "generator canonical resend rule"
 require_pattern skills/pge-execute/handoffs/generator.md 'Do not only write the artifact' \
@@ -537,9 +563,9 @@ require_pattern skills/pge-execute/handoffs/generator.md 'You remain the only im
   "generator handoff ownership rule"
 require_pattern skills/pge-execute/handoffs/generator.md 'Do not call `TaskUpdate\(status: completed\)` for the generation phase at all' \
   "generator no completed taskupdate"
-require_pattern skills/pge-execute/handoffs/generator.md 'final action must still be SendMessage' \
-  "generator task tracking before final sendmessage"
-require_pattern skills/pge-execute/handoffs/generator.md 'do not exit; remain resident, available, and responsive for bounded implementation clarification, evidence questions, and repair investigation until shutdown' \
+require_pattern skills/pge-execute/handoffs/generator.md 'The final action must still be SendMessage for the initial generation deliverable' \
+  "generator sendmessage completion continuation rule"
+require_pattern skills/pge-execute/handoffs/generator.md 'After SendMessage in Agent Teams mode, do not exit; remain resident, available, and responsive for bounded implementation clarification, evidence questions, and repair investigation until shutdown' \
   "generator handoff remain responsive after sendmessage"
 require_absent_pattern skills/pge-execute/handoffs/generator.md 'preflight_artifact|contract_proposal_artifact|write state' \
   "generator stale preflight/state logic"
@@ -548,8 +574,8 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'smoke_deliverable: <sm
   "evaluator smoke path input"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'type: final_verdict' \
   "evaluator final verdict event schema"
-require_pattern skills/pge-execute/handoffs/evaluator.md 'your final action must be `SendMessage` to `main`' \
-  "evaluator final action sendmessage rule"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'your final action must be `SendMessage` to `main` with exactly this canonical runtime event' \
+  "evaluator sendmessage completion rule"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'resend only the exact canonical `final_verdict` text above' \
   "evaluator canonical resend rule"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'Do not only write the artifact' \
@@ -596,9 +622,9 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'do not issue a changed
   "evaluator no silent verdict change"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'Do not call `TaskUpdate\(status: completed\)` for the evaluation phase at all' \
   "evaluator no completed taskupdate"
-require_pattern skills/pge-execute/handoffs/evaluator.md 'final action must still be SendMessage' \
-  "evaluator task tracking before final sendmessage"
-require_pattern skills/pge-execute/handoffs/evaluator.md 'do not exit; remain resident, available, and responsive for bounded verdict clarification until shutdown' \
+require_pattern skills/pge-execute/handoffs/evaluator.md 'The final action must still be SendMessage for the initial evaluation deliverable' \
+  "evaluator sendmessage completion continuation rule"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'After this SendMessage, do not exit; remain resident, available, and responsive for bounded verdict clarification until shutdown' \
   "evaluator handoff remain responsive after sendmessage"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'if verdict is `PASS`, `next_route` must be `converged`' \
   "test pass implies converged rule"
@@ -686,12 +712,14 @@ require_pattern agents/pge-generator.md '## Completion protocol \(MANDATORY\)' \
   "generator mandatory completion protocol"
 require_pattern agents/pge-generator.md 'Do NOT call `TaskUpdate\(status: completed\)` for the generation phase' \
   "generator no completed taskupdate in completion"
-require_pattern agents/pge-generator.md 'do not exit; remain resident, available, and responsive for bounded implementation clarification until `main` sends `shutdown_request`' \
+require_pattern agents/pge-generator.md 'After SendMessage, do not exit; remain resident, available, and responsive for bounded implementation clarification until `main` sends `shutdown_request`' \
   "generator remains resident after sendmessage"
 require_pattern agents/pge-generator.md 'If `main` sends a protocol repair request after a deliverable exists but `generator_artifact` or `generator_completion` is missing' \
   "generator repairs missing handoff after deliverable"
 require_pattern agents/pge-generator.md 'Runtime retry is the current bounded same-contract Generator repair loop' \
   "generator retry current support"
+require_pattern agents/pge-generator.md '`main` only decides whether to redispatch the resident Generator; Generator owns the actual repair workflow' \
+  "generator owns repair workflow"
 require_pattern agents/pge-generator.md 'SendMessage to `team-lead` with a plain-string shutdown response' \
   "generator shutdown response target"
 require_absent_pattern agents/pge-generator.md 'proposal_ready|preflight validated' \
@@ -735,7 +763,7 @@ require_pattern agents/pge-evaluator.md '## Completion protocol \(MANDATORY\)' \
   "evaluator mandatory completion protocol"
 require_pattern agents/pge-evaluator.md 'Do NOT call `TaskUpdate\(status: completed\)` for the evaluation phase' \
   "evaluator no completed taskupdate in completion"
-require_pattern agents/pge-evaluator.md 'do not exit; remain resident, available, and responsive for bounded verdict clarification until `main` sends `shutdown_request`' \
+require_pattern agents/pge-evaluator.md 'After SendMessage, do not exit; remain resident, available, and responsive for bounded verdict clarification until `main` sends `shutdown_request`' \
   "evaluator remains resident after sendmessage"
 require_pattern agents/pge-evaluator.md 'SendMessage to `team-lead` with a plain-string shutdown response' \
   "evaluator shutdown response target"
@@ -806,8 +834,21 @@ require_pattern agents/pge-planner.md '## Completion protocol \(MANDATORY\)' \
   "planner mandatory completion protocol"
 require_pattern agents/pge-planner.md 'Do NOT call `TaskUpdate\(status: completed\)` for the planning phase' \
   "planner no completed taskupdate in completion"
-require_pattern agents/pge-planner.md 'do not exit; remain resident, available, and responsive for bounded plan clarification until `main` sends `shutdown_request`' \
+require_pattern agents/pge-planner.md 'After SendMessage, do not exit; remain resident, available, and responsive for bounded plan clarification until `main` sends `shutdown_request`' \
   "planner remains resident after sendmessage"
+
+require_absent_pattern skills/pge-execute/SKILL.md 'direct_agent_compat|direct Agent compatibility|direct Agent result|selected runtime' \
+  "stale direct compatibility skill language"
+require_absent_pattern skills/pge-execute/ORCHESTRATION.md 'direct_agent_compat|direct Agent compatibility|direct Agent result|selected runtime' \
+  "stale direct compatibility orchestration language"
+require_absent_pattern skills/pge-execute/contracts/runtime-event-contract.md 'direct_agent_compat|direct Agent compatibility|direct Agent result' \
+  "stale direct compatibility runtime event language"
+require_absent_pattern agents/pge-planner.md 'direct-agent compatibility|direct Agent result' \
+  "stale direct compatibility planner language"
+require_absent_pattern agents/pge-generator.md 'direct-agent compatibility|direct Agent result' \
+  "stale direct compatibility generator language"
+require_absent_pattern agents/pge-evaluator.md 'direct-agent compatibility|direct Agent result' \
+  "stale direct compatibility evaluator language"
 require_pattern agents/pge-planner.md 'SendMessage to `team-lead` with a plain-string shutdown response' \
   "planner shutdown response target"
 

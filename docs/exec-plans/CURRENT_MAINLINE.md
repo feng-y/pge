@@ -2,9 +2,9 @@
 
 ## Current mainline
 
-Converge the `0.5A / 0.5B` runtime lane so `pge-execute` is the runnable repo-coupled Agent Team surface: one Team, exactly `planner` / `generator` / `evaluator`, one bounded repo-local run, messaging-first coordination, durable phase artifacts, one shared progress log, independent evaluation, and a bounded same-contract `generator <-> evaluator` repair loop.
+Converge the `0.5A / 0.5B` runtime lane so `pge-execute` is the runnable repo-coupled Agent Team surface: one Team, exactly `planner` / `generator` / `evaluator`, one bounded repo-local run, durable phase artifacts, one shared progress log, independent evaluation, and a bounded same-contract `generator <-> evaluator` repair loop.
 
-The immediate sub-lane is operational closure for Planner research decisions, Generator handoff recovery, and Evaluator retry feedback.
+The immediate sub-lane is restoring executable runtime behavior when TeamCreate / SendMessage capability visibility is uncertain: `/pge-execute` must attempt the real Team control-plane calls before it can report a Team substrate blocker, while preserving Planner research decisions, Generator handoff recovery, and Evaluator retry feedback.
 
 ## Why this is the mainline
 
@@ -12,7 +12,7 @@ Repo evidence supports the runtime-team architecture, but the active mismatch is
 - the repo already has stable `planner / generator / evaluator` agent surfaces
 - `main` is the orchestration shell / route owner / gate owner, not a fourth agent
 - P/G/E are persistent runtime teammates and workflow phase owners
-- normal coordination should use `SendMessage`; files are for durable phase outputs, recovery state, and evidence
+- normal coordination should use `SendMessage`
 - Evaluator failure is not a terminal route by itself when the same Planner contract remains fair; it should feed required fixes back to Generator
 - current blockers are operational closure in real repos, not broad architecture theory
 
@@ -22,20 +22,21 @@ Stage 0.5 — Agent Teams runtime closure + persistent Planner / Generator / Eva
 
 ## Current blocker
 
-The design intent for `0.5A / 0.5B` is now clear. The active blocker is operational closure in real repos:
+The design intent for `0.5A / 0.5B` is now clear. The active blocker is operational closure in real repos. The current runtime must:
 
+- create the actual Agent Team using the named `pge-planner` / `pge-generator` / `pge-evaluator` agent surfaces, or fail immediately with the concrete Team control-plane error
 - Planner must not silently skip parallel repo research when the task scale warrants it
 - `main` must not turn missing messages into noisy foreground polling
 - Generator handoff gaps must be repaired before selecting a blocked route
 - Evaluator retry feedback must loop back to Generator while the same Planner contract remains fair
 
-The current step is to enforce visible Planner `multi_agent_research_decision`, keep artifact-gated recovery as an exception path, run the bounded same-contract `generator <-> evaluator` repair loop, and keep progress observation concise and structured.
+The current step is to keep Team-only execution strict, then prove visible Planner `multi_agent_research_decision`, artifact-gated recovery as an exception path, the bounded same-contract `generator <-> evaluator` repair loop, and concise progress observation.
 
 ## What this round is optimizing for
 
 - keep `main` as the orchestration shell, not a peer agent
 - keep `planner`, `generator`, and `evaluator` as the only decision-bearing runtime roles
-- move normal coordination to `SendMessage`
+- move normal Agent Teams coordination to `SendMessage`
 - reserve files for durable phase outputs and recovery state
 - introduce lighter closure paths for deterministic tasks without giving Planner fast-finish authority
 - make Planner run research pass + thin counter-research + architecture pass before freezing the round
@@ -61,12 +62,13 @@ The current step is to enforce visible Planner `multi_agent_research_decision`, 
 
 ## Next single action
 
-Validate that a nontrivial repo run records Planner `multi_agent_research_decision` before broad repo research, loops Evaluator retry feedback back to Generator, snapshots repeated same failures for `main` decision, separates task outcome from teardown friction, and keeps `main` progress quiet while waiting/recovering.
+Validate that `/pge-execute` can execute a bounded nontrivial repo run through the actual Team control plane using the named `pge-planner` / `pge-generator` / `pge-evaluator` agent surfaces, then records Planner `multi_agent_research_decision` before broad repo research, loops Evaluator retry feedback back to Generator when applicable, separates task outcome from teardown friction, and keeps `main` progress quiet while waiting/recovering.
 
 ## Stage exit criteria
 
 This stage is done when:
 - Planner / Generator / Evaluator authority is consistent across design and runtime docs
+- `/pge-execute` either creates the required Agent Team and starts Planner, or fails immediately with the concrete Team control-plane error
 - Planner emits evidence-backed contracts with source/fact/confidence/verification path
 - Planner records multi-agent research scale-threshold decisions before non-test contracts
 - Planner freezes exactly one ready `current_round_slice` or blocks before Generator dispatch

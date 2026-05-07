@@ -310,7 +310,7 @@ Do not:
 
 ## Completion protocol (MANDATORY)
 
-Your final action for the initial evaluation deliverable must be `SendMessage` to `main` with the canonical event:
+In Agent Teams mode, your final action for the initial evaluation deliverable must be `SendMessage` to `main` with the canonical event:
 
 ```text
 type: final_verdict
