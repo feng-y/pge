@@ -6,7 +6,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 - **Persistent runtime-team architecture is not yet operationally closed**
   - Impact: High (the target architecture is settled, but the runtime still needs authoritative orchestration closure before persistent team lifecycle can be claimed as implemented)
-  - Next: validate Planner helper scale-threshold decisions in a nontrivial repo run, then close the remaining runtime lifecycle mechanics
+  - Next: validate Planner multi-agent research scale-threshold decisions, bounded `generator <-> evaluator` repair, quiet recovery observation, and teardown acknowledgement in a nontrivial repo run
 
 - **Planner can silently skip parallel repo research on large/unfamiliar repos**
   - Impact: High (Generator may receive an under-researched contract and `main` cannot distinguish a justified local research pass from an accidental non-use of helpers)
@@ -20,9 +20,13 @@ Keep this file lightweight. Record only items that help the current mainline mov
   - Impact: High (a real deliverable can exist while missing `generator.md` / `generator_completion`; direct route blocking loses recoverable work)
   - Next: require `main` to ask resident Generator to complete the durable handoff or send canonical BLOCKED before blocked route selection
 
-- **Evaluator retry feedback was not a real loop**
+- **Evaluator retry feedback must be a real Generator/Evaluator loop**
   - Impact: High (deliverable failures such as repeated exit 139 could stop as route output instead of feeding required fixes back to Generator)
-  - Next: support a bounded evaluator-to-generator repair loop with same-failure signatures, repair snapshots, and explicit main continue/stop decisions
+  - Next: enforce a bounded same-contract `generator <-> evaluator` repair loop: Evaluator sends required fixes, Generator repairs, Evaluator re-checks independently, with 10 total Generator attempts per round and a repair snapshot plus explicit `main` decision after the same `failure_signature` repeats on 3 consecutive evaluations
+
+- **Retry-loop source-of-truth wording is still inconsistent**
+  - Impact: High (some runtime source files describe bounded retry as current support, while stale wording in other runtime source files can still imply `retry` is unsupported or future work)
+  - Next: align stale runtime-source wording so `retry` consistently means the bounded same-contract `generator <-> evaluator` repair loop, not automatic multi-round redispatch or return-to-planner execution
 
 - **Shutdown acknowledgement target is underspecified**
   - Impact: Medium (runtime can reject teardown with `shutdown_response must be sent to "team-lead"`)
@@ -61,7 +65,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 ## P2 / Park
 
 - Full multi-round execution support beyond the current bounded implementation round.
-- Full autonomous retry loop support.
+- Full autonomous retry loop support beyond the bounded same-contract `generator <-> evaluator` repair loop.
 - Broad external task support.
 - Generalized production-grade long-running recovery semantics.
 - Additional workflow/process machinery beyond what the execution-layer target currently needs.

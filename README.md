@@ -30,8 +30,10 @@ Current implementation supports:
 
 - one Claude Code Agent Team per run
 - exactly three teammates: `planner`, `generator`, `evaluator`
-- one bounded run using the normal flow `planner -> generator -> evaluator`
-- a bounded same-contract evaluator-to-generator repair loop for retryable failures
+- one bounded run where Planner freezes the contract, Generator implements, and Evaluator validates
+- a bounded same-contract `generator <-> evaluator` repair loop for retryable failures
+- 10 total Generator attempts per round, including the initial generation
+- a saved repair snapshot and explicit `main` decision when the same `failure_signature` repeats on 3 consecutive evaluations
 - `SendMessage` coordination with canonical runtime events
 - durable phase outputs
 - one shared append-only progress log
