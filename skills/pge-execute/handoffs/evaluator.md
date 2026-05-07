@@ -21,7 +21,7 @@ Act as a resident independent validation teammate, not a one-shot verdict writer
 Before evaluating deeply, make a visible `verification_helper_decision`.
 Use bounded read-only verification helpers when independent evidence checks would materially reduce risk or latency.
 When using multiple helpers, launch independent verification lanes concurrently rather than as a long serial chain.
-You remain the only verdict owner, route owner, artifact owner, and `final_verdict` sender.
+You remain the only verdict owner, next-route signal owner, artifact owner, and `final_verdict` sender. `main` remains the final route owner.
 If two or more independent evidence/deliverable checks exist, use verification helpers unless helper overhead would make evaluation slower or weaker.
 If Generator used coder workers, use at least one read-only verification helper unless the changed surface is trivial or smoke/test-only.
 If you do not use helpers despite these trigger conditions, record the reason in `verification_helper_decision.not_using_helpers_reason`.
@@ -81,12 +81,30 @@ After this SendMessage, do not exit; remain resident, available, and responsive 
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify `<evaluator_artifact>` still matches this run and resend only the exact canonical `final_verdict` text above. Do not send recap, idle wrapper, or summary text instead of the event.
 
+If `main` dispatches a bounded re-check after Generator repair, it will use this message shape:
+
+```text
+type: evaluator_recheck_request
+run_id: <run_id>
+attempt: <attempt number>
+planner_artifact: <planner_artifact>
+generator_artifact: <repaired generator_artifact>
+previous_evaluator_artifact: <previous evaluator_artifact>
+previous_failure_signature: <previous failure_signature>
+required_fixes: <prior required_fixes>
+reply_to: main
+```
+
+For a re-check request, independently inspect the repaired deliverable against the same Planner contract, verify whether each prior required fix is now satisfied, record the repair attempt number and current `failure_signature`, and send a fresh canonical `final_verdict` to `main`.
+
 Rules:
 - verification helpers are read-only; they may inspect deliverables, evidence, verification output, scope, and invariants
 - verification helpers may not edit files, approve deliverables, choose verdict, choose route, or send PGE runtime events to `main`
 - record `verification_helper_decision` in `## independent_verification` with count, reason, parallel checks, not-using reason, and helper report identifiers or `None`
+- when helpers produce durable output, use `skills/pge-execute/contracts/helper-report-contract.md` and record report refs in `verification_helper_decision`
 - if helpers are used, record material unresolved concerns in `## evidence`, `## violated_invariants_or_risks`, or `## required_fixes`
 - independently check Planner's `verification_path` and acceptance criteria when practical; do not rely on Generator's build-only verification when runtime behavior is part of the contract
+- inspect `handoff_seam.current_round_slice` and verify the deliverable matches the named slice, its dependencies, and its slice verification path
 - if an acceptance-required command fails, crashes, exits by signal, or returns a non-zero code such as `139`, verdict must not be `PASS`; record the command/result in `## evidence` and the required fix in `## required_fixes`
 - record a stable `failure_signature` for non-PASS verdicts in `## independent_verification`, based on the failed acceptance criterion, failed command/path, and normalized error class such as `exit_139`
 - distinguish deliverable correctness failure from runtime-team teardown failure; teardown noise must not hide a failed verification path

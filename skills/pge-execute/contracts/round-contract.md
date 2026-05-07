@@ -92,11 +92,14 @@ Use `None` only when the task is deterministic and has no material failure mode 
 `planner_note` should include:
 - `decision`: `pass-through` or `cut`
 - `multi_agent_research_decision`: `mode`, `scale_threshold_met`, `researcher_count`, `research_questions`, `dispatch_timing`, `research_report_refs`, and `not_parallel_reason`
+- `current_round_slice_ref`: the same slice id recorded in `handoff_seam.current_round_slice`
 - `rejected_cuts`: at most two rejected cuts, or `None`
 - `contract_self_check`: placeholders, contradiction, scope creep, and ambiguous acceptance criteria check
 - `major_failure_mode`: the most likely way this round fails if the chosen cut is wrong
 
 For non-test planning, make the multi-agent research decision before broad repo research, after only small intake. The scale threshold is met when repo understanding requires at least two independent evidence questions, spans two or more relevant subsystems/directories, or targets an unfamiliar nontrivial repo area. When the threshold is unclear after small intake on an unfamiliar or nontrivial repo task, treat it as met. When the threshold is met and Planner chooses `mode: solo_research`, `multi_agent_research_decision.not_parallel_reason` must state the concrete exception.
+
+For non-test planning, Planner should also have sent a `planner_research_decision` support message to `main` before broad repo research. The artifact decision in `planner_note` is the durable final decision; the support message is observable coordination traffic only.
 
 ## rejected cuts shape
 
@@ -107,6 +110,19 @@ When the round was selected from multiple plausible cuts, `planner_note` should 
 Use `rejected_cuts: None` when there was only one plausible current-round task.
 
 This is the PGE-thin version of brainstorming: enough opposition research to avoid a bad round, not a separate design process.
+
+## current round slice shape
+
+`handoff_seam` should include exactly one `current_round_slice` for the current lane:
+- `slice_id`: stable id for this bounded current-round task
+- `ready_for_generator: true|false`
+- `dependency_refs`: explicit upstream files/artifacts this slice depends on, or `None`
+- `blocked_by`: concrete blocker if not ready, or `None`
+- `parallelizable: true|false`
+- `verification_path`: the checkable path Evaluator should use for this slice
+- `handoff_refs`: artifact paths or section refs Generator and Evaluator should read
+
+This is not a backlog, issue tracker, or multi-round schedule. It is the single active slice metadata that lets `main`, Generator, and Evaluator agree on the bounded unit of work.
 
 ## escalation rule
 

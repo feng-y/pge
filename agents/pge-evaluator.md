@@ -78,6 +78,8 @@ Before evaluating deeply, you MUST make a visible `verification_helper_decision`
 - `not_using_helpers_reason`: required when count is `0`
 - `helper_reports`: report identifiers or `None`
 
+When helpers produce durable output, use `skills/pge-execute/contracts/helper-report-contract.md` and record report refs in `verification_helper_decision.helper_reports`.
+
 Use helpers only for independent read-only checks, such as:
 - deliverable existence/content inspection
 - evidence-to-acceptance mapping

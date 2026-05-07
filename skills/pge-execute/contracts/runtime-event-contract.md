@@ -103,9 +103,75 @@ Meaning:
 - `main` finalized the bounded run route decision
 - this is the final progression event before teardown
 
+## repair loop dispatch messages
+
+Repair loop dispatch messages are `main`-to-teammate instructions inside the supported same-contract `generator <-> evaluator` loop. They are not phase-completion events. The completion events remain `generator_completion` and `final_verdict`.
+
+### `generator_repair_request`
+
+Producer: `main`
+Recipient: `generator`
+
+Required fields:
+- `type: generator_repair_request`
+- `run_id`
+- `attempt`
+- `planner_artifact`
+- `generator_artifact`
+- `evaluator_artifact`
+- `required_fixes`
+- `failure_signature`
+- `scope_boundary`
+- `reply_to: main`
+
+Meaning:
+- `main` asks resident Generator to repair only the Evaluator-reported gaps while the Planner contract remains fair
+- Generator must not reopen or mutate the Planner contract
+- Generator must answer with a fresh canonical `generator_completion`
+
+### `evaluator_recheck_request`
+
+Producer: `main`
+Recipient: `evaluator`
+
+Required fields:
+- `type: evaluator_recheck_request`
+- `run_id`
+- `attempt`
+- `planner_artifact`
+- `generator_artifact`
+- `previous_evaluator_artifact`
+- `previous_failure_signature`
+- `required_fixes`
+- `reply_to: main`
+
+Meaning:
+- `main` asks resident Evaluator to independently re-check the repaired deliverable against the same Planner contract
+- Evaluator must inspect the repaired deliverable and answer with a fresh canonical `final_verdict`
+
 ## support messages
 
 Support messages are allowed teammate coordination messages, but they are not phase-completion events and do not advance `main`.
+
+### `planner_research_decision`
+
+Producer: `planner`
+Recipient: `main`
+
+Required fields:
+- `type: planner_research_decision`
+- `run_id`
+- `mode: solo_research|parallel_multi_agent_research`
+- `scale_threshold_met: true|false`
+- `researcher_count`
+- `research_questions`
+- `dispatch_timing`
+- `not_parallel_reason`
+
+Meaning:
+- Planner records the helper scale-threshold decision before broad repo research for a non-test contract
+- this message is advisory observability only and does not replace `planner_contract_ready`
+- if `scale_threshold_met: true` and `mode: solo_research`, `not_parallel_reason` must be concrete
 
 ### `planner_support_request`
 
@@ -217,6 +283,6 @@ If any condition is not met, `main` must stop with:
 
 ## current-stage note
 
-The current executable lane uses one skeleton: `planner -> generator -> evaluator`.
+The current executable lane uses one resident P/G/E progression: Planner contract, Generator implementation, Evaluator validation, plus the supported bounded same-contract Generator repair / Evaluator re-check loop for `retry`.
 
 Task scale changes how much work each role performs, not which extra runtime events are required.

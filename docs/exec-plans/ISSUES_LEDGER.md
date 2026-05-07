@@ -6,11 +6,11 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 - **Persistent runtime-team architecture is not yet operationally closed**
   - Impact: High (the target architecture is settled, but the runtime still needs authoritative orchestration closure before persistent team lifecycle can be claimed as implemented)
-  - Next: validate Planner multi-agent research scale-threshold decisions, bounded `generator <-> evaluator` repair, quiet recovery observation, and teardown acknowledgement in a nontrivial repo run
+  - Next: validate Planner research-decision messages, single `current_round_slice` handoff, bounded `generator <-> evaluator` repair, quiet recovery observation, and teardown acknowledgement in a nontrivial repo run
 
 - **Planner can silently skip parallel repo research on large/unfamiliar repos**
   - Impact: High (Generator may receive an under-researched contract and `main` cannot distinguish a justified local research pass from an accidental non-use of helpers)
-  - Next: require `multi_agent_research_decision` before broad repo research and repeat it in `planner_note`, with scale threshold, mode, researcher count, report refs, and concrete solo-research reason
+  - Next: prove in a nontrivial repo run that Planner sends `planner_research_decision` before broad repo research and repeats the final field-complete `multi_agent_research_decision` in `planner_note`
 
 - **`main` recovery observation can become noisy foreground polling**
   - Impact: Medium to High (raw listener scripts and verbose verification output harm reading experience without improving canonical communication)
@@ -22,11 +22,7 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 - **Evaluator retry feedback must be a real Generator/Evaluator loop**
   - Impact: High (deliverable failures such as repeated exit 139 could stop as route output instead of feeding required fixes back to Generator)
-  - Next: enforce a bounded same-contract `generator <-> evaluator` repair loop: Evaluator sends required fixes, Generator repairs, Evaluator re-checks independently, with 10 total Generator attempts per round and a repair snapshot plus explicit `main` decision after the same `failure_signature` repeats on 3 consecutive evaluations
-
-- **Retry-loop source-of-truth wording is still inconsistent**
-  - Impact: High (some runtime source files describe bounded retry as current support, while stale wording in other runtime source files can still imply `retry` is unsupported or future work)
-  - Next: align stale runtime-source wording so `retry` consistently means the bounded same-contract `generator <-> evaluator` repair loop, not automatic multi-round redispatch or return-to-planner execution
+  - Next: prove in a nontrivial repo run that `main` sends `generator_repair_request`, gates fresh `generator_completion`, sends `evaluator_recheck_request`, and snapshots repeated `failure_signature` failures before deciding whether to continue
 
 - **Shutdown acknowledgement target is underspecified**
   - Impact: Medium (runtime can reject teardown with `shutdown_response must be sent to "team-lead"`)
@@ -34,9 +30,9 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## P1 / Follow-up
 
-- **Helper report artifact naming and minimum fields are not yet normalized**
-  - Impact: Medium (Planner/Generator/Evaluator can now use helper lanes, but helper report refs are only described generically)
-  - Next: define small helper report naming/minimum-field conventions under run-scoped `.pge-artifacts/<run_id>/` after the resident role split is validated
+- **Helper report runtime use is not yet proven end-to-end**
+  - Impact: Medium (helper report naming and minimum fields are now defined, but runtime evidence still needs to prove threshold-triggered helper use, concrete skip reasons, and phase-owner references to helper reports)
+  - Next: prove in a nontrivial repo run that Planner/Generator/Evaluator either use helper lanes with run-scoped helper report refs or record concrete reasons for not using them when trigger conditions are met
 
 - **Artifact-chain validation before final routing must be implemented in runtime behavior**
   - Impact: Medium to High (the control-plane gates are now explicit, but the runtime surface must still enforce planner/generator/evaluator artifact usability before final routing)
@@ -72,6 +68,21 @@ Keep this file lightweight. Record only items that help the current mainline mov
 
 ## Resolved
 
+- **Retry-loop source-of-truth wording was inconsistent** — Fixed in runtime communication closure round
+  - Symptom: some runtime source files still implied `retry` was unsupported or future work even though the current mainline requires bounded same-contract repair
+  - Root cause: one-way `planner -> generator -> evaluator` wording survived after the bounded repair loop became current scope
+  - Impact: High (Evaluator failures could be treated as terminal route output instead of Generator repair input)
+  - Fix: aligned runtime truth around `main`-driven `generator_repair_request` / `evaluator_recheck_request`, 10 total Generator attempts, and 3 consecutive same-`failure_signature` checkpoint behavior
+- **Planner research decision was only artifact-visible** — Fixed in runtime communication closure round
+  - Symptom: Planner could do broad serial repo research before deciding whether helper research was warranted
+  - Root cause: `multi_agent_research_decision` was required in `planner_note`, but no pre-research support message made the decision observable to `main`
+  - Impact: High for large/unfamiliar repos (Planner could silently skip parallel repo understanding)
+  - Fix: added `planner_research_decision` as a support message before broad repo research, plus final field-complete `multi_agent_research_decision` gate in Planner artifact
+- **Current-round slice metadata missing** — Fixed in runtime communication closure round
+  - Symptom: Planner had scope-cut language but no concrete single-slice metadata that Generator and Evaluator could share
+  - Root cause: the fixed Planner sections lacked a lightweight slice compiler field that did not imply a backlog or new runtime stage
+  - Impact: Medium to High for larger tasks (Generator/Evaluator could disagree on the bounded unit of work)
+  - Fix: required exactly one `handoff_seam.current_round_slice` with readiness, dependency, blocker, verification, and handoff refs
 - **Plugin packaging layer missing** — Fixed in plugin packaging / marketplace round
   - Symptom: normal usage depended on repo-local `.claude/` projection instead of the Claude Code plugin marketplace/install flow
   - Root cause: the source repo had no formal plugin manifest, no explicit versioned plugin identity, and no documented installed runtime layout

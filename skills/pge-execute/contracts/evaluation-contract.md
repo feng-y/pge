@@ -27,7 +27,7 @@ Start from the real deliverable, not from Generator narrative and not from artif
 
 ## current-stage evaluation surface
 
-All current executable runs use the same `planner -> generator -> evaluator` skeleton.
+All current executable runs use the same resident P/G/E progression: Planner freezes the contract, Generator implements under it, and Evaluator validates independently. Retryable Evaluator feedback can loop back to Generator while the same contract remains fair.
 Task size changes audit depth, not the required verdict section shape.
 
 Use the lightest honest evaluation surface that can independently judge the current task:

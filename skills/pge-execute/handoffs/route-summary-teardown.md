@@ -8,6 +8,8 @@ Route/status mapping in the current executable lane:
 - `status = SUCCESS` is valid only when `verdict = PASS` and `route = converged`
 - any other route must not be reported as `SUCCESS`
 - for `test`, `PASS + continue` is invalid and must be treated as a blocker or contract failure, not a successful closeout
+- route selection happens after the supported bounded `generator <-> evaluator` repair loop has either converged, hit a non-retryable route, exhausted its attempt budget, or stopped at a repair checkpoint
+- do not convert `retry` to `unsupported_route`; preserve `retry` when the bounded repair loop stops without convergence
 
 If:
 
@@ -20,11 +22,12 @@ then:
 
 Otherwise:
 
-- record `route = "unsupported_route"` when next_route is `continue`, `retry`, or `return_to_planner`
+- record `route = "retry"` when next_route is `retry` and the bounded repair loop has stopped because max attempts were exhausted, a same-failure checkpoint stopped, or `main` chose to stop
+- record `route = "unsupported_route"` when next_route is `continue` or `return_to_planner`
 - record `route = "blocked"` only when no canonical next_route can be read
 - record `verdict` and `route` from evaluator verdict and next_route when present
 - record the blocker from evaluator `required_fixes` or `violated_invariants_or_risks`
-- do not redispatch automatically in this version
+- do not redispatch from the route/teardown phase; supported `retry` redispatch belongs to the Evaluator phase loop before final route selection
 
 Append a best-effort progress log entry after route selection.
 Use the canonical progress fields:

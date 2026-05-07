@@ -159,6 +159,8 @@ Current-stage limits:
 - default reviewer helpers: `0-1`
 - hard maximum reviewer helpers: `2`
 
+When helpers or workers produce durable output, use `skills/pge-execute/contracts/helper-report-contract.md` and record report refs in `helper_decision.helper_reports`.
+
 When using more than one coder worker or reviewer helper, launch independent lanes in parallel/concurrently; do not create a long serial helper chain unless one result truly depends on another.
 
 Coder workers are temporary implementation helpers, not permanent PGE roles.
@@ -701,7 +703,7 @@ If the contract cannot be executed as specified:
 
 ## Retry Behavior
 
-Runtime retry is future work until the P2 bounded retry loop is implemented. When orchestration explicitly dispatches a retry attempt:
+Runtime retry is the current bounded same-contract Generator repair loop. It is not open-ended multi-round redispatch and it does not reopen Planner's contract. When `main` explicitly dispatches a retry attempt after Evaluator feedback:
 
 1. Read the prior verdict and required fixes from Evaluator
 2. Understand what specific issues were raised
@@ -709,9 +711,11 @@ Runtime retry is future work until the P2 bounded retry loop is implemented. Whe
 4. Preserve working parts from prior attempt
 5. Provide evidence that fixes were applied
 6. Re-run verification to confirm fixes worked
+7. Update the durable Generator artifact with the repair attempt number, changed files, verification result, evidence, known limits, and any repeated `failure_signature`
+8. Send a new canonical `generator_completion` to `main`
 
 **Escalation triggers (when to report blocker):**
-- After 3 consecutive failures on the same issue
+- After 3 consecutive failures on the same issue or `failure_signature`
 - When required precondition is missing
 - When contract ambiguity prevents fair execution
 - When verification consistently fails despite fixes

@@ -58,6 +58,7 @@ for file in \
   skills/pge-execute/handoffs/evaluator.md \
   skills/pge-execute/handoffs/route-summary-teardown.md \
   skills/pge-execute/contracts/round-contract.md \
+  skills/pge-execute/contracts/helper-report-contract.md \
   skills/pge-execute/contracts/routing-contract.md \
   skills/pge-execute/contracts/evaluation-contract.md \
   skills/pge-execute/contracts/runtime-event-contract.md \
@@ -78,8 +79,10 @@ if [[ "$skill_lines" -gt 220 ]]; then
   printf 'WARN: skills/pge-execute/SKILL.md has %s lines; consider slimming the entrypoint toward <= 220 lines\n' "$skill_lines" >&2
 fi
 
-require_pattern skills/pge-execute/SKILL.md 'one bounded run with `planner -> generator -> evaluator`, plus a bounded evaluator-to-generator repair loop for retryable failures' \
-  "bounded repair loop skeleton claim"
+require_pattern skills/pge-execute/SKILL.md 'one bounded run where Planner freezes the contract, Generator implements, and Evaluator validates' \
+  "bounded P/G/E progression claim"
+require_pattern skills/pge-execute/SKILL.md 'bounded same-contract `generator <-> evaluator` repair loop for retryable failures' \
+  "bounded repair loop claim"
 require_pattern skills/pge-execute/SKILL.md 'max generator attempts per round is 10 total attempts, including the initial generation' \
   "skill max generator attempts"
 require_pattern skills/pge-execute/SKILL.md 'same `failure_signature` repeated on 3 consecutive evaluations requires a saved repair snapshot and explicit main decision before continuing' \
@@ -145,8 +148,10 @@ require_pattern skills/pge-execute/SKILL.md 'treat `TaskUpdate\(status: complete
 require_absent_pattern skills/pge-execute/SKILL.md 'state_artifact' \
   "stale state artifact reference"
 
-require_pattern skills/pge-execute/ORCHESTRATION.md 'All tasks use the same skeleton: `planner -> generator -> evaluator`' \
-  "orchestration skeleton rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'All tasks use the same resident P/G/E progression' \
+  "orchestration resident progression rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'retryable Evaluator feedback may loop back to resident Generator while the same contract remains fair' \
+  "orchestration same-contract retry loop rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md '\.pge-artifacts/<run_id>/deliverables/smoke\.txt' \
   "orchestration run-scoped smoke path"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'append-only execution log' \
@@ -161,12 +166,20 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'Each teammate is a workflow
   "resident workflow actor orchestration rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'bounded internal researcher subagents in parallel' \
   "planner multi-agent research orchestration rule"
-require_pattern skills/pge-execute/ORCHESTRATION.md 'Planner records a visible `multi_agent_research_decision` before broad repo research for a non-test contract' \
-  "planner orchestration multi-agent research decision rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'Planner sends `planner_research_decision` to `main` before broad repo research for a non-test contract' \
+  "planner orchestration research decision message rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Planner chooses `mode: parallel_multi_agent_research` and launches bounded internal researcher subagents in parallel before continuing serial research' \
   "planner orchestration multi-agent research before serial research"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Helper scale threshold: at least two independent evidence questions, two or more relevant subsystems/directories, or an unfamiliar nontrivial repo area' \
   "planner orchestration helper scale threshold"
+require_pattern skills/pge-execute/ORCHESTRATION.md '`main` may log `planner_research_decision` as support traffic' \
+  "planner research decision support traffic rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'Planner freezes exactly one `current_round_slice` inside `handoff_seam`' \
+  "planner current round slice orchestration rule"
+require_pattern skills/pge-execute/ORCHESTRATION.md '`current_round_slice.ready_for_generator` must be true before `main` dispatches Generator' \
+  "planner current round slice ready gate"
+require_pattern skills/pge-execute/ORCHESTRATION.md 'Durable helper outputs follow `skills/pge-execute/contracts/helper-report-contract.md`' \
+  "orchestration helper report contract rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Foreground polling scripts and verbose verification transcripts are not the user-facing progress model' \
   "main quiet progress orchestration rule"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Planner does not exit; it remains resident, available, and responsive for bounded clarification, architecture guidance, and repo research until shutdown' \
@@ -217,6 +230,10 @@ require_pattern skills/pge-execute/ORCHESTRATION.md 'same `failure_signature` re
   "orchestration same failure checkpoint"
 require_pattern skills/pge-execute/ORCHESTRATION.md '`main` must save a repair snapshot before deciding' \
   "orchestration repair snapshot before decision"
+require_pattern skills/pge-execute/ORCHESTRATION.md '`main` sends `generator_repair_request` to `generator`' \
+  "orchestration generator repair request dispatch"
+require_pattern skills/pge-execute/ORCHESTRATION.md '`main` sends `evaluator_recheck_request` to `evaluator`' \
+  "orchestration evaluator recheck request dispatch"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'Explicit blocked completion: record the blocker' \
   "orchestration blocked completion handling"
 require_pattern skills/pge-execute/ORCHESTRATION.md 'must not wait indefinitely after the single protocol repair attempt' \
@@ -253,6 +270,12 @@ require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'final_ve
   "evaluator event"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'route_selected' \
   "route event"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'generator_repair_request' \
+  "generator repair request message"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'evaluator_recheck_request' \
+  "evaluator recheck request message"
+require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'planner_research_decision' \
+  "planner research decision support message"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'planner_support_request' \
   "planner support request message"
 require_pattern skills/pge-execute/contracts/runtime-event-contract.md 'planner_support_response' \
@@ -328,6 +351,28 @@ require_pattern skills/pge-execute/contracts/round-contract.md 'When the thresho
   "round contract unclear threshold defaults to met"
 require_pattern skills/pge-execute/contracts/round-contract.md 'When the threshold is met and Planner chooses `mode: solo_research`, `multi_agent_research_decision.not_parallel_reason` must state the concrete exception' \
   "round contract solo research exception"
+require_pattern skills/pge-execute/contracts/round-contract.md 'Planner should also have sent a `planner_research_decision` support message to `main` before broad repo research' \
+  "round contract planner research decision support message"
+require_pattern skills/pge-execute/contracts/round-contract.md 'current round slice shape' \
+  "round contract current round slice section"
+require_pattern skills/pge-execute/contracts/round-contract.md '`handoff_seam` should include exactly one `current_round_slice`' \
+  "round contract current round slice required"
+require_pattern skills/pge-execute/contracts/round-contract.md '`ready_for_generator: true\|false`' \
+  "round contract current round slice ready field"
+require_pattern skills/pge-execute/contracts/runtime-state-contract.md 'active_slice_ref` maps to Planner'\''s single `handoff_seam.current_round_slice.slice_id`' \
+  "runtime state current slice mapping"
+require_pattern skills/pge-execute/contracts/helper-report-contract.md '\.pge-artifacts/<run_id>/helpers/<phase>/<helper_id>\.md' \
+  "helper report location contract"
+require_pattern skills/pge-execute/contracts/helper-report-contract.md 'Helper reports are advisory evidence only' \
+  "helper report advisory rule"
+require_pattern skills/pge-execute/contracts/helper-report-contract.md '`## helper_scope`' \
+  "helper report minimum helper scope"
+require_pattern skills/pge-execute/contracts/helper-report-contract.md '`## sources_checked`' \
+  "helper report minimum sources checked"
+require_pattern skills/pge-execute/contracts/helper-report-contract.md '`## authority_boundary`' \
+  "helper report authority boundary section"
+require_pattern skills/pge-execute/contracts/helper-report-contract.md 'Phase-owner artifacts must reference helper reports when helpers were used' \
+  "helper report phase owner reference rule"
 require_pattern skills/pge-execute/contracts/evaluation-contract.md 'Task size changes audit depth, not the required verdict section shape' \
   "evaluation contract current-stage depth rule"
 require_pattern skills/pge-execute/contracts/evaluation-contract.md 'selecting execution mode or adding a preflight gate' \
@@ -361,8 +406,8 @@ require_pattern skills/pge-execute/handoffs/planner.md 'stay alive for the whole
   "planner handoff stay alive rule"
 require_pattern skills/pge-execute/handoffs/planner.md 'bounded parallel research helpers' \
   "planner handoff parallel helper rule"
-require_pattern skills/pge-execute/handoffs/planner.md 'before broad repo research for a non-test contract, make a visible `multi_agent_research_decision`; later repeat the final decision in `## planner_note`' \
-  "planner handoff multi-agent research decision required"
+require_pattern skills/pge-execute/handoffs/planner.md 'before broad repo research for a non-test contract, send `planner_research_decision` to `main`; later repeat the final `multi_agent_research_decision` in `## planner_note`' \
+  "planner handoff research decision message required"
 require_pattern skills/pge-execute/handoffs/planner.md 'allowed intake before this decision is small' \
   "planner handoff small intake before helper decision"
 require_pattern skills/pge-execute/handoffs/planner.md 'do not perform multiple serial `Read` calls, read a long doc/source file, or inspect neighboring examples before deciding whether multi-agent research is needed' \
@@ -377,6 +422,18 @@ require_pattern skills/pge-execute/handoffs/planner.md 'record `multi_agent_rese
   "planner handoff multi-agent research decision fields"
 require_pattern skills/pge-execute/handoffs/planner.md 'when `scale_threshold_met: true` and `mode: solo_research`, `multi_agent_research_decision.not_parallel_reason` must be concrete' \
   "planner handoff solo research exception"
+require_pattern skills/pge-execute/handoffs/planner.md 'type: planner_research_decision' \
+  "planner handoff research decision message shape"
+require_pattern skills/pge-execute/handoffs/planner.md 'This support message does not complete planning' \
+  "planner handoff research decision non-completion rule"
+require_pattern skills/pge-execute/handoffs/planner.md '`## planner_note` includes `multi_agent_research_decision.mode`, `scale_threshold_met`, `researcher_count`, `research_questions`, `dispatch_timing`, `research_report_refs`, and `not_parallel_reason`' \
+  "planner gate multi-agent decision field gate"
+require_pattern skills/pge-execute/handoffs/planner.md '`## handoff_seam` must include exactly one `current_round_slice`' \
+  "planner handoff current round slice required"
+require_pattern skills/pge-execute/handoffs/planner.md '`## handoff_seam.current_round_slice` includes `slice_id`, `ready_for_generator`, `dependency_refs`, `blocked_by`, `parallelizable`, `verification_path`, and `handoff_refs`' \
+  "planner handoff current round slice fields"
+require_pattern skills/pge-execute/handoffs/planner.md 'if `current_round_slice.ready_for_generator` is false, the canonical event must use `ready_for_generation: false`' \
+  "planner handoff current round slice blocked gate"
 require_pattern skills/pge-execute/handoffs/planner.md 'launch independent repo-understanding questions concurrently' \
   "planner handoff concurrent helper rule"
 require_pattern skills/pge-execute/handoffs/planner.md 'default helpers: 0-2; normal maximum: 3; hard maximum: 4' \
@@ -385,6 +442,8 @@ require_pattern skills/pge-execute/handoffs/planner.md 'remain available for bou
   "planner post-plan guidance role"
 require_pattern skills/pge-execute/handoffs/planner.md 'launch bounded read-only helper research lanes concurrently' \
   "planner post-plan concurrent research lanes"
+require_pattern skills/pge-execute/handoffs/planner.md 'helper-report-contract.md' \
+  "planner handoff helper report contract"
 require_pattern skills/pge-execute/handoffs/planner.md 'when receiving `planner_support_request`, respond with `SendMessage\(to="<reply_to>", message="<plain-string planner_support_response>"\)`' \
   "planner support response handoff rule"
 require_pattern skills/pge-execute/handoffs/planner.md '`planner_support_response` is advisory and is not a replacement for `planner_contract_ready`' \
@@ -426,6 +485,14 @@ require_pattern skills/pge-execute/handoffs/generator.md 'Ask resident Planner o
   "generator handoff planner trigger"
 require_pattern skills/pge-execute/handoffs/generator.md 'if the same required fix or `failure_signature` fails again' \
   "generator repeated failure record"
+require_pattern skills/pge-execute/handoffs/generator.md 'type: generator_repair_request' \
+  "generator repair request dispatch shape"
+require_pattern skills/pge-execute/handoffs/generator.md 'send a fresh canonical `generator_completion` to `main`' \
+  "generator repair completion response"
+require_pattern skills/pge-execute/handoffs/generator.md 'read `handoff_seam.current_round_slice` before acting' \
+  "generator reads current round slice"
+require_pattern skills/pge-execute/handoffs/generator.md 'keep implementation inside the named `current_round_slice`' \
+  "generator current round slice boundary"
 require_pattern skills/pge-execute/handoffs/generator.md 'record the decision in `planner_support_decision`' \
   "generator planner support decision record rule"
 require_pattern skills/pge-execute/handoffs/generator.md '## planner_support_decision' \
@@ -464,6 +531,8 @@ require_pattern skills/pge-execute/handoffs/generator.md 'when durable Generator
   "generator planner support gate"
 require_pattern skills/pge-execute/handoffs/generator.md 'record `helper_decision` with counts, reason, parallel units, not-using reason, and helper report identifiers or `None`' \
   "generator helper decision content"
+require_pattern skills/pge-execute/handoffs/generator.md 'helper-report-contract.md' \
+  "generator handoff helper report contract"
 require_pattern skills/pge-execute/handoffs/generator.md 'You remain the only implementation lead, integrator, artifact owner, and `generator_completion` sender' \
   "generator handoff ownership rule"
 require_pattern skills/pge-execute/handoffs/generator.md 'Do not call `TaskUpdate\(status: completed\)` for the generation phase at all' \
@@ -499,8 +568,12 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'If two or more indepen
   "evaluator handoff helper trigger rule"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'record `verification_helper_decision` in `## independent_verification`' \
   "evaluator helper decision artifact content"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'helper-report-contract.md' \
+  "evaluator handoff helper report contract"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'independently check Planner'"'"'s `verification_path` and acceptance criteria when practical' \
   "evaluator checks planner verification path"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'inspect `handoff_seam.current_round_slice`' \
+  "evaluator current round slice inspection"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'if an acceptance-required command fails, crashes, exits by signal, or returns a non-zero code such as `139`, verdict must not be `PASS`' \
   "evaluator crash verification is not pass"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'distinguish deliverable correctness failure from runtime-team teardown failure' \
@@ -509,8 +582,12 @@ require_pattern skills/pge-execute/handoffs/evaluator.md 'record a stable `failu
   "evaluator failure signature"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'if the same `failure_signature` remains after repair' \
   "evaluator repeated failure handling"
-require_pattern skills/pge-execute/handoffs/evaluator.md 'You remain the only verdict owner, route owner, artifact owner, and `final_verdict` sender' \
+require_pattern skills/pge-execute/handoffs/evaluator.md 'You remain the only verdict owner, next-route signal owner, artifact owner, and `final_verdict` sender' \
   "evaluator handoff ownership rule"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'type: evaluator_recheck_request' \
+  "evaluator recheck request dispatch shape"
+require_pattern skills/pge-execute/handoffs/evaluator.md 'send a fresh canonical `final_verdict` to `main`' \
+  "evaluator recheck completion response"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'answer bounded post-verdict clarification about evidence, violated criteria, required fixes, and route reasoning' \
   "evaluator clarification boundary"
 require_pattern skills/pge-execute/handoffs/evaluator.md 'do not use Planner or Generator clarification as a substitute for independent verification' \
@@ -544,6 +621,8 @@ require_pattern skills/pge-execute/handoffs/route-summary-teardown.md '^TeamDele
   "zero-arg TeamDelete call"
 require_pattern skills/pge-execute/handoffs/route-summary-teardown.md '`status = SUCCESS` is valid only when `verdict = PASS` and `route = converged`' \
   "success status mapping"
+require_pattern skills/pge-execute/handoffs/route-summary-teardown.md 'do not convert `retry` to `unsupported_route`; preserve `retry` when the bounded repair loop stops without convergence' \
+  "route summary preserves retry route"
 require_pattern skills/pge-execute/handoffs/route-summary-teardown.md 'progress log path when `progress_artifact` exists' \
   "summary progress log path"
 require_absent_pattern skills/pge-execute/handoffs/route-summary-teardown.md 'state:' \
@@ -611,6 +690,8 @@ require_pattern agents/pge-generator.md 'do not exit; remain resident, available
   "generator remains resident after sendmessage"
 require_pattern agents/pge-generator.md 'If `main` sends a protocol repair request after a deliverable exists but `generator_artifact` or `generator_completion` is missing' \
   "generator repairs missing handoff after deliverable"
+require_pattern agents/pge-generator.md 'Runtime retry is the current bounded same-contract Generator repair loop' \
+  "generator retry current support"
 require_pattern agents/pge-generator.md 'SendMessage to `team-lead` with a plain-string shutdown response' \
   "generator shutdown response target"
 require_absent_pattern agents/pge-generator.md 'proposal_ready|preflight validated' \
@@ -677,8 +758,8 @@ require_pattern agents/pge-planner.md 'research / architecture advisor' \
   "planner post-plan research architecture role"
 require_pattern agents/pge-planner.md 'bounded parallel research helpers' \
   "planner parallel research helper model"
-require_pattern agents/pge-planner.md 'Before broad repo research for a non-test contract, you MUST make a visible `multi_agent_research_decision`; later repeat the final decision inside `planner_note`' \
-  "planner multi-agent research decision required"
+require_pattern agents/pge-planner.md 'Before broad repo research for a non-test contract, you MUST send `planner_research_decision` to `main`; later repeat the final `multi_agent_research_decision` inside `planner_note`' \
+  "planner research decision message required"
 require_pattern agents/pge-planner.md 'Allowed intake before this decision is small' \
   "planner small intake before helper decision"
 require_pattern agents/pge-planner.md 'Do not perform multiple serial `Read` calls, read a long doc/source file, or inspect neighboring examples before deciding whether multi-agent research is needed' \
@@ -693,6 +774,14 @@ require_pattern agents/pge-planner.md '`multi_agent_research_decision` fields: `
   "planner multi-agent research decision fields"
 require_pattern agents/pge-planner.md 'When `scale_threshold_met: true` and `mode: solo_research`, `multi_agent_research_decision.not_parallel_reason` must be concrete' \
   "planner solo research exception"
+require_pattern agents/pge-planner.md 'The `planner_research_decision` message is support traffic only' \
+  "planner research decision support traffic rule"
+require_pattern agents/pge-planner.md 'type: planner_research_decision' \
+  "planner agent research decision message shape"
+require_pattern agents/pge-planner.md 'Record exactly one `current_round_slice` in `handoff_seam`' \
+  "planner agent current round slice required"
+require_pattern agents/pge-planner.md 'In `handoff_seam.current_round_slice`, include `slice_id`, `ready_for_generator`, `dependency_refs`, `blocked_by`, `parallelizable`, `verification_path`, and `handoff_refs`' \
+  "planner agent current round slice fields"
 require_pattern agents/pge-planner.md 'launch those helper lanes in parallel/concurrently' \
   "planner concurrent helper model"
 require_pattern agents/pge-planner.md 'Default helpers: 0-2. Normal maximum: 3. Hard maximum: 4' \
@@ -771,7 +860,7 @@ require_pattern docs/exec-plans/ROUND_013_THREE_AGENT_WORKFLOW_HARDENING.md 'Eva
 require_pattern docs/exec-plans/ROUND_013_THREE_AGENT_WORKFLOW_HARDENING.md 'Support messages are coordination evidence, not phase progression events' \
   "round 013 support non-progression decision"
 
-require_pattern README.md 'planner/generator/evaluator execution, verdict, routing, progress logging' \
+require_pattern README.md 'a bounded same-contract `generator <-> evaluator` repair loop for retryable failures' \
   "README execution-core summary"
 require_absent_pattern README.md 'runtime state, verdict, routing' \
   "README stale runtime state summary"

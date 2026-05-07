@@ -43,6 +43,7 @@ A run state must carry:
 - `upstream_plan_ref` stays stable while multiple bounded slices are executed under the same higher-level plan
 - `active_slice_ref` changes when the run moves from one bounded slice to another under the same upstream plan
 - `active_round_contract_ref` changes whenever Planner freezes a new current round contract, even inside the same slice
+- in the current executable lane, `active_slice_ref` maps to Planner's single `handoff_seam.current_round_slice.slice_id`; it is not a backlog item or multi-round scheduler
 
 ## stop condition meaning
 - `run_stop_condition` defines when an accepted round should route to `converged` instead of `continue`
@@ -104,7 +105,7 @@ This lifecycle mapping is the minimal runtime-team lifecycle for the current sta
 ## transition rule
 A state change is valid only when the route reason is explicit.
 
-For the current stage, `continue`, `retry`, and `return_to_planner` remain canonical route tokens but are not yet automatic runtime transitions. If one of those routes is selected, runtime must stop explicitly at `unsupported_route` rather than silently redispatching.
+For the current stage, `retry` is a supported bounded same-contract Generator repair transition when the routing contract's retry preconditions hold. `continue` and `return_to_planner` remain canonical route tokens but are not yet automatic runtime transitions; if either is selected, runtime must stop explicitly at `unsupported_route` rather than silently redispatching.
 
 ## identity update rule
 - keep `upstream_plan_ref` stable unless the run is re-entered from a different upstream plan

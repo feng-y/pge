@@ -58,7 +58,7 @@ Rules:
 - include context loading strategy inside `## evidence_basis`: what was read, what was skipped, and why that is sufficient
 - use tool-based investigation before relying on repo claims; verify with `Read` / `Grep` / `Glob` instead of guessing
 - prefer evidence in this order: code/runtime contract > docs > inference
-- before broad repo research for a non-test contract, make a visible `multi_agent_research_decision`; later repeat the final decision in `## planner_note`
+- before broad repo research for a non-test contract, send `planner_research_decision` to `main`; later repeat the final `multi_agent_research_decision` in `## planner_note`
 - allowed intake before this decision is small: read the input/round contract, inspect explicit user-provided paths, and run at most one cheap file/symbol discovery pass
 - do not perform multiple serial `Read` calls, read a long doc/source file, or inspect neighboring examples before deciding whether multi-agent research is needed
 - the scale threshold activates helper research when repo understanding requires at least two independent evidence questions, spans two or more relevant subsystems/directories, or targets an unfamiliar nontrivial repo area
@@ -75,12 +75,16 @@ Rules:
 - bounded helpers are read-only evidence collectors; they must not write files, decide the final cut, define final acceptance, or send PGE runtime events to `main`
 - default helpers: 0-2; normal maximum: 3; hard maximum: 4
 - helper outputs are advisory only; final synthesis, cut selection, task split, and freeze authority remain with the single Planner
+- the `planner_research_decision` message is support traffic only; it does not replace `planner_contract_ready`
+- when helpers produce durable output, use `skills/pge-execute/contracts/helper-report-contract.md` and record report refs in `multi_agent_research_decision.research_report_refs`
 - when the cut is not obvious, do a thin architecture judgment pass: recommended cut first, then at most two rejected cuts with tradeoffs
 - record `decision: pass-through|cut`, `multi_agent_research_decision`, rejected cuts, and contract self-check inside `## planner_note`; write `rejected_cuts: None` when there was only one plausible cut
 - every `## evidence_basis` item must include source, fact, confidence, and verification path, or explicit smoke-contract evidence
 - confidence values are HIGH, MEDIUM, or LOW; LOW requires a concrete verification path
 - `## design_constraints` must include the chosen round boundary, relevant PGE invariants, and material failure modes
 - material failure modes in `## design_constraints` must include concrete failure, observable signal, likely owner
+- `## handoff_seam` must include exactly one `current_round_slice` with `slice_id`, `ready_for_generator`, `dependency_refs`, `blocked_by`, `parallelizable`, `verification_path`, and `handoff_refs`
+- when `ready_for_generator: false`, set `planner_escalation` and send `ready_for_generation: false`
 - when a chosen cut depends on an important constraint, say what that constraint implies for this round
 - if more than one cut is plausible, `## planner_note` must briefly record the rejected cut and the reason
 - include contract self-check inside `## planner_note`, covering placeholders, contradiction, scope creep, and ambiguous acceptance criteria
@@ -116,6 +120,21 @@ Rules:
 - for test, acceptance must require the smoke file content to equal exactly `pge smoke`
 - for test, do not broaden scope beyond the smoke file plus the minimal mode-required PGE artifacts already mandated by orchestration
 
+For non-test input, before broad repo research, send this support message to `main`:
+
+```text
+type: planner_research_decision
+run_id: <run_id>
+mode: solo_research|parallel_multi_agent_research
+scale_threshold_met: true|false
+researcher_count: <number>
+research_questions: <short list>
+dispatch_timing: before_broad_repo_research
+not_parallel_reason: <concrete reason or None>
+```
+
+This support message does not complete planning. After sending it, continue planning and later send the canonical `planner_contract_ready`.
+
 When the planner contract is ready or blocked, your final action for the initial planning deliverable must be `SendMessage` to `main` with exactly this canonical runtime event:
 
 ```text
@@ -149,12 +168,17 @@ If `main` later asks you to confirm completion or resend the runtime notificatio
 - `## design_constraints` exists
 - `## design_constraints` includes at least one constraint or explicit `None`
 - `## planner_note` includes decision + `multi_agent_research_decision` + contract self-check
+- for non-test contracts, `## planner_note` includes `multi_agent_research_decision.mode`, `scale_threshold_met`, `researcher_count`, `research_questions`, `dispatch_timing`, `research_report_refs`, and `not_parallel_reason`
+- for non-test contracts, when `scale_threshold_met: true` and mode is `solo_research`, `not_parallel_reason` is concrete and not `None`, `N/A`, `TODO`, or a generic "not needed"
 - `## actual_deliverable` exists
 - `## acceptance_criteria` exists
 - `## verification_path` exists
 - `## required_evidence` exists
 - `## stop_condition` exists
 - `## handoff_seam` exists
+- `## handoff_seam` includes `current_round_slice`
+- `## handoff_seam.current_round_slice` includes `slice_id`, `ready_for_generator`, `dependency_refs`, `blocked_by`, `parallelizable`, `verification_path`, and `handoff_refs`
+- if `current_round_slice.ready_for_generator` is false, the canonical event must use `ready_for_generation: false`
 - `## planner_note` exists
 - `## planner_escalation` exists
 

@@ -39,7 +39,8 @@ Design references live outside the skill at `docs/design/pge-execute/`; consult 
 Supported in the current implementation lane:
 - one Team
 - exactly three teammates: planner, generator, evaluator
-- one bounded run with `planner -> generator -> evaluator`, plus a bounded evaluator-to-generator repair loop for retryable failures
+- one bounded run where Planner freezes the contract, Generator implements, and Evaluator validates
+- a bounded same-contract `generator <-> evaluator` repair loop for retryable failures
 - task size changes role depth, not stage count
 - durable phase outputs plus one shared progress log
 - independent final evaluation
@@ -62,6 +63,8 @@ User invokes /pge-execute
      -> planner writes locked task-shape contract
      -> generator reviews then executes the task
      -> evaluator independently checks the deliverable
+     -> if Evaluator returns retryable required fixes under the same fair contract,
+        main dispatches bounded Generator repair and bounded Evaluator re-check
      -> route/summary/teardown phase records outcome and deletes the team
 ```
 
@@ -101,7 +104,7 @@ Create the run-scoped smoke file .pge-artifacts/<run_id>/deliverables/smoke.txt 
 ```
 
 For `test`, use the smallest possible Agent Teams path:
-- keep the skeleton `planner -> generator -> evaluator`
+- keep the initial Planner / Generator / Evaluator progression thin
 - do not read additional handoff/runtime docs during execution
 - do not redispatch teammates
 - do not treat teammate `idle_notification` as completion
@@ -180,7 +183,7 @@ For all runs:
    - if no evaluator message arrives after repair but `evaluator_artifact` exists and passes the full gate for this run, record degraded progression with `protocol_recovery: missing_team_message_event_artifact_gate`
    - if no evaluator message arrives and degraded recovery cannot be proven, stop with `protocol_violation: missing_team_message_event`, record blocker/friction, then teardown when a team exists
    - after receiving the evaluator message or recording degraded progression, gate `evaluator_artifact` and final verdict
-   - if verdict is `RETRY`, or `BLOCK` with current contract still fair and required fixes are local to Generator, send Evaluator `required_fixes` back to resident Generator, then dispatch bounded re-evaluation to Evaluator
+   - if verdict is `RETRY`, or `BLOCK` with current contract still fair and required fixes are local to Generator, send `generator_repair_request` to resident Generator, gate the fresh `generator_completion`, then send `evaluator_recheck_request` to Evaluator and gate the fresh `final_verdict`
    - repeat the Generator repair -> Evaluator re-check loop until PASS, return_to_planner/ESCALATE, repeated same-failure threshold, or max generator attempts per round is reached
    - max generator attempts per round is 10 total attempts, including the initial generation; same `failure_signature` repeated on 3 consecutive evaluations requires a saved repair snapshot and explicit main decision before continuing
    - when a loop threshold is hit, save the current repair snapshot, then main chooses continue one more attempt, return to Planner, or stop failed; ask the user only when main cannot justify that decision from artifacts

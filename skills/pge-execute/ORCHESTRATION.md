@@ -65,9 +65,13 @@ Foreground polling scripts and verbose verification transcripts are not the user
 
 For the current stage:
 - Planner writes the locked task-shape artifact
-- Planner records a visible `multi_agent_research_decision` before broad repo research for a non-test contract; when the scale threshold is met, Planner chooses `mode: parallel_multi_agent_research` and launches bounded internal researcher subagents in parallel before continuing serial research unless a concrete exception is recorded
+- Planner sends `planner_research_decision` to `main` before broad repo research for a non-test contract, then repeats the final `multi_agent_research_decision` inside `planner_note`; when the scale threshold is met, Planner chooses `mode: parallel_multi_agent_research` and launches bounded internal researcher subagents in parallel before continuing serial research unless a concrete exception is recorded
 - Helper scale threshold: at least two independent evidence questions, two or more relevant subsystems/directories, or an unfamiliar nontrivial repo area
 - Planner helper lanes are read-only evidence collectors; helpers are not PGE runtime stages and do not own contract authority
+- `main` may log `planner_research_decision` as support traffic, but must not advance planning until `planner_contract_ready` arrives and the Planner artifact gate passes
+- Planner freezes exactly one `current_round_slice` inside `handoff_seam` for the current lane; this is slice metadata for Generator/Evaluator, not a backlog or a new runtime stage
+- `current_round_slice.ready_for_generator` must be true before `main` dispatches Generator; otherwise `main` treats the Planner artifact as not ready and stops before implementation
+- Durable helper outputs follow `skills/pge-execute/contracts/helper-report-contract.md` and are referenced from the owning phase artifact; helper reports are advisory evidence only
 - After `planner_contract_ready`, Planner does not exit; it remains resident, available, and responsive for bounded clarification, architecture guidance, and repo research until shutdown
 - Generator first reviews Planner's frozen contract for executability, then executes against it
 - Generator may run bounded coder workers and read-only reviewer helpers in parallel, but helpers are not PGE runtime stages and do not own integration, approval, or `generator_completion`
@@ -104,12 +108,17 @@ It does not advance the run, but it should always point to the current authorita
 
 ## Execution depth
 
-All tasks use the same skeleton: `planner -> generator -> evaluator`.
+All tasks use the same resident P/G/E progression:
+- Planner freezes the current contract
+- Generator implements under that contract
+- Evaluator validates independently
+- retryable Evaluator feedback may loop back to resident Generator while the same contract remains fair
 
 Task scale changes:
 - how much context Planner loads
 - how deep Generator's durable implementation bundle needs to be
 - how deep Evaluator audits the result
+- how many bounded Generator repair / Evaluator re-check attempts are justified
 
 Task scale does not create new required orchestration stages in the current lane.
 
@@ -164,6 +173,20 @@ Current version also supports a bounded evaluator-to-generator repair loop:
 - max generator attempts per round: 10 total attempts, including the initial generation
 - same `failure_signature` repeated on 3 consecutive evaluations triggers a repair decision checkpoint
 - stop the loop on `PASS`, `return_to_planner`, `ESCALATE`, max attempts exhausted, or main decision to stop after a checkpoint
+
+## Repair loop communication protocol
+
+The `generator <-> evaluator` loop is driven by `main`; Generator and Evaluator do not message each other to advance the loop.
+
+For each retryable verdict:
+1. `main` reads Evaluator `required_fixes`, `failure_signature`, `verdict`, `next_route`, and `route_reason`.
+2. `main` checks that the Planner contract is still fair, the fix is local to Generator, total Generator attempts are below 10, and no same-failure checkpoint has stopped the loop.
+3. `main` sends `generator_repair_request` to `generator` with attempt number, Planner artifact, current Generator artifact, Evaluator artifact, required fixes, failure signature, and same-contract scope boundary.
+4. `main` waits for a fresh canonical `generator_completion`, then gates the repaired deliverable and durable Generator artifact.
+5. `main` sends `evaluator_recheck_request` to `evaluator` with attempt number, Planner artifact, repaired Generator artifact, prior Evaluator artifact, prior failure signature, and required fixes.
+6. `main` waits for a fresh canonical `final_verdict`, gates the Evaluator artifact, and either routes on PASS/non-retryable output or repeats the loop.
+
+If the same `failure_signature` appears on 3 consecutive evaluations, or total Generator attempts reaches 10, `main` saves a repair snapshot before deciding whether to stop, ask one focused user question, or allow one more bounded attempt.
 
 If evaluator returns anything else:
 - record it

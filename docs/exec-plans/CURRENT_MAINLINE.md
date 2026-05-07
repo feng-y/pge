@@ -40,6 +40,7 @@ The current step is to enforce visible Planner `multi_agent_research_decision`, 
 - introduce lighter closure paths for deterministic tasks without giving Planner fast-finish authority
 - make Planner run research pass + thin counter-research + architecture pass before freezing the round
 - make Planner record whether the multi-agent research scale threshold was met, which helper lanes were used, or why helpers were intentionally skipped
+- make Planner send `planner_research_decision` before broad repo research and freeze exactly one `handoff_seam.current_round_slice`
 - keep Planner resident as the post-plan research / architecture support lane for `main` and Generator
 - keep Generator local-first; only escalate to Planner for broad repo archaeology, architecture interpretation, contract-scope ambiguity, or multi-file pattern discovery
 - treat a visible Generator deliverable plus missing `generator.md` / `generator_completion` as a recoverable handoff gap before route selection
@@ -68,6 +69,7 @@ This stage is done when:
 - Planner / Generator / Evaluator authority is consistent across design and runtime docs
 - Planner emits evidence-backed contracts with source/fact/confidence/verification path
 - Planner records multi-agent research scale-threshold decisions before non-test contracts
+- Planner freezes exactly one ready `current_round_slice` or blocks before Generator dispatch
 - Planner records thin rejected-cut reasoning when the round cut is not obvious
 - Generator and Evaluator execute the bounded same-contract repair loop for retryable failures
 - repeated same-failure snapshots and max-attempt stops are visible to `main`

@@ -73,6 +73,23 @@ After this SendMessage, do not exit; remain resident, available, and responsive 
 
 If `main` later asks you to confirm completion or resend the runtime notification, verify the current run deliverable/artifact is still the one you completed and resend only the exact canonical `generator_completion` text. Do not send recap, idle wrapper, or summary text instead of the event.
 
+If `main` dispatches a repair attempt, it will use this message shape:
+
+```text
+type: generator_repair_request
+run_id: <run_id>
+attempt: <attempt number>
+planner_artifact: <planner_artifact>
+generator_artifact: <current generator_artifact>
+evaluator_artifact: <latest evaluator_artifact>
+required_fixes: <Evaluator required_fixes>
+failure_signature: <latest failure_signature>
+scope_boundary: same Planner contract; do not broaden or replan
+reply_to: main
+```
+
+For a repair request, change only what is needed to address `required_fixes`, preserve working parts from prior attempts, update <output_artifact> with repair attempt evidence, rerun the failed verification path when practical, and send a fresh canonical `generator_completion` to `main`.
+
 If <output_artifact> is present, write markdown to <output_artifact> with exactly these top-level sections:
 - ## current_task
 - ## boundary
@@ -105,6 +122,8 @@ It does not create a new runtime event or a new top-level orchestration stage.
 
 Rules:
 - read the planner contract carefully before acting
+- read `handoff_seam.current_round_slice` before acting; if `ready_for_generator` is false, stop and send canonical `generator_completion` with `handoff_status: BLOCKED` instead of inventing readiness
+- keep implementation inside the named `current_round_slice`; do not silently add sibling slices
 - use Planner as the resident research / architecture support lane only when broad repo investigation would otherwise make Generator carry planning work
 - if Planner support is needed, send `SendMessage(to="planner", message="<plain-string planner_support_request>")` with `run_id`, `question`, `why_generator_cannot_resolve_locally`, `scope_boundary`, `needed_by: generator`, and `reply_to: generator`
 - wait for Planner to reply with `SendMessage(to="generator", message="<plain-string planner_support_response>")`
@@ -132,6 +151,7 @@ Rules:
 - use bounded coder workers only when at least two work units are clearly independent
 - coder workers may edit only their authorized file scope and may not send PGE runtime events to `main`
 - reviewer helpers are read-only; they may report scope risks, evidence gaps, missing verification, and likely integration mistakes, but may not edit files or issue verdicts
+- when helpers or workers produce durable output, use `skills/pge-execute/contracts/helper-report-contract.md` and record report refs in `## helper_decision`
 - if code changed and no reviewer helper ran, explain why in `## helper_decision`
 - if workers/helpers are used, keep them bounded and keep final integration responsibility in Generator
 - after `generator_completion`, respond to bounded clarification, evidence, investigation, or repair questions from `main`, Planner, or Evaluator without changing code unless `main` dispatches a bounded repair/retry task

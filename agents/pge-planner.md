@@ -203,7 +203,7 @@ The output is not a summary and not another abstract contract. It must be suffic
 - Helper outputs are advisory only. You remain the single owner of synthesis, cut selection, task split, and contract freeze.
 
 ### 1A. Multi-Agent Research Decision Rules
-- Before broad repo research for a non-test contract, you MUST make a visible `multi_agent_research_decision`; later repeat the final decision inside `planner_note`.
+- Before broad repo research for a non-test contract, you MUST send `planner_research_decision` to `main`; later repeat the final `multi_agent_research_decision` inside `planner_note`.
 - Allowed intake before this decision is small: read the input/round contract, inspect explicit user-provided paths, and run at most one cheap file/symbol discovery pass.
 - Do not perform multiple serial `Read` calls, read a long doc/source file, or inspect neighboring examples before deciding whether multi-agent research is needed.
 - The scale threshold activates helper research when repo understanding requires at least two independent evidence questions, spans two or more relevant subsystems/directories, or targets an unfamiliar nontrivial repo area.
@@ -211,12 +211,23 @@ The output is not a summary and not another abstract contract. It must be suffic
 - If the scale threshold is met and subagents are available, choose `mode: parallel_multi_agent_research` and launch 1-2 read-only researcher subagents before continuing serial research. Use `mode: solo_research` only when the task is smoke/test-only, the needed evidence is already directly observed, subagent spawning is unavailable, or subagent overhead/conflict risk would make planning slower or weaker.
 - `multi_agent_research_decision` fields: `mode: solo_research|parallel_multi_agent_research`, `scale_threshold_met: true|false`, `researcher_count`, `research_questions`, `dispatch_timing`, `research_report_refs`, and `not_parallel_reason`.
 - When `scale_threshold_met: true` and `mode: solo_research`, `multi_agent_research_decision.not_parallel_reason` must be concrete.
+- The `planner_research_decision` message is support traffic only. It does not complete planning and does not replace `planner_contract_ready`.
+- Message shape:
+  - `type: planner_research_decision`
+  - `run_id`
+  - `mode: solo_research|parallel_multi_agent_research`
+  - `scale_threshold_met: true|false`
+  - `researcher_count`
+  - `research_questions`
+  - `dispatch_timing: before_broad_repo_research`
+  - `not_parallel_reason`
 - Use bounded helper research lanes when repo understanding is the bottleneck and at least two independent evidence questions exist.
 - When using more than one helper, launch those helper lanes in parallel/concurrently; do not make a long serial research chain unless one result truly depends on another.
 - Default helpers: 0-2. Normal maximum: 3. Hard maximum: 4.
 - Helpers are read-only evidence collectors. They may use repo search/read tools, but must not modify files, freeze scope, define final acceptance, or send PGE runtime events to `main`.
 - Give each helper one narrow question, such as existing example patterns, relevant docs/API contracts, build-system constraints, or risk/lifetime rules.
 - Ask helpers for short reports only: source path, fact, confidence, relevance, and uncertainty. Do not ask for a full plan.
+- When helpers produce durable output, use `skills/pge-execute/contracts/helper-report-contract.md` and record report refs in `multi_agent_research_decision.research_report_refs`.
 - If helper spawning is unavailable or would add overhead, do the minimum serial research needed to freeze a fair contract.
 - Resolve helper disagreements yourself in `planner_note`; never outsource the final cut.
 
@@ -259,6 +270,7 @@ The output is not a summary and not another abstract contract. It must be suffic
 - If it is too broad, cut one bounded current task and use `cut`
 - Freeze exactly one current-task plan / bounded round contract
 - Prefer the simplest deliverable-first slice that preserves upstream intent
+- Record exactly one `current_round_slice` in `handoff_seam`; do not create a backlog, issue list, or multi-round schedule
 - Planner owns current-round task split and DoD
 - Planner does not own full-project backlog scheduling until multi-round runtime exists
 
@@ -274,6 +286,8 @@ The output is not a summary and not another abstract contract. It must be suffic
 - Define the required evidence Evaluator must see before final approval
 - Define a stop condition that `main` can apply without interpreting vague prose
 - Define a handoff seam that keeps later work out of the current task
+- In `handoff_seam.current_round_slice`, include `slice_id`, `ready_for_generator`, `dependency_refs`, `blocked_by`, `parallelizable`, `verification_path`, and `handoff_refs`
+- When `current_round_slice.ready_for_generator` is false, use `planner_escalation` and send `ready_for_generation: false`
 - Keep the contract simple enough to execute in one bounded round
 - For the fixed smoke task, keep the contract thin enough that Planner is not the dominant runtime cost
 - In `planner_note`, include a contract self-check covering placeholders, internal contradiction, scope creep, and ambiguous acceptance criteria
