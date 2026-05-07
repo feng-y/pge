@@ -1,47 +1,24 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This repo uses `CLAUDE.md` as the primary resident agent entry point.
 
-## Current repo state
+## Where to look
 
-- This repo is currently a docs/contracts skeleton for PGE, not a runtime implementation.
-- Do not treat strategy docs as permission to keep expanding harness theory during normal repo work.
+| What | Where |
+|------|-------|
+| Resident agent rules | `CLAUDE.md` |
+| Project map | `README.md` |
+| Runtime orchestration | `skills/pge-execute/SKILL.md`, `skills/pge-execute/ORCHESTRATION.md` |
+| Runtime contracts | `skills/pge-execute/contracts/*.md` |
+| P/G/E role behavior | `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` |
+| Current mainline | `docs/exec-plans/CURRENT_MAINLINE.md` |
+| Issue ledger | `docs/exec-plans/ISSUES_LEDGER.md` |
 
-## Normative seams for proving runs
+## Key invariants
 
-For proving runs, the authoritative execution-core seams are:
-- `agents/*.md`
-- `skills/pge-execute/contracts/*.md`
-- `skills/pge-execute/SKILL.md`
+- P/G/E are workflow nodes, not roleplay prompts.
+- `main` owns route, state, and gate decisions.
+- Subagents are phase-local helpers, not workflow authorities.
+- Only canonical P/G/E outputs drive phase completion.
 
-Supporting/reference docs may provide context, but they must not override normalized route/state/verdict vocabulary during proving.
-
-## Current working mode
-
-- Prioritize the current mainline over broad optimization or theoretical completeness.
-- Only fix the current P0 blocker for the active round.
-- Record P1 as follow-up and P2 as parked. Do not expand them in the active round.
-- Prefer the smallest change that unblocks progress.
-- Stop after the blocker is removed.
-
-## Round discipline
-
-- Work one bounded round at a time.
-- Keep scope explicit. Do not reopen broad design unless the current blocker truly requires it.
-- Use gradual disclosure in responses. Surface only the detail needed for the current blocker.
-
-## Control-plane artifacts
-
-For the current stage, update these artifacts each round:
-- `docs/exec-plans/CURRENT_MAINLINE.md`
-- `docs/exec-plans/ISSUES_LEDGER.md`
-- use `docs/exec-plans/ROUND_TEMPLATE.md` when creating a new round record
-- use `docs/proving/README.md` as the proving/development run entrypoint
-
-## Response shape for the current stage
-
-Structure round updates as:
-- `本轮目标`
-- `Progress`
-- `Blockers`
-- `Action`
+Do not maintain separate agent rules in this file. All resident rules live in `CLAUDE.md`.
