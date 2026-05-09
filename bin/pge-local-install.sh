@@ -78,10 +78,21 @@ manifest = json.loads((repo_root / ".claude-plugin" / "plugin.json").read_text()
 # Parse manifest
 agents = [repo_root / path.removeprefix("./") for path in manifest.get("agents", [])]
 skills_root = repo_root / manifest["skills"].removeprefix("./")
-skill_dirs = sorted(
-    path for path in skills_root.iterdir()
-    if path.is_dir() and (path / "SKILL.md").exists()
-)
+allowed_skill_names = manifest.get("skill_directories")
+if allowed_skill_names:
+    allowed_skill_names = set(allowed_skill_names)
+    skill_dirs = sorted(
+        path for path in skills_root.iterdir()
+        if path.is_dir() and path.name in allowed_skill_names and (path / "SKILL.md").exists()
+    )
+else:
+    skill_dirs = sorted(
+        path for path in skills_root.iterdir()
+        if path.is_dir() and (path / "SKILL.md").exists()
+    )
+legacy_cleanup = manifest.get("legacy_cleanup", {})
+legacy_skill_names = set(legacy_cleanup.get("skills", []))
+legacy_agent_names = set(legacy_cleanup.get("agents", []))
 
 # Target directories
 skills_target = claude_home / "skills"
@@ -134,16 +145,29 @@ def compute_local_build() -> str:
 if mode == "uninstall":
     removed = []
 
-    # Remove skills with marker
+    # Remove currently managed skills with marker
     for skill_dir in skill_dirs:
         skill_target = skills_target / skill_dir.name
         skill_md = skill_target / "SKILL.md"
         if skill_target.exists() and has_marker(skill_md):
             removed.extend(remove_path(skill_target))
 
-    # Remove agents with marker
+    # Remove legacy skills with marker when requested by manifest cleanup policy
+    for skill_name in legacy_skill_names:
+        skill_target = skills_target / skill_name
+        skill_md = skill_target / "SKILL.md"
+        if skill_target.exists() and has_marker(skill_md):
+            removed.extend(remove_path(skill_target))
+
+    # Remove currently managed agents with marker
     for agent in agents:
         agent_target = agents_target / agent.name
+        if agent_target.exists() and has_marker(agent_target):
+            removed.extend(remove_path(agent_target))
+
+    # Remove legacy agents with marker when requested by manifest cleanup policy
+    for agent_name in legacy_agent_names:
+        agent_target = agents_target / agent_name
         if agent_target.exists() and has_marker(agent_target):
             removed.extend(remove_path(agent_target))
 
@@ -158,6 +182,20 @@ if mode == "uninstall":
 # Install mode
 skills_target.mkdir(parents=True, exist_ok=True)
 agents_target.mkdir(parents=True, exist_ok=True)
+
+# Remove legacy installed surfaces before installing current managed components
+for skill_name in legacy_skill_names:
+    legacy_target = skills_target / skill_name
+    legacy_skill_md = legacy_target / "SKILL.md"
+    if legacy_target.exists() and has_marker(legacy_skill_md):
+        remove_path(legacy_target)
+        print(f"  - skills/{skill_name}/")
+
+for agent_name in legacy_agent_names:
+    legacy_target = agents_target / agent_name
+    if legacy_target.exists() and has_marker(legacy_target):
+        remove_path(legacy_target)
+        print(f"  - agents/{agent_name}")
 
 # Install skills
 for skill_dir in skill_dirs:

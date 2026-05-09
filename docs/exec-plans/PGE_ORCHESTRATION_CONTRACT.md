@@ -2,28 +2,26 @@
 
 ## Purpose
 
-This file is the architectural control-plane contract for how PGE is orchestrated.
+This file records the normalized orchestration split for the current PGE direction.
 
 It defines, in one place:
 - what `main` is
 - what `main` is not
-- the ownership split between run-level orchestration and runtime execution
-- the normalized relationship between upstream plan intake, `main`, and the persistent runtime team
+- how orchestration ownership relates to the split workflow
+- how artifact-first execution should be described without restoring Team runtime claims
 
-The active operational seam for `main` now lives in `skills/pge-execute/ORCHESTRATION.md`.
-If any older doc or checklist models `main` as a peer worker role or an `agents/` seam, this file wins at the architectural level.
+This file is a reference contract. For active day-to-day runtime truth, use:
+- `skills/pge-exec/SKILL.md`
+- `docs/exec-plans/CURRENT_MAINLINE.md`
+- `docs/exec-plans/ISSUES_LEDGER.md`
 
 ## Normalized architecture
 
 PGE should be described like this:
-- an upstream plan enters PGE
-- skill-internal `main` orchestration logic runs inside `/pge-execute`
-- Planner / Generator / Evaluator execute as the persistent runtime team
-- file-based handoff remains the execution backbone
-
-The persistent runtime team is Planner / Generator / Evaluator only.
-
-`main` is outside that team as the orchestration shell and control-plane authority for the run. It is not an `agents/` seam.
+- `pge-setup` prepares repo-local config under `.pge/config/*`
+- `pge-plan` writes one bounded plan artifact under `.pge/plans/<plan_id>.md`
+- `pge-exec` consumes the plan and writes run artifacts under `.pge/runs/<run_id>/*`
+- `main` remains the orchestration shell and control-plane authority for the run
 
 ## What `main` is
 
@@ -31,62 +29,52 @@ The persistent runtime team is Planner / Generator / Evaluator only.
 - run-level scheduler
 - runtime-state owner
 - route / stop / recovery owner
-- team lifecycle owner
 - artifact persistence owner
-- upstream plan intake owner
+- input/handoff owner across setup, planning, and execution
 
 ## What `main` is not
 
 `main` is **not**:
-- an agent
-- an `agents/` seam
-- a peer role alongside Planner / Generator / Evaluator
-- a Planner / Generator / Evaluator substitute
-- a hidden fourth worker that absorbs planning, delivery, or evaluation duties
+- a peer worker role
+- a hidden substitute for setup/planning/execution surfaces
+- a reason to restore resident Planner / Generator / Evaluator runtime semantics
+- a generic agent OS control plane
 
-`main` may dispatch Planner / Generator / Evaluator and persist their artifacts, but it must not perform their role work itself.
+`main` may use bounded helpers when justified, but helpers do not own workflow truth.
 
-## Explicit role split
+## Explicit split ownership
 
 | Surface | Owner | Must not own |
 | --- | --- | --- |
-| run-level scheduling, runtime state, routing, stop, recovery, team lifecycle, artifact persistence | `main` | slice shaping, deliverable production, independent evaluation |
-| slice scheduling, boundary ownership, executable-slice framing, verification path, slice-status advice | Planner | run-level route, stop, recovery, team lifecycle |
-| deliverable production, local verification, concrete execution evidence | Generator | acceptance, final route selection |
-| validation gate, evidence sufficiency, canonical verdict, route signal | Evaluator | implementation fixes, replanning, hidden route invention |
+| repo-local setup/config checks and setup artifacts | `pge-setup` | planning, implementation, final route decisions |
+| bounded goal shaping, scope, acceptance, verification hints, handoff plan artifact | `pge-plan` | code execution, final run routing |
+| numbered-issue execution, verification, route/state handling, run artifacts | `pge-exec` | setup scaffolding, unconstrained replanning |
+| run-level route, stop, and recovery decisions across the active workflow | `main` | silently reviving legacy Team orchestration as active truth |
 
-Planner is the slice scheduler and boundary owner.
-Generator is the deliverable owner.
-Evaluator is the validation gate and route-signal producer.
+## Relationship to other seams
 
-Planner may advise on slice status, but `main` remains the run-level route owner.
-
-## Relationship to other authoritative seams
-
-- `skills/pge-execute/ORCHESTRATION.md` is the active operational seam for `main` inside the skill layer.
-- `skills/pge-execute/SKILL.md` stays thin and dispatches according to that operational seam.
-- `docs/exec-plans/PGE_EXECUTION_LAYER_PLAN.md` defines the broader execution-layer architecture.
-- `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md` defines the current-stage runtime FSM, route policy, unsupported-route handling, recovery entry points, and artifact-gate behavior that the skill layer operationalizes.
-- `skills/pge-execute/contracts/*` remain the canonical normalized vocabulary for route/state/verdict semantics.
+- `skills/pge-exec/SKILL.md` is the active execution surface.
+- `docs/exec-plans/CURRENT_MAINLINE.md` is the current forward-path summary.
+- `docs/exec-plans/ISSUES_LEDGER.md` records the current blockers and follow-ups.
+- legacy `skills/pge-execute/` and `agents/pge-*.md` remain reference/migration material only.
 
 ## Normalization rules
 
-To avoid reintroducing the old confusion:
-- do not list `main` inside the persistent runtime team inventory
-- do not describe `main` as a peer agent to Planner / Generator / Evaluator
-- do not describe `main` as an `agents/` seam
-- do not use `main` as shorthand for a fourth runtime worker role
-- when docs say "runtime team," they mean Planner / Generator / Evaluator under `main` orchestration
-- when docs say "orchestration authority," they mean skill-internal `main` logic at the run level
+To avoid reintroducing old control-plane confusion:
+- do not describe Planner / Generator / Evaluator as the active runtime team
+- do not require `TeamCreate`, `TeamDelete`, or `SendMessage` in active split workflow docs
+- do not describe `main` as a fourth worker role
+- do not use legacy `pge-execute` runtime material as the preferred forward path
+- when docs say "active workflow," they mean `pge-setup`, `pge-plan`, and `pge-exec`
 
 ## Current-stage boundary
 
-This contract fixes the control-plane split. It does not reopen whether runtime teams are needed.
+This contract fixes the orchestration split for the current migration stage.
 
-The reviewed target architecture remains:
-- upstream plan enters PGE
-- `main` orchestrates
-- a persistent Planner / Generator / Evaluator runtime team executes
-- file-based handoff remains the backbone
+It does not claim:
+- an SDK runner
+- full autonomous retry loops
+- persistent Team lifecycle support
+- new workflow surfaces beyond the current split
 
-Current-stage runtime behavior remains bounded by `docs/exec-plans/RUNTIME_ORCHESTRATION_AUTHORITY.md`.
+Future execution-layer design can build on this contract, but active repo truth should stay anchored to the split skills and current execution-plan docs.

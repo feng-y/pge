@@ -2,80 +2,65 @@
 
 ## Current mainline
 
-Converge the `0.5A / 0.5B` runtime lane so `pge-execute` is the runnable repo-coupled Agent Team surface: one Team, exactly `planner` / `generator` / `evaluator`, one bounded repo-local run, durable phase artifacts, one shared progress log, independent evaluation, and a bounded same-contract `generator <-> evaluator` repair loop.
+Converge repo truth, install surfaces, and execution contracts around the split workflow:
 
-The immediate sub-lane is restoring executable runtime behavior when TeamCreate / SendMessage capability visibility is uncertain: `/pge-execute` must attempt the real Team control-plane calls before it can report a Team substrate blocker, while preserving Planner research decisions, Generator handoff recovery, and Evaluator retry feedback.
+```text
+pge-setup -> pge-plan -> pge-exec
+```
+
+`pge-exec` is the active execution surface. It is main-led, plan-driven, and route/state oriented. It is not a Claude Code Agent Teams runtime, not a three-agent Planner / Generator / Evaluator orchestrator, and not a TDD skill.
 
 ## Why this is the mainline
 
-Repo evidence supports the runtime-team architecture, but the active mismatch is now architectural, not packaging:
-- the repo already has stable `planner / generator / evaluator` agent surfaces
-- `main` is the orchestration shell / route owner / gate owner, not a fourth agent
-- P/G/E are persistent runtime teammates and workflow phase owners
-- normal coordination should use `SendMessage`
-- Evaluator failure is not a terminal route by itself when the same Planner contract remains fair; it should feed required fixes back to Generator
-- current blockers are operational closure in real repos, not broad architecture theory
+Repo evidence now supports the split architecture:
+- `skills/pge-setup/SKILL.md` defines repo-local setup/config scaffolding.
+- `skills/pge-plan/SKILL.md` defines bounded plan artifact creation.
+- `skills/pge-exec/SKILL.md` defines numbered-issue execution with route/state vocabulary.
+- `.claude-plugin/plugin.json` and `bin/pge-local-install.sh` now project only the split skill surfaces for local install.
+- Remaining work is closing legacy truth drift and any follow-on contract gaps, not restoring `TeamCreate` or Team lifecycle control-plane semantics.
 
 ## Active stage
 
-Stage 0.5 — Agent Teams runtime closure + persistent Planner / Generator / Evaluator responsibility split
+Stage 0.5 — split-skill truth closure + contract/runtime alignment
 
 ## Current blocker
 
-The design intent for `0.5A / 0.5B` is now clear. The active blocker is operational closure in real repos. The current runtime must:
+The split surfaces now exist, but some top-level and historical execution-plan docs still describe the legacy `pge-execute` Team runtime as current truth. The active lane is to:
 
-- create the actual Agent Team using the named `pge-planner` / `pge-generator` / `pge-evaluator` agent surfaces, or fail immediately with the concrete Team control-plane error
-- Planner must not silently skip parallel repo research when the task scale warrants it
-- `main` must not turn missing messages into noisy foreground polling
-- Generator handoff gaps must be repaired before selecting a blocked route
-- Evaluator retry feedback must loop back to Generator while the same Planner contract remains fair
-
-The current step is to keep Team-only execution strict, then prove visible Planner `multi_agent_research_decision`, artifact-gated recovery as an exception path, the bounded same-contract `generator <-> evaluator` repair loop, and concise progress observation.
+- keep top-level docs aligned to `pge-setup -> pge-plan -> pge-exec`
+- keep legacy `skills/pge-execute/` and `agents/pge-*.md` explicitly downgraded to migration/reference material
+- keep install/runtime docs honest about what is already aligned versus what still needs proving
+- avoid reintroducing Team runtime vocabulary into active setup/plan/exec surfaces
 
 ## What this round is optimizing for
 
-- keep `main` as the orchestration shell, not a peer agent
-- keep `planner`, `generator`, and `evaluator` as the only decision-bearing runtime roles
-- move normal Agent Teams coordination to `SendMessage`
-- reserve files for durable phase outputs and recovery state
-- introduce lighter closure paths for deterministic tasks without giving Planner fast-finish authority
-- make Planner run research pass + thin counter-research + architecture pass before freezing the round
-- make Planner record whether the multi-agent research scale threshold was met, which helper lanes were used, or why helpers were intentionally skipped
-- make Planner send `planner_research_decision` before broad repo research and freeze exactly one `handoff_seam.current_round_slice`
-- keep Planner resident as the post-plan research / architecture support lane for `main` and Generator
-- keep Generator local-first; only escalate to Planner for broad repo archaeology, architecture interpretation, contract-scope ambiguity, or multi-file pattern discovery
-- treat a visible Generator deliverable plus missing `generator.md` / `generator_completion` as a recoverable handoff gap before route selection
-- loop Evaluator feedback back to Generator while the same Planner contract remains fair
-- cap the loop at 10 total Generator attempts, including the initial generation
-- save a repair snapshot and require explicit `main` decision when the same `failure_signature` repeats on 3 consecutive evaluations
-- keep the current lane bounded to single-run execution; do not silently claim Phase 2/5 behavior
+- one clear active workflow story across `README.md`, `CLAUDE.md`, `AGENTS.md`, and `docs/exec-plans/*`
+- artifact-first handoff semantics:
+  - `.pge/config/*`
+  - `.pge/plans/<plan_id>.md`
+  - `.pge/runs/<run_id>/*`
+- `pge-exec` as the route/state owner for execution decisions
+- TDD framed only as one execution mode when appropriate
+- legacy runtime material kept available for reference without claiming active authority
 
 ## Explicit non-goals
 
-- automatic multi-round redispatch
-- full autonomous retry loops beyond the bounded same-contract `generator <-> evaluator` repair loop
-- return-to-planner loop execution
-- checkpoint/resume execution claims
-- generic long-running agent OS behavior
-- new agents or role proliferation
-- non-team direct-execution runtime as the default architecture
+- restoring `TeamCreate`, `TeamDelete`, or `SendMessage` as active runtime requirements
+- reviving Planner / Generator / Evaluator as resident runtime teammates
+- implementing an SDK runner
+- treating `pge-exec` as a TDD-only workflow
+- broad design expansion beyond the current split migration
 
 ## Next single action
 
-Validate that `/pge-execute` can execute a bounded nontrivial repo run through the actual Team control plane using the named `pge-planner` / `pge-generator` / `pge-evaluator` agent surfaces, then records Planner `multi_agent_research_decision` before broad repo research, loops Evaluator retry feedback back to Generator when applicable, separates task outcome from teardown friction, and keeps `main` progress quiet while waiting/recovering.
+Finish downgrading the remaining top-level execution-plan docs that still present the legacy Team runtime as active truth, then rerun contract/install validation against the split surfaces.
 
 ## Stage exit criteria
 
 This stage is done when:
-- Planner / Generator / Evaluator authority is consistent across design and runtime docs
-- `/pge-execute` either creates the required Agent Team and starts Planner, or fails immediately with the concrete Team control-plane error
-- Planner emits evidence-backed contracts with source/fact/confidence/verification path
-- Planner records multi-agent research scale-threshold decisions before non-test contracts
-- Planner freezes exactly one ready `current_round_slice` or blocks before Generator dispatch
-- Planner records thin rejected-cut reasoning when the round cut is not obvious
-- Generator and Evaluator execute the bounded same-contract repair loop for retryable failures
-- repeated same-failure snapshots and max-attempt stops are visible to `main`
-- task status and teardown status are reported separately
-- preflight and phase coordination are messaging-first rather than file-only
-- durable artifact boundaries are explicit and mode-aware
-- simple deterministic tasks no longer require the full heavy artifact set by default
+- top-level runtime docs consistently describe the split workflow as current truth
+- local install projects only `pge-setup`, `pge-plan`, and `pge-exec`
+- legacy `skills/pge-execute/` and `agents/pge-*.md` are described as migration/reference material rather than active runtime surfaces
+- active skill surfaces do not require `TeamCreate`, `TeamDelete`, or `SendMessage`
+- active execution docs describe `pge-exec` as main-led, plan-driven, and route/state based
+- remaining open items are concrete validation or contract follow-ups rather than architecture ambiguity

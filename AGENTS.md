@@ -8,17 +8,18 @@ This repo uses `CLAUDE.md` as the primary resident agent entry point.
 |------|-------|
 | Resident agent rules | `CLAUDE.md` |
 | Project map | `README.md` |
-| Runtime orchestration | `skills/pge-execute/SKILL.md`, `skills/pge-execute/ORCHESTRATION.md` |
-| Runtime contracts | `skills/pge-execute/contracts/*.md` |
-| P/G/E role behavior | `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` |
-| Current mainline | `docs/exec-plans/CURRENT_MAINLINE.md` |
-| Issue ledger | `docs/exec-plans/ISSUES_LEDGER.md` |
+| Active setup surface | `skills/pge-setup/SKILL.md` |
+| Active planning surface | `skills/pge-plan/SKILL.md` |
+| Active execution surface | `skills/pge-exec/SKILL.md` |
+| Current execution docs | `docs/exec-plans/CURRENT_MAINLINE.md`, `docs/exec-plans/ISSUES_LEDGER.md` |
+| Legacy runtime reference | `skills/pge-execute/`, `agents/pge-*.md` |
 
 ## Key invariants
 
-- P/G/E are workflow nodes, not roleplay prompts.
+- `pge-setup`, `pge-plan`, and `pge-exec` are the active workflow surfaces.
 - `main` owns route, state, and gate decisions.
-- Subagents are phase-local helpers, not workflow authorities.
-- Only canonical P/G/E outputs drive phase completion.
+- Subagents are bounded helpers, not workflow authorities.
+- Active flow is artifact-first: `.pge/config/*` -> `.pge/plans/<plan_id>.md` -> `.pge/runs/<run_id>/*`.
+- Legacy `skills/pge-execute/` and `agents/pge-*.md` are migration/reference material, not active Team runtime truth.
 
 Do not maintain separate agent rules in this file. All resident rules live in `CLAUDE.md`.

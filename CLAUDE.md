@@ -15,31 +15,43 @@ Before non-trivial work, read in this order:
 1. `README.md`
 2. `docs/exec-plans/CURRENT_MAINLINE.md`
 3. `docs/exec-plans/ISSUES_LEDGER.md`
-4. `skills/pge-execute/SKILL.md`
-5. `skills/pge-execute/ORCHESTRATION.md`
+4. `docs/exec-plans/pge-skills-setup-plan-execute.md`
+5. `docs/exec-plans/pge-skills-contract-first.md`
+6. `skills/pge-setup/SKILL.md`
+7. `skills/pge-plan/SKILL.md`
+8. `skills/pge-exec/SKILL.md`
 
-When working on specific P/G/E behavior, also read:
+When working on migration/legacy `pge-execute` material, also read:
 
-6. `agents/pge-planner.md`
-7. `agents/pge-generator.md`
-8. `agents/pge-evaluator.md`
+9. `skills/pge-execute/SKILL.md`
+10. `skills/pge-execute/ORCHESTRATION.md`
+11. `agents/pge-planner.md`
+12. `agents/pge-generator.md`
+13. `agents/pge-evaluator.md`
 
 ## Truth hierarchy
 
-Runtime truth (authoritative during execution, overrides all other docs):
-- `skills/pge-execute/SKILL.md`
-- `skills/pge-execute/ORCHESTRATION.md`
-- `skills/pge-execute/contracts/*.md`
-- `agents/pge-planner.md`
-- `agents/pge-generator.md`
-- `agents/pge-evaluator.md`
+Migration truth (authoritative during the current split, overrides older runtime prose):
+- `skills/pge-setup/SKILL.md`
+- `skills/pge-plan/SKILL.md`
+- `skills/pge-exec/SKILL.md`
+- `docs/exec-plans/pge-skills-setup-plan-execute.md`
+- `docs/exec-plans/pge-skills-contract-first.md`
 - `docs/exec-plans/CURRENT_MAINLINE.md`
 - `docs/exec-plans/ISSUES_LEDGER.md`
 
 Project map:
 - `README.md`
 
-Research/reference (may inform design, must not override runtime truth):
+Legacy runtime/reference material (read when touching migration seams, must not silently override the split direction):
+- `skills/pge-execute/SKILL.md`
+- `skills/pge-execute/ORCHESTRATION.md`
+- `skills/pge-execute/contracts/*.md`
+- `agents/pge-planner.md`
+- `agents/pge-generator.md`
+- `agents/pge-evaluator.md`
+
+Research/reference (may inform design, must not override active skill truth):
 - `docs/design/research/ref-*.md`
 - `docs/design/`
 
@@ -60,12 +72,12 @@ Research/reference (may inform design, must not override runtime truth):
 
 ## Workflow authority
 
-- P/G/E are workflow nodes, not roleplay prompts.
-- `main` owns route, state, gate, and teardown decisions.
-- Only canonical P/G/E outputs (artifacts + events) drive phase completion.
-- Subagents are phase-local helpers, not workflow authorities.
-- Main orchestration owns route, stop, and recovery — agents produce artifacts but don't self-route.
-- Planner is resident (stays alive for entire run), not one-shot.
+- `pge-setup`, `pge-plan`, and `pge-exec` are the active workflow surfaces.
+- `pge-exec` owns route, state, gates, and execution-window decisions.
+- Planning outputs and run artifacts are the preferred handoff seams.
+- Subagents/workers are bounded helpers, not workflow authorities.
+- Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
+- Treat source `agents/pge-*.md` as role-spec / prompt material / future SDK-runner material unless a future mainline explicitly reactivates them.
 
 ## Missing detail policy
 
@@ -116,6 +128,6 @@ Structure round updates as:
 ## Key gotchas
 
 - Plugin source and marketplace source are the same repo. Installed layout differs from source layout.
-- Runtime state persists to `.pge-artifacts/{run_id}-runtime-state.json`. Legacy `.pge-runtime-state.json` is deprecated.
-- Planner is resident (stays alive for entire run), not one-shot.
-- Main orchestration owns route, stop, and recovery decisions — agents produce artifacts but don't self-route.
+- Marketplace metadata and local install behavior are still being aligned with the new `pge-setup` / `pge-plan` / `pge-exec` split.
+- Until that alignment lands, installed plugin contents may still expose legacy `agents/pge-*.md` alongside the new skills.
+- Treat legacy `skills/pge-execute/` and `agents/pge-*.md` as migration/reference material unless the current mainline explicitly says otherwise.

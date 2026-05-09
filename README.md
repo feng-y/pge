@@ -4,122 +4,98 @@
 
 PGE is a repo-coupled agentic engineering harness for evolving this repo toward AI-native development.
 
-It runs bounded repo-local engineering work through a real Claude Code Agent Team:
+The repo is currently in a **skill-split migration**:
 
-- `main` is the orchestration shell, route owner, progress writer, and gate owner.
-- `pge-planner` compiles upstream input into one current-round contract.
-- `pge-generator` executes real repo work, verifies locally, and packages evidence.
-- `pge-evaluator` independently validates the deliverable and returns the verdict / route signal.
+- `pge-setup` prepares repo-local PGE config under `.pge/config/*`
+- `pge-plan` writes bounded plan artifacts under `.pge/plans/<plan_id>.md`
+- `pge-exec` executes numbered plan issues and writes run artifacts under `.pge/runs/<run_id>/*`
 
-PGE is not just a set of role prompts. It is a workflow runtime surface for bounded execution.
+The older `skills/pge-execute/` and `agents/pge-*.md` surfaces are still present in the repo as migration/reference material while the new split settles and marketplace / local-install alignment is finished.
 
 ## Current Mainline
 
-The current mainline is to converge the `0.5A / 0.5B` runtime lane so `pge-execute` uses a real persistent Planner / Generator / Evaluator team with messaging-first coordination, durable phase artifacts, and lighter closure for deterministic tasks.
+The current mainline is the contract-first split toward:
 
-The active stage is Planner / Generator / Evaluator responsibility stabilization inside the Agent Teams runtime lane. Keep README as an entry map; use the live planning docs for current blockers and next action:
+```text
+pge-setup -> pge-plan -> pge-exec
+```
+
+The target execution model for the new path is triage + state-machine execution, with TDD allowed only as one execution mode when appropriate.
+
+Keep README as an entry map; use the live planning docs for current blockers and next action:
 
 - [`docs/exec-plans/CURRENT_MAINLINE.md`](./docs/exec-plans/CURRENT_MAINLINE.md)
 - [`docs/exec-plans/ISSUES_LEDGER.md`](./docs/exec-plans/ISSUES_LEDGER.md)
+- [`docs/exec-plans/pge-skills-setup-plan-execute.md`](./docs/exec-plans/pge-skills-setup-plan-execute.md)
+- [`docs/exec-plans/pge-skills-contract-first.md`](./docs/exec-plans/pge-skills-contract-first.md)
 
-## Current Executable Claim
+## Current Skill Surfaces
 
-The runnable surface is [`skills/pge-execute/SKILL.md`](./skills/pge-execute/SKILL.md).
+Primary split surfaces now present in the repo:
 
-Current implementation supports:
+- [`skills/pge-setup/SKILL.md`](./skills/pge-setup/SKILL.md)
+- [`skills/pge-plan/SKILL.md`](./skills/pge-plan/SKILL.md)
+- [`skills/pge-exec/SKILL.md`](./skills/pge-exec/SKILL.md)
 
-- one Claude Code Agent Team per run
-- exactly three teammates: `planner`, `generator`, `evaluator`
-- one bounded run where Planner freezes the contract, Generator implements, and Evaluator validates
-- a bounded same-contract `generator <-> evaluator` repair loop for retryable failures
-- 10 total Generator attempts per round, including the initial generation
-- a saved repair snapshot and explicit `main` decision when the same `failure_signature` repeats on 3 consecutive evaluations
-- `SendMessage` coordination with canonical runtime events
-- durable phase outputs
-- one shared append-only progress log
-- independent Evaluator verdicts
+Migration/reference surfaces still present:
 
-Current implementation does not claim:
+- [`skills/pge-execute/SKILL.md`](./skills/pge-execute/SKILL.md)
+- [`skills/pge-execute/ORCHESTRATION.md`](./skills/pge-execute/ORCHESTRATION.md)
+- [`agents/pge-planner.md`](./agents/pge-planner.md)
+- [`agents/pge-generator.md`](./agents/pge-generator.md)
+- [`agents/pge-evaluator.md`](./agents/pge-evaluator.md)
 
-- automatic multi-round redispatch
-- full autonomous retry loops beyond the bounded same-contract repair loop
-- return-to-planner loop execution
-- checkpoint / resume execution
-- generic long-running agent OS behavior
-- unlimited autonomous self-evolution
+Interpretation rule:
 
-`retry` is a bounded same-contract repair loop, not a full autonomous multi-round retry system.
+- Use the new split skills for setup / planning / execution direction.
+- Treat `skills/pge-execute/` and `agents/pge-*.md` as legacy runtime material until the migration is fully closed.
+- Do not assume marketplace and local install have been fully aligned to hide or retire those legacy surfaces yet.
 
 ## Workflow Model
 
-### main
+### pge-setup
 
-`main` is skill-internal orchestration, not a fourth agent.
+`pge-setup` is the repo-convention and config scaffolding surface.
 
-`main` owns:
+It owns:
 
-- input resolution
-- run initialization
-- Team creation and deletion
-- Planner / Generator / Evaluator dispatch
-- canonical event and artifact gates
-- deterministic route reduction
-- progress and friction logging
-- teardown
+- repo convention discovery
+- `.pge/config/*` scaffolding
+- route/state/docs/artifact/verification policy capture
+- setup status reporting
 
-`main` does not:
+It does not own planning or execution.
 
-- simulate Planner / Generator / Evaluator
-- implement deliverables
-- replace specialist judgment
-- treat itself as a peer runtime agent
+### pge-plan
 
-### Planner
+`pge-plan` is the bounded planning surface.
 
-Planner is the resident researcher + architect teammate and current-round contract owner.
+It owns:
 
-Planner owns:
-
-- evidence basis
-- scope boundary
-- current-round deliverable definition
+- intent shaping
+- bounded slice definition
+- assumptions / risks / blockers capture
 - acceptance criteria
-- verification path
-- required evidence
-- stop condition
-- planner escalation when the contract cannot be frozen fairly
+- verification hints
+- execution handoff into `.pge/plans/<plan_id>.md`
 
-Planner may use bounded read-only researcher subagents when repo understanding crosses the current scale threshold. Planner does not implement and does not own final acceptance.
+It does not execute code.
 
-### Generator
+### pge-exec
 
-Generator is the resident implementation workflow actor.
+`pge-exec` is the main-led execution surface.
 
-Generator owns:
+It owns:
 
-- real repo work
-- implementation shaping and integration
-- local verification
-- evidence packaging
-- durable Generator artifact when required
-- bounded coder workers and read-only reviewer helpers when justified
-- bounded repair work when Evaluator sends retryable required fixes
+- plan consumption
+- issue ordering
+- bounded worker dispatch when justified
+- local repair
+- lightweight gates
+- next-route output under `.pge/runs/<run_id>/`
 
-Generator does not self-approve and does not redefine Planner's contract.
-
-### Evaluator
-
-Evaluator is the resident independent validation teammate.
-
-Evaluator owns:
-
-- direct deliverable inspection
-- evidence sufficiency checks
-- independent verification
-- verdict: `PASS`, `RETRY`, `BLOCK`, or `ESCALATE`
-- route signal: `continue`, `converged`, `retry`, or `return_to_planner`
-
-Evaluator does not implement fixes and does not use Generator self-review as final approval.
+It is not a TDD skill, not an SDK runner, and not a Claude Code Agent Teams orchestrator.
+TDD is only one possible execution mode.
 
 ## Repo Co-evolution Goal
 
@@ -141,20 +117,25 @@ AI-operability surfaces include:
 
 This is the current direction, not a claim that all long-running or self-evolution mechanics are fully implemented.
 
-## Runtime Source of Truth
+## Runtime / Contract Truth
 
-Runtime behavior, route vocabulary, event vocabulary, verdict semantics, and stop conditions must come from these files:
+During the migration, treat truth in layers:
 
-- [`skills/pge-execute/SKILL.md`](./skills/pge-execute/SKILL.md)
-- [`skills/pge-execute/ORCHESTRATION.md`](./skills/pge-execute/ORCHESTRATION.md)
-- [`skills/pge-execute/contracts/*.md`](./skills/pge-execute/contracts/)
-- [`agents/pge-planner.md`](./agents/pge-planner.md)
-- [`agents/pge-generator.md`](./agents/pge-generator.md)
-- [`agents/pge-evaluator.md`](./agents/pge-evaluator.md)
-- [`docs/exec-plans/CURRENT_MAINLINE.md`](./docs/exec-plans/CURRENT_MAINLINE.md)
-- [`docs/exec-plans/ISSUES_LEDGER.md`](./docs/exec-plans/ISSUES_LEDGER.md)
+1. Active user instruction for the current task
+2. [`CLAUDE.md`](./CLAUDE.md)
+3. New split skill surfaces:
+   - [`skills/pge-setup/SKILL.md`](./skills/pge-setup/SKILL.md)
+   - [`skills/pge-plan/SKILL.md`](./skills/pge-plan/SKILL.md)
+   - [`skills/pge-exec/SKILL.md`](./skills/pge-exec/SKILL.md)
+4. Current execution-plan docs:
+   - [`docs/exec-plans/CURRENT_MAINLINE.md`](./docs/exec-plans/CURRENT_MAINLINE.md)
+   - [`docs/exec-plans/ISSUES_LEDGER.md`](./docs/exec-plans/ISSUES_LEDGER.md)
+   - [`docs/exec-plans/pge-skills-setup-plan-execute.md`](./docs/exec-plans/pge-skills-setup-plan-execute.md)
+   - [`docs/exec-plans/pge-skills-contract-first.md`](./docs/exec-plans/pge-skills-contract-first.md)
+5. Legacy runtime material under [`skills/pge-execute/`](./skills/pge-execute/) and [`agents/pge-*.md`](./agents/)
+6. Design/reference material under [`docs/design/`](./docs/design/)
 
-Do not treat top-level or archived design material as runtime authority during execution.
+Do not treat top-level or archived design material as active runtime authority, and do not assume legacy `skills/pge-execute/` semantics still define the preferred forward path.
 
 ## Reference / Design Docs
 
@@ -184,10 +165,19 @@ Current manifest facts:
 - marketplace name: `pge`
 - marketplace source: `./`
 - plugin skills root: `./skills/`
-- plugin agents:
-  - `./agents/pge-planner.md`
-  - `./agents/pge-generator.md`
-  - `./agents/pge-evaluator.md`
+- plugin-managed skill directories:
+  - `pge-setup`
+  - `pge-plan`
+  - `pge-exec`
+- legacy cleanup targets:
+  - skill: `pge-execute`
+  - agents: `pge-planner.md`, `pge-generator.md`, `pge-evaluator.md`
+
+Important migration note:
+
+- The repo now contains `pge-setup`, `pge-plan`, and `pge-exec` as the intended installed skill surfaces.
+- Marketplace metadata and local install behavior are being aligned to install only those three skills by default.
+- Legacy `pge-execute` / `agents/pge-*.md` are now treated as cleanup targets for local install rather than active installed runtime surfaces.
 
 When using the published marketplace path, register the marketplace and install the plugin:
 
@@ -220,7 +210,20 @@ For repo-local validation, use the local install helper:
 ./bin/pge-local-install.sh
 ```
 
-The helper is manifest-driven. It reads [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json), copies skill directories under `skills/` that contain `SKILL.md`, and copies the manifest-listed agents.
+The helper is manifest-driven. It reads [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json), installs only the manifest-selected skill directories, installs any manifest-listed agents, and removes manifest-declared legacy local-dev surfaces when they are present with the local marker.
+
+In the current split, local install should project:
+
+- `pge-setup`
+- `pge-plan`
+- `pge-exec`
+
+and should clean up locally installed legacy surfaces such as:
+
+- `pge-execute`
+- `pge-planner.md`
+- `pge-generator.md`
+- `pge-evaluator.md`
 
 Default targets:
 

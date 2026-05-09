@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "pge",
-      "description": "Bounded Planner/Generator/Evaluator execution flow for Claude Code.",
+      "description": "Setup, plan, and execute bounded repo-local work for Claude Code.",
       "source": "./"
     }
   ]
