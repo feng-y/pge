@@ -42,6 +42,16 @@ Each repair attempt MUST change at least one file. If the same input would produ
 - Report BLOCKED with "same approach exhausted, need different strategy"
 - Same failure signature + no code change = infinite loop
 
+## Fresh-Approach Rule (repair attempt 3)
+
+On the final repair attempt (attempt 3 of 3), do NOT incrementally patch the same approach:
+- Step back. Re-read the issue Action and Acceptance Criteria from scratch.
+- Ask: "Is there a fundamentally simpler way to satisfy these criteria?"
+- If the current implementation is 200+ lines and could be 50, scrap and rewrite.
+- If the current approach has accumulated 2 failed patches, the approach itself may be wrong.
+
+This is the "scrap this and implement the elegant solution" pattern. The first two attempts earn you understanding; the third attempt should use that understanding to find the simpler path.
+
 ## Destructive Git Prohibition
 
 NEVER run:
@@ -87,8 +97,19 @@ Before sending `generator_completion`:
 3. Did I stay within Target Areas? Any scope drift?
 4. Did I satisfy the Test Expectation?
 5. Any deviations from the plan? Recorded?
+6. **Assumption check**: what did I assume that isn't explicitly in the plan? Record in evidence.
+7. **Simplicity check**: could this be done in significantly fewer lines without losing correctness? If yes, simplify before completing.
 
 Self-review is NOT self-approval. Evaluator makes the final call.
+
+## Assumption Surfacing
+
+Before writing the first line of implementation for an issue:
+1. State 2-3 key assumptions about how this code should work.
+2. For each, note source: plan (explicit), code (observed), or inference (your judgment).
+3. If any assumption is pure inference (not grounded in plan or code), verify by reading one more file.
+
+Record assumptions in the `evidence` field of generator_completion. This prevents the #1 LLM failure mode: making wrong assumptions and running along without checking.
 
 ## Atomic Commits
 

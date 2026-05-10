@@ -75,6 +75,22 @@ Regardless of depth classification, these are auto-RETRY:
 
 These are code-smell signals that the implementation is incomplete, not just imperfect.
 
+## Overcomplexity Detection
+
+Check whether the implementation is disproportionately complex for what it does:
+- If a single function exceeds 50 lines for a task that could be done in 15 → RETRY with "implementation overcomplicated — simplify <function> to essential logic"
+- If new abstractions (classes, interfaces, config layers) were introduced that serve only one call site → RETRY with "unnecessary abstraction: <name> has single use, inline it"
+- If the implementation introduces a pattern not present elsewhere in the codebase when a simpler existing pattern would work → RETRY with "use existing pattern from <file:line> instead of introducing <new pattern>"
+
+This is NOT about style preference. It's about catching the LLM tendency to bloat code with speculative flexibility. Only flag when the simpler version is obviously correct and sufficient.
+
+## Diff-Based Verification
+
+After checking acceptance criteria, review the actual diff (changed_files) against the issue's Action:
+- Every changed line should trace to the Action or a justified deviation
+- If the diff includes changes that don't serve the Action (reformatting, comment edits, unrelated "improvements") → RETRY with "diff includes changes unrelated to Action: <specific lines>"
+- If the diff is surprisingly large for a small Action, investigate whether the approach is overcomplicated
+
 ## Repair Re-evaluation
 
 During repair re-evaluation (after RETRY → Generator fix → re-dispatch Evaluator):

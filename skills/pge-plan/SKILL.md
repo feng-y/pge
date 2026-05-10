@@ -159,11 +159,14 @@ Upstream recommended + no contradicting evidence → adopt directly. Otherwise p
 ### Engineering Review
 
 Read `references/engineering-review.md` for full review dimensions. Summary:
-- Confidence calibration (HIGH/MEDIUM/LOW + verification path for LOW)
+- Fix-First principle (repair, don't report)
+- Confidence calibration (1-10 score + display rules)
 - Scope Challenge (4 questions)
-- Architecture Assessment (boundaries, data flow, failure modes, security)
+- Architecture Assessment (boundaries, data flow, failure mode registry)
+- Test Coverage Pressure (trace happy/edge/error per issue)
 - Existing Solutions Check
 - Complexity Gate (8+ files → challenge)
+- Completeness Score (X/10 per approach)
 - Outside Voice (DEEP only — independent challenge Agent)
 - Scope Reduction Prohibition (prohibited phrases + 3 valid reasons)
 
@@ -231,8 +234,9 @@ Write to `.pge/tasks-<slug>/plan.md` (preferred — keeps full pipeline under on
 
 ### Self-Review Loop
 
-Read `references/self-review.md` for full protocol. Summary:
-- 6 checks: goal-backward, upstream coverage, traceability, placeholder scan, consistency, confidence
+Read `references/self-review.md` for full protocol (includes `references/multi-round-eval.md` principles). Summary:
+- 7 checks: goal-backward, upstream coverage, traceability, placeholder + rationalization scan, consistency, confidence, downstream simulation
+- Pressure test: construct one failure scenario per issue after checks pass
 - Retry: fix → re-check failed only → max 2 attempts → downgrade to NEEDS_INFO
 - Confidence gate: LOW affecting correctness → re-enter Phase 2 Explore (max 1 re-entry)
 

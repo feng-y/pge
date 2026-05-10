@@ -54,7 +54,7 @@ You MUST create a task for each of these items and complete them in order:
 5. **Self-resolve** — answer what you can from code, docs, defaults, and prior learnings before asking
 6. **Ask only when needed** — one at a time, grounded in evidence, and only when it improves correctness more than it adds clarification overhead
 7. **Form options** — propose 1-3 approaches with evidence, tradeoffs, and recommendation only after the direction is clear enough
-8. **Review the brief** — check for placeholders, contradictions, scope drift, and fake blockers
+8. **Grill the brief** — adversarial self-challenge: cross-check terminology against code, pressure-test evidence and assumptions, detect scope drift
 9. **Write research artifact** — save `research.md` to the task directory
 10. **Transition to planning** — report route and point to `pge-plan`
 
@@ -129,16 +129,27 @@ Where existing code has issues that materially affect the work — unclear owner
 
 If a local inconsistency looks ugly but doesn't change the research outcome, leave it alone. If it changes the likely approach, the risk, or the affected areas, it belongs in the brief.
 
-**Reviewing the brief:**
+**Grill the brief (adversarial self-challenge):**
 
-Before you write the artifact, look at your findings with fresh eyes:
+Before writing the artifact, switch to adversarial mode. You are no longer the researcher — you are the skeptic trying to break the research. This is the matt-skill grill-with-docs pattern adapted for research output.
 
-1. **Placeholder scan** — any vague language that should be concrete? Fix it.
-2. **Consistency check** — do findings contradict options? Resolve it.
-3. **Scope check** — does the brief cover what was asked, not more?
-4. **Ambiguity check** — are remaining open questions genuinely non-blocking?
+Challenge each finding:
 
-Fix issues inline. No need to re-review — just fix and move on.
+1. **Terminology cross-check** — for every domain term in your findings, verify it matches what the code actually calls it. If you wrote "the auth middleware handles sessions" — go read the middleware file and confirm it's actually called that, does that, and nothing else. Mismatched terminology between brief and code is the #1 source of downstream plan failures.
+
+2. **Evidence pressure** — for each finding marked as fact, can you point to a specific `file:line`? If not, downgrade to assumption. Findings without source references are opinions, not evidence.
+
+3. **Assumption stress-test** — for each assumption, construct one scenario where it's wrong. If that scenario is plausible and would change the recommendation, the assumption needs verification or the brief needs a conditional.
+
+4. **Option viability check** — for each proposed option, identify one concrete reason it might fail in *this* codebase (not in theory). Check: does the pattern you're recommending actually work with the existing abstractions, or are you assuming a cleaner codebase than exists?
+
+5. **Scope drift detection** — compare your findings against the original intent. Did you quietly expand or narrow the scope during exploration? If the brief answers a different question than what was asked, fix it.
+
+6. **Missing perspective** — what would someone who maintains this code daily say about your findings? Is there an obvious constraint you missed because you only read the happy path?
+
+7. **Downstream simulation** — imagine pge-plan receiving this brief. Can it produce a plan without re-exploring anything? If plan would need to re-read files you already read, your findings are incomplete. If plan would need to guess which approach to take, your options section is unclear.
+
+Fix every issue you find. If the grill reveals a finding was wrong, remove or correct it — don't leave it with a caveat. If it reveals a gap, go read one more file to fill it. The grill is a repair pass, not a findings report. One round is enough — don't loop.
 
 ## After the Research
 
