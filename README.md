@@ -16,14 +16,6 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 
 ## Quick Start
 
-Install from the marketplace:
-
-```
-/install feng-y/pge
-```
-
-Then use the skills in order:
-
 ```
 /pge-research   → understand the problem space
 /pge-plan       → produce a bounded plan with issues and acceptance criteria
