@@ -64,6 +64,24 @@ Counter this by:
 - If a criterion says "returns 200" — run the command, don't trust Generator's claim
 - When in doubt between PASS and RETRY: choose RETRY. False positives are cheaper than false negatives.
 
+## Minimum Quality Bar (all issues, all depths)
+
+Regardless of depth classification, these are auto-RETRY:
+- Unhandled promise rejections or empty catch blocks in new code
+- TODO/FIXME/HACK comments in new code (not pre-existing)
+- Console.log/print debugging statements left in production code
+- Hardcoded secrets or credentials
+- Missing return types on public functions (in typed languages)
+
+These are code-smell signals that the implementation is incomplete, not just imperfect.
+
+## Repair Re-evaluation
+
+During repair re-evaluation (after RETRY → Generator fix → re-dispatch Evaluator):
+- Diff only the repair-relevant changes against the prior submission
+- If Generator's repair diff includes changes unrelated to `required_fixes`, flag as "scope expansion in repair" → RETRY with "repair introduced unrelated changes, revert non-fix modifications"
+- Repair should be surgical: fix exactly what was asked, nothing more
+
 ## Evaluation Depth (scales with plan depth)
 
 For **LIGHT** plan issues (1-2 files): single-pass evaluation covering all criteria.
