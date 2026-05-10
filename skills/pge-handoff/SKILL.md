@@ -101,6 +101,12 @@ timestamp: <ISO-8601>
 ## Artifacts (read these, don't duplicate)
 - <path> — <what it contains>
 
+## Pipeline Artifacts (auto-discovered from task directory)
+- Plan: <.pge/tasks-<slug>/plan.md if exists>
+- Runs: <list .pge/tasks-<slug>/runs/*/manifest.md if any>
+- Learnings: <list .pge/tasks-<slug>/runs/*/learnings.md if any>
+- Review: <list .pge/tasks-<slug>/runs/*/review.md if any>
+
 ## Decisions (not in artifacts)
 - <decision> — reason: <why>
 
@@ -204,3 +210,46 @@ Resume from a saved handoff.
 - Keep handoff files under 50 lines
 - Keep extractions atomic (one concept per write)
 - Tag all extractions with date for confidence decay
+
+---
+
+## Error Handling
+
+### save mode
+
+- If git state cannot be read (not a git repo): proceed without git section, note in handoff
+- If task directory referenced but doesn't exist: save what's available, mark `status: degraded`
+- If write fails (permissions, disk): report error, do not silently succeed
+
+### extract mode
+
+- If no decisions/patterns found in session: report "nothing to extract" — do not invent
+- If target file (CONTEXT.md, repo-profile.md) doesn't exist: create it with the extraction as seed
+- If extraction duplicates existing content: skip, report "already captured"
+
+### restore mode
+
+- If no handoffs exist in `.pge/handoffs/`: report "no saved state found" + suggest starting fresh with pge-research or pge-plan
+- If referenced artifacts are missing (deleted/moved): report which paths are stale, present what's still available
+- If handoff references a plan that no longer exists: suggest re-planning
+
+### Route values
+
+- `HANDOFF_SAVED`: save completed successfully
+- `HANDOFF_EXTRACTED`: extract completed (with count of items written)
+- `HANDOFF_RESTORED`: restore completed, context loaded
+- `HANDOFF_EMPTY`: nothing to save/extract/restore
+- `HANDOFF_DEGRADED`: partial success, some references stale
+
+---
+
+## Final Response
+
+```md
+## PGE Handoff Result
+- mode: save | extract | restore
+- route: HANDOFF_SAVED | HANDOFF_EXTRACTED | HANDOFF_RESTORED | HANDOFF_EMPTY | HANDOFF_DEGRADED
+- artifact: <path written or "none">
+- items: <count of items saved/extracted/loaded>
+- next: <suggested next action>
+```

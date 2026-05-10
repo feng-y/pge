@@ -108,6 +108,21 @@ Read intent from `ARGUMENTS:` or conversation. Ask only if missing detail is blo
 - **MEDIUM** (4-8 files, 2-3 modules): Standard review, 2-5 issues.
 - **DEEP** (8+ files, cross-module, architectural): Full review, complexity gate, consider phased delivery.
 
+### Fast Lane (LIGHT with clear intent)
+
+When ALL of these are true:
+- Depth = LIGHT (1-3 files, single module)
+- No upstream research artifact exists (user came directly to plan)
+- Intent is unambiguous (single clear action, not exploratory)
+- No security surface
+
+Then:
+- Skip Outside Voice (already conditional on MEDIUM+)
+- Use 3-check self-review (checks 1, 4, 7 only — see `references/self-review.md` Depth Scaling)
+- Skip pressure test
+- Target: 1-2 issues maximum
+- Expected plan time: under 2 minutes
+
 ### Read Setup Config
 
 Read `.pge/config/*`. If `docs-policy.md` or `repo-profile.md` exists, treat as project constitution — plan must not contradict it without justification. Missing config: degraded mode for simple tasks.

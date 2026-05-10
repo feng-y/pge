@@ -25,6 +25,14 @@ Execute a plan produced by `pge-plan`. Orchestrates Generator and Evaluator agen
 
 This is an orchestration skill. It does not implement code itself.
 
+## External Dependencies
+
+This skill references agent definitions outside its own directory:
+- `agents/pge-code-reviewer.md` — spawned by Final Review Gate
+- `agents/pge-code-simplifier.md` — spawned by Final Review Gate (conditional)
+
+These files must be present at the repo root for the Final Review Gate to function. If missing, skip the review gate and log "reviewer agent spec not found."
+
 ## Execution Flow
 
 ```dot
@@ -95,6 +103,8 @@ Validate:
 If invalid: route BLOCKED, report what's missing.
 
 Extract issues from `## Slices`. Filter READY_FOR_EXECUTE. Order by ID.
+
+Issues with state NEEDS_INFO, BLOCKED, or NEEDS_HUMAN are skipped — they are not dispatched to Generator. Record skipped issues and their states in the run manifest. If ALL issues are non-READY, route BLOCKED immediately.
 
 **Resume support:** If `runs/<run_id>/state.json` exists for this plan, read it. Skip issues already marked PASS. Resume from the first non-PASS issue. This enables recovery from context overflow or session loss.
 

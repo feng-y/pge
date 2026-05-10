@@ -2,6 +2,14 @@
 
 Loaded by pge-plan Phase 4. This is the primary quality gate for stable execution.
 
+## Depth Scaling
+
+Self-review scales with plan depth (from Phase 1 classification):
+
+- **LIGHT** (1-2 issues, single module): Run checks 1, 4, 7 only (goal-backward, placeholder+rationalization scan, downstream simulation). Skip pressure test. Max 1 retry attempt.
+- **MEDIUM** (3-5 issues): Run all 7 checks. Run pressure test. Max 2 retry attempts.
+- **DEEP** (5+ issues, cross-module): Run all 7 checks. Run pressure test. Max 2 retry attempts + confidence gate re-entry.
+
 ## Flow
 
 ```dot
