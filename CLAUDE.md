@@ -55,8 +55,10 @@ Legacy (archived, do not treat as active runtime):
 
 ## Workflow authority
 
-- `pge-setup`, `pge-plan`, and `pge-exec` are the active workflow surfaces.
+- `pge-setup`, `pge-research`, `pge-plan`, `pge-exec`, and `pge-handoff` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions.
+- `pge-research` owns evidence gathering and ambiguity resolution.
+- `pge-handoff` owns state persistence and knowledge extraction.
 - Planning outputs and run artifacts are the preferred handoff seams.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.

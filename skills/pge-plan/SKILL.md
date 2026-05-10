@@ -255,7 +255,7 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 
 ## Guardrails
 
-Do not: write business code, execute the plan, invoke pge-exec, create `.pge/runs/`, ask non-blocking questions, ask multiple questions, publish GitHub Issues, use forbidden states.
+Do not: write business code, execute the plan, invoke pge-exec, create run artifacts (`.pge/runs/` or `.pge/tasks-*/runs/`), ask non-blocking questions, ask multiple questions, publish GitHub Issues, use forbidden states.
 
 ## Final Response
 

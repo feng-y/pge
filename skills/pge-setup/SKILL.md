@@ -287,6 +287,7 @@ Required layout:
 .pge/tasks-<slug>/plan.md
 .pge/tasks-<slug>/runs/<run_id>/*
 .pge/plans/<plan_id>.md              (legacy — when no task directory exists)
+.pge/runs/<run_id>/*                 (legacy — when no task directory exists)
 ```
 
 ### `.pge/config/verification.md`
