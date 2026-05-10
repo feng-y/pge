@@ -16,11 +16,11 @@ All artifacts for one task live under `.pge/tasks-<slug>/`.
 
 | Skill | Version | Lines (entrypoint) | Status |
 |-------|---------|-------------------|--------|
-| pge-setup | 0.1.0 | ~100 | Stable, minimal |
-| pge-research | 0.1.0 | ~200 | Stable, tuned |
-| pge-plan | 0.5.0 | 265 | Stable, 13 eval rounds |
-| pge-exec | 1.0.0 | 235 | Redesigned, 6 eval rounds |
-| pge-execute (legacy) | 0.4.0 | 255 | Preserved for raw Anthropic PGE mode |
+| pge-setup | 0.1.0 | ~110 | Stable, value proposition clarified |
+| pge-research | 0.1.0 | ~200 | Stable, cross-task learnings search added |
+| pge-plan | 0.5.0 | 267 | Stable, 13 eval rounds, security flag added |
+| pge-exec | 1.1.0 | 250 | Runtime-proven (smoke test PASS), 10/15 issues done |
+| pge-execute (legacy) | 0.4.0 | 255 | DEPRECATED — use pge-exec for pipeline mode |
 
 ## Design Sources
 
@@ -96,8 +96,8 @@ Each run makes the next run smarter. This is CE's `/ce-compound` pattern applied
 
 ## Next Tasks
 
-1. **Smoke test pge-exec** — run `/pge-exec test` and verify G+E team actually works
-2. **Real-repo validation** — run full pipeline on a real task (research → plan → exec)
-3. **Evaluator calibration** — collect 5+ real evaluation results, tune thresholds
-4. **Legacy migration** — decide fate of pge-execute vs pge-exec
-5. **Memory sync** — update project memory with pipeline architecture decisions
+1. **Issue 6** (HITL) — Multi-round redispatch: needs design decision on trigger conditions
+2. **Issue 9** (HITL) — Execution cost gate: needs decision on when to skip Evaluator
+3. **Real-repo validation** — run full pipeline on a real task (research → plan → exec)
+4. **Evaluator calibration** — collect 5+ real evaluation results, tune thresholds
+5. Issues 13-15 (LOW) — model escalation, parallel execution, confidence decay pruning
