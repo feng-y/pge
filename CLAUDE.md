@@ -20,21 +20,17 @@ Before non-trivial work, read in this order:
 6. `skills/pge-setup/SKILL.md`
 7. `skills/pge-plan/SKILL.md`
 8. `skills/pge-exec/SKILL.md`
-
-When working on migration/legacy `pge-execute` material, also read:
-
-9. `skills/pge-execute/SKILL.md`
-10. `skills/pge-execute/ORCHESTRATION.md`
-11. `agents/pge-planner.md`
-12. `agents/pge-generator.md`
-13. `agents/pge-evaluator.md`
+9. `skills/pge-research/SKILL.md`
+10. `skills/pge-handoff/SKILL.md`
 
 ## Truth hierarchy
 
-Migration truth (authoritative during the current split, overrides older runtime prose):
+Active skill surfaces (authoritative):
 - `skills/pge-setup/SKILL.md`
+- `skills/pge-research/SKILL.md`
 - `skills/pge-plan/SKILL.md`
 - `skills/pge-exec/SKILL.md`
+- `skills/pge-handoff/SKILL.md`
 - `docs/exec-plans/pge-skills-setup-plan-execute.md`
 - `docs/exec-plans/pge-skills-contract-first.md`
 - `docs/exec-plans/CURRENT_MAINLINE.md`
@@ -43,17 +39,13 @@ Migration truth (authoritative during the current split, overrides older runtime
 Project map:
 - `README.md`
 
-Legacy runtime/reference material (read when touching migration seams, must not silently override the split direction):
-- `skills/pge-execute/SKILL.md`
-- `skills/pge-execute/ORCHESTRATION.md`
-- `skills/pge-execute/contracts/*.md`
-- `agents/pge-planner.md`
-- `agents/pge-generator.md`
-- `agents/pge-evaluator.md`
-
 Research/reference (may inform design, must not override active skill truth):
 - `docs/design/research/ref-*.md`
 - `docs/design/`
+
+Legacy (archived, do not treat as active runtime):
+- `skills/pge-execute/` — superseded by `pge-exec`
+- `agents/pge-*.md` — role-spec material, not active orchestration
 
 ## Work discipline
 
@@ -128,6 +120,4 @@ Structure round updates as:
 ## Key gotchas
 
 - Plugin source and marketplace source are the same repo. Installed layout differs from source layout.
-- Marketplace metadata and local install behavior are still being aligned with the new `pge-setup` / `pge-plan` / `pge-exec` split.
-- Until that alignment lands, installed plugin contents may still expose legacy `agents/pge-*.md` alongside the new skills.
-- Treat legacy `skills/pge-execute/` and `agents/pge-*.md` as migration/reference material unless the current mainline explicitly says otherwise.
+- `skills/pge-execute/` and `agents/pge-*.md` are archived legacy. Do not reference them as active surfaces.
