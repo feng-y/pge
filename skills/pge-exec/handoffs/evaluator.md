@@ -81,16 +81,21 @@ Deviations: <from generator_completion>
 
 ## Verdict
 
-Send to main:
+Send to main (structured format — must be machine-parseable):
 
 ```text
 type: evaluator_verdict
 issue_id: <N>
 verdict: PASS | RETRY | BLOCK
+confidence: <50-100>
 reason: <one sentence>
-required_fixes: <specific, actionable fixes if RETRY — what exactly must change>
-evidence_checked: <what you verified independently>
-scope_check: clean | drift_detected
+required_fixes: <specific fix if RETRY, "none" if PASS>
+evidence_checked:
+  - <what was independently verified>
+  - <command run and result>
+scope_check: clean | drift_detected | drift_justified
+adversarial_findings: <count or "not_applicable">
+quality_bar: passed | <which check failed>
 ```
 
 ## RETRY Feedback Quality

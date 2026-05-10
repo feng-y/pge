@@ -104,6 +104,82 @@ When issue has `Security: yes`:
   - Input validation on user-facing parameters
   - No permission downgrade without explicit justification in deviations
 - **Stricter threshold**: any security check failure → BLOCK (not RETRY). Security issues don't get repair attempts — they need plan-level rethinking.
+- **Adversarial pass** (mandatory for Security: yes): after spec compliance, actively construct failure scenarios (see Adversarial Mode below).
+
+## Adversarial Mode (Security + DEEP issues)
+
+Triggered for: `Security: yes` issues OR DEEP issues (>3 files, cross-module).
+
+Instead of only checking "does it meet criteria?", actively construct scenarios that break the implementation. Think like a chaos engineer, not a checklist auditor.
+
+**Techniques (from CE adversarial-reviewer):**
+
+1. **Assumption violation** — identify assumptions the code makes and construct inputs that violate them:
+   - Data shape: what if the API returns null? What if the list is empty?
+   - Timing: what if the operation times out? What if the resource doesn't exist yet?
+   - Value range: what if the ID is negative? What if the string is 10MB?
+
+2. **Composition failures** — trace interactions across boundaries:
+   - Contract mismatch: caller passes X, callee expects Y
+   - Shared state: two paths read/write same state without coordination
+   - Error contract divergence: throws type X, catches type Y
+
+3. **Cascade construction** (DEEP only) — build multi-step failure chains:
+   - "If A fails → B retries → creates more load on A → A fails more"
+   - "Partial write → reader sees incomplete data → makes bad decision"
+
+**Output:** For each adversarial finding, report:
+- Scenario: the constructed failure (trigger → path → outcome)
+- Confidence: 100 (mechanical from code) / 75 (traceable path) / 50 (depends on unconfirmed conditions)
+- Suppress findings below confidence 50 (speculative)
+
+**Adversarial findings → verdict:**
+- Confidence 75-100 finding with security impact → BLOCK
+- Confidence 75-100 finding without security impact → RETRY
+- Confidence 50 findings → record as risk, do not change verdict
+
+## What Evaluator Does NOT Check
+
+Explicit exclusions (these belong to other pipeline stages or future reviewers):
+
+- **Style/naming** — not Evaluator's job. If code works and meets criteria, naming is irrelevant.
+- **Architecture decisions** — plan already made these. Evaluator checks execution, not design.
+- **Performance optimization** — unless Acceptance Criteria explicitly mentions performance.
+- **Test coverage completeness** — Evaluator checks Test Expectation is met, not that coverage is 100%.
+- **Documentation quality** — unless the issue Action explicitly includes docs.
+- **Alternative implementations** — "could be done better with X" is not a RETRY reason.
+
+## Structured Verdict Output
+
+Evaluator verdict must be parseable. Use this exact format in the `evaluator_verdict` message:
+
+```
+type: evaluator_verdict
+issue_id: <N>
+verdict: PASS | RETRY | BLOCK
+confidence: <50-100>
+reason: <one sentence>
+required_fixes: <specific fix if RETRY, "none" if PASS>
+evidence_checked:
+  - <what was independently verified>
+  - <command run and result>
+scope_check: clean | drift_detected | drift_justified
+adversarial_findings: <count or "not_applicable">
+quality_bar: passed | <which check failed>
+```
+
+This structured format enables orchestrator to machine-parse verdicts without interpreting prose.
+
+## Confidence Anchors (from CE calibration model)
+
+| Score | Meaning | Evidence Required |
+|-------|---------|-------------------|
+| 100 | Mechanically certain | Verifiable from code alone, zero interpretation needed |
+| 75 | Traceable path | Can construct full execution path from input to outcome |
+| 50 | Conditional | Depends on conditions visible but not fully confirmable |
+| Below 50 | Suppress | Do not report — speculative |
+
+Apply to both acceptance criteria checks and adversarial findings. A verdict of PASS requires all checked criteria at confidence ≥75.
 
 ### Example 1: RETRY — evidence exists but is incomplete
 

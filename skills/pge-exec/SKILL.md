@@ -170,6 +170,21 @@ Legacy `HITL` (no subtype) → treat as `HITL:decision`.
 - Deliverable doesn't exist → BLOCK
 - Scope drift (files outside Target Areas) → BLOCK
 - Hard threshold: if Generator self-reports BLOCKED, Evaluator must not override to PASS
+- Adversarial mode: for Security + DEEP issues, actively construct failure scenarios
+- Structured verdict output: machine-parseable format with confidence score
+- Confidence anchors: 100 (mechanical) / 75 (traceable) / 50 (conditional) / below 50 (suppress)
+
+### Reviewer Agent (optional, DEEP tasks)
+
+For DEEP tasks (>3 files, cross-module), orchestrator MAY spawn a separate `reviewer` agent after Evaluator PASS to do a final code-quality review over the entire implementation. This is the CE/Superpowers "final reviewer" pattern.
+
+When to spawn reviewer:
+- All issues PASS + plan has 3+ issues + any issue touches shared interfaces
+- Reviewer is read-only — cannot change verdict, only surface advisory findings
+- Reviewer findings go to learnings.md (compound), not back to repair loop
+- Reviewer does NOT block SUCCESS route — it's advisory for future improvement
+
+This is optional and not part of the core G+E loop. It's a quality signal, not a gate.
 
 ---
 
