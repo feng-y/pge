@@ -295,7 +295,7 @@ Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
 - issues_total: N
 - stop_condition: passed | failed | not_checked
 - learnings_recorded: yes | no
-- artifacts: .pge/runs/<run_id>/
+- artifacts: .pge/tasks-<slug>/runs/<run_id>/ | .pge/runs/<run_id>/
 - next: done | pge-plan (if blocked) | user decision (if HITL)
 ```
 

@@ -281,8 +281,9 @@ Required layout:
 ```text
 .pge/config/*
 .pge/tasks-<slug>/research.md
-.pge/plans/<plan_id>.md
-.pge/runs/<run_id>/*
+.pge/tasks-<slug>/plan.md
+.pge/tasks-<slug>/runs/<run_id>/*
+.pge/plans/<plan_id>.md              (legacy — when no task directory exists)
 ```
 
 ### `.pge/config/verification.md`
