@@ -89,6 +89,8 @@ Validate:
 - ≥1 issue with `State: READY_FOR_EXECUTE`
 - Stop Condition present
 
+**Rollback point:** Before execution starts, create a git tag `pge-exec-pre-<run_id>`. If exec routes BLOCKED or PARTIAL after modifying files, the user can rollback with `git reset --hard pge-exec-pre-<run_id>`. Record the tag in state.json and manifest.
+
 If invalid: route BLOCKED, report what's missing.
 
 Extract issues from `## Slices`. Filter READY_FOR_EXECUTE. Order by ID.

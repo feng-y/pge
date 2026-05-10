@@ -28,6 +28,18 @@ Setup is warmup, not a core phase. Write enough config for downstream skills to 
 
 Setup is recommended for complex or repo-wide work, but it is not a ceremony. `pge-research` and `pge-plan` can degrade gracefully without it. Do not block the user from starting work just because setup hasn't run.
 
+## When Setup Is Worth Running
+
+| Situation | Without Setup | With Setup | Verdict |
+|-----------|--------------|-----------|---------|
+| First task in a new repo | Research guesses conventions | Research knows conventions from config | Run setup |
+| Simple single-file fix | Degraded mode works fine | Overhead not justified | Skip |
+| Multi-module architectural work | Plan may contradict repo patterns | Plan uses config as constitution | Run setup |
+| After 5+ pge-exec runs | Compound learnings already populated config | Setup would duplicate what compound learned | Skip |
+| Team onboarding (new developer) | Each person's first run re-discovers conventions | Config captures once, shared by all | Run setup |
+
+**Self-evolution replaces setup over time:** As pge-exec's compound phase accumulates learnings into `.pge/config/repo-profile.md`, the config grows organically. After enough runs, manual setup becomes unnecessary — the pipeline has already learned the repo's conventions through execution.
+
 ## Core Influence
 
 This skill adapts the setup pattern from Matt Pocock's setup skill:

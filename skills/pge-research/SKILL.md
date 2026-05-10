@@ -47,7 +47,7 @@ Research is not planning with softer nouns. Do not start decomposing implementat
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Load accumulated knowledge** — read `.pge/config/repo-profile.md` if exists (contains learnings from prior runs: conventions, constraints, patterns). Also check for prior task learnings in `.pge/tasks-*/runs/*/learnings.md` relevant to this intent.
+1. **Load accumulated knowledge** — read `.pge/config/repo-profile.md` if exists (contains learnings from prior runs: conventions, constraints, patterns). Also search ALL `.pge/tasks-*/runs/*/learnings.md` for patterns relevant to current intent using keyword grep. Prioritize recent learnings (check dates in `[from: ...]` tags). Learnings older than 30 days: verify against current code before relying on them.
 2. **Explore project context** — check files, docs, and recent commits related to the intent
 3. **Check scope first** — narrow or decompose over-scoped work before researching details
 4. **Scan for ambiguity** — across scope, affected areas, constraints, existing patterns, terminology, and acceptance

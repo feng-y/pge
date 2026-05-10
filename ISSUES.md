@@ -42,13 +42,14 @@ Ordered by priority. Each issue is independently grabbable.
 
 ## High Priority (improves stability)
 
-### Issue 5: Add run-level rollback mechanism
+### Issue 5: Add run-level rollback mechanism ✅ DONE
 
 - Type: AFK
 - Blocked by: Issue 1
 - Scope: Before exec starts, create a git tag or stash point. If exec routes BLOCKED after partial changes, provide a `rollback` command that reverts to pre-exec state.
 - Acceptance: After a BLOCKED exec, user can run one command to undo all changes.
 - Why: Currently if exec fails mid-way, repo is in a half-modified state with no easy undo.
+- Resolution: Added git tag `pge-exec-pre-<run_id>` before execution. Recorded in state.json and manifest.
 
 ### Issue 6: Implement multi-round redispatch (exec → plan → exec)
 
@@ -58,21 +59,23 @@ Ordered by priority. Each issue is independently grabbable.
 - Acceptance: A task that fails due to plan error can self-correct without human intervention.
 - Why: Currently BLOCKED = stop. Human must manually re-plan. Anthropic PGE V2 handles this automatically.
 
-### Issue 7: Add cross-task learnings search to pge-research
+### Issue 7: Add cross-task learnings search to pge-research ✅ DONE
 
 - Type: AFK
 - Blocked by: none
 - Scope: In step 1 (Load accumulated knowledge), search ALL `.pge/tasks-*/runs/*/learnings.md` for patterns relevant to current intent, not just config. Use grep/glob to find matching keywords.
 - Acceptance: Research on "add rate limiter" finds learnings from a prior "add auth middleware" task that mentions middleware patterns.
 - Why: Currently compound only feeds back through config. Direct learnings search enables richer cross-task knowledge transfer (gstack cross-project learnings pattern).
+- Resolution: Updated step 1 to grep all learnings.md files with keyword search + 30-day confidence decay check.
 
-### Issue 8: Clarify pge-setup value proposition
+### Issue 8: Clarify pge-setup value proposition ✅ DONE
 
 - Type: AFK
 - Blocked by: none
 - Scope: Update pge-setup SKILL.md to explicitly state: (1) what config enables that degraded mode doesn't, (2) when to recommend setup vs skip it, (3) how compound learnings eventually replace manual setup.
 - Acceptance: A user reading pge-setup knows exactly when it's worth running vs skipping.
 - Why: Currently all downstream skills say "config optional" which makes setup feel pointless.
+- Resolution: Added "When Setup Is Worth Running" table with 5 scenarios + self-evolution explanation.
 
 ## Medium Priority (quality improvements)
 
