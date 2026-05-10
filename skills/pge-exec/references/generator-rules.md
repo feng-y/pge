@@ -23,6 +23,18 @@ If Generator performs 5+ consecutive Read/Grep/Glob operations without an Edit/W
 - Either write code OR report BLOCKED with what's preventing progress
 - Open-ended investigation without action is Generator drift
 
+## Context Quarantine
+
+Before broad exploration, ask: "Will I need this raw tool output again, or just the conclusion?"
+
+Consider a bounded helper only when the task needs broad reads/greps, multiple discarded hypotheses, or cross-module lookup and the implementation only needs the answer. Prefer direct exploration for narrow local work. The helper report should contain:
+- conclusion
+- evidence paths
+- confidence
+- dead ends not to repeat
+
+Do not paste bulk helper output into `generator_completion`. Keep only the conclusion needed to implement or explain a blocker.
+
 ## Deviation Classification
 
 When encountering issues during execution:
@@ -51,6 +63,18 @@ On the final repair attempt (attempt 3 of 3), do NOT incrementally patch the sam
 - If the current approach has accumulated 2 failed patches, the approach itself may be wrong.
 
 This is the "scrap this and implement the elegant solution" pattern. The first two attempts earn you understanding; the third attempt should use that understanding to find the simpler path.
+
+## Wrong-Approach Rewind
+
+If an attempt is wrong in direction, not just incomplete:
+- Stop incremental patching.
+- Preserve the learned constraint in evidence.
+- Return to the issue Action and Acceptance Criteria as the source of truth.
+- Start a fresh implementation path that explicitly avoids the failed approach.
+
+This consumes the next normal repair attempt. It never resets or expands the per-issue max of 3 attempts.
+
+Do not let failed attempts and corrections become the active specification.
 
 ## Destructive Git Prohibition
 

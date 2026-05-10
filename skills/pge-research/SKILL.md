@@ -39,6 +39,10 @@ Asking the user is the most expensive operation in this system. Every question i
 
 You are not writing documentation. Explore only what is relevant to the intent. Stop when your findings stabilize — when reading one more file would not change your recommendation. A focused 10-file exploration that produces clear findings beats a 50-file survey that produces vague ones.
 
+## Anti-Pattern: "Keep Every Dead End In Main Context"
+
+Exploration has context cost. Before loading broad evidence, ask: "Will downstream planning need this raw output, or only the conclusion?" If only the conclusion matters and the search is broad enough that delegation will reduce main-context noise, use a bounded Agent to quarantine the search. The Agent may read many files and discard dead ends; the research brief should receive only the conclusion, source paths, confidence, and caveats.
+
 ## Anti-Pattern: "Let Me Quietly Turn This Into A Plan"
 
 Research is not planning with softer nouns. Do not start decomposing implementation work into slices, drafting numbered issues, or mentally committing to an execution order. Your job is to leave the next stage with sharper understanding, not to smuggle planning decisions into the brief.
@@ -75,6 +79,8 @@ If the user explicitly signals uncertainty about the goal or scope — for examp
 For appropriately-scoped work, keep exploring until you can explain what the user's words map to in this codebase, what areas are likely affected, and what constraints are already visible.
 
 If the task spans multiple independent modules, use `Agent` to explore them in parallel. For single-module work, explore directly.
+
+**Context quarantine rule:** Consider an Agent only when exploration is broad, cross-cutting, or likely to produce many dead ends whose raw output will not be needed again. For coherent single-module work, explore directly even if it takes a few reads. Agent reports must be compact: conclusion, evidence paths, confidence, and dead ends that should not be retried. Do not paste bulk tool output into the research brief.
 
 **Resolving ambiguity from the repo:**
 

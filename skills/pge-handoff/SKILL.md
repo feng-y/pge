@@ -76,6 +76,7 @@ Capture current working state for session continuity.
 4. **Assumptions agreed with user**: context that only exists in chat
 5. **Current blockers**: what's preventing progress
 6. **Next steps**: what the next session should do
+7. **Compact restart hint**: what to keep/drop if the conversation is compacted or resumed
 
 ### Where to write
 
@@ -111,11 +112,17 @@ timestamp: <ISO-8601>
 
 ## Next
 <what to do, which skill to invoke>
+
+## Compact Restart Hint
+Keep: <task dir, current issue, plan/stop condition, blockers, user decisions not in artifacts>
+Drop: <raw greps, superseded failed attempts, dead-end hypotheses, unrelated exploration>
 ```
 
 ### Core rule
 
 **Reference, never duplicate.** If it's on disk, point to it. Only write what exists ONLY in conversation.
+
+When saving because context quality is degrading, finish the current small step first if practical, then checkpoint. Do not start a new PGE issue in a context that already shows drift, repeated rereads, forgotten constraints, or long correction chains.
 
 ---
 

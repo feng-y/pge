@@ -151,6 +151,7 @@ Only explore gaps not covered by upstream. Use repo/docs/code before asking user
 
 - **Multi-agent (DEEP):** Spawn parallel Agents per module gap. Synthesize yourself.
 - **Flow analysis (MEDIUM/DEEP, 3+ modules):** Trace data flow end-to-end. Flag interruptions.
+- **Context quarantine:** When a gap requires broad or cross-module search but planning only needs the answer, consider delegating the search to an Agent. Use direct exploration for narrow gaps where delegation overhead would exceed the context savings. Consume only the Agent's compact conclusion, evidence paths, confidence, and discarded dead ends.
 
 ### Propose Approaches
 
@@ -200,7 +201,7 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 Produce: intent, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
 
-**Context budget:** Plan + issues must fit ~50% executor context. >5 detailed issues or 15+ files → split into phased delivery.
+**Context budget:** Plan + issues should fit comfortably inside the executor's useful context, with ~50% as an operational ceiling for normal work. >5 detailed issues or 15+ files → split into phased delivery. Prefer fewer vertical slices with complete acceptance criteria over one large plan that forces `pge-exec` to carry stale research, dead ends, and irrelevant raw output.
 
 ---
 
@@ -251,7 +252,7 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 
 ## Handoff To Execute
 
-`pge-exec` reads full plan + `.pge/config/*`. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, assumptions to preserve, risks not to ignore.
+`pge-exec` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
 
 ## Guardrails
 

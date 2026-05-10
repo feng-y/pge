@@ -130,19 +130,43 @@ After each issue verdict (PASS or BLOCKED), write/update `runs/<run_id>/state.js
 
 This is written after EVERY issue verdict — not batched at the end. If the session dies, the next invocation reads this file and resumes.
 
+### Session Hygiene
+
+Context budget defaults are operational guidance, not model facts. Use them to protect judgment on intelligence-sensitive work:
+- **Normal:** keep the active session below roughly 30-40% context when possible.
+- **Warning:** if the session is around 50%, finish the current issue, persist state, and avoid starting a new issue in the same context.
+- **Stop:** if the session is around 60% or shows degradation, write state/handoff, include a compact restart hint, and resume from artifacts in a fresh session.
+
+Treat these symptoms as degradation even if exact token use is unknown: repeated rereads of already-summarized files, forgotten Stop Condition, P1/P2 work leaking into the current issue, contradictory facts, no-change repair loops, or evaluator misses of explicit Acceptance Criteria.
+
+When checkpointing, preserve only durable facts: current issue, plan path, state.json path, changed files, unresolved blockers, user decisions not yet in artifacts, and next command. Drop raw greps, dead-end hypotheses, and failed attempts already superseded by the latest evidence.
+
 ### Per-Issue Protocol
 
 For each issue in order:
 
 1. **Dependency check**: if depends on BLOCKED issue → skip, mark BLOCKED.
-2. **Dispatch Generator**: issue context (Action, Deliverable, Target Areas, Test Expectation, Required Evidence, Repo Context). Wait for `generator_completion`.
-3. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
-4. **Dispatch Evaluator**: issue criteria (Acceptance Criteria, Required Evidence, Verification Hint, Verification Type) + Generator evidence. Wait for `evaluator_verdict`.
-5. **Verdict**:
+2. **Build execution pack**: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, relevant assumptions, dependencies, and directly needed repo context. Do not send whole research logs or unrelated prior issue evidence.
+3. **Dispatch Generator**: send the execution pack. Wait for `generator_completion`.
+4. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
+5. **Dispatch Evaluator**: issue criteria (Acceptance Criteria, Required Evidence, Verification Hint, Verification Type) + Generator evidence. Wait for `evaluator_verdict`.
+6. **Verdict**:
    - PASS → mark done, next issue
    - RETRY → send `required_fixes` to Generator (max 3 per issue), re-evaluate
    - BLOCK → mark BLOCKED, record reason
-6. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
+7. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
+
+### Rewind-Style Retry
+
+If a Generator attempt used the wrong approach, do not keep correcting through a long polluted thread. Record the learned constraint, return to the clean issue execution pack, and redispatch a fresh attempt with:
+- what the failed attempt proved
+- what path must not be repeated
+- the unchanged Action and Acceptance Criteria
+- the smallest allowed repair direction
+
+This consumes the next normal retry attempt. It never resets or expands the per-issue max of 3 attempts.
+
+Failed raw attempts belong in run evidence. Only confirmed root cause, final repair insight, or a dead end worth avoiding belongs in `learnings.md`.
 
 ### HITL Issues
 
@@ -156,8 +180,10 @@ Legacy `HITL` (no subtype) → treat as `HITL:decision`.
 ### Generator Rules (summary — full in `references/generator-rules.md`)
 
 - Analysis paralysis guard: 5+ reads without edit → act or BLOCKED
+- Context quarantine: consider helpers only for broad read-only exploration when they reduce main-context noise
 - Deviation classification: auto-fix-local / auto-fix-critical / stop-for-architectural
 - Never retry with no changes
+- Wrong approach → fresh execution pack with learned constraint, not incremental correction drift
 - Destructive git prohibition
 - Package install safety (slopsquat protection)
 - Scope boundary: only fix what the issue Action specifies
