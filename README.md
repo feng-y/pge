@@ -58,17 +58,19 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 ## Install
 
-**Marketplace** (recommended):
+### Marketplace
 
-```
-/install feng-y/pge
-```
-
-Or register and install manually:
+Register the marketplace and install:
 
 ```
 /plugin marketplace add feng-y/pge
 /plugin install pge@pge
+```
+
+For project-scoped registration through the CLI:
+
+```bash
+claude plugin marketplace add --scope project feng-y/pge
 ```
 
 Update to latest:
@@ -76,17 +78,48 @@ Update to latest:
 ```
 /plugin marketplace update pge
 /plugin update pge
+/reload-plugins
 ```
 
-**Local development:**
+### Local Development
+
+For repo-local validation, use the manifest-driven install helper:
 
 ```bash
 ./bin/pge-local-install.sh
 ```
 
-Installs skills to `~/.claude/skills/`. Use `--root /path` to install elsewhere, `--uninstall` to remove.
+The helper reads [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) and installs only the manifest-selected skill directories:
 
-After installing in a running session:
+- `pge-setup`
+- `pge-research`
+- `pge-plan`
+- `pge-exec`
+- `pge-handoff`
+
+Default targets:
+
+```
+~/.claude/skills/
+~/.claude/agents/
+```
+
+Install to a different base directory:
+
+```bash
+./bin/pge-local-install.sh --root /path/to/base
+```
+
+Uninstall locally installed components:
+
+```bash
+./bin/pge-local-install.sh --uninstall
+./bin/pge-local-install.sh --root /path/to/base --uninstall
+```
+
+The installer writes a local dev marker into installed skill frontmatter. Uninstall removes only components carrying that marker.
+
+After local install in a running session:
 
 ```
 /reload-plugins
