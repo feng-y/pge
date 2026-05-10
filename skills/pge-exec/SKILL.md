@@ -1,501 +1,235 @@
 ---
 name: pge-exec
-description: Main-led, plan-driven execution workflow for numbered PGE issues from `.pge/plans/<plan_id>.md`, with bounded worker dispatch, local repair, lightweight gates, and next-route output under `.pge/runs/<run_id>/`.
-version: 0.1.0
-argument-hint: "<plan path or plan_id> [optional issue id]"
+description: >
+  Execute pge-plan issues using Generator + Evaluator agents.
+  Consumes .pge/plans/<plan_id>.md, dispatches per-issue execution,
+  validates with independent Evaluator, bounded repair loop, accumulates learnings.
+version: 1.0.0
+argument-hint: "<plan_id> | test"
 allowed-tools:
+  - TeamCreate
+  - TeamDelete
+  - Agent
+  - SendMessage
   - Read
   - Write
   - Edit
   - Bash
   - Glob
   - Grep
-  - Agent
 ---
 
 # pge-exec
 
-## Purpose
-
-`pge-exec` is a main-led, plan-driven execution workflow for numbered issues.
-
-It reads repo-local PGE configuration, reads one plan artifact, advances from the smallest unfinished numbered issue, optionally executes a narrow adjacent issue window with bounded workers, gathers evidence, applies lightweight gates, and writes the next route.
-
-## Anti-Pattern: "Let Me Replan While Executing"
-
-Execution is not planning. If you discover the plan is wrong, route to `NEEDS_MAIN_DECISION` with evidence. Do not silently change direction, expand scope, or rewrite the approach mid-issue.
-
-## Anti-Pattern: "Let Me Fix Everything I See"
-
-Stay inside the assigned issue's scope and target areas. Nearby code may have problems, but fixing them is scope creep. Record observations in the self-review if they matter for future work.
-
-## Anti-Pattern: "Repair Forever"
-
-Two repair attempts is the default budget. If the fix isn't working after two tries, the problem is likely architectural, not a typo. Route to `RETRY_RECOMMENDED` and let a human or re-plan decide.
-
-TDD is only one possible execution mode when the plan and issue shape justify it.
-
-## When to use
-
-Use `pge-exec` when:
-
-- `.pge/config/*` exists
-- `.pge/plans/<plan_id>.md` exists
-- the plan contains numbered issues such as `Issue 1`, `Issue 2`, `Issue 3`
-- at least one issue is not complete
-- the user wants to advance implementation from the plan
-
-Do not use `pge-exec` to create setup config, create a plan, evaluate final acceptance, merge, tag, or ship.
-
-## Inputs
-
-Required inputs:
-
-- `.pge/config/route-policy.md`
-- `.pge/config/artifact-layout.md`
-- `.pge/config/verification.md`
-- `.pge/config/docs-policy.md`
-- `.pge/plans/<plan_id>.md`
-- current git status
-- current repo state
-
-Plan issue fields required by `pge-exec`:
-
-- numbered issue id, such as `Issue 1`
-- issue state
-- issue scope
-- target areas
-- acceptance criteria
-- verification hint
-- dependencies
-- risks / open questions
-- handoff to exec
-
-If required config or plan inputs are missing, stop before editing and route to `NEEDS_INFO` or `BLOCKED`.
-
-## Workflow
-
-### 1. Load Context
-
-Load:
-
-- `.pge/config/*`
-- `.pge/plans/<plan_id>.md`
-- `.pge/tasks-<slug>/research.md` if referenced by the plan's `research_brief_ref`
-- `git status --short`
-- current repo files relevant to the next issue
-
-Use docs-policy to decide what to read. Keep context proportional to the current execution window. The research brief is reference context only — do not re-derive the plan from it.
-
-### 2. Preflight
-
-Check:
-
-- required config exists
-- plan exists
-- plan has a numbered issue list
-- issue fields are present
-- current git status has no unsafe dirty changes
-- verification entrypoints are known or explicitly unavailable
-
-Dirty worktree rule:
-
-- If dirty changes are unrelated and safe to preserve, continue carefully.
-- If dirty changes overlap target areas or make ownership unclear, stop with `NEEDS_HUMAN` before editing.
-- Never revert user changes unless explicitly requested.
-
-### 3. Numbered Issue Progression
-
-Find the smallest unfinished issue.
-
-Rules:
-
-- start from the smallest unfinished issue
-- do not freely choose tasks
-- do not skip issue numbers
-- the current smallest unfinished issue must enter the execution window
-- inspect only subsequent adjacent issues for safe concurrency
-- default to serial execution
-- run adjacent issues concurrently only when they are obviously independent
-- if uncertain, execute serially
-
-Concurrency is decided by main / the `pge-exec` controller at runtime.
-
-Concurrency is not decided by:
-
-- `pge-plan`
-- a worker
-- a subagent
-
-### 4. Sprint Contract
-
-Write `.pge/runs/<run_id>/sprint-contract.md` before implementation.
-
-The sprint contract must include:
-
-- selected issue ids
-- why the execution window is serial or concurrent
-- each issue's scope
-- non-goals
-- target areas
-- acceptance criteria
-- verification
-- max repair attempts
-
-Default:
-
-```text
-MAX_REPAIR_ATTEMPTS = 2
-```
-
-### 5. Dispatch
-
-Serial path:
-
-- main may execute the current issue directly, or dispatch one bounded worker
-- only the smallest unfinished issue is assigned
-
-Concurrent path:
-
-- main dispatches multiple bounded workers only for adjacent independent issues
-- each worker receives exactly one assigned issue
-- each worker has a disjoint or safely compatible target area
-
-### 6. Worker Execution
-
-Each worker:
-
-- implements only the assigned issue
-- runs focused verification
-- repairs ordinary development failures within the assigned issue
-- writes evidence, changed files, self-review, and route recommendation
-
-Worker outputs are advisory to main. Workers do not decide final route.
-
-### 7. Main Integration
-
-Main collects worker outputs and checks:
-
-- changed files
-- issue scope
-- target area boundaries
-- cross-issue conflicts
-- plan direction drift
-- verification results
-
-Main runs integration verification if available and proportionate.
-
-### 8. Lightweight Gates
-
-Apply these gates:
-
-- Contract Gate: implemented work maps to assigned issue scope and acceptance criteria.
-- Scope Gate: changed files stay inside allowed target areas or are justified by the issue.
-- Verification Gate: focused and integration verification ran, or gaps are recorded.
-- Evidence Gate: changed files, evidence, and self-review are sufficient for human or future evaluator review.
-
-These gates do not output `PASS`.
-
-### 9. Repair / Decision Handling
-
-Ordinary development failures are repaired locally.
-
-If execution reveals a plan or architecture decision, do bounded research and route to `NEEDS_MAIN_DECISION`.
-
-### 10. Route
-
-Write `.pge/runs/<run_id>/next-route.md`.
-
-Allowed routes:
-
-- `DONE_NEEDS_REVIEW`
-- `RETRY_RECOMMENDED`
-- `NEEDS_INFO`
-- `BLOCKED`
-- `NEEDS_HUMAN`
-- `NEEDS_MAIN_DECISION`
-
-Forbidden routes:
-
-- `PASS`
-- `MERGED`
-- `SHIPPED`
-
-`DONE_NEEDS_REVIEW` means candidate completion with evidence and self-review, waiting for human review, a future evaluator, or a future SDK runner. It is not final approval.
-
-## Artifact Contract
-
-Every run writes:
-
-```text
-.pge/runs/<run_id>/
-```
-
-Required run artifacts:
-
-- `input.md`
-- `batch-plan.md`
-- `sprint-contract.md`
-- `execution-log.md`
-- `changed-files.md`
-- `evidence.md`
-- `self-review.md`
-- `conflict-check.md`
-- `evidence-summary.md`
-- `next-route.md`
-- `run-state.json`
-
-Decision artifacts, only when route is `NEEDS_MAIN_DECISION`:
-
-- `decision-research.md`
-- `decision-request.md`
-
-If workers run concurrently, create one directory per assigned issue:
-
-```text
-.pge/runs/<run_id>/workers/issue-001/
-.pge/runs/<run_id>/workers/issue-002/
-```
-
-Each worker directory contains:
-
-- `sprint-contract.md`
-- `execution-log.md`
-- `changed-files.md`
-- `evidence.md`
-- `self-review.md`
-- `route.md`
-
-`run-state.json` minimum fields:
-
-```json
-{
-  "run_id": "<run_id>",
-  "plan_id": "<plan_id>",
-  "selected_issues": [],
-  "execution_mode": "serial|concurrent",
-  "state": "INITIALIZED|PREFLIGHT|EXECUTING|INTEGRATING|ROUTED|BLOCKED",
-  "next_route": "DONE_NEEDS_REVIEW|RETRY_RECOMMENDED|NEEDS_INFO|BLOCKED|NEEDS_HUMAN|NEEDS_MAIN_DECISION",
-  "max_repair_attempts": 2
+Execute a plan produced by `pge-plan`. Orchestrates Generator and Evaluator agents per issue.
+
+This is an orchestration skill. It does not implement code itself.
+
+## Execution Flow
+
+```dot
+digraph pge_exec {
+  rankdir=TB;
+  node [shape=box, style=rounded];
+
+  load_plan [label="Load Plan"];
+  validate [label="Validate\n(READY_FOR_EXECUTE?)"];
+  create_team [label="Create Team\n(generator + evaluator)"];
+
+  subgraph cluster_loop {
+    label="Per-Issue Loop";
+    style=dashed;
+    dispatch_gen [label="Dispatch Generator\n(handoffs/generator.md)"];
+    gen_done [label="Generator?", shape=diamond];
+    dispatch_eval [label="Dispatch Evaluator\n(handoffs/evaluator.md)"];
+    verdict [label="Verdict?", shape=diamond];
+    repair [label="Repair\n(required_fixes)"];
+    pass [label="Issue PASS"];
+    blocked [label="Issue BLOCKED"];
+  }
+
+  plan_verify [label="Stop Condition Check"];
+  compound [label="Compound\n(accumulate learnings)"];
+  route [label="Route + Teardown", shape=doublecircle];
+
+  load_plan -> validate -> create_team -> dispatch_gen;
+  dispatch_gen -> gen_done;
+  gen_done -> dispatch_eval [label="READY"];
+  gen_done -> blocked [label="BLOCKED"];
+  dispatch_eval -> verdict;
+  verdict -> pass [label="PASS"];
+  verdict -> repair [label="RETRY (< 3)"];
+  verdict -> blocked [label="BLOCK / max"];
+  repair -> dispatch_eval;
+  pass -> dispatch_gen [label="next issue"];
+  pass -> plan_verify [label="all done"];
+  blocked -> dispatch_gen [label="non-blocking"];
+  blocked -> route [label="blocking"];
+  plan_verify -> compound -> route;
 }
 ```
 
-## Handoff Contract
+## Anti-Patterns
 
-`pge-exec` consumes:
+- **"Replan While Executing"** — Plan is frozen. If wrong, route back to pge-plan.
+- **"Fix Everything I See"** — Stay inside issue scope. Unrelated bugs → deferred items.
+- **"Repair Forever"** — Max 3 attempts per issue. Then BLOCKED.
+- **"Skip Evaluator"** — Every issue gets independent evaluation. No exceptions.
 
-- `.pge/config/route-policy.md`
-- `.pge/config/artifact-layout.md`
-- `.pge/config/verification.md`
-- `.pge/config/docs-policy.md`
-- `.pge/plans/<plan_id>.md`
+---
 
-`pge-exec` produces:
+## Phase 1: Load & Validate
 
-- `.pge/runs/<run_id>/next-route.md`
-- `.pge/runs/<run_id>/run-state.json`
-- `.pge/runs/<run_id>/evidence-summary.md`
-- all supporting run artifacts
+Read `.pge/plans/<plan_id>.md`. If argument is `test`, use inline smoke plan.
 
-Downstream consumers should read `next-route.md` and `evidence-summary.md` first.
+Validate:
+- `plan_route` = `READY_FOR_EXECUTE`
+- ≥1 issue with `State: READY_FOR_EXECUTE`
+- Stop Condition present
 
-No downstream consumer may treat `DONE_NEEDS_REVIEW` as final PASS authority.
+If invalid: route BLOCKED, report what's missing.
 
-## State / Route Contract
+Extract issues from `## Slices`. Filter READY_FOR_EXECUTE. Order by ID.
 
-Allowed run states:
+---
 
-- `INITIALIZED`
-- `PREFLIGHT`
-- `BATCH_SELECTED`
-- `EXECUTING`
-- `REPAIRING`
-- `INTEGRATING`
-- `DECISION_NEEDED`
-- `ROUTED`
-- `BLOCKED`
+## Phase 2: Execute (Per-Issue Loop)
 
-Allowed routes:
+### Create Team
 
-- `DONE_NEEDS_REVIEW`
-- `RETRY_RECOMMENDED`
-- `NEEDS_INFO`
-- `BLOCKED`
-- `NEEDS_HUMAN`
-- `NEEDS_MAIN_DECISION`
+Two teammates only:
+- `generator` — implements issues (read `handoffs/generator.md` for dispatch protocol)
+- `evaluator` — validates independently (read `handoffs/evaluator.md` for dispatch protocol)
 
-Forbidden routes and result claims:
+No Planner. The plan IS the frozen contract.
 
-- `PASS`
-- `MERGED`
-- `SHIPPED`
+### Per-Issue Protocol
 
-Route meanings:
+For each issue in order:
 
-- `DONE_NEEDS_REVIEW`: candidate completion with evidence and self-review; needs human / future evaluator / future SDK runner judgment.
-- `RETRY_RECOMMENDED`: ordinary repair budget exhausted, but another bounded attempt may be useful.
-- `NEEDS_INFO`: missing information prevents fair execution.
-- `BLOCKED`: execution cannot continue due to repo, dependency, verification, or plan blocker.
-- `NEEDS_HUMAN`: human action or ownership decision is required.
-- `NEEDS_MAIN_DECISION`: execution found a plan/design fork that main must decide before continuing.
+1. **Dependency check**: if depends on BLOCKED issue → skip, mark BLOCKED.
+2. **Dispatch Generator**: issue context (Action, Deliverable, Target Areas, Test Expectation, Required Evidence, Repo Context). Wait for `generator_completion`.
+3. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
+4. **Dispatch Evaluator**: issue criteria (Acceptance Criteria, Required Evidence, Verification Hint, Verification Type) + Generator evidence. Wait for `evaluator_verdict`.
+5. **Verdict**:
+   - PASS → mark done, next issue
+   - RETRY → send `required_fixes` to Generator (max 3 per issue), re-evaluate
+   - BLOCK → mark BLOCKED, record reason
+6. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
 
-## Worker Model
+### HITL Issues
 
-Workers are bounded implementation helpers for independent numbered issues.
+`Execution Type: HITL` → after Generator completes, pause and ask user the decision. Resume with answer as context.
 
-Workers are not:
+### Generator Rules (summary — full in `references/generator-rules.md`)
 
-- a Planner / Generator / Evaluator split inside one issue
-- schedulers
-- plan owners
-- final evaluators
-- PASS authorities
+- Analysis paralysis guard: 5+ reads without edit → act or BLOCKED
+- Deviation classification: auto-fix-local / auto-fix-critical / stop-for-architectural
+- Never retry with no changes
+- Destructive git prohibition
+- Package install safety (slopsquat protection)
+- Scope boundary: only fix what the issue Action specifies
 
-Worker input:
+### Evaluator Rules (summary — full in `references/evaluator-thresholds.md`)
 
-- assigned issue id
-- issue scope
-- target areas
-- acceptance criteria
-- verification hint
-- sprint contract
-- allowed boundaries
+- Required Evidence missing → RETRY
+- Verification Hint fails → RETRY
+- Any Acceptance Criterion unmet → RETRY with specific feedback
+- Deliverable doesn't exist → BLOCK
+- Scope drift (files outside Target Areas) → BLOCK
+- Hard threshold: if Generator self-reports BLOCKED, Evaluator must not override to PASS
 
-Worker output:
+---
 
-- changed files
-- implementation notes
-- verification result
-- evidence
-- self-review
-- route recommendation
+## Phase 3: Verify & Route
 
-Worker prohibitions:
+### Stop Condition
 
-- do not skip issue numbers
-- do not expand scope
-- do not modify scheduling strategy
-- do not change plan direction
-- do not output `PASS`
-- do not merge, tag, or ship
-- do not decide concurrency
-- do not modify another worker's assigned issue
+After all issues processed, check plan's Stop Condition:
+- Passes → SUCCESS
+- Fails but all issues passed → PARTIAL (integration gap)
+- Not all issues passed → PARTIAL or BLOCKED
 
-## Repair Policy
+### Compound (Accumulate Learnings)
 
-Ordinary development failures must be self-repaired by main or the assigned worker. Do not immediately hand them to a human.
+After execution completes (any route), record what was learned:
 
-Development failures include:
+- **Patterns discovered**: code patterns, conventions, or constraints found during execution that weren't in the plan
+- **Deviations**: where reality differed from plan assumptions
+- **Repair insights**: what caused failures and what fixed them
+- **Verification gaps**: what the plan's Verification Hint missed
 
-- test failed
-- compile failed
-- build failed
-- lint failed
-- type error
-- TDD red/green/refactor check failed
-- missing import
-- wrong function signature
-- broken assertion
-- format check failed
-- local integration error
-- artifact missing required fields
+Write to `.pge/runs/<run_id>/learnings.md`. These feed back into future pge-research and pge-plan runs as accumulated project knowledge.
 
-Repair loop:
+If `.pge/config/repo-profile.md` exists, append significant learnings (conventions, constraints) to it for future runs.
 
-```text
-failure
-  -> inspect error
-  -> classify as development failure vs plan gap
-  -> repair locally if within assigned issue
-  -> rerun verification
-  -> repeat within max attempts
+### Route
+
+- `SUCCESS`: all issues PASS + Stop Condition passes
+- `PARTIAL`: some progress, some blocked
+- `BLOCKED`: no issues could complete
+- `NEEDS_HUMAN`: HITL decision required
+
+### Teardown
+
+Request shutdown → delete team → write manifest.
+
+---
+
+## Smoke Test
+
+Argument `test` uses inline plan:
+```
+Issue 1: Write smoke file
+- Action: Create .pge/runs/<run_id>/deliverables/smoke.txt with content "pge smoke"
+- Deliverable: smoke.txt
+- Acceptance Criteria: file exists, content = "pge smoke"
+- Verification Type: AUTOMATED
+- Execution Type: AFK
+- Required Evidence: file content output
+- Stop Condition: smoke.txt exists with correct content
 ```
 
-Default:
+For test: minimal dispatch, no handoff file reads.
+
+---
+
+## Output
 
 ```text
-MAX_REPAIR_ATTEMPTS = 2
+.pge/runs/<run_id>/
+├── manifest.md          — run metadata + issue results
+├── evidence/            — per-issue evidence
+├── deliverables/        — actual deliverables
+└── learnings.md         — compound learnings
 ```
 
-After max attempts, route:
+## Final Response
 
-```text
-RETRY_RECOMMENDED
+```md
+## PGE Exec Result
+- status: SUCCESS | PARTIAL | BLOCKED | NEEDS_HUMAN
+- run_id: <run_id>
+- plan_id: <plan_id>
+- issues_passed: N
+- issues_blocked: N
+- issues_total: N
+- stop_condition: passed | failed | not_checked
+- learnings_recorded: yes | no
+- artifacts: .pge/runs/<run_id>/
+- next: done | pge-plan (if blocked) | user decision (if HITL)
 ```
-
-Do not repair indefinitely.
-
-## Decision Handling
-
-When execution reveals that the plan needs a direction change, do not silently change direction.
-
-Triggers:
-
-- original plan does not fit code reality
-- multiple reasonable implementation options appear
-- public contract needs to change
-- state machine needs to change
-- artifact layout needs to change
-- issue boundary needs to change
-- continuing would affect later issues
-
-Handling:
-
-1. run a bounded research pass
-2. output options
-3. write `.pge/runs/<run_id>/decision-research.md`
-4. write `.pge/runs/<run_id>/decision-request.md`
-5. set route to `NEEDS_MAIN_DECISION`
 
 ## Guardrails
 
 Do not:
-
-- auto merge, auto tag, or auto ship
-- output `PASS`, `MERGED`, or `SHIPPED`
-- freely choose issues out of order
-- skip the smallest unfinished issue
-- let workers decide concurrency or change the plan
-- treat `DONE_NEEDS_REVIEW` as final approval
-- overwrite unrelated dirty changes
-- revert user work without explicit permission
-
-## Stop Conditions
-
-Stop when one of these is true:
-
-- route is written to `next-route.md`
-- no numbered issue can be safely selected
-- preflight detects missing config or plan
-- dirty changes make safe execution impossible
-- verification entrypoint is required but unavailable
-- max repair attempts are exhausted
-- decision handling routes to `NEEDS_MAIN_DECISION`
-- human information or action is required
-
-## Next Suggested Action
-
-After route:
-
-- `DONE_NEEDS_REVIEW`: suggest human review or a future evaluator; do not claim final PASS.
-- `RETRY_RECOMMENDED`: suggest another bounded `pge-exec` attempt after reviewing evidence.
-- `NEEDS_INFO`: suggest updating the plan issue or providing missing information.
-- `BLOCKED`: suggest resolving the blocker before rerunning.
-- `NEEDS_HUMAN`: suggest the required human action.
-- `NEEDS_MAIN_DECISION`: suggest answering `decision-request.md`, then rerunning `pge-exec`.
-
-Final response should include:
-
-```md
-## PGE Exec Result
-- run_id: <run_id>
-- plan_id: <plan_id>
-- selected_issues: <ids>
-- execution_mode: <serial | concurrent>
-- next_route: <DONE_NEEDS_REVIEW | RETRY_RECOMMENDED | NEEDS_INFO | BLOCKED | NEEDS_HUMAN | NEEDS_MAIN_DECISION>
-- artifacts:
-  - <absolute paths to key run artifacts>
-- changed_files: <list or None>
-- repair_attempts: <number>
-- blockers: <None or short list>
-```
+- Modify the plan
+- Write business code in orchestrator
+- Skip Evaluator
+- Retry > 3 per issue
+- Retry with no code changes
+- Allow destructive git
+- Auto-retry failed package installs
+- Simulate Generator/Evaluator in main
+- Output PASS/MERGED/SHIPPED as route
+- Advance from idle_notification
