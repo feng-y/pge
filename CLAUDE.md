@@ -13,15 +13,11 @@ Do not treat strategy docs as permission to expand harness theory during normal 
 Before non-trivial work, read in this order:
 
 1. `README.md`
-2. `docs/exec-plans/CURRENT_MAINLINE.md`
-3. `docs/exec-plans/ISSUES_LEDGER.md`
-4. `docs/exec-plans/pge-skills-setup-plan-execute.md`
-5. `docs/exec-plans/pge-skills-contract-first.md`
-6. `skills/pge-setup/SKILL.md`
-7. `skills/pge-plan/SKILL.md`
-8. `skills/pge-exec/SKILL.md`
-9. `skills/pge-research/SKILL.md`
-10. `skills/pge-handoff/SKILL.md`
+2. `skills/pge-setup/SKILL.md`
+3. `skills/pge-research/SKILL.md`
+4. `skills/pge-plan/SKILL.md`
+5. `skills/pge-exec/SKILL.md`
+6. `skills/pge-handoff/SKILL.md`
 
 ## Truth hierarchy
 
@@ -31,10 +27,6 @@ Active skill surfaces (authoritative):
 - `skills/pge-plan/SKILL.md`
 - `skills/pge-exec/SKILL.md`
 - `skills/pge-handoff/SKILL.md`
-- `docs/exec-plans/pge-skills-setup-plan-execute.md`
-- `docs/exec-plans/pge-skills-contract-first.md`
-- `docs/exec-plans/CURRENT_MAINLINE.md`
-- `docs/exec-plans/ISSUES_LEDGER.md`
 
 Project map:
 - `README.md`
@@ -90,23 +82,6 @@ Only ask the user for true requirement gaps that block a fair contract.
 - no default grill-style questioning for every input
 - no broad rewrite without run evidence
 - no runtime prompt changes without current mainline or failure evidence
-
-## Control-plane artifacts
-
-Update these each round:
-- `docs/exec-plans/CURRENT_MAINLINE.md`
-- `docs/exec-plans/ISSUES_LEDGER.md`
-
-Use `docs/exec-plans/ROUND_TEMPLATE.md` when creating a new round record.
-Use `docs/proving/README.md` as the proving/development run entrypoint.
-
-## Response shape (proving runs)
-
-Structure round updates as:
-- `本轮目标`
-- `Progress`
-- `Blockers`
-- `Action`
 
 ## Validation commands
 

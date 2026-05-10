@@ -58,71 +58,17 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 ## Install
 
-### Marketplace
-
-Register the marketplace and install:
+Marketplace:
 
 ```
 /plugin marketplace add feng-y/pge
 /plugin install pge@pge
 ```
 
-For project-scoped registration through the CLI:
-
-```bash
-claude plugin marketplace add --scope project feng-y/pge
-```
-
-Update to latest:
-
-```
-/plugin marketplace update pge
-/plugin update pge
-/reload-plugins
-```
-
-### Local Development
-
-For repo-local validation, use the manifest-driven install helper:
+Local development:
 
 ```bash
 ./bin/pge-local-install.sh
-```
-
-The helper reads [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) and installs only the manifest-selected skill directories:
-
-- `pge-setup`
-- `pge-research`
-- `pge-plan`
-- `pge-exec`
-- `pge-handoff`
-
-Default targets:
-
-```
-~/.claude/skills/
-~/.claude/agents/
-```
-
-Install to a different base directory:
-
-```bash
-./bin/pge-local-install.sh --root /path/to/base
-```
-
-Uninstall locally installed components:
-
-```bash
-./bin/pge-local-install.sh --uninstall
-./bin/pge-local-install.sh --root /path/to/base --uninstall
-```
-
-The installer writes a local dev marker into installed skill frontmatter. Uninstall removes only components carrying that marker.
-
-After local install in a running session:
-
-```
-/reload-plugins
 ```
 
 ## Development
@@ -133,7 +79,3 @@ Validate contracts and check progress:
 ./bin/pge-validate-contracts.sh
 ./bin/pge-progress-report.sh
 ```
-
-Current work is tracked in:
-- [`docs/exec-plans/CURRENT_MAINLINE.md`](./docs/exec-plans/CURRENT_MAINLINE.md)
-- [`docs/exec-plans/ISSUES_LEDGER.md`](./docs/exec-plans/ISSUES_LEDGER.md)
