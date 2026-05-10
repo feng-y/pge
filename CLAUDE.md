@@ -35,8 +35,8 @@ Research/reference (may inform design, must not override active skill truth):
 - `docs/research/ref-*.md`
 
 Legacy (archived, do not treat as active runtime):
-- `skills/pge-execute/` — superseded by `pge-exec`
-- `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` — role-spec material, not active orchestration
+- `skills/pge-execute/` — removed (superseded by `pge-exec`)
+- `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` — removed (superseded by `pge-exec` handoffs + references)
 
 Review agents (active, spawned by pge-exec Final Review Gate):
 - `agents/pge-code-reviewer.md` — 5-axis code review
@@ -66,7 +66,7 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 - Planning outputs and run artifacts are the preferred handoff seams.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
-- Treat source `agents/pge-*.md` as role-spec / prompt material / future SDK-runner material unless a future mainline explicitly reactivates them.
+- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Final Review Gate.
 
 ## Missing detail policy
 
@@ -100,4 +100,4 @@ Only ask the user for true requirement gaps that block a fair contract.
 ## Key gotchas
 
 - Plugin source and marketplace source are the same repo. Installed layout differs from source layout.
-- `skills/pge-execute/` and `agents/pge-*.md` are archived legacy. Do not reference them as active surfaces.
+- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents. Other legacy agent/skill files have been removed.

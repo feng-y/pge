@@ -73,7 +73,7 @@ require_pattern CLAUDE.md 'skills/pge-research/SKILL.md' \
   "CLAUDE pge-research first read"
 require_pattern CLAUDE.md 'skills/pge-handoff/SKILL.md' \
   "CLAUDE pge-handoff first read"
-require_pattern CLAUDE.md 'skills/pge-execute/` — superseded by `pge-exec`' \
+require_pattern CLAUDE.md 'skills/pge-execute/` — removed' \
   "CLAUDE legacy pge-execute framing"
 require_pattern CLAUDE.md 'Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator' \
   "CLAUDE no legacy orchestrator invariant"
