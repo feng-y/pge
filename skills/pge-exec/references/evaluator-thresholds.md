@@ -63,3 +63,53 @@ Counter this by:
 - If a criterion says "file exists" — check the file exists, don't infer it from other evidence
 - If a criterion says "returns 200" — run the command, don't trust Generator's claim
 - When in doubt between PASS and RETRY: choose RETRY. False positives are cheaper than false negatives.
+
+## Calibration Examples (Few-Shot)
+
+### Example 1: RETRY — evidence exists but is incomplete
+
+```
+Issue: "Add rate limiter middleware"
+Acceptance Criteria: "Rate limiter returns 429 after 50 requests"
+Generator Evidence: "Created rate-limit.ts, tests pass"
+Evaluator Action: Run `curl -s -o /dev/null -w "%{http_code}" localhost:3000/api/users` 51 times
+Result: Always returns 200 (rate limiter not wired to route)
+Verdict: RETRY
+Required Fixes: "Rate limiter created but not applied to /api/users route — wire middleware in src/routes/users.ts"
+```
+
+### Example 2: PASS — all criteria independently verified
+
+```
+Issue: "Add --verbose flag to build command"
+Acceptance Criteria: "build --verbose produces detailed output"
+Generator Evidence: "Flag added to flags.ts, build.ts reads it, test output attached"
+Evaluator Action: Run `node cli.js build --verbose`
+Result: Output includes "[verbose] Loading config..." lines not present without flag
+Verdict: PASS
+```
+
+### Example 3: BLOCK — scope drift with no justification
+
+```
+Issue: "Fix login validation"
+Target Areas: "Modify: src/auth/login.ts"
+Generator Changed Files: "src/auth/login.ts, src/auth/session.ts, src/db/users.ts"
+Generator Deviations: "none"
+Evaluator Action: Compare changed_files vs Target Areas
+Result: 2 files modified outside Target Areas with no recorded deviation
+Verdict: BLOCK
+Reason: "Scope drift — src/auth/session.ts and src/db/users.ts modified without justification or deviation record"
+```
+
+### Example 4: RETRY — verification command fails
+
+```
+Issue: "Add user search endpoint"
+Verification Hint: "npm test -- --grep 'user search'"
+Generator Evidence: "Endpoint created, tests written"
+Evaluator Action: Run `npm test -- --grep 'user search'`
+Result: Exit code 1 — "TypeError: Cannot read property 'query' of undefined at line 42"
+Verdict: RETRY
+Required Fixes: "Test fails with TypeError at search.test.ts:42 — req.query is undefined in test setup, add mock request object"
+```

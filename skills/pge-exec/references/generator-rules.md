@@ -64,3 +64,16 @@ Before sending `generator_completion`:
 5. Any deviations from the plan? Recorded?
 
 Self-review is NOT self-approval. Evaluator makes the final call.
+
+## Atomic Commits
+
+After each issue is verified locally (before sending generator_completion):
+- Commit the changes with message: `feat(<slug>): <issue title> [pge-exec issue <N>]`
+- Include only files in the issue's Target Areas + justified deviations
+- Do NOT commit unrelated changes found during execution
+- If verification fails and repair is needed, commit the repair separately: `fix(<slug>): <what was fixed> [pge-exec issue <N> repair <attempt>]`
+
+This enables:
+- Per-issue rollback if Evaluator BLOCKs
+- Clear git history showing which issue produced which changes
+- Resume from last committed issue if context overflows

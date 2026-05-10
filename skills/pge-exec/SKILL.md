@@ -156,14 +156,34 @@ After all issues processed, check plan's Stop Condition:
 
 After execution completes (any route), record what was learned. This is mandatory — even trivial runs record "No significant learnings — execution matched plan expectations." Empty learnings.md is a protocol violation.
 
-Record:- **Patterns discovered**: code patterns, conventions, or constraints found during execution that weren't in the plan
-- **Deviations**: where reality differed from plan assumptions
-- **Repair insights**: what caused failures and what fixed them
-- **Verification gaps**: what the plan's Verification Hint missed
+Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
 
-Write to `.pge/runs/<run_id>/learnings.md`. These feed back into future pge-research and pge-plan runs as accumulated project knowledge.
+```markdown
+# Learnings: <run_id>
 
-If `.pge/config/repo-profile.md` exists, append significant learnings (conventions, constraints) to it for future runs.
+## Patterns Discovered
+- <pattern> — source: <file:line> — confidence: HIGH|MEDIUM
+
+## Deviations from Plan
+- <what differed> — why: <root cause> — impact: <what it means for future>
+
+## Repair Insights
+- <what failed> → <what fixed it> — generalizable: yes|no
+
+## Verification Gaps
+- <what the plan's Verification Hint missed> — suggest: <better verification>
+
+## Conventions Confirmed
+- <convention the plan assumed correctly> — now verified in code
+
+## Feedback to Config
+- <learning significant enough to add to repo-profile.md>
+```
+
+**Feedback loop:**
+1. If any learning under "Feedback to Config" exists AND `.pge/config/repo-profile.md` exists: append it.
+2. If `.pge/config/repo-profile.md` doesn't exist but learnings are significant: create it with the learnings as seed content.
+3. Tag each appended learning with `[from: <run_id>, date: <ISO>]` so future runs know the source.
 
 ### Route
 

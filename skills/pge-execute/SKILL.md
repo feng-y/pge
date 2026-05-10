@@ -18,6 +18,8 @@ allowed-tools:
 
 # PGE Execute
 
+> **DEPRECATED**: This is the legacy Anthropic PGE mode (3 resident agents: planner/generator/evaluator). For the current pipeline (`pge-research → pge-plan → pge-exec`), use `pge-exec` instead. This skill is preserved for cases where no pge-plan output exists and you need raw prompt → P/G/E execution.
+
 This skill is the orchestration shell only. It is not a fourth agent.
 
 `main` is the only control-plane owner for the active lane: initialize run, create exactly one team, dispatch planner / generator / evaluator, gate artifacts and runtime events, reduce route deterministically, record authoritative progress / friction, classify failures, and perform teardown. `main` must not replace Planner / Generator / Evaluator specialist judgment.

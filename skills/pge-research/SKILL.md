@@ -47,15 +47,16 @@ Research is not planning with softer nouns. Do not start decomposing implementat
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, and recent commits related to the intent
-2. **Check scope first** — narrow or decompose over-scoped work before researching details
-3. **Scan for ambiguity** — across scope, affected areas, constraints, existing patterns, terminology, and acceptance
-4. **Self-resolve** — answer what you can from code, docs, and defaults before asking
-5. **Ask only when needed** — one at a time, grounded in evidence, and only when it improves correctness more than it adds clarification overhead
-6. **Form options** — propose 1-3 approaches with evidence, tradeoffs, and recommendation only after the direction is clear enough
-6. **Review the brief** — check for placeholders, contradictions, scope drift, and fake blockers
-7. **Write research artifact** — save `research.md` to the task directory
-8. **Transition to planning** — report route and point to `pge-plan`
+1. **Load accumulated knowledge** — read `.pge/config/repo-profile.md` if exists (contains learnings from prior runs: conventions, constraints, patterns). Also check for prior task learnings in `.pge/tasks-*/runs/*/learnings.md` relevant to this intent.
+2. **Explore project context** — check files, docs, and recent commits related to the intent
+3. **Check scope first** — narrow or decompose over-scoped work before researching details
+4. **Scan for ambiguity** — across scope, affected areas, constraints, existing patterns, terminology, and acceptance
+5. **Self-resolve** — answer what you can from code, docs, defaults, and prior learnings before asking
+6. **Ask only when needed** — one at a time, grounded in evidence, and only when it improves correctness more than it adds clarification overhead
+7. **Form options** — propose 1-3 approaches with evidence, tradeoffs, and recommendation only after the direction is clear enough
+8. **Review the brief** — check for placeholders, contradictions, scope drift, and fake blockers
+9. **Write research artifact** — save `research.md` to the task directory
+10. **Transition to planning** — report route and point to `pge-plan`
 
 ## The Process
 
