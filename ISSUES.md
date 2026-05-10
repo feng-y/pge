@@ -22,21 +22,23 @@ Ordered by priority. Each issue is independently grabbable.
 - Why: Currently unclear who creates the directory. Research, plan, and exec all reference it but none explicitly owns creation.
 - Resolution: research creates, plan writes into (or creates if no research), exec expects it exists (creates only runs/ subdir).
 
-### Issue 3: Add resume-from-last-PASS capability to pge-exec
+### Issue 3: Add resume-from-last-PASS capability to pge-exec ✅ DONE
 
 - Type: AFK
 - Blocked by: Issue 1
 - Scope: After each issue PASS, write issue state to `runs/<run_id>/state.json`. On re-invocation with same plan, skip already-PASS issues and resume from first non-PASS.
 - Acceptance: Can kill exec mid-run, re-invoke, and it continues from where it stopped.
 - Why: Context overflow or session loss currently means re-executing all issues from scratch.
+- Resolution: Added state.json persistence after every issue verdict + resume logic in Phase 1 Load & Validate.
 
-### Issue 4: Add regression check to Evaluator (plan-level)
+### Issue 4: Add regression check to Evaluator (plan-level) ✅ DONE
 
 - Type: AFK
 - Blocked by: Issue 1
 - Scope: After all per-issue evaluations pass, Evaluator runs one final check: do prior issues' deliverables still work? (re-run prior Verification Hints). If any regressed → RETRY on the issue that broke them.
 - Acceptance: If Issue 3 breaks Issue 1's deliverable, Evaluator catches it before SUCCESS.
 - Why: Per-issue evaluation doesn't catch cross-issue regressions. Superpowers has "final code reviewer over entire implementation" for this reason.
+- Resolution: Added regression check to Stop Condition phase — re-runs prior Verification Hints, routes PARTIAL if any regressed.
 
 ## High Priority (improves stability)
 

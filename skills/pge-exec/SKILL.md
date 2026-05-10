@@ -93,6 +93,8 @@ If invalid: route BLOCKED, report what's missing.
 
 Extract issues from `## Slices`. Filter READY_FOR_EXECUTE. Order by ID.
 
+**Resume support:** If `runs/<run_id>/state.json` exists for this plan, read it. Skip issues already marked PASS. Resume from the first non-PASS issue. This enables recovery from context overflow or session loss.
+
 ---
 
 ## Phase 2: Execute (Per-Issue Loop)
@@ -104,6 +106,27 @@ Two teammates only:
 - `evaluator` — validates independently (read `handoffs/evaluator.md` for dispatch protocol)
 
 No Planner. The plan IS the frozen contract.
+
+### State Persistence
+
+After each issue verdict (PASS or BLOCKED), write/update `runs/<run_id>/state.json`:
+
+```json
+{
+  "run_id": "<run_id>",
+  "plan_id": "<plan_id>",
+  "issues": {
+    "1": {"status": "PASS", "attempts": 1},
+    "2": {"status": "BLOCKED", "reason": "...", "attempts": 2},
+    "3": {"status": "PENDING"}
+  },
+  "last_completed_issue": 1,
+  "next_issue": 3,
+  "route": "IN_PROGRESS"
+}
+```
+
+This is written after EVERY issue verdict — not batched at the end. If the session dies, the next invocation reads this file and resumes.
 
 ### Per-Issue Protocol
 
@@ -153,6 +176,8 @@ After all issues processed, check plan's Stop Condition:
 - Not all issues passed → PARTIAL or BLOCKED
 
 **Integration verification:** If the plan touches 3+ files across 2+ modules, run an integration-level check beyond individual issue verification (full test suite, app startup, or plan-specified integration command). Record result in manifest.
+
+**Regression check:** After all per-issue evaluations pass, re-run Verification Hints from prior PASS issues to confirm they still pass. If any regressed (a later issue broke an earlier issue's deliverable), route PARTIAL with the regression evidence. This catches cross-issue side effects that per-issue evaluation misses.
 
 ### Compound (Accumulate Learnings)
 
