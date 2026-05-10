@@ -110,15 +110,35 @@ Issues with state NEEDS_INFO, BLOCKED, or NEEDS_HUMAN are skipped — they are n
 
 ---
 
-## Phase 2: Execute (Per-Issue Loop)
+## Phase 2: Execute
 
 ### Create Team
 
-Two teammates only:
+Default team composition:
 - `generator` — implements issues (read `handoffs/generator.md` for dispatch protocol)
 - `evaluator` — validates independently (read `handoffs/evaluator.md` for dispatch protocol)
 
+**Adaptive scaling** (when READY issue count ≥ 6 AND independent issues exist):
+- Add `generator-2` (same protocol as generator, independent context)
+- At 12+ independent issues: add `generator-3`
+- Cap: max 3 generators. Each generator claims issues from the plan; main assigns non-overlapping issue sets at dispatch time.
+- Only scale when issues have no dependency AND no Target Areas overlap between assigned sets.
+- If scaling conditions are not met: stay with 1 generator (default behavior).
+
 No Planner. The plan IS the frozen contract.
+
+### Pipeline Parallelism
+
+When the next issue has NO dependency on the current issue:
+- After Generator completes issue N, dispatch Evaluator for N **and** dispatch Generator for N+1 simultaneously.
+- Generator does not wait for Evaluator's verdict on N before starting N+1.
+- If Evaluator returns RETRY on issue N: pause Generator's work on N+1, send repair request for N, resume N+1 only after N passes.
+- If Evaluator returns BLOCK on issue N and N+1 depends on N: mark N+1 BLOCKED.
+
+When the next issue DEPENDS on the current issue:
+- Wait for Evaluator PASS on current issue before dispatching Generator for next issue (current serial behavior).
+
+This eliminates evaluator wait time (~30-60s per issue) for independent issues without any file safety risk.
 
 ### State Persistence
 
@@ -160,11 +180,11 @@ For each issue in order:
 2. **Build execution pack**: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, relevant assumptions, dependencies, and directly needed repo context. Do not send whole research logs or unrelated prior issue evidence.
 3. **Dispatch Generator**: send the execution pack. Wait for `generator_completion`.
 4. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
-5. **Dispatch Evaluator**: issue criteria (Acceptance Criteria, Required Evidence, Verification Hint, Verification Type) + Generator evidence. Wait for `evaluator_verdict`.
+5. **Dispatch Evaluator**: issue criteria (Acceptance Criteria, Required Evidence, Verification Hint, Verification Type) + Generator evidence. If next issue is independent: dispatch Generator for next issue simultaneously (pipeline parallelism). Otherwise: wait for `evaluator_verdict`.
 6. **Verdict**:
-   - PASS → mark done, next issue
-   - RETRY → send `required_fixes` to Generator (max 3 per issue), re-evaluate
-   - BLOCK → mark BLOCKED, record reason
+   - PASS → mark done, continue (next issue already in progress if pipelined, otherwise dispatch next)
+   - RETRY → if pipelined: pause next issue's Generator, send `required_fixes` for current issue (max 3 per issue), re-evaluate, then resume next
+   - BLOCK → mark BLOCKED, record reason. If pipelined next issue depends on this: mark it BLOCKED too.
 7. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
 
 ### Rewind-Style Retry
