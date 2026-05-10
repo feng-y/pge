@@ -152,9 +152,9 @@ After all issues processed, check plan's Stop Condition:
 
 ### Compound (Accumulate Learnings)
 
-After execution completes (any route), record what was learned:
+After execution completes (any route), record what was learned. This is mandatory — even trivial runs record "No significant learnings — execution matched plan expectations." Empty learnings.md is a protocol violation.
 
-- **Patterns discovered**: code patterns, conventions, or constraints found during execution that weren't in the plan
+Record:- **Patterns discovered**: code patterns, conventions, or constraints found during execution that weren't in the plan
 - **Deviations**: where reality differed from plan assumptions
 - **Repair insights**: what caused failures and what fixed them
 - **Verification gaps**: what the plan's Verification Hint missed

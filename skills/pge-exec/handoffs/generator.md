@@ -1,5 +1,31 @@
 # Generator Handoff
 
+## Generator Internal Flow
+
+```dot
+digraph generator {
+  rankdir=TB;
+  node [shape=box, style=rounded];
+
+  receive [label="Receive Issue\n(Action, Deliverable, Target Areas)"];
+  implement [label="Implement Action"];
+  write_tests [label="Write Tests\n(Test Expectation)"];
+  verify [label="Run Verification Hint"];
+  self_review [label="Self-Review\n(5 checks)"];
+  verify_ok [label="Verify OK?", shape=diamond];
+  local_repair [label="Local Repair\n(auto-fix-local/critical)"];
+  completion [label="Send generator_completion\n(READY)"];
+  blocked [label="Send generator_completion\n(BLOCKED)"];
+
+  receive -> implement -> write_tests -> verify -> verify_ok;
+  verify_ok -> self_review [label="pass"];
+  verify_ok -> local_repair [label="fail (dev error)"];
+  verify_ok -> blocked [label="fail (architectural)"];
+  local_repair -> verify;
+  self_review -> completion;
+}
+```
+
 ## Dispatch Protocol
 
 Send to `generator` for each issue. Generator is a resident teammate — stays alive across issues.

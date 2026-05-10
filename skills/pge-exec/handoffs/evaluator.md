@@ -1,5 +1,36 @@
 # Evaluator Handoff
 
+## Evaluator Internal Flow
+
+```dot
+digraph evaluator {
+  rankdir=TB;
+  node [shape=box, style=rounded];
+
+  receive [label="Receive Issue Criteria\n+ Generator Evidence"];
+  check_exists [label="Deliverable Exists?", shape=diamond];
+  check_scope [label="Scope Check\n(Target Areas)"];
+  run_verify [label="Run Verification Hint"];
+  check_criteria [label="Check Acceptance Criteria\n(each independently)"];
+  check_evidence [label="Check Required Evidence"];
+  all_pass [label="All Pass?", shape=diamond];
+  verdict_pass [label="Verdict: PASS"];
+  verdict_retry [label="Verdict: RETRY\n(specific required_fixes)"];
+  verdict_block [label="Verdict: BLOCK"];
+
+  receive -> check_exists;
+  check_exists -> check_scope [label="yes"];
+  check_exists -> verdict_block [label="no"];
+  check_scope -> run_verify [label="clean"];
+  check_scope -> verdict_block [label="drift"];
+  run_verify -> check_criteria;
+  check_criteria -> check_evidence;
+  check_evidence -> all_pass;
+  all_pass -> verdict_pass [label="yes"];
+  all_pass -> verdict_retry [label="no"];
+}
+```
+
 ## Dispatch Protocol
 
 Send to `evaluator` after Generator completes with status READY.
