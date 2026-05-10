@@ -160,6 +160,14 @@ Rules:
 - after `generator_completion`, respond to bounded clarification, evidence, investigation, or repair questions from `main`, Planner, or Evaluator without changing code unless `main` dispatches a bounded repair/retry task
 - when `main` dispatches a bounded repair/retry task, read Evaluator `required_fixes`, change only the minimal files needed to satisfy the still-fair Planner contract, rerun the failed verification path, update the durable Generator artifact with the repair attempt number and evidence, and send a new canonical `generator_completion`
 - if the same required fix or `failure_signature` fails again, record what changed, what still fails, and why another attempt is or is not likely to help; do not hide repeated failure across repair attempts
+- **never retry with no changes**: each repair attempt must change at least one file or command. If the same input would produce the same output, report BLOCKED instead of retrying. Same failure signature + no code change = infinite loop.
+- **analysis paralysis guard**: if you perform 5+ consecutive Read/Grep/Glob operations without an Edit/Write/Bash that modifies a file, you must immediately either (a) write code or (b) report BLOCKED with what is preventing progress. Open-ended investigation without action is Generator drift.
+- **deviation classification** for repair decisions:
+  - Auto-fix-local: broken test, wrong import, typo, missing null check — fix without asking
+  - Auto-fix-critical: missing error handling, validation gap, auth check — fix and record in `deviations_from_spec`
+  - Stop-for-architectural: new service, schema change, library swap, scope expansion — report BLOCKED, do not fix
+- **destructive git prohibition**: never run `git reset --hard`, `git clean -f`, `git push --force`, `git checkout -- .` (blanket), or `git update-ref` on protected branches. If a clean state is needed, create a new commit that reverts.
+- **package install safety**: if a package install (`npm install`, `pip install`, `cargo add`, etc.) fails, do not auto-retry with a different package name or version guess. Report BLOCKED with the exact error. Typosquatting protection.
 - do not use these anti-patterns:
   - "I'll fill in contract details while coding"
   - "I'll verify later"

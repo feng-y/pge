@@ -214,6 +214,8 @@ After the `final_verdict` event and evaluator artifact gate:
 
 When the same failure signature repeats or the total attempt budget is hit, `main` must save a repair snapshot before deciding. The snapshot records run id, attempt count, failure signature, last failed command/result, current artifacts, changed files, Evaluator required fixes, Generator repair notes, and the next main decision: continue one more attempt, return to Planner, or stop failed. If artifacts do not justify the decision, `main` may ask the user one focused question.
 
+No-change guard: if a Generator repair attempt produces zero file changes compared to the prior attempt, `main` must not dispatch Evaluator. Count it as a same-failure immediately and apply the 3-consecutive threshold. This prevents infinite loops where Generator "repairs" without actually changing code.
+
 Task outcome and teardown outcome are separate. A failed verification path, including a crash/signal/non-zero result such as exit code `139`, is a deliverable correctness failure even if teardown later also fails. A noisy or failed teardown is teardown friction and must not overwrite the task verdict/route.
 
 `main` may classify the result as:

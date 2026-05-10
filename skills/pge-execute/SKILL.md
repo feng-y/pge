@@ -188,6 +188,7 @@ For all runs:
    - if verdict is `RETRY`, or `BLOCK` with current contract still fair and required fixes are local to Generator, send `generator_repair_request` to resident Generator, gate the fresh `generator_completion`, then send `evaluator_recheck_request` to Evaluator and gate the fresh `final_verdict`
    - repeat the Generator repair -> Evaluator re-check loop until PASS, return_to_planner/ESCALATE, repeated same-failure threshold, or max generator attempts per round is reached
    - max generator attempts per round is 10 total attempts, including the initial generation; same `failure_signature` repeated on 3 consecutive evaluations requires a saved repair snapshot and explicit main decision before continuing
+   - **no-change guard**: if Generator's repair attempt produces no file changes (same `changed_files` as prior attempt), treat it as a same-failure and count toward the 3-consecutive threshold immediately; do not dispatch Evaluator for unchanged code
    - when a loop threshold is hit, save the current repair snapshot, then main chooses continue one more attempt, return to Planner, or stop failed; ask the user only when main cannot justify that decision from artifacts
    - append a best-effort evaluator gate log entry; this is the third hard review point
 
@@ -253,3 +254,6 @@ Do not:
 - accept `test` without the evaluator independently reading the run-scoped smoke deliverable
 - report `status: SUCCESS` together with any non-terminal route
 - let teammates write authoritative progress directly
+- redispatch Generator with no code changes (same input → same output = infinite loop)
+- allow Generator to run destructive git commands (reset --hard, clean -f, push --force, checkout -- .)
+- auto-retry failed package installs with guessed package names (typosquatting risk)
