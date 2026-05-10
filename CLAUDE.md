@@ -40,8 +40,7 @@ Project map:
 - `README.md`
 
 Research/reference (may inform design, must not override active skill truth):
-- `docs/design/research/ref-*.md`
-- `docs/design/`
+- `docs/research/ref-*.md`
 
 Legacy (archived, do not treat as active runtime):
 - `skills/pge-execute/` — superseded by `pge-exec`
