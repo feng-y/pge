@@ -146,7 +146,12 @@ For each issue in order:
 
 ### HITL Issues
 
-`Execution Type: HITL` → after Generator completes, pause and ask user the decision. Resume with answer as context.
+Handle by subtype:
+- `HITL:verify` → after Generator completes, ask user to confirm visual/functional correctness. In headless mode: auto-approve (assume correct).
+- `HITL:decision` → after Generator completes, present options to user, wait for choice. In headless mode: pick first option, record as LOW-confidence assumption.
+- `HITL:action` → pause execution, tell user what manual action is needed (e.g., 2FA, external service config). Cannot auto-approve even in headless mode.
+
+Legacy `HITL` (no subtype) → treat as `HITL:decision`.
 
 ### Generator Rules (summary — full in `references/generator-rules.md`)
 

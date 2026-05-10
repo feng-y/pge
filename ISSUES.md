@@ -87,29 +87,23 @@ Ordered by priority. Each issue is independently grabbable.
 - Acceptance: Trivial issues (config change, single-line fix) don't waste an Evaluator dispatch.
 - Why: Anthropic says "evaluator is not a fixed yes-or-no decision — it is worth the cost when the task sits beyond what the current model does reliably solo." Current design always dispatches.
 
-### Issue 10: Add checkpoint subtypes to HITL issues
+### Issue 10: Add checkpoint subtypes to HITL issues ✅ DONE
 
 - Type: AFK
 - Blocked by: none
-- Scope: Expand `Execution Type: HITL` to subtypes: `HITL:verify` (human confirms visual/functional), `HITL:decision` (human picks from options), `HITL:action` (human must do something like 2FA). Exec handles each differently.
-- Acceptance: Plan can express WHY human is needed. Exec can auto-approve `HITL:verify` in headless mode.
-- Why: GSD has 3 checkpoint types. Current binary HITL/AFK loses information about what the human needs to do.
+- Resolution: HITL expanded to HITL:verify / HITL:decision / HITL:action. Exec handles each differently (verify auto-approves in headless, action never auto-approves).
 
-### Issue 11: Add Generator clean-state check
+### Issue 11: Add Generator clean-state check ✅ DONE
 
 - Type: AFK
 - Blocked by: none
-- Scope: Before each issue execution, Generator checks `git status`. If dirty files overlap with Target Areas → report BLOCKED (don't overwrite unknown changes). If dirty files are unrelated → proceed with warning in deviations.
-- Acceptance: Generator never silently overwrites uncommitted user work in Target Areas.
-- Why: Anthropic PGE requires "clean state" between sprints. Current Generator has no pre-execution state check.
+- Resolution: Added clean-state check to generator-rules.md. Dirty Target Areas → BLOCKED. Dirty unrelated → proceed with deviation record.
 
-### Issue 12: Add security-sensitive issue flag
+### Issue 12: Add security-sensitive issue flag ✅ DONE
 
 - Type: AFK
 - Blocked by: none
-- Scope: pge-plan adds optional `Security: yes` flag to issues touching auth/data-access/API-boundaries. pge-exec Evaluator applies stricter thresholds for security-flagged issues (e.g., must have auth test, must not expose secrets).
-- Acceptance: An issue modifying auth code gets stricter evaluation than a CSS change.
-- Why: gstack CSO pattern. Currently all issues get same evaluation depth regardless of security sensitivity.
+- Resolution: Added `Security: yes|no` field to plan issues. Evaluator applies mandatory security checks (no secrets, auth present, input validation) + stricter threshold (BLOCK not RETRY) for security-flagged issues.
 
 ## Low Priority (future enhancements)
 

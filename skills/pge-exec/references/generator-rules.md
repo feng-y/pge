@@ -45,6 +45,15 @@ If a package install fails (`npm install`, `pip install`, `cargo add`, `go get`,
 - Report BLOCKED with the exact error message
 - Reason: typosquatting/slopsquat protection
 
+## Clean-State Check (before each issue)
+
+Before starting implementation on any issue:
+1. Run `git status` on Target Areas files
+2. If any Target Area file has uncommitted changes → report BLOCKED ("dirty working tree overlaps Target Areas: <files>")
+3. If dirty files exist but are unrelated to Target Areas → proceed, record in deviations ("unrelated dirty files present: <files>")
+
+This prevents silently overwriting user's uncommitted work.
+
 ## Scope Boundary
 
 - Only modify files listed in the issue's Target Areas

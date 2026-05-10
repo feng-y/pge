@@ -216,11 +216,12 @@ Each issue includes:
 - `Target Areas` (exact paths: Create/Modify)
 - `Acceptance Criteria`, `Verification Hint`
 - `Verification Type`: AUTOMATED | MANUAL | MIXED
-- `Execution Type`: AFK | HITL
+- `Execution Type`: AFK | HITL:verify | HITL:decision | HITL:action
 - `Test Expectation`: happy path + edge case + error path (+ integration if boundary)
 - `Required Evidence`: what proves done
 - `State`: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - `Dependencies`, `Risks`
+- `Security`: yes | no (yes if issue touches auth, data access, API boundaries, secrets, or permissions. Triggers stricter Evaluator thresholds.)
 
 ### Write Plan Artifact
 

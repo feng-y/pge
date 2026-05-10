@@ -77,6 +77,16 @@ If spec passes but quality fails → RETRY with quality-specific required_fixes.
 
 Depth is inferred from the issue's Target Areas count: ≤3 files = single-pass, >3 files = two-pass.
 
+## Security-Sensitive Issues
+
+When issue has `Security: yes`:
+- **Mandatory checks** (in addition to normal thresholds):
+  - No secrets/credentials in committed code (grep for API keys, tokens, passwords)
+  - Auth/permission checks present for new endpoints or data access paths
+  - Input validation on user-facing parameters
+  - No permission downgrade without explicit justification in deviations
+- **Stricter threshold**: any security check failure → BLOCK (not RETRY). Security issues don't get repair attempts — they need plan-level rethinking.
+
 ### Example 1: RETRY — evidence exists but is incomplete
 
 ```
