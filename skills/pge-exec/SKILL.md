@@ -82,7 +82,7 @@ digraph pge_exec {
 
 Read plan from `.pge/tasks-<slug>/plan.md` (preferred) or `.pge/plans/<plan_id>.md` (legacy). If argument is `test`, use inline smoke plan.
 
-**Task directory resolution:** If plan is at `.pge/tasks-<slug>/plan.md`, all run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory.
+**Task directory resolution:** If plan is at `.pge/tasks-<slug>/plan.md`, all run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. pge-exec never creates the task directory itself — it expects pge-research or pge-plan to have created it. If the directory doesn't exist, create only the `runs/<run_id>/` subdirectory.
 
 Validate:
 - `plan_route` = `READY_FOR_EXECUTE`

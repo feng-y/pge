@@ -226,6 +226,8 @@ Each issue includes:
 
 Write to `.pge/tasks-<slug>/plan.md` (preferred — keeps full pipeline under one task directory) or `.pge/plans/<plan_id>.md` (legacy). ID format: `YYYYMMDD-HHMM-<slug>`.
 
+**Task directory:** pge-research creates `.pge/tasks-<slug>/`. pge-plan writes into it. If the task directory doesn't exist (no prior research), create it. If writing to legacy path, create `.pge/plans/` if needed.
+
 ### Self-Review Loop
 
 Read `references/self-review.md` for full protocol. Summary:

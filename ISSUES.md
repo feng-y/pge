@@ -4,21 +4,23 @@ Ordered by priority. Each issue is independently grabbable.
 
 ## Blocking (must fix before real use)
 
-### Issue 1: Run pge-exec smoke test
+### Issue 1: Run pge-exec smoke test ✅ DONE
 
 - Type: AFK
 - Blocked by: none
 - Scope: Run `/pge-exec test`, verify G+E team creates, Generator writes smoke file, Evaluator validates, route = SUCCESS
 - Acceptance: smoke.txt exists with "pge smoke", evaluator_verdict = PASS, run manifest written
 - Why: Entire exec design is unproven. Zero runtime evidence that G+E team works.
+- Resolution: Smoke test passed. TeamCreate → Generator (wrote smoke.txt, 9 bytes exact) → Evaluator (independent verify) → TeamDelete. Manifest at .pge/runs/smoke-test-001/manifest.md.
 
-### Issue 2: Clarify task directory ownership
+### Issue 2: Clarify task directory ownership ✅ DONE
 
 - Type: AFK
 - Blocked by: none
 - Scope: Decide and document: pge-research creates `.pge/tasks-<slug>/`, plan and exec reuse it. Update all 3 SKILL.md files to be explicit about who creates vs who reads.
 - Acceptance: Each skill's SKILL.md states whether it creates or expects the task directory. No ambiguity.
 - Why: Currently unclear who creates the directory. Research, plan, and exec all reference it but none explicitly owns creation.
+- Resolution: research creates, plan writes into (or creates if no research), exec expects it exists (creates only runs/ subdir).
 
 ### Issue 3: Add resume-from-last-PASS capability to pge-exec
 
