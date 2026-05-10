@@ -131,7 +131,7 @@ require_pattern skills/pge-setup/SKILL.md '\.pge/config/open-gaps\.md' \
 require_pattern skills/pge-setup/SKILL.md 'SETUP_READY' \
   "pge-setup ready status"
 
-require_pattern skills/pge-research/SKILL.md '\.pge/tasks-<short-slug>/research\.md' \
+require_pattern skills/pge-research/SKILL.md '\.pge/tasks-<slug>/research\.md' \
   "pge-research task artifact"
 require_pattern skills/pge-research/SKILL.md 'research_route: READY_FOR_PLAN \| NEEDS_INFO \| BLOCKED' \
   "pge-research route contract"

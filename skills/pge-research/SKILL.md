@@ -164,13 +164,13 @@ Fix every issue you find. If the grill reveals a finding was wrong, remove or co
 Create the task directory if needed:
 
 ```text
-.pge/tasks-<short-slug>/
+.pge/tasks-<slug>/
 ```
 
 Write the research artifact to:
 
 ```text
-.pge/tasks-<short-slug>/research.md
+.pge/tasks-<slug>/research.md
 ```
 
 Use the template at `templates/brief.md`.

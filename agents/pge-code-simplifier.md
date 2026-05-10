@@ -78,7 +78,7 @@ Only flag when the simpler version is obviously correct and sufficient. This is 
 
 **Files scanned:** <count>
 **Opportunities found:** <count by severity>
-**Verdict:** CLEAN | HAS_OPPORTUNITIES
+**Verdict:** PASS | REPAIR_REQUIRED | ADVISORY_ONLY
 
 ### High-Value Simplifications
 (Would meaningfully improve readability/maintainability)
@@ -98,13 +98,22 @@ Only flag when the simpler version is obviously correct and sufficient. This is 
 - [Positive observation about clean patterns in this run]
 ```
 
+## Verdict Rules
+
+| Condition | Verdict |
+|-----------|---------|
+| No simplification opportunities found | PASS |
+| Only low-value / optional findings | ADVISORY_ONLY |
+| Any high-value simplification (50+ line function, unnecessary abstraction) | REPAIR_REQUIRED |
+
 ## Severity → Route Effect
 
-| Finding level | Route effect |
-|---------------|--------------|
-| High-value simplification (50+ line function doing 15 lines of work) | REPAIR_REQUIRED — overcomplexity is a quality defect |
-| High-value simplification (moderate, e.g. unnecessary abstraction) | Important — repair if bounded |
-| Low-value / optional | Advisory — record only, do not block |
+| Finding level | Verdict | Route effect |
+|---------------|---------|--------------|
+| No opportunities | PASS | No action needed |
+| High-value simplification (50+ line function doing 15 lines of work) | REPAIR_REQUIRED | overcomplexity is a quality defect |
+| High-value simplification (moderate, e.g. unnecessary abstraction) | REPAIR_REQUIRED | repair if bounded |
+| Low-value / optional only | ADVISORY_ONLY | record only, do not block |
 
 ## Rules
 

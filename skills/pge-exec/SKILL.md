@@ -311,14 +311,17 @@ Argument `test` uses inline plan (no task directory — uses legacy run path for
 Issue 1: Write smoke file
 - Action: Create .pge/runs/<run_id>/deliverables/smoke.txt with content "pge smoke"
 - Deliverable: smoke.txt
+- Target Areas: Create: .pge/runs/<run_id>/deliverables/smoke.txt
 - Acceptance Criteria: file exists, content = "pge smoke"
 - Verification Type: AUTOMATED
-- Execution Type: AFK
+- Verification Hint: cat .pge/runs/<run_id>/deliverables/smoke.txt
+- Test Expectation: none (smoke test)
 - Required Evidence: file content output
+- Execution Type: AFK
 - Stop Condition: smoke.txt exists with correct content
 ```
 
-For test: minimal dispatch, no handoff file reads. Uses legacy `.pge/runs/` path since no task directory exists.
+For test: minimal dispatch, no handoff file reads. Uses legacy `.pge/runs/` path since no task directory exists. Rollback tag is skipped for smoke.
 
 ---
 
