@@ -224,7 +224,7 @@ Each issue includes:
 
 ### Write Plan Artifact
 
-Write to `.pge/plans/<plan_id>.md` using `templates/plan.md`. ID format: `YYYYMMDD-HHMM-<slug>`.
+Write to `.pge/tasks-<slug>/plan.md` (preferred — keeps full pipeline under one task directory) or `.pge/plans/<plan_id>.md` (legacy). ID format: `YYYYMMDD-HHMM-<slug>`.
 
 ### Self-Review Loop
 

@@ -34,8 +34,8 @@ If evidence is present but weak (e.g., "I ran the tests" without output): RETRY 
 Compare `changed_files` from Generator against `Target Areas` from the plan issue:
 - Files in Target Areas (Create or Modify): expected ✓
 - Files NOT in Target Areas but changed: scope drift
-- Justified drift: Generator recorded it in deviations AND it's clearly necessary for the Action
-- Unjustified drift: BLOCK
+- **Justified drift**: Generator recorded it in deviations AND it's clearly necessary for the Action → verdict is RETRY (ask Generator to add the file to a deviation justification or confirm necessity), NOT BLOCK
+- **Unjustified drift**: no deviation recorded, or deviation is clearly unrelated to Action → BLOCK
 
 ## RETRY Feedback Quality
 

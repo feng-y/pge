@@ -80,7 +80,9 @@ digraph pge_exec {
 
 ## Phase 1: Load & Validate
 
-Read `.pge/plans/<plan_id>.md`. If argument is `test`, use inline smoke plan.
+Read plan from `.pge/tasks-<slug>/plan.md` (preferred) or `.pge/plans/<plan_id>.md` (legacy). If argument is `test`, use inline smoke plan.
+
+**Task directory resolution:** If plan is at `.pge/tasks-<slug>/plan.md`, all run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory.
 
 Validate:
 - `plan_route` = `READY_FOR_EXECUTE`
@@ -197,11 +199,17 @@ For test: minimal dispatch, no handoff file reads.
 ## Output
 
 ```text
-.pge/runs/<run_id>/
-├── manifest.md          — run metadata + issue results
-├── evidence/            — per-issue evidence
-├── deliverables/        — actual deliverables
-└── learnings.md         — compound learnings
+.pge/tasks-<slug>/              (preferred — full pipeline in one directory)
+├── research.md                 (from pge-research)
+├── plan.md                     (from pge-plan)
+└── runs/
+    └── <run_id>/
+        ├── manifest.md         — run metadata + issue results
+        ├── evidence/           — per-issue evidence
+        ├── deliverables/       — actual deliverables
+        └── learnings.md        — compound learnings
+
+Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
 ```
 
 ## Final Response
