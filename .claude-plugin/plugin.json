@@ -10,7 +10,8 @@
     "pge-setup",
     "pge-research",
     "pge-plan",
-    "pge-exec"
+    "pge-exec",
+    "pge-handoff"
   ],
   "legacy_cleanup": {
     "skills": [
