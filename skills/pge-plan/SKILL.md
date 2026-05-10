@@ -167,7 +167,7 @@ Read `references/engineering-review.md` for full review dimensions. Summary:
 - Existing Solutions Check
 - Complexity Gate (8+ files → challenge)
 - Completeness Score (X/10 per approach)
-- Outside Voice (DEEP only — independent challenge Agent)
+- Outside Voice (MEDIUM + DEEP — independent challenge Agent)
 - Scope Reduction Prohibition (prohibited phrases + 3 valid reasons)
 
 ### Select Approach

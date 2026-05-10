@@ -87,11 +87,13 @@ Rate each proposed approach:
 
 Prefer the approach with highest completeness unless cost is disproportionate. If selected approach scores <7, record why the trade-off is acceptable.
 
-## Outside Voice (DEEP only)
+## Outside Voice (MEDIUM + DEEP)
 
 Spawn an independent challenge Agent. It receives: selected approach, target areas, acceptance criteria.
 It returns: one strongest objection, one missed risk, one simpler alternative (if any).
 Integrate valid challenges into the approach decision.
+
+An independent agent reviewing the plan catches blind spots that self-review cannot — the same context window that produced the plan cannot objectively challenge it. Only LIGHT tasks (1-3 files, single module, obvious path) skip this step.
 
 ## Scope Reduction Prohibition
 
