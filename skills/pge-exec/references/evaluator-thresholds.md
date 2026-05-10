@@ -64,7 +64,18 @@ Counter this by:
 - If a criterion says "returns 200" — run the command, don't trust Generator's claim
 - When in doubt between PASS and RETRY: choose RETRY. False positives are cheaper than false negatives.
 
-## Calibration Examples (Few-Shot)
+## Evaluation Depth (scales with plan depth)
+
+For **LIGHT** plan issues (1-2 files): single-pass evaluation covering all criteria.
+
+For **DEEP** plan issues (8+ files, cross-module): two-pass evaluation:
+1. **Spec compliance pass**: Does the deliverable satisfy the Action, Acceptance Criteria, and Required Evidence? (functional correctness)
+2. **Code quality pass**: Is the implementation clean? Proper error handling? Consistent with repo patterns? No obvious tech debt introduced?
+
+If spec compliance fails → RETRY immediately (don't waste time on quality review).
+If spec passes but quality fails → RETRY with quality-specific required_fixes.
+
+Depth is inferred from the issue's Target Areas count: ≤3 files = single-pass, >3 files = two-pass.
 
 ### Example 1: RETRY — evidence exists but is incomplete
 

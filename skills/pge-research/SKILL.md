@@ -60,6 +60,10 @@ You MUST create a task for each of these items and complete them in order:
 
 ## The Process
 
+**Early-exit for trivial tasks:**
+
+If after step 1 (load knowledge) and step 2 (explore context), the intent maps to a single obvious file change with no ambiguity, no competing approaches, and existing patterns clearly show how to do it — write a minimal brief immediately and skip the full exploration. A 2-line config change doesn't need 6-lens ambiguity scanning. Record: "Early exit — trivial task, single file, pattern clear from <file:line>."
+
 **Understanding the intent:**
 
 Check out the current project state first. Read `.pge/config/*` if it exists, especially `repo-profile.md` and `docs-policy.md`. Then look at `CLAUDE.md`, `README.md`, and the code directly related to the intent. Recent commits touching relevant areas often reveal constraints that docs miss.

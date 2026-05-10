@@ -152,6 +152,8 @@ After all issues processed, check plan's Stop Condition:
 - Fails but all issues passed → PARTIAL (integration gap)
 - Not all issues passed → PARTIAL or BLOCKED
 
+**Integration verification:** If the plan touches 3+ files across 2+ modules, run an integration-level check beyond individual issue verification (full test suite, app startup, or plan-specified integration command). Record result in manifest.
+
 ### Compound (Accumulate Learnings)
 
 After execution completes (any route), record what was learned. This is mandatory — even trivial runs record "No significant learnings — execution matched plan expectations." Empty learnings.md is a protocol violation.
@@ -184,6 +186,7 @@ Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
 1. If any learning under "Feedback to Config" exists AND `.pge/config/repo-profile.md` exists: append it.
 2. If `.pge/config/repo-profile.md` doesn't exist but learnings are significant: create it with the learnings as seed content.
 3. Tag each appended learning with `[from: <run_id>, date: <ISO>]` so future runs know the source.
+4. **Confidence decay:** learnings older than 30 days should be treated as "verify before relying on" by downstream skills. pge-research should re-check old learnings against current code before using them as facts.
 
 ### Route
 
