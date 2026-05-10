@@ -38,7 +38,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-research`](./skills/pge-research/SKILL.md)** — Explore the problem space before planning. Use when intent is still fuzzy, multiple approaches seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, and writes a research brief that feeds into planning.
 
-- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/plans/<plan_id>.md`. Challenges approaches, synthesizes intent, and decomposes into numbered executable issues with acceptance criteria and verification hints.
+- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Challenges approaches, synthesizes intent, and decomposes into numbered executable issues with acceptance criteria and verification hints.
 
 - **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue execution, validates with an independent Evaluator, runs a bounded repair loop on failures, and accumulates learnings across issues.
 

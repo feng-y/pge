@@ -84,7 +84,7 @@ Updated: 2026-04-29
 |------|------|
 | `commands/start-round.md` | 开始一轮证明/开发的命令 |
 | `commands/close-round.md` | 关闭一轮的命令 |
-| `progress.md` | 整体 harness 进度跟踪 |
+| `progress.md` | 历史整体进度跟踪（已移除；当前进展以 `README.md`、`CLAUDE.md` 和 active skills 为准） |
 | `todo.md` | 未完成差距清单 |
 
 ---
@@ -218,7 +218,7 @@ SKILL.md — orchestration shell (main)
 **当前状态**: 只支持单轮执行。这在多处明确声明:
 - `ORCHESTRATION.md` line 5: "stop after one bounded round"
 - `SKILL.md` line 57-59: "Not supported yet: automatic multi-round redispatch, bounded retry loop, return-to-planner loop"
-- `progress.md`: "The current executable runtime is still a single implementation round"
+- historical `progress.md` (removed): "The current executable runtime is still a single implementation round"
 
 ### Sprint 概念
 

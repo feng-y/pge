@@ -14,6 +14,7 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
+  - Agent
 ---
 
 # PGE Handoff
