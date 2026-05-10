@@ -1,7 +1,7 @@
 ---
 name: pge-plan
 description: >
-  Produce a bounded, engineering-reviewed PGE plan under `.pge/plans/<plan_id>.md`.
+  Produce a bounded, engineering-reviewed PGE plan under `.pge/tasks-<slug>/plan.md`.
   Adapts any structured upstream input, researches and challenges approaches with
   engineering review, synthesizes intent, and decomposes into executable issues.
 version: 0.5.0
@@ -18,7 +18,7 @@ allowed-tools:
 
 # PGE Plan
 
-Produce one bounded, executable PGE plan artifact at `.pge/plans/<plan_id>.md`.
+Produce one bounded, executable PGE plan artifact at `.pge/tasks-<slug>/plan.md`.
 
 This is a planning skill. It does not execute code, edit implementation files, publish GitHub issues, or invoke `pge-exec`.
 
@@ -261,7 +261,7 @@ Do not: write business code, execute the plan, invoke pge-exec, create `.pge/run
 
 ```md
 ## PGE Plan Result
-- plan_path: .pge/plans/<plan_id>.md
+- plan_path: .pge/tasks-<slug>/plan.md | .pge/plans/<plan_id>.md (legacy)
 - plan_route: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - ready_issues: <ids or None>
 - blocked_issues: <ids or None>

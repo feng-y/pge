@@ -103,7 +103,7 @@ Detect:
 Default backend for the first version:
 
 ```text
-local_markdown: .pge/plans/
+local_markdown: .pge/tasks-<slug>/plan.md
 ```
 
 Default PGE state vocabulary:
@@ -121,9 +121,10 @@ Default downstream artifact roots:
 
 - setup config: `.pge/config/*`
 - research briefs: `.pge/tasks-<slug>/research.md`
-- plans / backlog: `.pge/plans/<plan_id>.md`
-- runs: `.pge/runs/<run_id>/*`
-- concurrent worker records: `.pge/runs/<run_id>/workers/issue-<NNN>/*`
+- plans: `.pge/tasks-<slug>/plan.md`
+- runs: `.pge/tasks-<slug>/runs/<run_id>/*`
+- concurrent worker records: `.pge/tasks-<slug>/runs/<run_id>/workers/issue-<NNN>/*`
+- legacy fallback (no task directory): `.pge/plans/<plan_id>.md`, `.pge/runs/<run_id>/*`
 
 ### 3. Present Findings And Recommended Defaults
 
@@ -150,7 +151,7 @@ Critical questions include:
 
 Do not ask about low-risk defaults:
 
-- Use local markdown `.pge/plans/` when no clear external backlog backend exists.
+- Use local markdown `.pge/tasks-<slug>/plan.md` when no clear external backlog backend exists.
 - Use the default state vocabulary unless the repo already has a conflicting canonical one.
 - Use the existing README / CLAUDE.md / AGENTS.md / docs layout as the docs policy.
 
@@ -230,8 +231,9 @@ First-version default:
 
 ```text
 backend: local_markdown
-plan_location: .pge/plans/
-plan_file_pattern: .pge/plans/<plan_id>.md
+plan_location: .pge/tasks-<slug>/plan.md
+plan_file_pattern: .pge/tasks-<slug>/plan.md
+legacy_fallback: .pge/plans/<plan_id>.md
 ```
 
 ### `.pge/config/docs-policy.md`
@@ -421,7 +423,7 @@ After writing config files, return:
   - <absolute path to route-policy.md>
   - <absolute path to open-gaps.md>
 - backend: <local_markdown | other>
-- plan_location: .pge/plans/
+- plan_location: .pge/tasks-<slug>/plan.md
 - route_vocabulary: READY_FOR_PLAN, READY_FOR_EXECUTE, DONE_NEEDS_REVIEW, RETRY_RECOMMENDED, NEEDS_INFO, BLOCKED, NEEDS_HUMAN, NEEDS_MAIN_DECISION
 - critical_gaps: <None or short list>
 - next_skill: pge-research (fuzzy intent) or pge-plan (clear intent)

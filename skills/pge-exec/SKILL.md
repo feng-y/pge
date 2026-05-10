@@ -2,8 +2,8 @@
 name: pge-exec
 description: >
   Execute pge-plan issues using Generator + Evaluator agents.
-  Consumes .pge/plans/<plan_id>.md, dispatches per-issue execution,
-  validates with independent Evaluator, bounded repair loop, accumulates learnings.
+  Consumes .pge/tasks-<slug>/plan.md (preferred) or .pge/plans/<plan_id>.md (legacy),
+  dispatches per-issue execution, validates with independent Evaluator, bounded repair loop, accumulates learnings.
 version: 1.0.0
 argument-hint: "<plan_id> | test"
 allowed-tools:
@@ -251,7 +251,7 @@ Request shutdown → delete team → write manifest.
 
 ## Smoke Test
 
-Argument `test` uses inline plan:
+Argument `test` uses inline plan (no task directory — uses legacy run path for minimal setup):
 ```
 Issue 1: Write smoke file
 - Action: Create .pge/runs/<run_id>/deliverables/smoke.txt with content "pge smoke"
@@ -263,7 +263,7 @@ Issue 1: Write smoke file
 - Stop Condition: smoke.txt exists with correct content
 ```
 
-For test: minimal dispatch, no handoff file reads.
+For test: minimal dispatch, no handoff file reads. Uses legacy `.pge/runs/` path since no task directory exists.
 
 ---
 
