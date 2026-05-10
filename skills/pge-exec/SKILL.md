@@ -234,6 +234,7 @@ Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
 2. If `.pge/config/repo-profile.md` doesn't exist but learnings are significant: create it with the learnings as seed content.
 3. Tag each appended learning with `[from: <run_id>, date: <ISO>]` so future runs know the source.
 4. **Confidence decay:** learnings older than 30 days should be treated as "verify before relying on" by downstream skills. pge-research should re-check old learnings against current code before using them as facts.
+5. **Inline doc updates** (matt-skill grill-with-docs pattern): if execution discovered a domain term mismatch, naming convention, or architectural decision not captured in project docs — update `CONTEXT.md` or create an ADR in `docs/adr/` immediately. Don't batch these; capture as they happen.
 
 ### Route
 

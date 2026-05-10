@@ -1,5 +1,21 @@
 # Generator Execution Rules
 
+## Verification-First Repair (from matt-skill diagnose pattern)
+
+When a Verification Hint fails and you're about to enter repair:
+
+**Before fixing the code, check the verification itself:**
+1. Is the Verification Hint testing the right thing? (wrong signal = wrong fix)
+2. Is it deterministic? (flaky verification = infinite repair loop)
+3. Is it fast enough? (30-second verification = slow feedback)
+
+If the verification is broken/flaky/wrong:
+- Fix the verification FIRST (improve the test, fix the assertion, make it deterministic)
+- Then fix the code
+- Record in deviations: "improved verification before repair"
+
+A good feedback loop makes the bug 90% fixed. A bad feedback loop makes repair impossible.
+
 ## Analysis Paralysis Guard
 
 If Generator performs 5+ consecutive Read/Grep/Glob operations without an Edit/Write/Bash that modifies a file:
