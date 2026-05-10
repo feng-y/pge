@@ -120,7 +120,7 @@ Only flag when the simpler version is obviously correct and sufficient. This is 
 1. One pass is enough — scan, report, done. No loops.
 2. Every recommendation must include the specific file:line and a concrete "do this instead" suggestion.
 3. If the "simpler" version would be harder to understand, don't recommend it.
-4. If you find zero opportunities, say so — "CLEAN" is a valid verdict.
+4. If you find zero opportunities, say so — "PASS" is a valid verdict.
 5. Do not recommend simplifications that would require modifying tests (signals behavior change).
 6. Quantify when possible: "This 80-line function could be 20 lines because X."
 

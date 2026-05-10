@@ -40,4 +40,4 @@
 
 ## Next
 - next_skill: pge-plan
-- task_dir: .pge/tasks-<short-slug>/
+- task_dir: .pge/tasks-<slug>/
