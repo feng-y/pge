@@ -75,14 +75,55 @@ Regardless of depth classification, these are auto-RETRY:
 
 These are code-smell signals that the implementation is incomplete, not just imperfect.
 
-## Overcomplexity Detection
+## Simplification Pressure
 
-Check whether the implementation is disproportionately complex for what it does:
+Check whether the implementation is disproportionately complex for what it does. Only flag patterns in NEW code from this issue — pre-existing complexity is out of scope (Chesterton's Fence).
+
+### Overcomplexity (existing rules)
+
 - If a single function exceeds 50 lines for a task that could be done in 15 → RETRY with "implementation overcomplicated — simplify <function> to essential logic"
 - If new abstractions (classes, interfaces, config layers) were introduced that serve only one call site → RETRY with "unnecessary abstraction: <name> has single use, inline it"
 - If the implementation introduces a pattern not present elsewhere in the codebase when a simpler existing pattern would work → RETRY with "use existing pattern from <file:line> instead of introducing <new pattern>"
 
-This is NOT about style preference. It's about catching the LLM tendency to bloat code with speculative flexibility. Only flag when the simpler version is obviously correct and sufficient.
+### Structural Complexity Signals
+
+| Signal | Threshold | RETRY message |
+|--------|-----------|---------------|
+| Deep nesting | 3+ levels in new code | "Flatten <function> — extract guard clauses or helper" |
+| Nested ternaries | 2+ chained | "Replace nested ternary at <file:line> with if/else or lookup" |
+| Boolean parameter flags | `fn(true, false, true)` pattern | "Replace boolean flags with options object or separate functions" |
+| Repeated conditionals | Same check in 3+ places in new code | "Extract repeated condition to named predicate" |
+
+### Naming Signals
+
+| Signal | Threshold | RETRY message |
+|--------|-----------|---------------|
+| Generic names in new code | `data`, `result`, `temp`, `item`, `val` as variable names | "Use descriptive name for <var> at <file:line> — what does it contain?" |
+| Misleading names | Function named `get*` that mutates state | "Rename <function> — name implies read-only but it mutates" |
+
+### Dead Code Signals
+
+| Signal | Threshold | RETRY message |
+|--------|-----------|---------------|
+| Unused imports introduced | Any | "Remove unused import <name> at <file:line>" |
+| Unreachable branches | Code after unconditional return/throw | "Remove unreachable code at <file:line>" |
+| Commented-out code blocks | Any in new code | "Remove commented-out code at <file:line> — use version control" |
+
+### LLM-Specific Bloat Signals
+
+| Signal | Threshold | RETRY message |
+|--------|-----------|---------------|
+| Config layer for one value | Options object with single key ever used | "Inline config value — single-key options object is unnecessary indirection" |
+| Abstract base with one impl | Interface with exactly one concrete class | "Remove abstraction — single implementation doesn't justify interface" |
+| Defensive null checks on non-nullable | `if (x != null)` where x is guaranteed by types/flow | "Remove unnecessary null check — <x> is guaranteed non-null by <reason>" |
+| Unnecessary async wrapper | `async function f() { return await g(); }` | "Remove async/await wrapper — return promise directly" |
+
+### Constraints
+
+- Simplification RETRY must NOT change acceptance criteria outcome — the simpler version must still satisfy the same criteria
+- If the "simpler" version would be harder to understand (e.g., removing a helper that names a concept), do not flag
+- When in doubt between flagging and not flagging: do not flag. Only flag when the simpler version is obviously correct and sufficient.
+- This is NOT about style preference. It's about catching the LLM tendency to bloat code with speculative flexibility.
 
 ## Diff-Based Verification
 
@@ -97,6 +138,18 @@ During repair re-evaluation (after RETRY → Generator fix → re-dispatch Evalu
 - Diff only the repair-relevant changes against the prior submission
 - If Generator's repair diff includes changes unrelated to `required_fixes`, flag as "scope expansion in repair" → RETRY with "repair introduced unrelated changes, revert non-fix modifications"
 - Repair should be surgical: fix exactly what was asked, nothing more
+
+## Review Severity Model
+
+Use this severity model for issue-level quality findings and for final review reports:
+
+| Severity | Meaning | Route effect |
+|----------|---------|--------------|
+| Critical | Real bug, security risk, data loss risk, broken build/test, or stop-condition failure | Do not PASS/SUCCESS |
+| Important | Likely reviewer-blocking issue, missing required regression test, or maintainability issue that will affect this plan's behavior | RETRY/REPAIR if bounded; otherwise PARTIAL |
+| Advisory | Style, naming, cleanup, or future improvement that does not affect the current plan outcome | Record only; do not block |
+
+Do not inflate Advisory findings into Important findings. Review cost is justified only when it prevents real regressions, not when it enforces taste.
 
 ## Evaluation Depth (scales with plan depth)
 
@@ -164,6 +217,12 @@ Explicit exclusions (these belong to other pipeline stages or future reviewers):
 - **Test coverage completeness** — Evaluator checks Test Expectation is met, not that coverage is 100%.
 - **Documentation quality** — unless the issue Action explicitly includes docs.
 - **Alternative implementations** — "could be done better with X" is not a RETRY reason.
+
+## Evaluator vs Final Review Gate
+
+Evaluator is the per-issue acceptance gate: it checks the issue Action, Target Areas, Acceptance Criteria, Required Evidence, Verification Hint, and obvious issue-local quality defects.
+
+The Final Review Gate is the whole-run review: it checks whether all passing issues compose cleanly, whether the final diff is reviewable, whether tests cover the changed behavior, and whether any security/test specialist pass is needed. Final review should be triggered by risk, not by habit.
 
 ## Structured Verdict Output
 

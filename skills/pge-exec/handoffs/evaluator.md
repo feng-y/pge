@@ -74,6 +74,7 @@ Deviations: <from generator_completion>
 4. **Check Acceptance Criteria** — each criterion individually. All must pass.
 5. **Check scope** — did Generator modify files outside Target Areas? If yes → BLOCK.
 6. **Check deviations** — are they justified? Do they violate the plan?
+7. **Check reviewability** — changed lines should trace to the issue Action or a justified deviation. Unrelated churn is RETRY or BLOCK according to scope severity.
 
 ## Hard Thresholds (automatic verdicts)
 
@@ -126,3 +127,7 @@ If Verification Type = MANUAL:
 - reason is present
 - If RETRY: required_fixes is present and specific
 - If BLOCK: reason explains why execution cannot continue
+
+## Relationship To Final Review
+
+Evaluator is the per-issue acceptance gate. It should catch missing evidence, failed verification, scope drift, and obvious quality defects in the issue. Cross-issue composition, whole-diff reviewability, and security/test specialist review belong to the pge-exec Final Review Gate after all issue verdicts pass.

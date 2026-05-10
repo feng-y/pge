@@ -49,6 +49,7 @@ digraph pge_exec {
   }
 
   plan_verify [label="Stop Condition Check"];
+  review_gate [label="Final Review Gate\n(triggered only)"];
   compound [label="Compound\n(accumulate learnings)"];
   route [label="Route + Teardown", shape=doublecircle];
 
@@ -65,7 +66,7 @@ digraph pge_exec {
   pass -> plan_verify [label="all done"];
   blocked -> dispatch_gen [label="non-blocking"];
   blocked -> route [label="blocking"];
-  plan_verify -> compound -> route;
+  plan_verify -> review_gate -> compound -> route;
 }
 ```
 
@@ -197,20 +198,44 @@ Legacy `HITL` (no subtype) → treat as `HITL:decision`.
 - Scope drift (files outside Target Areas) → BLOCK
 - Hard threshold: if Generator self-reports BLOCKED, Evaluator must not override to PASS
 - Adversarial mode: for Security + DEEP issues, actively construct failure scenarios
+- Simplification pressure: deep nesting, generic names, dead code, unnecessary abstractions in new code → RETRY
 - Structured verdict output: machine-parseable format with confidence score
 - Confidence anchors: 100 (mechanical) / 75 (traceable) / 50 (conditional) / below 50 (suppress)
 
-### Reviewer Agent (optional, DEEP tasks)
+### Final Review Gate (triggered)
 
-For DEEP tasks (>3 files, cross-module), orchestrator MAY spawn a separate `reviewer` agent after Evaluator PASS to do a final code-quality review over the entire implementation. This is the CE/Superpowers "final reviewer" pattern.
+Evaluator validates each issue against its acceptance criteria. The final review gate reviews the whole diff and cross-issue integration after all issue Evaluator verdicts pass.
 
-When to spawn reviewer:
-- All issues PASS + plan has 3+ issues + any issue touches shared interfaces
-- Reviewer is read-only — cannot change verdict, only surface advisory findings
-- Reviewer findings go to learnings.md (compound), not back to repair loop
-- Reviewer does NOT block SUCCESS route — it's advisory for future improvement
+Run the final review gate when any trigger is true:
+- Plan has 3+ issues
+- The run changes 4+ files or 2+ modules
+- Any issue touches shared/public interfaces, schemas, build config, CI, auth, permissions, data access, or secrets
+- Any issue has `Security: yes`
+- The user explicitly requested review
 
-This is optional and not part of the core G+E loop. It's a quality signal, not a gate.
+Skip the gate for LIGHT runs when all are true: 1-2 files changed, no shared interface, no security-sensitive surface, automated verification passed, and no justified drift.
+
+Review shape:
+- Default: spawn `pge-code-reviewer` (read `agents/pge-code-reviewer.md`) over the final diff, run artifacts, and plan stop condition.
+- For runs with 4+ files changed or any issue touching complex logic: spawn `pge-code-simplifier` (read `agents/pge-code-simplifier.md`) in parallel with the code reviewer.
+- For security-sensitive or test-heavy DEEP runs, main MAY additionally fan out to at most one specialist read-only reviewer (`security` or `test`) only when its report can run in parallel and be synthesized compactly.
+- Do not run broad multi-agent review for simple diffs; review overhead must buy real risk reduction.
+- Maximum 3 review agents total per run. Typical: 1-2.
+
+Review axes:
+- Correctness: behavior still satisfies the plan after all issues compose.
+- Test adequacy: required happy/edge/error paths were verified; bug fixes have regression coverage when applicable.
+- Scope and reviewability: diff is explainable, bounded, and free of unrelated churn.
+- Maintainability: implementation follows existing repo patterns without speculative abstractions.
+- Security: only when the change touches trust boundaries, data access, secrets, auth, permissions, or external input.
+- Performance/reliability: only when the plan or changed surface makes it relevant.
+
+Finding handling:
+- **Critical:** real bug, security risk, data loss risk, broken build/test, or stop-condition failure. Do not route SUCCESS. If repair is inside the same plan and retry budget remains, send a bounded repair request; otherwise route PARTIAL/BLOCKED with evidence.
+- **Important:** likely reviewer-blocking issue or missing required regression test. Repair if it is inside the same plan and bounded; otherwise route PARTIAL with a follow-up.
+- **Advisory:** improvement, naming, style, or future cleanup. Do not block SUCCESS; record in `learnings.md`.
+
+Write the synthesized review to `.pge/tasks-<slug>/runs/<run_id>/review.md` when the gate runs. The report should include trigger, files reviewed, verdict (`PASS | REPAIR_REQUIRED | ADVISORY_ONLY | BLOCKED`), findings by severity, and exact file/line evidence.
 
 ---
 
@@ -226,6 +251,10 @@ After all issues processed, check plan's Stop Condition:
 **Integration verification:** If the plan touches 3+ files across 2+ modules, run an integration-level check beyond individual issue verification (full test suite, app startup, or plan-specified integration command). Record result in manifest.
 
 **Regression check:** After all per-issue evaluations pass, re-run Verification Hints from prior PASS issues to confirm they still pass. If any regressed (a later issue broke an earlier issue's deliverable), route PARTIAL with the regression evidence. This catches cross-issue side effects that per-issue evaluation misses.
+
+### Final Review
+
+After Stop Condition, integration verification, and regression checks pass, run the Final Review Gate if triggered. `SUCCESS` requires the gate to be skipped or to return PASS / ADVISORY_ONLY. REPAIR_REQUIRED must either be repaired inside the current bounded plan or route PARTIAL. BLOCKED prevents SUCCESS.
 
 ### Compound (Accumulate Learnings)
 
@@ -264,8 +293,8 @@ Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
 
 ### Route
 
-- `SUCCESS`: all issues PASS + Stop Condition passes
-- `PARTIAL`: some progress, some blocked
+- `SUCCESS`: all issues PASS + Stop Condition passes + final review skipped/PASS/ADVISORY_ONLY
+- `PARTIAL`: some progress, some blocked, or final review found bounded unresolved issues
 - `BLOCKED`: no issues could complete
 - `NEEDS_HUMAN`: HITL decision required
 
@@ -304,6 +333,7 @@ For test: minimal dispatch, no handoff file reads. Uses legacy `.pge/runs/` path
         ├── manifest.md         — run metadata + issue results
         ├── evidence/           — per-issue evidence
         ├── deliverables/       — actual deliverables
+        ├── review.md           — final review report when review gate runs
         └── learnings.md        — compound learnings
 
 Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
@@ -320,6 +350,7 @@ Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
 - issues_blocked: N
 - issues_total: N
 - stop_condition: passed | failed | not_checked
+- final_review: skipped | pass | advisory_only | repair_required | blocked
 - learnings_recorded: yes | no
 - artifacts: .pge/tasks-<slug>/runs/<run_id>/ | .pge/runs/<run_id>/
 - next: done | pge-plan (if blocked) | user decision (if HITL)

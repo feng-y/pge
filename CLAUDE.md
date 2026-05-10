@@ -36,7 +36,11 @@ Research/reference (may inform design, must not override active skill truth):
 
 Legacy (archived, do not treat as active runtime):
 - `skills/pge-execute/` — superseded by `pge-exec`
-- `agents/pge-*.md` — role-spec material, not active orchestration
+- `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` — role-spec material, not active orchestration
+
+Review agents (active, spawned by pge-exec Final Review Gate):
+- `agents/pge-code-reviewer.md` — 5-axis code review
+- `agents/pge-code-simplifier.md` — simplification pressure
 
 ## Work discipline
 
