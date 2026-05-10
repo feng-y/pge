@@ -1,6 +1,6 @@
 # PGE TODO
 
-Updated: 2026-04-28
+Updated: 2026-05-10
 
 This file tracks what is still missing before `pge-execute` can claim stronger alignment with Anthropic-style long-running harness behavior.
 
@@ -8,6 +8,8 @@ Right now PGE should be treated as structurally similar in some places, but stil
 
 ## Current truth
 
+- `setup` is warmup/scaffolding, not a core execution phase.
+- The active core phase chain is `research -> plan -> exec`.
 - The current executable runtime is still one implementation round.
 - `retry`, `continue`, and `return_to_planner` are defined as canonical routes, but they are not automatically redispatched yet.
 - Durable truth is artifact-backed state and progress, not chat history.
@@ -42,6 +44,11 @@ These are the five primary checks that matter most for honest alignment with the
    - Gap: recovery semantics exist; long-running executable loops do not.
 
 ## TODO
+
+- [x] Integrate `pge-research` into the downstream chain.
+  - Teach `pge-plan` to consume `.pge/tasks-<slug>/research.md` when present.
+  - Preserve clean handoff semantics from `research -> plan -> exec`.
+  - Keep `setup` as warmup/scaffolding rather than letting it re-expand into a core phase.
 
 - [ ] Run a fresh real-Team smoke proof for the current thin-skill architecture.
   - Prove `planner -> pge-planner`, `generator -> pge-generator`, `evaluator -> pge-evaluator`.

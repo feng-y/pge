@@ -18,25 +18,15 @@ Scaffold the repo-local configuration that later PGE skills assume.
 
 This is a prompt-driven setup skill, not a deterministic installer. Explore the repo, detect existing conventions, present findings and recommended defaults, ask only critical questions, then write `.pge/config/*`.
 
-`pge-setup` exists so `pge-plan` and `pge-exec` do not repeatedly guess this repo's planning, routing, documentation, artifact, and verification conventions.
+`pge-setup` exists so `pge-research`, `pge-plan`, and `pge-exec` do not repeatedly guess this repo's planning, routing, documentation, artifact, and verification conventions.
 
-## Positioning
+## Anti-Pattern: "Let Me Set Up Everything Perfectly"
 
-`pge-setup` is:
+Setup is warmup, not a core phase. Write enough config for downstream skills to work, then stop. Missing optional docs are not blockers. Unconfirmed verification commands are recorded as unconfirmed, not invented. Perfection here delays actual work.
 
-- a repo convention discovery workflow
-- a config scaffolder for `.pge/config/*`
-- a guardrail writer for downstream PGE skills
-- a one-time or occasional setup aid
+## Anti-Pattern: "Setup Must Run First"
 
-`pge-setup` is not:
-
-- an install script
-- an SDK runtime initializer
-- a Planner / Generator / Evaluator orchestrator
-- a plan generator
-- an execution controller
-- a ceremony that must run before every PGE task
+Setup is recommended for complex or repo-wide work, but it is not a ceremony. `pge-research` and `pge-plan` can degrade gracefully without it. Do not block the user from starting work just because setup hasn't run.
 
 ## Core Influence
 
@@ -118,6 +108,7 @@ Default PGE state vocabulary:
 Default downstream artifact roots:
 
 - setup config: `.pge/config/*`
+- research briefs: `.pge/tasks-<slug>/research.md`
 - plans / backlog: `.pge/plans/<plan_id>.md`
 - runs: `.pge/runs/<run_id>/*`
 - concurrent worker records: `.pge/runs/<run_id>/workers/issue-<NNN>/*`
@@ -186,10 +177,11 @@ Status meanings:
 When setup is ready or partial, suggest:
 
 ```text
-next_skill: pge-plan
+next_skill: pge-research (when intent is fuzzy or multiple approaches exist)
+next_skill: pge-plan (when intent is already clear)
 ```
 
-Do not invoke `pge-plan`.
+Do not invoke `pge-research` or `pge-plan`.
 
 ## Artifact Contracts
 
@@ -276,6 +268,7 @@ Required layout:
 
 ```text
 .pge/config/*
+.pge/tasks-<slug>/research.md
 .pge/plans/<plan_id>.md
 .pge/runs/<run_id>/*
 ```
@@ -393,18 +386,10 @@ Hard dependency rule for `pge-exec`:
 Do not:
 
 - write business code
-- generate a PGE plan
-- execute a PGE plan
-- call `TeamCreate`
-- call `TeamDelete` for PGE setup
-- use `SendMessage` as teammate progression
-- dispatch `pge-planner`, `pge-generator`, or `pge-evaluator`
-- create a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator
-- claim SDK runtime setup is complete
-- initialize, implement, or invoke an SDK runner
+- generate or execute a PGE plan
 - require setup as ceremony before every task
 - output `PASS`, `MERGED`, or `SHIPPED`
-- modify `pge-plan` or `pge-exec` skill files
+- modify skill files for `pge-research`, `pge-plan`, or `pge-exec`
 
 ## Final Response
 
@@ -426,7 +411,7 @@ After writing config files, return:
 - plan_location: .pge/plans/
 - route_vocabulary: READY_FOR_PLAN, READY_FOR_EXECUTE, DONE_NEEDS_REVIEW, RETRY_RECOMMENDED, NEEDS_INFO, BLOCKED, NEEDS_HUMAN, NEEDS_MAIN_DECISION
 - critical_gaps: <None or short list>
-- next_skill: pge-plan
+- next_skill: pge-research (fuzzy intent) or pge-plan (clear intent)
 ```
 
 If setup is blocked, include the one critical question or blocker instead of guessing.

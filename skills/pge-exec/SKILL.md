@@ -21,14 +21,17 @@ allowed-tools:
 
 It reads repo-local PGE configuration, reads one plan artifact, advances from the smallest unfinished numbered issue, optionally executes a narrow adjacent issue window with bounded workers, gathers evidence, applies lightweight gates, and writes the next route.
 
-`pge-exec` is not:
+## Anti-Pattern: "Let Me Replan While Executing"
 
-- a TDD skill
-- a full PGE runtime
-- an SDK runner
-- a Claude Code Agent Teams orchestrator
-- an independent evaluator
-- final PASS authority
+Execution is not planning. If you discover the plan is wrong, route to `NEEDS_MAIN_DECISION` with evidence. Do not silently change direction, expand scope, or rewrite the approach mid-issue.
+
+## Anti-Pattern: "Let Me Fix Everything I See"
+
+Stay inside the assigned issue's scope and target areas. Nearby code may have problems, but fixing them is scope creep. Record observations in the self-review if they matter for future work.
+
+## Anti-Pattern: "Repair Forever"
+
+Two repair attempts is the default budget. If the fix isn't working after two tries, the problem is likely architectural, not a typo. Route to `RETRY_RECOMMENDED` and let a human or re-plan decide.
 
 TDD is only one possible execution mode when the plan and issue shape justify it.
 
@@ -78,10 +81,11 @@ Load:
 
 - `.pge/config/*`
 - `.pge/plans/<plan_id>.md`
+- `.pge/tasks-<slug>/research.md` if referenced by the plan's `research_brief_ref`
 - `git status --short`
 - current repo files relevant to the next issue
 
-Use docs-policy to decide what to read. Keep context proportional to the current execution window.
+Use docs-policy to decide what to read. Keep context proportional to the current execution window. The research brief is reference context only — do not re-derive the plan from it.
 
 ### 2. Preflight
 
@@ -447,21 +451,11 @@ Handling:
 
 Do not:
 
-- implement an SDK runner
-- call `TeamCreate`
-- use Claude Code Agent Teams orchestration
-- restore a Planner / Generator / Evaluator orchestrator
-- add a separate `pge-eval`
-- auto merge
-- auto tag
-- auto ship
-- output `PASS`
-- output `MERGED`
-- output `SHIPPED`
+- auto merge, auto tag, or auto ship
+- output `PASS`, `MERGED`, or `SHIPPED`
 - freely choose issues out of order
 - skip the smallest unfinished issue
-- let workers decide concurrency
-- let workers change the plan
+- let workers decide concurrency or change the plan
 - treat `DONE_NEEDS_REVIEW` as final approval
 - overwrite unrelated dirty changes
 - revert user work without explicit permission

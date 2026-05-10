@@ -1,0 +1,23 @@
+{
+  "skill_name": "pge-plan",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a plan for adding a dark mode toggle. Research brief exists at .pge/tasks-dark-mode/research.md with research_route: READY_FOR_PLAN, one recommended approach (CSS custom properties), affected areas (3 files), and no blocking questions.",
+      "expected_output": "Consumes the research brief as-is. Adopts the recommended approach without re-brainstorming. Engineering review is present but lightweight (scope challenge confirms minimal change set, no complexity gate triggered). Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
+      "dimensions": ["input_adaptation", "engineering_review_scaling", "issue_decomposition"]
+    },
+    {
+      "id": 2,
+      "prompt": "Create a plan for migrating the database layer from raw SQL to an ORM. Research brief exists with 3 options (Prisma, Drizzle, raw query builder), recommendation is Drizzle, affected areas span 12 files across 4 modules, and there is one non-blocking open question about test fixtures.",
+      "expected_output": "Consumes research brief. Engineering review is substantive: scope challenge questions whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers (12 files). Existing solutions check looks for prior art. May propose phased approach as scope reduction. Issues reflect the engineering review findings.",
+      "dimensions": ["engineering_review_depth", "complexity_gate", "scope_challenge"]
+    },
+    {
+      "id": 3,
+      "prompt": "Create a plan for adding user authentication, session management, role-based access control, audit logging, and SSO integration to a simple CRUD app that currently has no auth.",
+      "expected_output": "Engineering review scope challenge flags this as over-scoped for a single plan. Should either decompose into multiple plans or propose a phased approach where only core auth ships first. Should NOT produce 15+ issues covering everything. Complexity gate definitely triggers. Plan may route to NEEDS_HUMAN if scope decision is needed.",
+      "dimensions": ["scope_challenge", "anti_pattern_detection", "complexity_gate"]
+    }
+  ]
+}

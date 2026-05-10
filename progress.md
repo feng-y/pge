@@ -1,6 +1,6 @@
 # PGE Harness Progress
 
-Updated: 2026-04-28
+Updated: 2026-05-10
 
 ## Local harness reference
 
@@ -42,7 +42,26 @@ Current runtime invariants:
 
 ## Current development state
 
-Status: P0 complete, P1a verified, P1b implemented in skill/runtime docs and under validation.
+Status: `pge-research` landed and tuned; `pge-plan` restructured to 4-phase model with integrated engineering review; active phase chain is now `research -> plan -> exec`, with `setup` treated as warmup/scaffolding rather than a core phase.
+
+Completed:
+- Restructured `pge-plan` from 10-step linear workflow to 4-phase model: Input Adaptation → Approach Research + Engineering Review → Plan Synthesis → Task Output.
+- Integrated gstack plan-eng-review functionality: Scope Challenge, Architecture Assessment, Existing Solutions Check, Complexity Gate.
+- Added `## Engineering Review` section to plan artifact template (Scope Challenge, Architecture Assessment, Approach Decision).
+- Plan now requires structured upstream input (research brief, plan mode output, or self-research Agent) — does not start from bare conversation.
+- Added 5th anti-pattern: "Skip The Engineering Review For Simple Tasks".
+- Created `evals/evals.json` with 3 eval cases (simple/complex/over-scoped).
+- Created `TUNING_LOG.md` with Round 1 evaluation results (all 3 cases pass).
+- Version bumped to 0.2.0.
+
+Completed:
+- Added `skills/pge-research/` as the new front-end research phase for PGE.
+- Registered `pge-research` in `.claude-plugin/plugin.json`.
+- Added `skills/pge-research/templates/brief.md`, `references/examples.md`, `evals/evals.json`, `TODO.md`, and `TUNING_LOG.md`.
+- Added `docs/design/pge-research-design.md` to capture the research-stage design and best-practice synthesis.
+- Tuned `pge-research` against baseline behavior using iterative evals for three cases: simple repo-grounded intent, ambiguous intent, and over-scoped intent.
+- Verified that `pge-research` now produces explicit `research_route` outcomes (`READY_FOR_PLAN`, `NEEDS_INFO`, `BLOCKED`) and correctly treats explicit user uncertainty as intent ambiguity.
+- Verified that the ambiguity trigger does not over-fire on simple or repo-mismatch cases.
 
 Completed:
 
