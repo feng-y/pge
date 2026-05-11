@@ -15,8 +15,8 @@ timestamp: 2026-05-11T00:30:00+08:00
 
 ### Artifact Layout 统一
 - 所有 skill 统一到 `.pge/tasks-<slug>/` 为 preferred，`.pge/plans/` 和 `.pge/runs/` 降级为 legacy fallback
-- pge-setup / pge-plan / pge-exec 三者路径契约一致
-- CLAUDE.md workflow authority 更新覆盖全部 5 个 active skills
+- pge-research / pge-plan / pge-exec 三者路径契约一致
+- CLAUDE.md workflow authority 更新覆盖全部 active skills
 
 ### Review/Eval 加强
 - pge-research: 加入 grill-with-docs 7 点 adversarial self-challenge（含 downstream simulation）

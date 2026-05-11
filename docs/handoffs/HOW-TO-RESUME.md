@@ -48,7 +48,7 @@ New session 开头说：
 
 ## Current Design State
 
-PGE 管线：pge-setup → pge-research → pge-plan → pge-exec → pge-handoff + pge-html (utility)
+PGE 管线：pge-research → pge-plan → pge-exec → pge-handoff + pge-html (utility)
 
 核心架构决策（已固定）：
 - Generator + Evaluator 分离（不是 3 agent）
