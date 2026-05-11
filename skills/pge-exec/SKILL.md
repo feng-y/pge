@@ -42,14 +42,16 @@ digraph pge_exec {
 
   load_plan [label="Load Plan"];
   validate [label="Validate\n(READY_FOR_EXECUTE?)"];
-  create_team [label="Create Team\n(generator + evaluator)"];
+  group [label="Analyze Dependencies\n+ Target Areas"];
+  create_team [label="Create Team\n(1-3 generators + evaluator)"];
 
   subgraph cluster_loop {
-    label="Per-Issue Loop";
+    label="Per-Issue Loop (with pipeline)";
     style=dashed;
     dispatch_gen [label="Dispatch Generator\n(handoffs/generator.md)"];
     gen_done [label="Generator?", shape=diamond];
     dispatch_eval [label="Dispatch Evaluator\n(handoffs/evaluator.md)"];
+    pipeline_check [label="Next independent?", shape=diamond];
     verdict [label="Verdict?", shape=diamond];
     repair [label="Repair\n(required_fixes)"];
     pass [label="Issue PASS"];
@@ -61,10 +63,13 @@ digraph pge_exec {
   compound [label="Compound\n(accumulate learnings)"];
   route [label="Route + Teardown", shape=doublecircle];
 
-  load_plan -> validate -> create_team -> dispatch_gen;
+  load_plan -> validate -> group -> create_team -> dispatch_gen;
   dispatch_gen -> gen_done;
   gen_done -> dispatch_eval [label="READY"];
   gen_done -> blocked [label="BLOCKED"];
+  dispatch_eval -> pipeline_check;
+  pipeline_check -> dispatch_gen [label="yes: start next\n(overlap E+G)"];
+  pipeline_check -> verdict [label="no: wait"];
   dispatch_eval -> verdict;
   verdict -> pass [label="PASS"];
   verdict -> repair [label="RETRY (< 3)"];
@@ -124,21 +129,32 @@ Default team composition:
 - Cap: max 3 generators. Each generator claims issues from the plan; main assigns non-overlapping issue sets at dispatch time.
 - Only scale when issues have no dependency AND no Target Areas overlap between assigned sets.
 - If scaling conditions are not met: stay with 1 generator (default behavior).
+- **Deviation under scaling**: if a generator needs to touch a file outside its assigned Target Areas, it must report BLOCKED with reason "cross-assignment deviation needed: <file>" rather than proceeding. Main reassigns the issue to the generator that owns that file's Target Areas, or queues it for serial execution after the current wave.
+- **Evaluation ordering**: evaluate in issue-ID order regardless of generator completion order. This keeps the evaluation sequence deterministic and debuggable.
 
 No Planner. The plan IS the frozen contract.
 
 ### Pipeline Parallelism
 
-When the next issue has NO dependency on the current issue:
-- After Generator completes issue N, dispatch Evaluator for N **and** dispatch Generator for N+1 simultaneously.
-- Generator does not wait for Evaluator's verdict on N before starting N+1.
-- If Evaluator returns RETRY on issue N: pause Generator's work on N+1, send repair request for N, resume N+1 only after N passes.
-- If Evaluator returns BLOCK on issue N and N+1 depends on N: mark N+1 BLOCKED.
+Default execution is serial: dispatch Generator, wait for completion, dispatch Evaluator, wait for verdict, then next issue. Pipeline parallelism overlaps evaluation with the next generation when safe.
 
-When the next issue DEPENDS on the current issue:
-- Wait for Evaluator PASS on current issue before dispatching Generator for next issue (current serial behavior).
+**Activation conditions** (ALL must be true for the next issue):
+- Next issue has NO dependency on current issue
+- Next issue's Target Areas do NOT overlap with current issue's Target Areas
+- Current issue's Generator completed successfully (status READY, not BLOCKED)
 
-This eliminates evaluator wait time (~30-60s per issue) for independent issues without any file safety risk.
+**When activated:**
+- After Generator completes issue N, dispatch Evaluator for N and simultaneously dispatch Generator for N+1.
+- This overlaps E(N) with G(N+1) — evaluator checks N while generator works on N+1.
+- Generator does NOT need to be paused. If E(N) returns PASS: continue normally. If E(N) returns RETRY: let G(N+1) finish naturally, hold its result, repair N, re-evaluate N, then evaluate N+1's held result.
+- If E(N) returns BLOCK: let G(N+1) finish. If N+1 does not depend on N, evaluate N+1 normally. If N+1 depends on N, mark N+1 BLOCKED.
+
+**When NOT activated:**
+- Next issue depends on current issue → wait for E(N) PASS before dispatching G(N+1)
+- Next issue's Target Areas overlap with current issue → wait (file safety)
+- Current issue BLOCKED → skip to next eligible issue
+
+This eliminates evaluator wait time (~30-60s per issue) for independent issues without requiring pause/interrupt semantics.
 
 ### State Persistence
 
@@ -148,18 +164,21 @@ After each issue verdict (PASS or BLOCKED), write/update `runs/<run_id>/state.js
 {
   "run_id": "<run_id>",
   "plan_id": "<plan_id>",
+  "generators": ["generator"],
   "issues": {
     "1": {"status": "PASS", "attempts": 1},
-    "2": {"status": "BLOCKED", "reason": "...", "attempts": 2},
-    "3": {"status": "PENDING"}
+    "2": {"status": "EVALUATING", "attempts": 1, "generator": "generator"},
+    "3": {"status": "GENERATING", "attempts": 0, "generator": "generator"},
+    "4": {"status": "PENDING", "attempts": 0},
+    "5": {"status": "BLOCKED", "reason": "...", "attempts": 2}
   },
-  "last_completed_issue": 1,
-  "next_issue": 3,
   "route": "IN_PROGRESS"
 }
 ```
 
-This is written after EVERY issue verdict — not batched at the end. If the session dies, the next invocation reads this file and resumes.
+Status values: `PENDING`, `GENERATING`, `EVALUATING`, `PASS`, `BLOCKED`, `HELD` (pipelined, waiting for prior issue verdict).
+
+This is written after EVERY state transition — not batched at the end. If the session dies, the next invocation reads this file. In-flight issues (`GENERATING`, `EVALUATING`, `HELD`) are treated as `PENDING` on resume (work is re-executed from scratch — safe but costs one re-run).
 
 ### Session Hygiene
 
@@ -180,11 +199,11 @@ For each issue in order:
 2. **Build execution pack**: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, relevant assumptions, dependencies, and directly needed repo context. Do not send whole research logs or unrelated prior issue evidence.
 3. **Dispatch Generator**: send the execution pack. Wait for `generator_completion`.
 4. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
-5. **Dispatch Evaluator**: issue criteria (Acceptance Criteria, Required Evidence, Verification Hint, Verification Type) + Generator evidence. If next issue is independent: dispatch Generator for next issue simultaneously (pipeline parallelism). Otherwise: wait for `evaluator_verdict`.
+5. **Dispatch Evaluator + Pipeline check**: dispatch Evaluator with issue criteria + Generator evidence. If pipeline conditions are met for the next issue (no dependency, no Target Areas overlap): dispatch Generator for next issue simultaneously. Otherwise: wait for `evaluator_verdict` before proceeding.
 6. **Verdict**:
-   - PASS → mark done, continue (next issue already in progress if pipelined, otherwise dispatch next)
-   - RETRY → if pipelined: pause next issue's Generator, send `required_fixes` for current issue (max 3 per issue), re-evaluate, then resume next
-   - BLOCK → mark BLOCKED, record reason. If pipelined next issue depends on this: mark it BLOCKED too.
+   - PASS → mark done. If next issue already generating (pipelined): continue to its evaluation when ready. Otherwise: dispatch next issue.
+   - RETRY → send `required_fixes` to Generator (max 3 per issue), re-evaluate. If next issue was pipelined: let it finish, hold its result until current issue resolves.
+   - BLOCK → mark BLOCKED, record reason. If pipelined next issue does not depend on this: evaluate it normally when ready. If it depends: mark BLOCKED.
 7. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
 
 ### Rewind-Style Retry
