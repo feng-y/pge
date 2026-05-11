@@ -34,13 +34,27 @@ Convert Markdown files into polished, self-contained HTML pages. Standalone util
 ## Process
 
 1. Read the source file(s)
-2. Determine style from argument or content:
-   - `minimal` — clean typography, no frills, fast to generate
-   - `rich` — color-coded sections, SVG diagrams, navigation sidebar
-   - `dashboard` — cards, metrics, status indicators (for run manifests/learnings)
-3. Generate a single self-contained HTML file (inline CSS, no external deps)
-4. Write to same directory as source: `<filename>.html`
-5. If `--open` specified, open in browser via `open` or `xdg-open`
+2. Determine style — explicit `--style` overrides auto-detection:
+
+### Auto-Detection Rules
+
+| Signal in source file | Style | Template |
+|---|---|---|
+| Contains `status:`, `verdict:`, `issues_passed:`, or table with PASS/BLOCK/RETRY | `dashboard` | status-report.html |
+| Contains `## Options`, `## Findings`, `research_route:` | `rich` | research-explainer.html |
+| Contains `## Slices`, `Issue N:`, `Action:`, `Target Areas:` | `rich` | implementation-plan.html |
+| Contains `digraph`, `graph {`, or mermaid fences | `rich` | flowchart-diagram.html |
+| File is under `.pge/tasks-*/runs/` | `dashboard` | status-report.html |
+| File is `research.md` or under `.pge/tasks-*/` with findings | `rich` | research-explainer.html |
+| File is `plan.md` | `rich` | implementation-plan.html |
+| None of the above | `minimal` | (no template, clean typography) |
+
+When multiple signals match, prefer the first match in the table above.
+
+3. Read the matched template from `templates/` as quality reference
+4. Generate a single self-contained HTML file (inline CSS, no external deps)
+5. Write to same directory as source: `<filename>.html`
+6. If `--open` specified, open in browser via `open` or `xdg-open`
 
 ## Design Principles
 
