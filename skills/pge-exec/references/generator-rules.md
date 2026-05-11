@@ -104,6 +104,24 @@ Before starting implementation on any issue:
 
 This prevents silently overwriting user's uncommitted work.
 
+## Read Before Write
+
+Before adding code to any file:
+1. Read the file's exports and the immediate caller(s) that use them.
+2. Check for shared utilities nearby that already do what you're about to write.
+3. If two patterns exist in the codebase for the same thing (e.g., async/await vs callbacks, class vs hooks), pick the one used in the Target Area files — don't blend both.
+
+"Looks orthogonal to me" is the most dangerous assumption. If you don't understand why existing code is structured a certain way, read one more file before adding to it.
+
+## Match Codebase Conventions
+
+Conformance > taste inside the codebase:
+- If the codebase uses snake_case, use snake_case — even if you'd prefer camelCase.
+- If the codebase has a specific error-handling pattern, follow it — even if you know a "better" one.
+- If two conventions conflict, pick the one used in the Target Area files (most local wins).
+
+Introducing a second pattern is worse than either pattern alone. If you genuinely think a convention is harmful, record it in `deferred_items` — don't fork it silently during execution.
+
 ## Scope Boundary
 
 - Only modify files listed in the issue's Target Areas
