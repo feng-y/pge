@@ -44,8 +44,6 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 ### Utilities
 
-- **[`/pge-setup`](./skills/pge-setup/SKILL.md)** — Scaffold the repo-local `.pge/config/*` configuration that planning and execution assume. Detects existing conventions (backlog backend, verification policy, artifact layout, docs policy) and writes config. Run once per repo.
-
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Save session state and extract knowledge to the repo knowledge layer. Three modes: `save` (checkpoint state), `extract` (knowledge → repo docs), `restore` (resume from checkpoint). Use between sessions or after completing a plan.
 
 - **[`/pge-html`](./skills/pge-html/SKILL.md)** — Generate visual HTML artifacts (diagrams, reports, plans) from structured data.

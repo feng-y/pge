@@ -13,16 +13,14 @@ Do not treat strategy docs as permission to expand harness theory during normal 
 Before non-trivial work, read in this order:
 
 1. `README.md`
-2. `skills/pge-setup/SKILL.md`
-3. `skills/pge-research/SKILL.md`
-4. `skills/pge-plan/SKILL.md`
-5. `skills/pge-exec/SKILL.md`
-6. `skills/pge-handoff/SKILL.md`
+2. `skills/pge-research/SKILL.md`
+3. `skills/pge-plan/SKILL.md`
+4. `skills/pge-exec/SKILL.md`
+5. `skills/pge-handoff/SKILL.md`
 
 ## Truth hierarchy
 
 Active skill surfaces (authoritative):
-- `skills/pge-setup/SKILL.md`
 - `skills/pge-research/SKILL.md`
 - `skills/pge-plan/SKILL.md`
 - `skills/pge-exec/SKILL.md`
@@ -36,6 +34,7 @@ Research/reference (may inform design, must not override active skill truth):
 
 Legacy (archived, do not treat as active runtime):
 - `skills/pge-execute/` — removed (superseded by `pge-exec`)
+- `skills/pge-setup/` — removed (unnecessary; .pge/ directory created by pipeline skills on demand)
 - `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` — removed (superseded by `pge-exec` handoffs + references)
 
 Review agents (active, spawned by pge-exec Final Review Gate):
@@ -59,7 +58,7 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 
 ## Workflow authority
 
-- `pge-setup`, `pge-research`, `pge-plan`, `pge-exec`, and `pge-handoff` are the active workflow surfaces.
+- `pge-research`, `pge-plan`, `pge-exec`, and `pge-handoff` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions.
 - `pge-research` owns evidence gathering and ambiguity resolution.
 - `pge-handoff` owns state persistence and knowledge extraction.

@@ -1,7 +1,7 @@
 {
   "name": "pge",
   "version": "0.1.5",
-  "description": "Setup, plan, and execute bounded repo-local work for Claude Code.",
+  "description": "Research, plan, and execute bounded repo-local work for Claude Code.",
   "author": {
     "name": "PGE contributors"
   },
@@ -11,7 +11,6 @@
     "./agents/pge-code-simplifier.md"
   ],
   "skill_directories": [
-    "pge-setup",
     "pge-research",
     "pge-plan",
     "pge-exec",
@@ -26,7 +25,8 @@
   ],
   "legacy_cleanup": {
     "skills": [
-      "pge-execute"
+      "pge-execute",
+      "pge-setup"
     ],
     "agents": [
       "pge-planner.md",

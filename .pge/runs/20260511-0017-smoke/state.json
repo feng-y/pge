@@ -1,9 +1,0 @@
-{
-  "run_id": "20260511-0017-smoke",
-  "plan_id": "inline-smoke-test",
-  "generators": ["generator"],
-  "issues": {
-    "1": {"status": "PASS", "attempts": 1}
-  },
-  "route": "SUCCESS"
-}

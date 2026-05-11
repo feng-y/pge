@@ -40,9 +40,7 @@ for file in \
   CLAUDE.md \
   AGENTS.md \
   .claude-plugin/plugin.json \
-  .claude-plugin/marketplace.json \
   bin/pge-local-install.sh \
-  skills/pge-setup/SKILL.md \
   skills/pge-research/SKILL.md \
   skills/pge-plan/SKILL.md \
   skills/pge-exec/SKILL.md \
@@ -53,11 +51,10 @@ done
 
 require_absent_file progress.md
 require_absent_file ISSUES.md
+require_absent_file skills/pge-setup/SKILL.md
 
 require_pattern README.md 'pge-research → pge-plan → pge-exec' \
   "README core pipeline"
-require_pattern README.md 'skills/pge-setup/SKILL.md' \
-  "README pge-setup surface"
 require_pattern README.md 'skills/pge-research/SKILL.md' \
   "README pge-research surface"
 require_pattern README.md 'skills/pge-plan/SKILL.md' \
@@ -87,7 +84,7 @@ require_absent_pattern AGENTS.md 'docs/exec-plans/CURRENT_MAINLINE\.md|docs/exec
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
   "plugin skill directory allowlist"
-for skill in pge-setup pge-research pge-plan pge-exec pge-handoff; do
+for skill in pge-research pge-plan pge-exec pge-handoff; do
   require_pattern .claude-plugin/plugin.json "\"${skill}\"" \
     "plugin ${skill} skill"
 done
@@ -102,7 +99,6 @@ require_pattern bin/pge-local-install.sh 'legacy_cleanup' \
   "local install legacy cleanup support"
 
 for active_skill in \
-  skills/pge-setup/SKILL.md \
   skills/pge-research/SKILL.md \
   skills/pge-plan/SKILL.md \
   skills/pge-exec/SKILL.md \
@@ -113,23 +109,6 @@ do
   require_absent_pattern "$active_skill" 'MERGED[^`]*as status|SHIPPED[^`]*as status' \
     "forbidden shipped/merged status in $active_skill"
 done
-
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/repo-profile\.md' \
-  "pge-setup repo profile artifact"
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/backlog-policy\.md' \
-  "pge-setup backlog policy artifact"
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/docs-policy\.md' \
-  "pge-setup docs policy artifact"
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/artifact-layout\.md' \
-  "pge-setup artifact layout artifact"
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/verification\.md' \
-  "pge-setup verification artifact"
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/route-policy\.md' \
-  "pge-setup route policy artifact"
-require_pattern skills/pge-setup/SKILL.md '\.pge/config/open-gaps\.md' \
-  "pge-setup open gaps artifact"
-require_pattern skills/pge-setup/SKILL.md 'SETUP_READY' \
-  "pge-setup ready status"
 
 require_pattern skills/pge-research/SKILL.md '\.pge/tasks-<slug>/research\.md' \
   "pge-research task artifact"
@@ -161,8 +140,6 @@ require_pattern skills/pge-exec/SKILL.md 'state\.json' \
   "pge-exec resume state"
 require_pattern skills/pge-exec/SKILL.md 'learnings\.md' \
   "pge-exec learnings artifact"
-require_pattern skills/pge-exec/SKILL.md 'Output PASS/MERGED/SHIPPED as route' \
-  "pge-exec forbidden route claims"
 
 require_pattern skills/pge-handoff/SKILL.md '\.pge/handoffs/<YYYYMMDD-HHMMSS>-<slug>\.md' \
   "pge-handoff save artifact"
