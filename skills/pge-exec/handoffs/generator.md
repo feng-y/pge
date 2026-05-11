@@ -96,13 +96,67 @@ deferred_items: <unrelated issues found, or "none">
 
 ## Repair
 
-If main sends `repair_request` with `required_fixes`:
+### Repair Communication Flow
+
+```dot
+digraph repair_loop {
+  rankdir=LR;
+  node [shape=box, style=rounded];
+
+  eval [label="Evaluator"];
+  main [label="Main\n(orchestrator)"];
+  gen [label="Generator"];
+
+  eval -> main [label="evaluator_verdict\n{RETRY, required_fixes}"];
+  main -> gen [label="repair_request\n{required_fixes, attempt}"];
+  gen -> main [label="generator_completion\n{READY|BLOCKED}"];
+  main -> eval [label="re-evaluate\n{criteria + new evidence}"];
+}
+```
+
+### Repair Dispatch Protocol
+
+Main sends to `generator` when Evaluator returns RETRY:
+
+```text
+---BEGIN REPAIR DATA---
+run_id: <run_id>
+issue_id: <N>
+attempt: <2|3>
+
+## Evaluator Feedback
+
+verdict: RETRY
+reason: <evaluator's one-sentence reason>
+required_fixes: <specific fix from evaluator — actionable, bounded>
+evidence_checked: <what evaluator independently verified>
+
+## Original Context (unchanged)
+
+Action: <original issue Action>
+Deliverable: <original deliverable>
+Target Areas: <original Target Areas>
+Verification Hint: <original command>
+
+## Rules
+
+1. Fix ONLY what required_fixes specifies.
+2. Do not broaden scope.
+3. Re-run Verification Hint. Record output.
+4. Send fresh generator_completion.
+5. If same fix fails with no new approach: report BLOCKED.
+6. If approach is fundamentally wrong (not a local fix): report BLOCKED with reason.
+---END REPAIR DATA---
+```
+
+### Repair Behavior
+
 - Fix only what's specified in required_fixes
 - Do not broaden scope
 - Re-run verification
 - Send fresh `generator_completion`
 - If same fix fails again with no new approach: report BLOCKED
-```
+- Max 3 attempts per issue (initial + 2 repairs). After 3: BLOCKED.
 
 ## Gate (main checks after generator_completion)
 
