@@ -11,7 +11,8 @@
     "pge-research",
     "pge-plan",
     "pge-exec",
-    "pge-handoff"
+    "pge-handoff",
+    "pge-html"
   ],
   "legacy_cleanup": {
     "skills": [
