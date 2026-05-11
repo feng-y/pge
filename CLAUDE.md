@@ -62,7 +62,7 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 - `pge-exec` owns route, state, gates, and execution-window decisions.
 - `pge-research` owns evidence gathering and ambiguity resolution.
 - `pge-handoff` owns state persistence and knowledge extraction.
-- Planning outputs and run artifacts are the preferred handoff seams.
+- Planning outputs and run artifacts under `.pge/tasks-<slug>/` are the handoff seams.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Final Review Gate.

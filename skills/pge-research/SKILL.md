@@ -24,7 +24,7 @@ allowed-tools:
 Turn a vague or ambiguous intent into a structured research brief through evidence-driven exploration. Start by understanding the current project context, resolve as much ambiguity as you can from code and docs, then write the brief for planning.
 
 <HARD-GATE>
-Do NOT produce plans, numbered issues, implementation code, or invoke `pge-plan`. This applies even when the task feels simple. Your only output artifact is a research brief written to the task directory.
+Do NOT produce plans, numbered issues, implementation code, function bodies, pseudocode, field rewiring, fallback behavior decisions, or invoke `pge-plan`. This applies even when the task feels simple. Your only output artifact is a research brief written to the task directory.
 </HARD-GATE>
 
 ## Anti-Pattern: "This Is Too Simple To Need Research"
@@ -46,6 +46,10 @@ Exploration has context cost. Before loading broad evidence, ask: "Will downstre
 ## Anti-Pattern: "Let Me Quietly Turn This Into A Plan"
 
 Research is not planning with softer nouns. Do not start decomposing implementation work into slices, drafting numbered issues, or mentally committing to an execution order. Your job is to leave the next stage with sharper understanding, not to smuggle planning decisions into the brief.
+
+## Anti-Pattern: "Let Me Be Helpful And Draft The Code"
+
+Do not output implementation-shaped research. No function bodies, no method-level pseudocode, no exact field rewiring, no fallback logic, no "just sketching" the final code. If a detail has not been confirmed from the repo, record it as an assumption or open question. If a detail belongs to planning, record it as a planning note, not as code.
 
 ## Checklist
 
@@ -161,10 +165,12 @@ Fix every issue you find. If the grill reveals a finding was wrong, remove or co
 
 **Documentation:**
 
-Create the task directory if needed:
+The research artifact MUST be written only to `.pge/tasks-<slug>/research.md`. This `.pge/` path is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifact.
 
-```text
-.pge/tasks-<slug>/
+Create the task directory before writing:
+
+```bash
+mkdir -p .pge/tasks-<slug>/
 ```
 
 Write the research artifact to:
@@ -181,11 +187,20 @@ Not every research run succeeds.
 
 - If critical ambiguity remains and you still cannot plan fairly after repo exploration and intent clarification, set `research_route: BLOCKED`
 - If the task appears infeasible from repo evidence, set `research_route: BLOCKED` and explain why in the brief
-- If the user says "stop" or "just proceed," write the best brief you can and set `research_route: NEEDS_INFO`
+- If the user says "stop" or redirects to implementation/planning mid-run, write the best brief you can to `.pge/tasks-<slug>/research.md` and set `research_route: NEEDS_INFO` or `BLOCKED` instead of silently exiting
+
+**Completion gate:**
+
+Do NOT declare the research complete, summarize completion, or change routes until BOTH are true:
+
+1. `.pge/tasks-<slug>/research.md` exists and follows `templates/brief.md`
+2. You are about to output the Final Response block exactly once
+
+If you are interrupted or the user changes direction, close the stage first by writing the best available brief. Research may end in `READY_FOR_PLAN`, `NEEDS_INFO`, or `BLOCKED`, but it must not end without a written artifact.
 
 **Transition to planning:**
 
-After writing the brief, output the Final Response block. The terminal state is handing off to `pge-plan`. Do NOT produce a plan yourself, and do NOT start decomposing the work "just to be helpful." If planning needs to happen, that is the next stage's job.
+After writing the brief, output the Final Response block and explicitly tell the user to invoke `pge-plan` next. Do NOT auto-invoke `pge-plan`. Do NOT produce a plan yourself, and do NOT start decomposing the work "just to be helpful." Each pipeline stage is a separate skill invocation and the user decides when to advance.
 
 ## Key Principles
 

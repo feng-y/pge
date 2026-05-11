@@ -82,6 +82,12 @@ Capture current working state for session continuity.
 
 `.pge/handoffs/<YYYYMMDD-HHMMSS>-<slug>.md`
 
+Before writing the handoff file, create the parent directory:
+
+```bash
+mkdir -p .pge/handoffs/
+```
+
 ### Template
 
 ```markdown

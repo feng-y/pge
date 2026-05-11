@@ -14,7 +14,7 @@ timestamp: 2026-05-11T00:30:00+08:00
 ## What Was Done This Session
 
 ### Artifact Layout 统一
-- 所有 skill 统一到 `.pge/tasks-<slug>/` 为 preferred，`.pge/plans/` 和 `.pge/runs/` 降级为 legacy fallback
+- 所有 skill 统一到连续 task-dir 管线：`.pge/tasks-<slug>/research.md` → `.pge/tasks-<slug>/plan.md` → `.pge/tasks-<slug>/runs/<run_id>/`
 - pge-research / pge-plan / pge-exec 三者路径契约一致
 - CLAUDE.md workflow authority 更新覆盖全部 active skills
 

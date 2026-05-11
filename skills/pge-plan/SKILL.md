@@ -20,7 +20,7 @@ allowed-tools:
 
 Produce one bounded, executable PGE plan artifact at `.pge/tasks-<slug>/plan.md`.
 
-This is a planning skill. It does not execute code, edit implementation files, publish GitHub issues, or invoke `pge-exec`.
+This is a planning skill. It does not execute code, edit implementation files, produce implementation pseudocode, publish GitHub issues, or invoke `pge-exec`.
 
 ## Execution Flow
 
@@ -100,7 +100,7 @@ digraph pge_plan {
 
 ### Resolve Input
 
-Read intent from `ARGUMENTS:` or conversation. Ask only if missing detail is blocking.
+If `ARGUMENTS:` explicitly names a task slug, research path, or other structured upstream input, use that. Otherwise, on a bare `pge-plan` invocation, first discover any research artifact under `.pge/tasks-<slug>/research.md`. If a research artifact is found and the current conversation also contains usable planning context, ask the user which source to continue from instead of guessing. Only fall back to conversation intent automatically when no research artifact exists. Ask only if missing detail is blocking.
 
 ### Classify Depth
 
@@ -131,6 +131,8 @@ Read `.pge/config/*`. If `docs-policy.md` or `repo-profile.md` exists, treat as 
 
 Requires structured upstream input. Does not start from bare prompt.
 
+On a bare `pge-plan` invocation after `pge-research`, discover `.pge/tasks-<slug>/research.md` first. If that artifact is the only clear upstream source, use it as the canonical handoff. If both the discovered research artifact and the current conversation are plausible upstream sources, ask the user whether to continue from the research artifact or from the current context. Direct planning from intent, conversation, or another accepted structured upstream source remains supported when no research artifact exists, or when the user explicitly chooses that mode.
+
 **Accepted sources:** (1) pge-research brief, (2) Claude plan mode output, (3) brainstorming output, (4) any structured doc with intent/findings/constraints, (5) self-research Agent for simple intents.
 
 **Gate check:**
@@ -138,6 +140,10 @@ Requires structured upstream input. Does not start from bare prompt.
 - Incomplete: STOP. No artifact. Suggest resolving upstream.
 - Missing + simple: spawn research Agent.
 - Missing + complex: STOP. Suggest `pge-research`.
+- Bare `pge-plan` invocation after research, but no `.pge/tasks-<slug>/research.md` can be discovered: only then fall back to direct planning or ask the user to run `pge-research` first.
+- Explicit continuation requested for a prior research task, but `.pge/tasks-<slug>/research.md` is missing: STOP. Report broken handoff instead of silently pretending the research artifact exists.
+- A discovered research artifact and the current conversation both look like valid upstream sources: ask the user which one to use instead of guessing.
+- Multiple plausible research artifacts and no explicit selector: ask the user which task to continue instead of guessing.
 
 **Consumption rules:**
 
@@ -244,9 +250,13 @@ Each issue includes:
 
 ### Write Plan Artifact
 
-Write to `.pge/tasks-<slug>/plan.md` (preferred — keeps full pipeline under one task directory) or `.pge/plans/<plan_id>.md` (legacy). ID format: `YYYYMMDD-HHMM-<slug>`.
+The plan artifact MUST be written only to `.pge/tasks-<slug>/plan.md`. This `.pge/` path is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifact. ID format: `YYYYMMDD-HHMM-<slug>`.
 
-**Task directory:** pge-research creates `.pge/tasks-<slug>/`. pge-plan writes into it. If the task directory doesn't exist (no prior research), create it. If writing to legacy path, create `.pge/plans/` if needed.
+**Task directory:** pge-research creates `.pge/tasks-<slug>/`. pge-plan writes into it. If research was skipped, pge-plan creates the task directory and then writes `plan.md` there:
+
+```bash
+mkdir -p .pge/tasks-<slug>/
+```
 
 ### Self-Review Loop
 
@@ -263,6 +273,15 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 - `BLOCKED`: cannot produce fair plan.
 - `NEEDS_HUMAN`: human decision needed.
 
+### Completion gate
+
+Do NOT declare the plan complete, summarize completion, or change routes until BOTH are true:
+
+1. The plan artifact exists at `.pge/tasks-<slug>/plan.md` and follows the template structure
+2. You are about to output the Final Response block exactly once
+
+If the user redirects to execution or implementation mid-run, close the stage first by writing the best available plan artifact with route `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.
+
 ---
 
 ## Handoff To Execute
@@ -271,13 +290,13 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 
 ## Guardrails
 
-Do not: write business code, execute the plan, invoke pge-exec, create run artifacts (`.pge/runs/` or `.pge/tasks-*/runs/`), ask non-blocking questions, ask multiple questions, publish GitHub Issues, use forbidden states.
+Do not: write business code, write implementation pseudocode or function bodies, execute the plan, invoke pge-exec, create run artifacts under `.pge/tasks-*/runs/`, ask non-blocking questions, ask multiple questions, publish GitHub Issues, use forbidden states.
 
 ## Final Response
 
 ```md
 ## PGE Plan Result
-- plan_path: .pge/tasks-<slug>/plan.md | .pge/plans/<plan_id>.md (legacy)
+- plan_path: .pge/tasks-<slug>/plan.md
 - plan_route: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - ready_issues: <ids or None>
 - blocked_issues: <ids or None>

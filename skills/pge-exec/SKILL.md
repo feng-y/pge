@@ -2,10 +2,10 @@
 name: pge-exec
 description: >
   Execute pge-plan issues using Generator + Evaluator agents.
-  Consumes .pge/tasks-<slug>/plan.md (preferred) or .pge/plans/<plan_id>.md (legacy),
+  Consumes .pge/tasks-<slug>/plan.md,
   dispatches per-issue execution, validates with independent Evaluator, bounded repair loop, accumulates learnings.
 version: 1.0.0
-argument-hint: "<plan_id> | test"
+argument-hint: "<task-slug> | test"
 allowed-tools:
   - TeamCreate
   - TeamDelete
@@ -23,7 +23,7 @@ allowed-tools:
 
 Execute a plan produced by `pge-plan`. Orchestrates Generator and Evaluator agents per issue.
 
-This is an orchestration skill. It does not implement code itself.
+This is an orchestration skill. It executes the plan by coordinating Generator and Evaluator agents. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
 ## External Dependencies
 
@@ -94,14 +94,21 @@ digraph pge_exec {
 
 ## Phase 1: Load & Validate
 
-Read plan from `.pge/tasks-<slug>/plan.md` (preferred) or `.pge/plans/<plan_id>.md` (legacy). If argument is `test`, use inline smoke plan.
+If `ARGUMENTS:` explicitly names a task slug, plan path, or other execution target, use that. Otherwise, on a bare `pge-exec` invocation, first discover `.pge/tasks-<slug>/plan.md`. If a plan artifact is found and the current conversation also contains usable execution context, ask the user which source to continue from instead of guessing. Only fall back to conversation context automatically when no plan artifact exists. If argument is `test`, use an inline smoke plan bound to a dedicated task directory.
 
-**Task directory resolution:** If plan is at `.pge/tasks-<slug>/plan.md`, all run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. pge-exec never creates the task directory itself — it expects pge-research or pge-plan to have created it. If the directory doesn't exist, create only the `runs/<run_id>/` subdirectory.
+**Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec never creates the task directory itself — it expects pge-research or pge-plan to have created it, except for the dedicated smoke-test task directory. Before writing run output, create only the run parent explicitly:
+
+```bash
+mkdir -p .pge/tasks-<slug>/runs/<run_id>/
+```
 
 Validate:
 - `plan_route` = `READY_FOR_EXECUTE`
 - ≥1 issue with `State: READY_FOR_EXECUTE`
 - Stop Condition present
+- If both a discovered plan artifact and the current conversation look like valid upstream sources, ask the user whether to execute the plan artifact or continue from the current context
+- If an explicit continuation target is named but the corresponding `.pge/tasks-<slug>/plan.md` is missing, report a broken handoff instead of silently pretending the plan artifact exists
+- If multiple plausible plan artifacts exist and no explicit selector is given, ask the user which task to continue instead of guessing
 
 **Rollback point:** Before execution starts, create a git tag `pge-exec-pre-<run_id>`. If exec routes BLOCKED or PARTIAL after modifying files, the user can rollback with `git reset --hard pge-exec-pre-<run_id>`. Record the tag in state.json and manifest.
 
@@ -347,6 +354,15 @@ Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
 - `BLOCKED`: no issues could complete
 - `NEEDS_HUMAN`: HITL decision required
 
+### Completion gate
+
+Do NOT declare execution complete, summarize completion, or change routes until BOTH are true:
+
+1. The run artifacts have been written under `.pge/tasks-<slug>/runs/<run_id>/`, including manifest and learnings
+2. You are about to output the Final Response block exactly once
+
+If the user redirects the work mid-run, or the session needs to stop early, persist the current run state and artifacts first, then route as `PARTIAL`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.
+
 ### Teardown
 
 Request shutdown → delete team → write manifest.
@@ -355,29 +371,30 @@ Request shutdown → delete team → write manifest.
 
 ## Smoke Test
 
-Argument `test` uses inline plan (no task directory — uses legacy run path for minimal setup):
+Argument `test` uses an inline smoke plan bound to a dedicated task directory:
 ```
+Task directory: .pge/tasks-smoke-test/
 Issue 1: Write smoke file
-- Action: Create .pge/runs/<run_id>/deliverables/smoke.txt with content "pge smoke"
+- Action: Create .pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke.txt with content "pge smoke"
 - Deliverable: smoke.txt
-- Target Areas: Create: .pge/runs/<run_id>/deliverables/smoke.txt
+- Target Areas: Create: .pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke.txt
 - Acceptance Criteria: file exists, content = "pge smoke"
 - Verification Type: AUTOMATED
-- Verification Hint: cat .pge/runs/<run_id>/deliverables/smoke.txt
+- Verification Hint: cat .pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke.txt
 - Test Expectation: none (smoke test)
 - Required Evidence: file content output
 - Execution Type: AFK
 - Stop Condition: smoke.txt exists with correct content
 ```
 
-For test: minimal dispatch, no handoff file reads. Uses legacy `.pge/runs/` path since no task directory exists. Rollback tag is skipped for smoke.
+For test: minimal dispatch, no handoff file reads. Create `.pge/tasks-smoke-test/` and write all artifacts under that task directory. Rollback tag is skipped for smoke.
 
 ---
 
 ## Output
 
 ```text
-.pge/tasks-<slug>/              (preferred — full pipeline in one directory)
+.pge/tasks-<slug>/
 ├── research.md                 (from pge-research)
 ├── plan.md                     (from pge-plan)
 └── runs/
@@ -387,8 +404,6 @@ For test: minimal dispatch, no handoff file reads. Uses legacy `.pge/runs/` path
         ├── deliverables/       — actual deliverables
         ├── review.md           — final review report when review gate runs
         └── learnings.md        — compound learnings
-
-Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
 ```
 
 ## Final Response
@@ -404,7 +419,7 @@ Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
 - stop_condition: passed | failed | not_checked
 - final_review: skipped | pass | advisory_only | repair_required | blocked
 - learnings_recorded: yes | no
-- artifacts: .pge/tasks-<slug>/runs/<run_id>/ | .pge/runs/<run_id>/
+- artifacts: .pge/tasks-<slug>/runs/<run_id>/
 - next: done | pge-plan (if blocked) | user decision (if HITL)
 ```
 
@@ -412,7 +427,8 @@ Legacy fallback: .pge/runs/<run_id>/ (when plan is at .pge/plans/)
 
 Do not:
 - Modify the plan
-- Write business code in orchestrator
+- Write business code in orchestrator instead of dispatching Generator
+- Use chat-only implementation summaries or pseudocode as a stand-in for generator output and run artifacts
 - Skip Evaluator
 - Retry > 3 per issue
 - Retry with no code changes

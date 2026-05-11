@@ -53,7 +53,7 @@ PGE 管线：pge-research → pge-plan → pge-exec → pge-handoff + pge-html (
 核心架构决策（已固定）：
 - Generator + Evaluator 分离（不是 3 agent）
 - Plan 是 frozen contract（exec 期间不修改）
-- Task-dir preferred layout（.pge/tasks-<slug>/）
+- Continuous task-dir layout（.pge/tasks-<slug>/）
 - Progressive disclosure（SKILL.md < 270 行，details in references/）
 - 最小化 HITL
 - Outside Voice for MEDIUM + DEEP
