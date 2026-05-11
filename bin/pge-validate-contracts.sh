@@ -93,8 +93,8 @@ for skill in pge-setup pge-research pge-plan pge-exec pge-handoff; do
 done
 require_pattern .claude-plugin/plugin.json '"legacy_cleanup"' \
   "plugin legacy cleanup policy"
-require_absent_pattern .claude-plugin/plugin.json '"\./agents/pge-' \
-  "active plugin agent path"
+require_pattern .claude-plugin/plugin.json '"agents"' \
+  "plugin agents declaration"
 
 require_pattern bin/pge-local-install.sh 'skill_directories' \
   "local install skill allowlist support"

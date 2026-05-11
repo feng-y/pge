@@ -48,6 +48,24 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Save session state and extract knowledge to the repo knowledge layer. Three modes: `save` (checkpoint state), `extract` (knowledge → repo docs), `restore` (resume from checkpoint). Use between sessions or after completing a plan.
 
+- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Generate visual HTML artifacts (diagrams, reports, plans) from structured data.
+
+### Developer Tools
+
+Independent skills for everyday development. Not part of the pipeline — use anytime.
+
+- **[`/pge-review`](./skills/pge-review/SKILL.md)** — Three-axis review (standards + spec + simplicity) of changes since a fixed point. Runs parallel sub-agents.
+
+- **[`/pge-diagnose`](./skills/pge-diagnose/SKILL.md)** — Structured 6-phase bug diagnosis: build feedback loop → reproduce → hypothesise → instrument → fix → cleanup.
+
+- **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Challenge Claude to prove its changes work before PR. Diffs branch against main, constructs failure scenarios, verifies each change.
+
+- **[`/pge-grill-me`](./skills/pge-grill-me/SKILL.md)** — Stress-test a plan or design via relentless interrogation. Walks each branch of the decision tree.
+
+- **[`/pge-redo`](./skills/pge-redo/SKILL.md)** — Scrap a mediocre fix and redo it elegantly using accumulated context from failed attempts.
+
+- **[`/pge-zoom-out`](./skills/pge-zoom-out/SKILL.md)** — Map relevant modules, callers, and data flow at a higher abstraction layer.
+
 ## Install
 
 Marketplace:

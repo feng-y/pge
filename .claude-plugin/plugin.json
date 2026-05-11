@@ -6,13 +6,23 @@
     "name": "PGE contributors"
   },
   "skills": "./skills/",
+  "agents": [
+    "./agents/pge-code-reviewer.md",
+    "./agents/pge-code-simplifier.md"
+  ],
   "skill_directories": [
     "pge-setup",
     "pge-research",
     "pge-plan",
     "pge-exec",
     "pge-handoff",
-    "pge-html"
+    "pge-html",
+    "pge-review",
+    "pge-diagnose",
+    "pge-challenge",
+    "pge-grill-me",
+    "pge-redo",
+    "pge-zoom-out"
   ],
   "legacy_cleanup": {
     "skills": [
