@@ -81,6 +81,12 @@ require_pattern AGENTS.md '\.pge/tasks-<slug>/research\.md' \
   "AGENTS preferred task artifact flow"
 require_absent_pattern AGENTS.md 'docs/exec-plans/CURRENT_MAINLINE\.md|docs/exec-plans/ISSUES_LEDGER\.md' \
   "stale exec-plan docs reference"
+require_absent_pattern AGENTS.md 'Active setup surface' \
+  "stale pge-setup surface in AGENTS"
+require_absent_pattern AGENTS.md 'pge-setup, pge-research' \
+  "stale pge-setup in AGENTS invariants"
+require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec' \
+  "AGENTS active workflow flow"
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
   "plugin skill directory allowlist"
