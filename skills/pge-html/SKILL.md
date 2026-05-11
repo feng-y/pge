@@ -71,6 +71,19 @@ All styles share:
 - Summary stats at top (passed/blocked/total)
 - Timeline view for sequential events
 
+## Templates
+
+Reference templates in `templates/` (from Thariq's html-effectiveness examples):
+
+| Template | Use for | Style |
+|----------|---------|-------|
+| `status-report.html` | exec manifests, run dashboards, weekly reports | dashboard |
+| `research-explainer.html` | research briefs, feature explainers | rich |
+| `implementation-plan.html` | plan artifacts with issues, flow diagrams | rich |
+| `flowchart-diagram.html` | dot flow visualization, architecture diagrams | rich |
+
+Read the relevant template before generating. Match its structure and visual quality — these are the quality bar, not suggestions.
+
 ## Examples
 
 ```
