@@ -51,26 +51,58 @@ Collect from:
 - Linter/formatter configs (note but don't re-check what tooling enforces)
 - `CONTRIBUTING.md`, `STYLE.md` if present
 
-### 4. Spawn three sub-agents in parallel
+### 4. Review Contract
+
+Every finding must carry a severity label:
+
+- **Required** — must be fixed before merge / ship
+- **Important** — likely reviewer-blocking unless explicitly deferred with rationale
+- **Advisory** — worthwhile improvement, not required
+- **FYI** — informational only
+
+Use these labels consistently across all three axes. Avoid unlabeled findings.
+
+### 5. Spawn three sub-agents in parallel
 
 **Standards agent brief:**
-> Read the standards docs. Read the diff. Report every place the diff violates a documented standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Under 400 words.
+> Read the standards docs. Read the diff. Report every place the diff violates a documented standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Spec agent brief:**
-> Read the spec. Read the diff. Report: (a) requirements missing or partial; (b) behaviour not asked for (scope creep); (c) requirements where implementation looks wrong. Quote the spec line for each finding. Under 400 words.
+> Read the spec. Read the diff. Report: (a) requirements missing or partial; (b) behaviour not asked for (scope creep); (c) requirements where implementation looks wrong. Quote the spec line for each finding. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Simplicity agent brief:**
-> Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Under 400 words.
+> Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
-### 5. Aggregate
+### 6. Verification Story
 
-Present three reports under `## Standards`, `## Spec`, and `## Simplicity` headings. Do not merge or rerank — the three axes stay separate.
+Before finalizing the review, inspect the verification evidence behind the diff:
+
+- What tests were run?
+- Do those tests actually cover the changed behavior, or just exercise code paths superficially?
+- Is there manual verification evidence if the change affects UI / runtime behavior?
+- If the author/agent claims "tests pass", is that sufficient to prove the spec was implemented?
+
+Report this as a separate section:
+
+```md
+## Verification Story
+- Evidence reviewed: <tests / commands / screenshots / none>
+- Coverage judgment: strong | partial | weak
+- Gaps: <what is still unproven>
+```
+
+If the verification story is weak, surface it as a review finding even if the code looks plausible.
+
+### 7. Aggregate
+
+Present four sections under `## Standards`, `## Spec`, `## Simplicity`, and `## Verification Story`. Do not merge or rerank the three axes — keep them separate.
 
 End with:
 ```
 ## Summary
-- Standards: <N findings> (critical: X, advisory: Y)
-- Spec: <N findings> (missing: X, creep: Y, wrong: Z)
-- Simplicity: <N findings> (high-value: X, optional: Y)
+- Standards: <N findings> (required: X, important: Y, advisory: Z)
+- Spec: <N findings> (required: X, important: Y, advisory: Z)
+- Simplicity: <N findings> (required: X, important: Y, advisory: Z)
+- Verification story: strong | partial | weak
 - Worst issue: <one-line description or "none">
 ```
