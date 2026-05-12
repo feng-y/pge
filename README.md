@@ -44,7 +44,9 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 ### Utilities
 
-- **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Save session state and extract knowledge to the repo knowledge layer. Three modes: `save` (checkpoint state), `extract` (knowledge → repo docs), `restore` (resume from checkpoint). Use between sessions or after completing a plan.
+- **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a compact, one-off handoff document for another agent or future session. Matt-style observer summary only: no pipeline control and no knowledge extraction.
+
+- **[`/pge-knowledge`](./skills/pge-knowledge/SKILL.md)** — Evaluate context friction, agent memory, code summaries, and run learnings before promoting high-quality candidates into repo knowledge.
 
 - **[`/pge-html`](./skills/pge-html/SKILL.md)** — Generate visual HTML artifacts (diagrams, reports, plans) from structured data.
 

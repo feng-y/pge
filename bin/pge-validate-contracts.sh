@@ -44,7 +44,8 @@ for file in \
   skills/pge-research/SKILL.md \
   skills/pge-plan/SKILL.md \
   skills/pge-exec/SKILL.md \
-  skills/pge-handoff/SKILL.md
+  skills/pge-handoff/SKILL.md \
+  skills/pge-knowledge/SKILL.md
 do
   require_file "$file"
 done
@@ -63,6 +64,8 @@ require_pattern README.md 'skills/pge-exec/SKILL.md' \
   "README pge-exec surface"
 require_pattern README.md 'skills/pge-handoff/SKILL.md' \
   "README pge-handoff surface"
+require_pattern README.md 'skills/pge-knowledge/SKILL.md' \
+  "README pge-knowledge surface"
 require_pattern README.md '\.pge/tasks-<slug>/plan\.md' \
   "README preferred plan artifact"
 
@@ -70,6 +73,8 @@ require_pattern CLAUDE.md 'skills/pge-research/SKILL.md' \
   "CLAUDE pge-research first read"
 require_pattern CLAUDE.md 'skills/pge-handoff/SKILL.md' \
   "CLAUDE pge-handoff first read"
+require_pattern CLAUDE.md 'skills/pge-knowledge/SKILL.md' \
+  "CLAUDE pge-knowledge first read"
 require_pattern CLAUDE.md 'skills/pge-execute/` — removed' \
   "CLAUDE legacy pge-execute framing"
 require_pattern CLAUDE.md 'Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator' \
@@ -90,7 +95,7 @@ require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec' \
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
   "plugin skill directory allowlist"
-for skill in pge-research pge-plan pge-exec pge-handoff; do
+for skill in pge-research pge-plan pge-exec pge-handoff pge-knowledge; do
   require_pattern .claude-plugin/plugin.json "\"${skill}\"" \
     "plugin ${skill} skill"
 done
@@ -135,11 +140,11 @@ require_pattern skills/pge-plan/SKILL.md 'mkdir -p \.pge/tasks-<slug>/' \
   "pge-plan task directory creation"
 require_pattern skills/pge-plan/SKILL.md 'If research was skipped, pge-plan creates the task directory' \
   "pge-plan task directory ownership"
-require_pattern skills/pge-plan/SKILL.md 'on a bare `pge-plan` invocation, first discover any research artifact under `\.pge/tasks-<slug>/research\.md`' \
+require_pattern skills/pge-plan/SKILL.md 'on a bare `pge-plan` invocation, discover research artifacts under `\.pge/tasks-<slug>/research\.md`' \
   "pge-plan bare invocation research discovery"
-require_pattern skills/pge-plan/SKILL.md 'If both the discovered research artifact and the current conversation are plausible upstream sources, ask the user whether to continue from the research artifact or from the current context' \
+require_pattern skills/pge-plan/SKILL.md 'ask the user to choose when both a discovered artifact and current context look valid' \
   "pge-plan source selection question"
-require_pattern skills/pge-plan/SKILL.md 'Direct planning from intent, conversation, or another accepted structured upstream source remains supported when no research artifact exists, or when the user explicitly chooses that mode' \
+require_pattern skills/pge-plan/SKILL.md 'Direct planning from intent remains supported when no research artifact exists and the intent is clear enough for Fast Lane' \
   "pge-plan direct planning fallback"
 require_pattern skills/pge-plan/SKILL.md 'A discovered research artifact and the current conversation both look like valid upstream sources: ask the user which one to use instead of guessing' \
   "pge-plan context-vs-research guard"
@@ -170,9 +175,9 @@ require_pattern skills/pge-exec/SKILL.md '\.pge/tasks-<slug>/runs/<run_id>/' \
   "pge-exec run artifact"
 require_absent_pattern skills/pge-exec/SKILL.md '\.pge/runs/' \
   "pge-exec legacy run path"
-require_pattern skills/pge-exec/SKILL.md 'on a bare `pge-exec` invocation, first discover `\.pge/tasks-<slug>/plan\.md`' \
+require_pattern skills/pge-exec/SKILL.md 'on a bare `pge-exec` invocation, discover `\.pge/tasks-<slug>/plan\.md`' \
   "pge-exec bare invocation plan discovery"
-require_pattern skills/pge-exec/SKILL.md 'ask the user which source to continue from instead of guessing' \
+require_pattern skills/pge-exec/SKILL.md 'ask the user whether to execute the plan artifact or continue from the current context' \
   "pge-exec source selection question"
 require_pattern skills/pge-exec/SKILL.md 'report a broken handoff instead of silently pretending the plan artifact exists' \
   "pge-exec broken handoff guard"
@@ -195,11 +200,24 @@ require_pattern skills/pge-exec/SKILL.md 'Completion gate' \
 require_pattern skills/pge-exec/SKILL.md 'not chat-only summaries or ad-hoc pseudocode' \
   "pge-exec real artifact boundary"
 
-require_pattern skills/pge-handoff/SKILL.md '\.pge/handoffs/<YYYYMMDD-HHMMSS>-<slug>\.md' \
-  "pge-handoff save artifact"
-require_pattern skills/pge-handoff/SKILL.md 'mkdir -p \.pge/handoffs/' \
-  "pge-handoff directory creation"
-require_pattern skills/pge-handoff/SKILL.md 'save\|extract\|restore' \
-  "pge-handoff modes"
+require_pattern skills/pge-handoff/SKILL.md 'mktemp -t pge-handoff-XXXXXX\.md' \
+  "pge-handoff temporary artifact"
+require_pattern skills/pge-handoff/SKILL.md 'no knowledge extraction' \
+  "pge-handoff no knowledge extraction boundary"
+require_absent_pattern skills/pge-handoff/SKILL.md 'save\|extract\|restore|Mode: extract|HANDOFF_EXTRACTED|repo knowledge layer' \
+  "old pge-handoff mixed-mode knowledge extraction"
+
+require_pattern skills/pge-knowledge/SKILL.md 'Context friction' \
+  "pge-knowledge context friction focus"
+require_pattern skills/pge-knowledge/SKILL.md 'Memory / code summaries' \
+  "pge-knowledge memory code-summary focus"
+require_pattern skills/pge-knowledge/SKILL.md 'Quality Rubric' \
+  "pge-knowledge quality rubric"
+require_pattern skills/pge-knowledge/SKILL.md 'evaluate\|search\|prune\|export\|stats\|add' \
+  "pge-knowledge management commands"
+require_pattern skills/pge-knowledge/SKILL.md 'quality_score: <0-16>' \
+  "pge-knowledge scored candidates"
+require_pattern skills/pge-knowledge/SKILL.md 'Do not use this for session continuation' \
+  "pge-knowledge not handoff boundary"
 
 printf 'OK: PGE active contracts validated\n'

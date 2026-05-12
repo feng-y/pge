@@ -37,19 +37,23 @@ Capture: `git diff <fixed-point>...HEAD` and `git log <fixed-point>..HEAD --onel
 
 Look for the originating spec in this order:
 
-1. `.pge/tasks-*/plan.md` matching the current branch or recent work
-2. Issue references in commit messages — fetch via `gh`
-3. A path the user passed as argument
-4. If nothing found, ask. If no spec exists, skip the Spec axis.
+1. `.pge/tasks-*/plan.md` matching the current branch, task slug, or recent PGE work. Treat `plan.md` as the strongest implementation contract.
+2. A path the user passed as argument, including a task directory or a specific plan/spec document.
+3. Issue references in commit messages — fetch via `gh` when available.
+4. Repo-local spec-like docs that clearly match the branch or task name: `docs/`, `specs/`, `.scratch/`, or `.pge/tasks-*/research.md`. Use research or handoff notes only to recover intent when no plan/spec exists.
+5. If nothing specific is found, ask once. If no spec exists, skip the Spec axis and say so.
 
 ### 3. Identify the standards sources
 
 Collect from:
-- `CLAUDE.md`, `CONTEXT.md`
-- `.pge/config/repo-profile.md`
-- `docs/adr/`
+- `CLAUDE.md` as the primary resident rules, plus `AGENTS.md` for repo routing/invariants when present.
+- `CONTEXT.md`, `CONTEXT-MAP.md`, or similar domain/context maps when present.
+- `.pge/config/*.md`, especially `repo-profile.md` and `docs-policy.md`.
+- `docs/adr/` and focused repo docs that declare conventions or architectural decisions.
+- `CONTRIBUTING.md`, `STYLE.md`, `STANDARDS.md`, `STYLEGUIDE.md`, or similarly named project standards when present.
 - Linter/formatter configs (note but don't re-check what tooling enforces)
-- `CONTRIBUTING.md`, `STYLE.md` if present
+
+Do not treat broad research notes or historical handoffs as standards unless they explicitly define a current convention.
 
 ### 4. Review Contract
 
@@ -65,10 +69,10 @@ Use these labels consistently across all three axes. Avoid unlabeled findings.
 ### 5. Spawn three sub-agents in parallel
 
 **Standards agent brief:**
-> Read the standards docs. Read the diff. Report every place the diff violates a documented standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
+> Read the selected standards sources. Read the diff. Report every place the diff violates a documented current standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Do not cite optional or historical docs as binding unless the main review identified them as current. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Spec agent brief:**
-> Read the spec. Read the diff. Report: (a) requirements missing or partial; (b) behaviour not asked for (scope creep); (c) requirements where implementation looks wrong. Quote the spec line for each finding. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
+> Read the selected spec source. Read the diff. Report: (a) requirements missing or partial; (b) behaviour not asked for (scope creep); (c) requirements where implementation looks wrong. Quote the spec line for each finding. If no spec source exists, return "Spec axis skipped: no spec source found." Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Simplicity agent brief:**
 > Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Label every finding: Required / Important / Advisory / FYI. Under 400 words.

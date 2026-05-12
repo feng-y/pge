@@ -17,6 +17,7 @@ Before non-trivial work, read in this order:
 3. `skills/pge-plan/SKILL.md`
 4. `skills/pge-exec/SKILL.md`
 5. `skills/pge-handoff/SKILL.md`
+6. `skills/pge-knowledge/SKILL.md`
 
 ## Truth hierarchy
 
@@ -25,6 +26,7 @@ Active skill surfaces (authoritative):
 - `skills/pge-plan/SKILL.md`
 - `skills/pge-exec/SKILL.md`
 - `skills/pge-handoff/SKILL.md`
+- `skills/pge-knowledge/SKILL.md`
 
 Project map:
 - `README.md`
@@ -58,10 +60,11 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 
 ## Workflow authority
 
-- `pge-research`, `pge-plan`, `pge-exec`, and `pge-handoff` are the active workflow surfaces.
+- `pge-research`, `pge-plan`, `pge-exec`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions.
 - `pge-research` owns evidence gathering and ambiguity resolution.
-- `pge-handoff` owns state persistence and knowledge extraction.
+- `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
+- `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run learnings before any durable repo knowledge is promoted.
 - Planning outputs and run artifacts under `.pge/tasks-<slug>/` are the handoff seams.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.

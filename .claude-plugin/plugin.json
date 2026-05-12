@@ -15,6 +15,7 @@
     "pge-plan",
     "pge-exec",
     "pge-handoff",
+    "pge-knowledge",
     "pge-html",
     "pge-review",
     "pge-diagnose",
@@ -22,5 +23,16 @@
     "pge-grill-me",
     "pge-redo",
     "pge-zoom-out"
-  ]
+  ],
+  "legacy_cleanup": {
+    "skills": [
+      "pge-setup",
+      "pge-execute"
+    ],
+    "agents": [
+      "pge-planner.md",
+      "pge-generator.md",
+      "pge-evaluator.md"
+    ]
+  }
 }

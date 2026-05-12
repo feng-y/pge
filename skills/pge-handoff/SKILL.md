@@ -1,16 +1,13 @@
 ---
 name: pge-handoff
 description: >
-  Save session state and extract knowledge to the repo knowledge layer.
-  Three modes: save (checkpoint state), extract (knowledge → repo docs),
-  restore (resume from checkpoint). Works for any engineering workflow,
-  not just PGE pipeline. Use when: "save progress", "handoff", "extract
-  learnings", "what did we learn", "resume", "where was I".
-argument-hint: "save | extract | restore"
+  Compact the current conversation into a one-off handoff document for another
+  agent or future session. Matt-style observer summary only: no pipeline control,
+  no knowledge extraction, no repo memory writes.
+argument-hint: "<what the next session should focus on>"
 allowed-tools:
   - Read
   - Write
-  - Edit
   - Bash
   - Glob
   - Grep
@@ -19,243 +16,77 @@ allowed-tools:
 
 # PGE Handoff
 
-General-purpose state persistence and knowledge extraction. Bridges volatile conversation context to durable repo knowledge.
+Write a compact handoff document so a fresh agent can continue from the current conversation.
 
-## Execution Flow
+This skill is intentionally temporary and observational. It does not extract durable knowledge, update repo docs, choose pipeline routes, or modify plans. For durable repo learning, use `pge-knowledge`.
 
-```dot
-digraph handoff {
-  rankdir=TB;
-  node [shape=box, style=rounded];
+## Process
 
-  detect_mode [label="Detect Mode\n(save|extract|restore)"];
-
-  subgraph cluster_save {
-    label="save";
-    style=dashed;
-    gather_state [label="Gather State\n(git + artifacts + decisions)"];
-    write_handoff [label="Write Handoff\n(.pge/handoffs/<ts>.md)"];
-    gather_state -> write_handoff;
-  }
-
-  subgraph cluster_extract {
-    label="extract";
-    style=dashed;
-    scan_session [label="Scan Session\n(decisions, patterns, terms)"];
-    classify [label="Classify by Layer\n(config|CONTEXT|ADR|CLAUDE)"];
-    write_knowledge [label="Write to Target Layer"];
-    scan_session -> classify -> write_knowledge;
-  }
-
-  subgraph cluster_restore {
-    label="restore";
-    style=dashed;
-    find_latest [label="Find Latest Handoff"];
-    load_context [label="Load Artifacts\n(referenced paths)"];
-    summarize [label="Present State\n(what's done, what's next)"];
-    find_latest -> load_context -> summarize;
-  }
-
-  detect_mode -> gather_state [label="save"];
-  detect_mode -> scan_session [label="extract"];
-  detect_mode -> find_latest [label="restore"];
-}
-```
-
----
-
-## Mode: save
-
-Capture current working state for session continuity.
-
-### What to capture
-
-1. **Git state**: branch, status, recent commits, dirty files
-2. **Pipeline state** (if PGE): which stage, which issue, state.json path
-3. **Decisions made in conversation**: not in any artifact yet
-4. **Assumptions agreed with user**: context that only exists in chat
-5. **Current blockers**: what's preventing progress
-6. **Next steps**: what the next session should do
-7. **Compact restart hint**: what to keep/drop if the conversation is compacted or resumed
-
-### Where to write
-
-`.pge/handoffs/<YYYYMMDD-HHMMSS>-<slug>.md`
-
-Before writing the handoff file, create the parent directory:
+1. Treat `ARGUMENTS:` as the intended focus of the next session.
+2. Create a temporary handoff path with:
 
 ```bash
-mkdir -p .pge/handoffs/
+mktemp -t pge-handoff-XXXXXX.md
 ```
 
-### Template
+3. Read the empty file before writing to confirm the path exists.
+4. Summarize only the state that a new agent cannot reliably recover from existing artifacts.
+5. Reference existing artifacts by path or URL instead of duplicating their contents.
+6. Write the handoff document to the temporary path.
+
+## Include
+
+- Current goal and requested next focus
+- Relevant git state: branch, dirty files, recent commit if useful
+- Files or artifacts the next agent should read
+- Decisions made in conversation that are not already captured on disk
+- Current blockers or open questions
+- Suggested next command or skill invocation
+- What to ignore: stale hypotheses, superseded attempts, unrelated exploration
+
+## Do Not Include
+
+- Full copies of PRDs, plans, ADRs, diffs, logs, or command output already on disk
+- Knowledge extraction or recommendations to update permanent repo docs
+- Speculative ideas not accepted by the user
+- A new plan unless the user explicitly asked the next session to plan
+- Pipeline authority claims such as marking research, plan, or exec complete
+
+## Template
 
 ```markdown
----
-status: in-progress | blocked | done
-branch: <current branch>
-timestamp: <ISO-8601>
----
+# Handoff: <short title>
 
-# Handoff: <title>
+## Next Session Focus
+<one paragraph>
 
-## State
-- Working on: <one sentence>
-- Pipeline stage: <research|plan|exec|none>
-- Task directory: <path or "none">
+## Current State
+- Branch: <branch>
+- Working tree: <clean | dirty summary>
+- Current task: <one sentence>
 
-## Artifacts (read these, don't duplicate)
-- <path> — <what it contains>
+## Read First
+- <path or URL> — <why it matters>
 
-## Pipeline Artifacts (auto-discovered from task directory)
-- Plan: <.pge/tasks-<slug>/plan.md if exists>
-- Runs: <list .pge/tasks-<slug>/runs/*/manifest.md if any>
-- Learnings: <list .pge/tasks-<slug>/runs/*/learnings.md if any>
-- Review: <list .pge/tasks-<slug>/runs/*/review.md if any>
+## Conversation-Only Context
+- <decision, constraint, or user preference not captured elsewhere>
 
-## Decisions (not in artifacts)
-- <decision> — reason: <why>
-
-## Assumptions
-- <assumption> — context: <what user said>
-
-## Blockers
+## Blockers / Questions
 - <blocker or "none">
 
-## Next
-<what to do, which skill to invoke>
+## Suggested Next Step
+<command or skill invocation>
 
-## Compact Restart Hint
-Keep: <task dir, current issue, plan/stop condition, blockers, user decisions not in artifacts>
-Drop: <raw greps, superseded failed attempts, dead-end hypotheses, unrelated exploration>
+## Ignore
+- <stale context to avoid re-chasing>
 ```
-
-### Core rule
-
-**Reference, never duplicate.** If it's on disk, point to it. Only write what exists ONLY in conversation.
-
-When saving because context quality is degrading, finish the current small step first if practical, then checkpoint. Do not start a new PGE issue in a context that already shows drift, repeated rereads, forgotten constraints, or long correction chains.
-
----
-
-## Mode: extract
-
-Extract valuable knowledge from the session into the repo knowledge layer.
-
-### Knowledge Layers (volatile → durable)
-
-```
-Conversation (dies with session)
-  ↓
-.pge/handoffs/ (session state, ephemeral)
-  ↓
-.pge/config/repo-profile.md (repo conventions, cross-task)
-  ↓
-CONTEXT.md (domain model, permanent)
-  ↓
-docs/adr/ (architectural decisions, permanent)
-  ↓
-CLAUDE.md (agent behavior rules, permanent)
-```
-
-### Classification Rules
-
-| Discovery | Target | Example |
-|-----------|--------|---------|
-| Task progress, blockers | `.pge/handoffs/` | "Issue 3 blocked on Redis" |
-| Repo conventions, patterns, toolchain | `.pge/config/repo-profile.md` | "Tests use vitest" |
-| Domain terms, business concept mappings | `CONTEXT.md` | "'Order' = 'Purchase' in UI" |
-| Architectural trade-offs with rationale | `docs/adr/` | "Chose Redis over Memcached because..." |
-| Agent behavior rules for this project | `CLAUDE.md` | "Always run lint before commit" |
-
-### Process
-
-1. **Scan**: review conversation for decisions, patterns, terms, conventions discovered
-2. **Classify**: for each finding, determine which layer it belongs to
-3. **Deduplicate**: check if already captured in target file
-4. **Write**: append to target file (or create if doesn't exist)
-5. **Tag**: mark each extraction with `[extracted: <ISO date>]`
-
-### What NOT to extract
-
-- Ephemeral task state (belongs in handoff, not knowledge layer)
-- Implementation details (belongs in code, not docs)
-- Speculative ideas not confirmed (only extract confirmed decisions)
-- Content already in artifacts (don't duplicate)
-
-### Memory → Repo bridge
-
-If `~/.claude/projects/<project>/memory/` contains knowledge that should be in the repo:
-- `project` type memories → check if belongs in `CONTEXT.md` or `docs/adr/`
-- `feedback` type memories → check if belongs in `CLAUDE.md`
-- `reference` type memories → check if belongs in `.pge/config/`
-
-Only extract if: (1) not already in repo, (2) useful beyond this agent's sessions, (3) confirmed/verified.
-
----
-
-## Mode: restore
-
-Resume from a saved handoff.
-
-### Process
-
-1. Find most recent `.pge/handoffs/*.md` (or user-specified one)
-2. Read the handoff file
-3. Load all referenced artifacts (paths in the Artifacts section)
-4. Present: what was being worked on, what's done, what's next, any blockers
-5. Suggest the next skill to invoke
-
----
-
-## Guardrails
-
-- Do not duplicate artifact content
-- Do not invent decisions that weren't made
-- Do not extract unconfirmed speculation to knowledge layers
-- Keep handoff files under 50 lines
-- Keep extractions atomic (one concept per write)
-- Tag all extractions with date for confidence decay
-
----
-
-## Error Handling
-
-### save mode
-
-- If git state cannot be read (not a git repo): proceed without git section, note in handoff
-- If task directory referenced but doesn't exist: save what's available, mark `status: degraded`
-- If write fails (permissions, disk): report error, do not silently succeed
-
-### extract mode
-
-- If no decisions/patterns found in session: report "nothing to extract" — do not invent
-- If target file (CONTEXT.md, repo-profile.md) doesn't exist: create it with the extraction as seed
-- If extraction duplicates existing content: skip, report "already captured"
-
-### restore mode
-
-- If no handoffs exist in `.pge/handoffs/`: report "no saved state found" + suggest starting fresh with pge-research or pge-plan
-- If referenced artifacts are missing (deleted/moved): report which paths are stale, present what's still available
-- If handoff references a plan that no longer exists: suggest re-planning
-
-### Route values
-
-- `HANDOFF_SAVED`: save completed successfully
-- `HANDOFF_EXTRACTED`: extract completed (with count of items written)
-- `HANDOFF_RESTORED`: restore completed, context loaded
-- `HANDOFF_EMPTY`: nothing to save/extract/restore
-- `HANDOFF_DEGRADED`: partial success, some references stale
-
----
 
 ## Final Response
 
 ```md
 ## PGE Handoff Result
-- mode: save | extract | restore
-- route: HANDOFF_SAVED | HANDOFF_EXTRACTED | HANDOFF_RESTORED | HANDOFF_EMPTY | HANDOFF_DEGRADED
-- artifact: <path written or "none">
-- items: <count of items saved/extracted/loaded>
+- artifact: <temporary handoff path>
+- focus: <next-session focus or "general continuation">
+- referenced_artifacts: <count>
 - next: <suggested next action>
 ```
