@@ -11,13 +11,16 @@ This repo uses `CLAUDE.md` as the primary resident agent entry point.
 | Active research surface | `skills/pge-research/SKILL.md` |
 | Active planning surface | `skills/pge-plan/SKILL.md` |
 | Active execution surface | `skills/pge-exec/SKILL.md` |
+| Active review surface | `skills/pge-review/SKILL.md` |
+| Active prove-it surface | `skills/pge-challenge/SKILL.md` |
 | Active handoff surface | `skills/pge-handoff/SKILL.md` |
 | Active knowledge surface | `skills/pge-knowledge/SKILL.md` |
 | Active review agents | `agents/pge-code-reviewer.md`, `agents/pge-code-simplifier.md` |
 
 ## Key invariants
 
-- `pge-research`, `pge-plan`, `pge-exec`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
+- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
+- Active flow aligns to Research -> Plan -> Execute -> Review -> Ship.
 - `main` owns route, state, and gate decisions.
 - Subagents are bounded helpers, not workflow authorities.
 - Active flow is artifact-first: `.pge/tasks-<slug>/research.md` -> `.pge/tasks-<slug>/plan.md` -> `.pge/tasks-<slug>/runs/<run_id>/*`.

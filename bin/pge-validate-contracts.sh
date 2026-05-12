@@ -45,7 +45,12 @@ for file in \
   skills/pge-plan/SKILL.md \
   skills/pge-exec/SKILL.md \
   skills/pge-handoff/SKILL.md \
-  skills/pge-knowledge/SKILL.md
+  skills/pge-knowledge/SKILL.md \
+  skills/pge-html/templates/module-map.html \
+  skills/pge-html/templates/comparison-board.html \
+  skills/pge-html/templates/review-annotated.html \
+  skills/pge-html/templates/code-review.html \
+  skills/pge-html/templates/pr-writeup.html
 do
   require_file "$file"
 done
@@ -56,6 +61,12 @@ require_absent_file skills/pge-setup/SKILL.md
 
 require_pattern README.md 'pge-research → pge-plan → pge-exec' \
   "README core pipeline"
+require_pattern README.md 'Research → Plan → Execute → Review → Ship' \
+  "README full workflow arc"
+require_pattern README.md 'pge-review → pge-challenge → ship' \
+  "README review prove ship tail"
+require_pattern README.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHALLENGE.*READY_TO_SHIP' \
+  "README review gate routes"
 require_pattern README.md 'skills/pge-research/SKILL.md' \
   "README pge-research surface"
 require_pattern README.md 'skills/pge-plan/SKILL.md' \
@@ -64,6 +75,10 @@ require_pattern README.md 'skills/pge-exec/SKILL.md' \
   "README pge-exec surface"
 require_pattern README.md 'skills/pge-handoff/SKILL.md' \
   "README pge-handoff surface"
+require_pattern README.md 'skills/pge-review/SKILL.md' \
+  "README pge-review surface"
+require_pattern README.md 'skills/pge-challenge/SKILL.md' \
+  "README pge-challenge surface"
 require_pattern README.md 'skills/pge-knowledge/SKILL.md' \
   "README pge-knowledge surface"
 require_pattern README.md '\.pge/tasks-<slug>/plan\.md' \
@@ -73,8 +88,16 @@ require_pattern CLAUDE.md 'skills/pge-research/SKILL.md' \
   "CLAUDE pge-research first read"
 require_pattern CLAUDE.md 'skills/pge-handoff/SKILL.md' \
   "CLAUDE pge-handoff first read"
+require_pattern CLAUDE.md 'skills/pge-review/SKILL.md' \
+  "CLAUDE pge-review first read"
+require_pattern CLAUDE.md 'skills/pge-challenge/SKILL.md' \
+  "CLAUDE pge-challenge first read"
 require_pattern CLAUDE.md 'skills/pge-knowledge/SKILL.md' \
   "CLAUDE pge-knowledge first read"
+require_pattern CLAUDE.md 'Research → Plan → Execute → Review → Ship' \
+  "CLAUDE full workflow authority"
+require_pattern CLAUDE.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHALLENGE.*READY_TO_SHIP' \
+  "CLAUDE review gate routes"
 require_pattern CLAUDE.md 'skills/pge-execute/` — removed' \
   "CLAUDE legacy pge-execute framing"
 require_pattern CLAUDE.md 'Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator' \
@@ -82,6 +105,10 @@ require_pattern CLAUDE.md 'Do not silently restore a Planner / Generator / Evalu
 
 require_pattern AGENTS.md 'Active research surface' \
   "AGENTS research surface"
+require_pattern AGENTS.md 'Active review surface' \
+  "AGENTS review surface"
+require_pattern AGENTS.md 'Active prove-it surface' \
+  "AGENTS prove-it surface"
 require_pattern AGENTS.md '\.pge/tasks-<slug>/research\.md' \
   "AGENTS preferred task artifact flow"
 require_absent_pattern AGENTS.md 'docs/exec-plans/CURRENT_MAINLINE\.md|docs/exec-plans/ISSUES_LEDGER\.md' \
@@ -90,7 +117,7 @@ require_absent_pattern AGENTS.md 'Active setup surface' \
   "stale pge-setup surface in AGENTS"
 require_absent_pattern AGENTS.md 'pge-setup, pge-research' \
   "stale pge-setup in AGENTS invariants"
-require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec' \
+require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec.*pge-review.*pge-challenge' \
   "AGENTS active workflow flow"
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
@@ -129,10 +156,58 @@ require_pattern skills/pge-research/SKILL.md 'research_route: READY_FOR_PLAN \| 
   "pge-research route contract"
 require_pattern skills/pge-research/SKILL.md 'Completion gate' \
   "pge-research completion gate"
+require_pattern skills/pge-research/SKILL.md 'Consume upstream specs' \
+  "pge-research upstream input digestion"
+require_pattern skills/pge-research/SKILL.md 'Capability: Upstream Contract Preservation' \
+  "pge-research upstream preservation capability"
+require_pattern skills/pge-research/SKILL.md 'Spec coverage gate' \
+  "pge-research spec coverage gate"
+require_pattern skills/pge-research/SKILL.md 'Does not re-litigate' \
+  "pge-research does-not-relitigate principle"
+require_pattern skills/pge-research/SKILL.md 'Upstream preservation review checklist' \
+  "pge-research upstream preservation review checklist"
+require_pattern skills/pge-research/SKILL.md 'Reframe ambiguous instructions as success criteria' \
+  "pge-research success criteria reframing"
+require_pattern skills/pge-research/SKILL.md 'Decision / Rationale / Alternatives considered' \
+  "pge-research decision log"
+require_pattern skills/pge-research/SKILL.md 'NEEDS CLARIFICATION.*three' \
+  "pge-research clarification cap"
+require_pattern skills/pge-research/SKILL.md 'Summarize The Spec Into A Fragment' \
+  "pge-research no spec fragment anti-pattern"
+require_pattern skills/pge-research/SKILL.md 'Intent = What To Do' \
+  "pge-research structured intent anti-pattern"
+require_pattern skills/pge-research/SKILL.md 'Planning should be able to produce executable issues from the brief without re-reading the original upstream spec' \
+  "pge-research upstream digest completeness standard"
 require_pattern skills/pge-research/SKILL.md 'Do NOT auto-invoke `pge-plan`' \
   "pge-research manual next-step handoff"
 require_pattern skills/pge-research/SKILL.md 'Do NOT produce plans, numbered issues, implementation code, function bodies, pseudocode' \
   "pge-research no code boundary"
+require_pattern skills/pge-research/templates/brief.md 'The Problem' \
+  "pge-research structured intent problem"
+require_pattern skills/pge-research/templates/brief.md 'Why This Step / Why Now' \
+  "pge-research structured intent why now"
+require_pattern skills/pge-research/templates/brief.md 'Synthesis Summary' \
+  "pge-research stated inferred out summary"
+require_pattern skills/pge-research/templates/brief.md 'basis: direct \| external \| reasoned' \
+  "pge-research finding basis requirement"
+require_pattern skills/pge-research/templates/brief.md 'validation:' \
+  "pge-research assumption validation"
+require_pattern skills/pge-research/templates/brief.md 'Decision Log' \
+  "pge-research decision log template"
+require_pattern skills/pge-research/templates/brief.md 'Alternatives considered' \
+  "pge-research decision alternatives template"
+require_pattern skills/pge-research/templates/brief.md 'Upstream Requirement Ledger' \
+  "pge-research upstream requirement ledger"
+require_pattern skills/pge-research/templates/brief.md 'Spec Coverage' \
+  "pge-research spec coverage template"
+require_pattern skills/pge-research/templates/brief.md 'Research Quality Gates' \
+  "pge-research quality gates template"
+require_pattern skills/pge-research/templates/brief.md 'Upstream Preservation Review' \
+  "pge-research upstream review template"
+require_pattern skills/pge-research/templates/brief.md 'Final Readiness' \
+  "pge-research final readiness template"
+require_pattern skills/pge-research/templates/brief.md 'pass/fail/n/a' \
+  "pge-research quality gate status template"
 
 require_pattern skills/pge-plan/SKILL.md '\.pge/tasks-<slug>/plan\.md' \
   "pge-plan preferred plan artifact"
@@ -219,5 +294,12 @@ require_pattern skills/pge-knowledge/SKILL.md 'quality_score: <0-16>' \
   "pge-knowledge scored candidates"
 require_pattern skills/pge-knowledge/SKILL.md 'Do not use this for session continuation' \
   "pge-knowledge not handoff boundary"
+
+require_pattern skills/pge-review/SKILL.md 'Review Gate' \
+  "pge-review gate section"
+require_pattern skills/pge-review/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHALLENGE.*READY_TO_SHIP' \
+  "pge-review route contract"
+require_pattern skills/pge-review/SKILL.md 'The default successful route is `READY_FOR_CHALLENGE`' \
+  "pge-review default success route"
 
 printf 'OK: PGE active contracts validated\n'

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module map — payments workflow</title>
+<style>
+  :root {
+    --paper:#FAF9F5;
+    --ink:#181817;
+    --muted:#706F68;
+    --line:#D7D2C4;
+    --panel:#FFFFFF;
+    --blue:#3B6EA8;
+    --green:#5F7F52;
+    --amber:#B7791F;
+    --red:#B34D45;
+    --violet:#6F5AA8;
+    --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --serif:ui-serif, Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.55;
+    padding:36px 24px 80px;
+  }
+  .page {
+    max-width:1220px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:230px minmax(0,1fr);
+    gap:28px;
+  }
+  @media (max-width:900px) {
+    .page { grid-template-columns:1fr; }
+    aside { position:static; }
+  }
+  aside {
+    position:sticky;
+    top:24px;
+    align-self:start;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,0.72);
+    border-radius:8px;
+    padding:16px;
+  }
+  .label {
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--muted);
+    letter-spacing:.08em;
+  }
+  aside a {
+    display:block;
+    color:var(--ink);
+    text-decoration:none;
+    border-left:2px solid var(--line);
+    padding:7px 0 7px 12px;
+    margin-top:2px;
+  }
+  aside a:hover { border-color:var(--blue); color:var(--blue); }
+  aside code {
+    display:block;
+    color:var(--muted);
+    font-size:11px;
+    margin-top:7px;
+    overflow-wrap:anywhere;
+  }
+  header {
+    margin-bottom:22px;
+  }
+  .eyebrow {
+    font-family:var(--mono);
+    color:var(--muted);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-bottom:8px;
+  }
+  h1 {
+    font-family:var(--serif);
+    font-size:36px;
+    font-weight:520;
+    letter-spacing:0;
+    line-height:1.1;
+    margin:0 0 12px;
+  }
+  .summary {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  @media (max-width:760px) { .summary { grid-template-columns:1fr 1fr; } }
+  .metric {
+    padding:13px 14px;
+    border-right:1px solid var(--line);
+  }
+  .metric:last-child { border-right:0; }
+  .metric .k { color:var(--muted); font-size:12px; }
+  .metric .v { font-family:var(--mono); font-size:18px; margin-top:3px; }
+  section {
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:18px;
+    margin:18px 0;
+  }
+  h2 {
+    margin:0 0 12px;
+    font-size:19px;
+    font-weight:680;
+    letter-spacing:0;
+  }
+  .map {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+  @media (max-width:900px) { .map { grid-template-columns:1fr; } }
+  .module {
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px;
+    min-height:150px;
+    background:#FFFDF8;
+  }
+  .module h3 {
+    margin:0 0 7px;
+    font-size:15px;
+  }
+  .module p { margin:0 0 10px; color:#3F3E39; }
+  .paths code, code.path {
+    font-family:var(--mono);
+    font-size:12px;
+    color:#4C4B45;
+    background:#F4F1E8;
+    border:1px solid #E5DFD0;
+    border-radius:6px;
+    padding:3px 6px;
+    display:inline-block;
+    margin:3px 3px 0 0;
+    overflow-wrap:anywhere;
+  }
+  .pill {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    padding:3px 8px;
+    font-size:12px;
+    margin:3px 5px 0 0;
+    background:#fff;
+  }
+  .pill.blue { border-color:#AFC7DF; color:var(--blue); }
+  .pill.green { border-color:#B7C8AF; color:var(--green); }
+  .pill.amber { border-color:#E4C98B; color:var(--amber); }
+  .pill.red { border-color:#E1AAA5; color:var(--red); }
+  .flow {
+    display:grid;
+    grid-template-columns:1fr 40px 1fr 40px 1fr;
+    align-items:center;
+    gap:8px;
+  }
+  @media (max-width:760px) { .flow { grid-template-columns:1fr; } .arrow { transform:rotate(90deg); } }
+  .node {
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:13px;
+    background:#FFFDF8;
+  }
+  .node .title { font-weight:680; }
+  .node .meta { font-family:var(--mono); color:var(--muted); font-size:12px; margin-top:4px; }
+  .arrow {
+    text-align:center;
+    font-family:var(--mono);
+    color:var(--blue);
+    font-size:22px;
+  }
+  table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  th, td {
+    text-align:left;
+    border-bottom:1px solid var(--line);
+    padding:9px 8px;
+    vertical-align:top;
+  }
+  th {
+    font-family:var(--mono);
+    color:var(--muted);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+  tr:last-child td { border-bottom:0; }
+  .friction {
+    border-left:3px solid var(--amber);
+    background:#FFF8E8;
+  }
+  .friction h2 { color:#7A4D0C; }
+  .copybox {
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  textarea {
+    width:100%;
+    min-height:92px;
+    resize:vertical;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:11px;
+    font-family:var(--mono);
+    font-size:12px;
+    background:#FFFDF8;
+    color:var(--ink);
+  }
+  button {
+    border:1px solid #ADC2D8;
+    background:#EEF5FB;
+    color:#1F4E7D;
+    border-radius:8px;
+    padding:10px 12px;
+    font-weight:650;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <aside>
+    <div class="label">Map</div>
+    <a href="#modules">Modules</a>
+    <a href="#flow">Request Flow</a>
+    <a href="#seams">Risky Seams</a>
+    <a href="#friction">Context Friction</a>
+    <a href="#prompt">Copy Prompt</a>
+    <div class="label" style="margin-top:18px">Read first</div>
+    <code>apps/web/routes/payments.ts</code>
+    <code>packages/billing/stripe.ts</code>
+    <code>packages/db/schema.ts</code>
+  </aside>
+
+  <main>
+    <header>
+      <div class="eyebrow">Code understanding · module map</div>
+      <h1>Payments workflow module map</h1>
+      <p>This page shows where a future agent should start, which modules own the behavior, and which edges are risky to modify without tests.</p>
+      <div class="summary">
+        <div class="metric"><div class="k">Entrypoints</div><div class="v">3</div></div>
+        <div class="metric"><div class="k">Modules</div><div class="v">6</div></div>
+        <div class="metric"><div class="k">Risky seams</div><div class="v">4</div></div>
+        <div class="metric"><div class="k">Tests to run</div><div class="v">2</div></div>
+      </div>
+    </header>
+
+    <section id="modules">
+      <h2>Modules</h2>
+      <div class="map">
+        <div class="module">
+          <h3>Route entrypoints</h3>
+          <p>Receives checkout and billing portal requests, validates session state, and delegates to billing services.</p>
+          <div><span class="pill blue">owner: web</span><span class="pill amber">auth boundary</span></div>
+          <div class="paths"><code>apps/web/routes/payments.ts</code><code>apps/web/routes/billing.ts</code></div>
+        </div>
+        <div class="module">
+          <h3>Billing service</h3>
+          <p>Normalizes Stripe calls and maps external events into internal subscription states.</p>
+          <div><span class="pill green">owner: billing</span><span class="pill red">external API</span></div>
+          <div class="paths"><code>packages/billing/stripe.ts</code><code>packages/billing/subscriptions.ts</code></div>
+        </div>
+        <div class="module">
+          <h3>Persistence</h3>
+          <p>Stores customer IDs, subscription status, and webhook idempotency keys.</p>
+          <div><span class="pill green">owner: db</span><span class="pill amber">migration risk</span></div>
+          <div class="paths"><code>packages/db/schema.ts</code><code>packages/db/subscriptions.ts</code></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <h2>Request Flow</h2>
+      <div class="flow">
+        <div class="node"><div class="title">Checkout route</div><div class="meta">validates user + plan</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="title">Stripe session</div><div class="meta">creates external checkout</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="title">Webhook reconcile</div><div class="meta">updates local subscription</div></div>
+      </div>
+    </section>
+
+    <section id="seams">
+      <h2>Risky Seams</h2>
+      <table>
+        <thead><tr><th>Seam</th><th>Why Risky</th><th>Verify With</th></tr></thead>
+        <tbody>
+          <tr><td><code class="path">webhook → db</code></td><td>Duplicate webhooks can double-apply state transitions.</td><td><code>pnpm test billing-webhooks</code></td></tr>
+          <tr><td><code class="path">auth → checkout</code></td><td>Unauthenticated sessions must never create billing records.</td><td><code>pnpm test payments-route</code></td></tr>
+          <tr><td><code class="path">stripe ids</code></td><td>Customer and subscription IDs must stay paired.</td><td>Trace fixture assertions</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="friction" class="friction">
+      <h2>Context Friction Notes</h2>
+      <p>Future agents often start at the route and miss that webhook reconciliation owns the durable state. Start at <code>packages/billing/subscriptions.ts</code> before editing UI copy or plan selection logic.</p>
+      <p>Do not infer subscription state from Stripe checkout session status; use local subscription rows after webhook reconciliation.</p>
+    </section>
+
+    <section id="prompt">
+      <h2>Copy As Prompt</h2>
+      <div class="copybox">
+        <textarea id="promptText">Use the payments module map. Start with packages/billing/subscriptions.ts, preserve webhook idempotency, and verify with pnpm test billing-webhooks before changing checkout behavior.</textarea>
+        <button onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('promptText').value)">Copy</button>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

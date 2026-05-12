@@ -1,10 +1,11 @@
 ---
 name: pge-review
 description: >
-  Three-axis review of changes since a fixed point. Standards axis checks
+  Review-stage gate for changes since a fixed point. Standards axis checks
   repo conventions; Spec axis checks against the originating plan/issue;
-  Simplicity axis flags unnecessary complexity in new code.
-  Runs all three in parallel sub-agents. Use anytime — not limited to pge-exec.
+  Simplicity axis flags unnecessary complexity in new code; Verification
+  checks whether evidence is strong enough to proceed. Use anytime — not
+  limited to pge-exec.
 argument-hint: "<fixed-point: branch, commit, tag, or main>"
 allowed-tools:
   - Read
@@ -17,13 +18,16 @@ allowed-tools:
 
 # PGE Review
 
-Three-axis review of the diff between `HEAD` and a fixed point:
+Review-stage gate for the diff between `HEAD` and a fixed point:
 
 - **Standards** — does the code conform to this repo's documented conventions?
 - **Spec** — does the code faithfully implement what was asked for?
 - **Simplicity** — is the new code as simple as it can be without losing behavior?
+- **Verification** — is there enough evidence to proceed to prove-it / ship?
 
-All three axes run as parallel sub-agents so they don't pollute each other's context.
+The standards, spec, and simplicity axes run as parallel sub-agents so they don't pollute each other's context. Verification is aggregated by the main review.
+
+`pge-review` is the Review stage in the Research → Plan → Execute → Review → Ship arc. It must return a gate route, not just a list of observations.
 
 ## Process
 
@@ -66,6 +70,27 @@ Every finding must carry a severity label:
 
 Use these labels consistently across all three axes. Avoid unlabeled findings.
 
+### 4.5 Review Gate
+
+The review must end with one route:
+
+- `BLOCK_SHIP` — do not proceed to `pge-challenge`, PR, merge, or deploy.
+- `NEEDS_FIX` — fix bounded issues, then rerun review.
+- `READY_FOR_CHALLENGE` — review passed; proceed to `pge-challenge` for adversarial proof.
+- `READY_TO_SHIP` — only when the user explicitly requested review-only shipping readiness and prove-it evidence is already strong.
+
+Route rules:
+
+- Any **Required** finding → `BLOCK_SHIP`.
+- Any unresolved **Important** finding → `NEEDS_FIX`, unless explicitly deferred with rationale and owner.
+- Verification story `weak` → `BLOCK_SHIP` for behavior changes, `NEEDS_FIX` for docs-only or low-risk changes.
+- Spec axis skipped because no spec exists → `NEEDS_FIX` unless the diff is clearly unplanned maintenance and the review states that assumption.
+- Standards source missing or stale → `NEEDS_FIX` if the diff touches workflow contracts, agent rules, build config, or shared interfaces.
+- Only Advisory/FYI findings with strong or partial verification → `READY_FOR_CHALLENGE`.
+- `READY_TO_SHIP` requires no Required/Important findings, strong verification story, and either a passed `pge-challenge` result or equivalent adversarial evidence in the review input.
+
+The default successful route is `READY_FOR_CHALLENGE`, not `READY_TO_SHIP`.
+
 ### 5. Spawn three sub-agents in parallel
 
 **Standards agent brief:**
@@ -93,6 +118,7 @@ Report this as a separate section:
 - Evidence reviewed: <tests / commands / screenshots / none>
 - Coverage judgment: strong | partial | weak
 - Gaps: <what is still unproven>
+- Gate impact: blocks | needs_fix | proceed
 ```
 
 If the verification story is weak, surface it as a review finding even if the code looks plausible.
@@ -103,6 +129,12 @@ Present four sections under `## Standards`, `## Spec`, `## Simplicity`, and `## 
 
 End with:
 ```
+## Review Gate
+- route: BLOCK_SHIP | NEEDS_FIX | READY_FOR_CHALLENGE | READY_TO_SHIP
+- reason: <one sentence>
+- required_before_next: <fixes/evidence or "none">
+- next: fix and rerun pge-review | pge-challenge <task-slug> | ship
+
 ## Summary
 - Standards: <N findings> (required: X, important: Y, advisory: Z)
 - Spec: <N findings> (required: X, important: Y, advisory: Z)

@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pull Request — tighten handoff contracts</title>
+<style>
+  :root {
+    --ivory: #FAF9F5;
+    --slate: #141413;
+    --clay: #D97757;
+    --oat: #E3DACC;
+    --olive: #788C5D;
+    --rust: #B04A3F;
+    --gray-100: #F0EEE6;
+    --gray-300: #D1CFC5;
+    --gray-500: #87867F;
+    --gray-700: #3D3D3A;
+    --white: #FFFFFF;
+
+    --serif: ui-serif, Georgia, serif;
+    --sans: system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    --radius: 10px;
+    --border: 1.5px solid var(--gray-300);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 48px 24px 120px;
+    background: var(--ivory);
+    color: var(--slate);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    margin-bottom: 40px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 38px;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--gray-100);
+    border: var(--border);
+    border-radius: 999px;
+    padding: 4px 11px;
+    white-space: nowrap;
+    color: var(--gray-700);
+  }
+
+  .pill.draft { background: #E6EDE0; border-color: #C2D4B1; color: var(--olive); }
+  .pill.ready { background: #E6EDE0; border-color: var(--olive); color: var(--olive); }
+  .pill.merged { background: var(--slate); border-color: var(--slate); color: var(--ivory); }
+
+  .meta-bar {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 0;
+    border-top: var(--border);
+    border-bottom: var(--border);
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--gray-500);
+  }
+
+  .meta-bar .val {
+    font-family: var(--mono);
+    color: var(--gray-700);
+  }
+
+  .meta-bar .sep { color: var(--gray-300); }
+
+  /* ---------- Sections ---------- */
+  section {
+    margin-bottom: 52px;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+
+  hr.rule {
+    border: none;
+    border-top: var(--border);
+    margin: 0 0 28px;
+  }
+
+  .section-note {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin: 0 0 20px;
+    padding: 10px 14px;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--gray-300);
+  }
+
+  /* ---------- Motivation ---------- */
+  .motivation {
+    border-left: 4px solid var(--clay);
+    background: #FFF8F5;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 18px 20px;
+    margin-bottom: 40px;
+  }
+
+  .motivation h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+
+  .motivation p {
+    font-size: 14px;
+    color: var(--slate);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ---------- Before / After ---------- */
+  .before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 640px) {
+    .before-after { grid-template-columns: 1fr; }
+  }
+
+  .ba-card {
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .ba-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 10px 16px;
+    border-bottom: var(--border);
+  }
+
+  .ba-card.before .ba-label {
+    background: #FFF0EE;
+    color: var(--rust);
+    border-color: #F5D0CA;
+  }
+
+  .ba-card.after .ba-label {
+    background: #F0F5EB;
+    color: var(--olive);
+    border-color: #D0E0C0;
+  }
+
+  .ba-body {
+    padding: 16px;
+    font-size: 14px;
+    color: var(--slate);
+  }
+
+  .ba-body ul {
+    margin: 0;
+    padding: 0 0 0 18px;
+  }
+
+  .ba-body li {
+    margin-bottom: 6px;
+  }
+
+  .ba-body del {
+    color: var(--rust);
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .ba-body ins {
+    color: var(--olive);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  /* ---------- File Tour ---------- */
+  .file-tour { margin-bottom: 40px; }
+
+  .tour-entry {
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .tour-entry:last-child { margin-bottom: 0; }
+
+  .tour-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: var(--border);
+    background: var(--gray-100);
+  }
+
+  .file-path {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+  }
+
+  .chg-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+
+  .chg-badge.add { background: #E6EDE0; color: var(--olive); }
+  .chg-badge.mod { background: var(--oat); color: #7A6840; }
+  .chg-badge.del { background: #F5E5E3; color: var(--rust); }
+  .chg-badge.ren { background: var(--gray-100); color: var(--gray-700); }
+
+  .tour-body {
+    padding: 16px 18px;
+  }
+
+  .tour-why {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--slate);
+  }
+
+  .code-highlight {
+    background: var(--slate);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+  }
+
+  .code-highlight code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #E8E6DE;
+    white-space: pre;
+    display: block;
+  }
+
+  .code-highlight .hl-add { color: #A8C990; }
+  .code-highlight .hl-del { color: #E88B7D; }
+
+  .focus-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+
+  .tag.needs-careful-review { background: #FFF0EE; color: var(--clay); border: 1px solid #E8C4B4; }
+  .tag.straightforward { background: #E6EDE0; color: var(--olive); border: 1px solid #C2D4B1; }
+  .tag.new-pattern { background: var(--oat); color: #7A6840; border: 1px solid var(--gray-300); }
+  .tag.api-change { background: #EDF2FB; color: #3D5A9B; border: 1px solid #C5D3E8; }
+
+  /* ---------- Review Focus ---------- */
+  .focus-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 600px) {
+    .focus-grid { grid-template-columns: 1fr; }
+  }
+
+  .focus-card {
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    border-left-width: 4px;
+  }
+
+  .focus-card.high { border-left-color: var(--clay); }
+  .focus-card.medium { border-left-color: var(--oat); }
+  .focus-card.low { border-left-color: var(--olive); }
+
+  .focus-card h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16px;
+    margin: 0 0 6px;
+  }
+
+  .focus-card .why {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+  }
+
+  .focus-card .look-for {
+    font-size: 12px;
+    color: var(--gray-700);
+    background: var(--gray-100);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--mono);
+  }
+
+  /* ---------- Testing Notes ---------- */
+  .testing {
+    background: var(--white);
+    border: var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 40px;
+  }
+
+  .testing h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 17px;
+    margin: 0 0 14px;
+  }
+
+  .testing ol {
+    margin: 0 0 14px 20px;
+    padding: 0;
+  }
+
+  .testing li {
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  .cmd {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-300);
+    border-radius: 5px;
+    padding: 3px 8px;
+    color: var(--slate);
+    margin: 2px 0;
+  }
+
+  /* ---------- Decisions ---------- */
+  .decisions { margin-bottom: 40px; }
+
+  .decisions > .section-note {
+    border-left-color: var(--clay);
+    background: #FFF0EE;
+    color: var(--rust);
+  }
+
+  .decision-card {
+    background: var(--white);
+    border: var(--border);
+    border-left: 4px solid var(--clay);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+
+  .decision-card:last-child { margin-bottom: 0; }
+
+  .decision-card .q {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .decision-card .a {
+    font-size: 13px;
+    color: var(--gray-500);
+    padding-left: 12px;
+    border-left: 2px solid var(--gray-300);
+  }
+
+  /* ---------- Footer ---------- */
+  .pr-footer {
+    display: flex;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: var(--border);
+    font-size: 13px;
+    color: var(--gray-500);
+  }
+
+  .pr-footer .author {
+    font-family: var(--mono);
+    color: var(--gray-700);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Pull request</div>
+    <div class="header-top">
+      <h1>Tighten handoff contracts</h1>
+      <span class="pill ready">ready</span>
+    </div>
+    <div class="meta-bar">
+      <span><span class="val">main</span> ← <span class="val">feature/handoff-cleanup</span></span>
+      <span class="sep">·</span>
+      <span>by <span class="val">yanfeng</span></span>
+      <span class="sep">·</span>
+      <span><span class="val">5 files</span></span>
+      <span class="sep">·</span>
+      <span><span class="val">+89 −246</span></span>
+      <span class="sep">·</span>
+      <span>May 12, 2026</span>
+    </div>
+  </header>
+
+  <section class="motivation">
+    <h3>Why this change</h3>
+    <p><code>pge-handoff</code> had accumulated two distinct responsibilities: session handoff (temporary) and knowledge extraction (permanent). This blurred boundaries and made handoff output unreliable for both use cases. The PR splits them into <code>pge-handoff</code> (observer-only, Matt Pocock style) and <code>pge-knowledge</code> (quality-evaluated, ce-compound inspired).</p>
+  </section>
+
+  <section class="before-after">
+    <div class="ba-card before">
+      <div class="ba-label">Before</div>
+      <div class="ba-body">
+        <ul>
+          <li><del>pge-handoff contained save/extract/restore modes</del></li>
+          <li><del>Handoff tried to manage pipeline state</del></li>
+          <li><del>Knowledge extraction mixed into session handoff</del></li>
+          <li><del>No quality threshold for durable knowledge</del></li>
+        </ul>
+      </div>
+    </div>
+    <div class="ba-card after">
+      <div class="ba-label">After</div>
+      <div class="ba-body">
+        <ul>
+          <li><ins>pge-handoff: observer + session summary only</ins></li>
+          <li><ins>Handoff no longer touches pipeline state</ins></li>
+          <li><ins>pge-knowledge: separate skill with 8-dim quality scoring</ins></li>
+          <li><ins>Knowledge needs 14+ score before promotion to repo</ins></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="file-tour">
+    <h2>What changed</h2>
+    <hr class="rule">
+
+    <div class="tour-entry">
+      <div class="tour-head">
+        <span class="file-path">skills/pge-handoff/SKILL.md</span>
+        <span class="chg-badge mod">Modified</span>
+      </div>
+      <div class="tour-body">
+        <p class="tour-why">Cut extract and restore modes. Now a pure observer that writes session summaries — nothing durable, nothing pipeline-aware. Reduced from 267 lines to a focused ~60-line handoff doc generator.</p>
+        <div class="focus-tags">
+          <span class="tag straightforward">straightforward removal</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tour-entry">
+      <div class="tour-head">
+        <span class="file-path">skills/pge-knowledge/SKILL.md</span>
+        <span class="chg-badge add">Added</span>
+      </div>
+      <div class="tour-body">
+        <p class="tour-why">New standalone skill. 8-dimension quality scoring (0–16 scale). Extract only promotes to repo when score ≥ 14. Refresh mode uses five outcomes (Keep / Update / Consolidate / Mark stale / Recommend deletion).</p>
+        <div class="code-highlight">
+<code>Quality gate: score ≥ 14 → promote
+          10–13 → requires supplemental evidence
+           &lt;10 → rejected; log as candidate only</code>
+        </div>
+        <div class="focus-tags">
+          <span class="tag new-pattern">new pattern</span>
+          <span class="tag needs-careful-review">needs careful review</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tour-entry">
+      <div class="tour-head">
+        <span class="file-path">CLAUDE.md</span>
+        <span class="chg-badge mod">Modified</span>
+      </div>
+      <div class="tour-body">
+        <p class="tour-why">Updated truth hierarchy and workflow authority sections to reference both pge-handoff and pge-knowledge. Added explicit role separation: handoff = temporary, knowledge = durable. Added pge-knowledge to first reads order.</p>
+        <div class="focus-tags">
+          <span class="tag straightforward">straightforward</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Review focus areas</h2>
+    <hr class="rule">
+
+    <div class="focus-grid">
+      <div class="focus-card high">
+        <h3>Knowledge scoring thresholds</h3>
+        <div class="why">The 14+ gate is a new policy. Is it calibrated correctly?</div>
+        <div class="look-for">Check that scoring dimensions map to real quality, not just word count or polish.</div>
+      </div>
+      <div class="focus-card medium">
+        <h3>Handoff doc format</h3>
+        <div class="why">Matt Pocock's skill is 15 lines; PGE's version is 60. Does the extra structure help or constrain?</div>
+        <div class="look-for">Confirm that summary blocks are actually useful when the next session resumes.</div>
+      </div>
+      <div class="focus-card low">
+        <h3>export handoff/planning path</h3>
+        <div class="why">pge-knowledge export can write to handoff/planning. Clarify this is reference-only.</div>
+        <div class="look-for">Verify this doesn't create a circular dependency between handoff and knowledge.</div>
+      </div>
+      <div class="focus-card low">
+        <h3>Refresh default behavior</h3>
+        <div class="why">Refresh defaults to report-only (no deletes). Confirm this is the right default.</div>
+        <div class="look-for">Watch for accumulation of stale knowledge over multiple runs.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="testing">
+    <h3>Testing notes</h3>
+    <ol>
+      <li>Run the contract validator — all pipeline skills should pass:
+        <br><span class="cmd">./bin/pge-validate-contracts.sh</span>
+      </li>
+      <li>Verify handoff docs are lightweight (aim for &lt;100 lines output):
+        <br><span class="cmd">/pge-handoff save</span>
+      </li>
+      <li>Test knowledge scoring on a real run artifact:
+        <br><span class="cmd">/pge-knowledge score .pge/tasks-auth/runs/run-001/summary.md</span>
+      </li>
+      <li>Check that CLAUDE.md loads both skills in order:
+        <br><span class="cmd">head -20 CLAUDE.md</span>
+      </li>
+      <li>Confirm handoff and knowledge outputs are decoupled — run both on the same session:
+        <br><span class="cmd">/pge-handoff save && /pge-knowledge review</span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="decisions">
+    <h2>Open decisions</h2>
+    <hr class="rule">
+    <div class="section-note">These need reviewer input before merge.</div>
+
+    <div class="decision-card">
+      <div class="q">Should pge-knowledge refresh run automatically on each session start, or only on explicit call?</div>
+      <div class="a">Currently manual. Auto-refresh is a future option but not in scope for this PR.</div>
+    </div>
+    <div class="decision-card">
+      <div class="q">Does the 14+ threshold need a tuning mechanism (per-dimension weight override)?</div>
+      <div class="a">Not in v1. The fixed 8-dimension model is simpler and less gameable.</div>
+    </div>
+    <div class="decision-card">
+      <div class="q">Should handoff docs persist in .pge/handoffs/ or be truly temporary (session-only)?</div>
+      <div class="a">Currently persisted for handoff recovery. True ephemeral handoff is a design choice for later.</div>
+    </div>
+  </section>
+
+  <div class="pr-footer">
+    <span>Authored by <span class="author">yanfeng</span></span>
+    <span>·</span>
+    <span>Questions? Comment on the PR or open an issue.</span>
+  </div>
+</div>
+</body>
+</html>
