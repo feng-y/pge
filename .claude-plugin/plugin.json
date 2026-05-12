@@ -1,6 +1,6 @@
 {
   "name": "pge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Research, plan, and execute bounded repo-local work for Claude Code.",
   "author": {
     "name": "PGE contributors"
