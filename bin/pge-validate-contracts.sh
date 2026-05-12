@@ -47,7 +47,14 @@ for file in \
   skills/pge-ai-native-refactor/SKILL.md \
   skills/pge-handoff/SKILL.md \
   skills/pge-knowledge/SKILL.md \
+  skills/pge-html/SKILL.md \
+  skills/pge-html/references/template-contracts.md \
+  skills/pge-html/templates/status-report.html \
+  skills/pge-html/templates/research-explainer.html \
+  skills/pge-html/templates/implementation-plan.html \
+  skills/pge-html/templates/flowchart-diagram.html \
   skills/pge-html/templates/module-map.html \
+  skills/pge-html/templates/execution-semantics.html \
   skills/pge-html/templates/comparison-board.html \
   skills/pge-html/templates/review-annotated.html \
   skills/pge-html/templates/code-review.html \
@@ -129,7 +136,7 @@ require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec.*pge-review.*pge-cha
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
   "plugin skill directory allowlist"
-for skill in pge-research pge-plan pge-exec pge-ai-native-refactor pge-handoff pge-knowledge; do
+for skill in pge-research pge-plan pge-exec pge-ai-native-refactor pge-handoff pge-knowledge pge-html; do
   require_pattern .claude-plugin/plugin.json "\"${skill}\"" \
     "plugin ${skill} skill"
 done
@@ -374,6 +381,31 @@ require_pattern skills/pge-knowledge/SKILL.md 'quality_score: <0-16>' \
   "pge-knowledge scored candidates"
 require_pattern skills/pge-knowledge/SKILL.md 'Do not use this for session continuation' \
   "pge-knowledge not handoff boundary"
+
+require_pattern skills/pge-html/SKILL.md 'Do not just make Markdown prettier' \
+  "pge-html cognition-first rule"
+require_pattern skills/pge-html/SKILL.md 'references/template-contracts\.md' \
+  "pge-html template contracts reference"
+require_pattern skills/pge-html/SKILL.md 'execution-semantics' \
+  "pge-html execution semantics style"
+require_pattern skills/pge-html/SKILL.md 'Escape all source text before inserting into HTML' \
+  "pge-html escaping rule"
+require_pattern skills/pge-html/references/template-contracts.md 'Common Quality Gate' \
+  "pge-html common quality gate"
+require_pattern skills/pge-html/references/template-contracts.md '## execution-semantics' \
+  "pge-html execution semantics contract"
+require_pattern skills/pge-html/references/template-contracts.md '## module-map' \
+  "pge-html module map contract"
+require_pattern skills/pge-html/references/template-contracts.md '## code-review' \
+  "pge-html code review contract"
+require_pattern skills/pge-html/templates/execution-semantics.html 'Execution Semantics' \
+  "pge-html execution semantics template"
+require_pattern skills/pge-html/templates/execution-semantics.html 'Agent Gotchas First' \
+  "pge-html execution semantics gotchas"
+require_pattern skills/pge-html/templates/execution-semantics.html 'Verification Hotspots' \
+  "pge-html execution semantics verification"
+require_pattern skills/pge-html/templates/execution-semantics.html 'textContent' \
+  "pge-html execution semantics safe text update"
 
 require_pattern skills/pge-review/SKILL.md 'Review Gate' \
   "pge-review gate section"

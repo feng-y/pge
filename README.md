@@ -68,7 +68,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-knowledge`](./skills/pge-knowledge/SKILL.md)** — Evaluate context friction, agent memory, code summaries, and run learnings before promoting high-quality candidates into repo knowledge.
 
-- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Generate human-facing HTML views for plans, reports, reviews, comparisons, dashboards, and code explainers while keeping Markdown as the canonical pipeline artifact.
+- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Generate human-facing HTML cognition tools for plans, reports, reviews, comparisons, dashboards, module maps, and execution semantics while keeping Markdown as the canonical pipeline artifact.
 
 ### Developer Tools
 
