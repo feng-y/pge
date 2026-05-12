@@ -49,7 +49,7 @@ Run all 8, record pass/fail per check:
 
 2. **Upstream coverage** — does the plan address everything the upstream input asked for?
 
-3. **Traceability** — for each requirement/finding in upstream, which issue covers it? No silent drops.
+3. **Traceability** — for each current prompt constraint and requirement/finding in upstream, which plan section or issue covers it? No silent drops. Current prompt constraints have the highest priority and must not be hidden inside assumptions.
 
 4. **Spec decision coverage** — for every upstream spec-level decision, is it inherited, mapped to `Plan Constraints`, referenced by issue `upstream_decision_refs`, represented in verification, or explicitly overridden with Decision / Rationale / Alternatives considered? No silent drops of rollout strategy, monitoring metrics, phase boundaries, architecture direction, risk assessment, or non-goals.
 

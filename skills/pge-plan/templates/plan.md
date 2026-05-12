@@ -9,6 +9,21 @@
 - plan_route: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - depth: LIGHT | MEDIUM | DEEP
 
+## Input Priority
+
+Current prompt is the highest-priority input. Every hard constraint from the current prompt must be reflected in this plan or explicitly overridden.
+
+| Source | Role | Priority | Consumed As | Conflicts / Overrides |
+|--------|------|----------|-------------|------------------------|
+| <current prompt / trailing arguments> | hard constraint / latest override / selected scope | highest | <Intent / Non-goals / Target Areas / Verification / issue boundaries> | <none or override ID> |
+| <original source-of-truth file or prompt, if any> | source of truth | high | <Plan Constraints / Coverage Audit / Phase Boundary> | <none or override ID> |
+| <repo code/docs/config> | evidence | high | <Repo Context / Engineering Review> | <none or contradiction with source> |
+| <research.md or derived summary, if any> | derived summary | medium | <Repo Context / Plan defaults / assumptions> | <none or original source reread needed> |
+
+### Current Constraints
+
+- <hard constraint from current prompt> — reflected in: <section / issue / non-goal / verification>
+
 ## Intent
 
 - The Problem: <carry from research/upstream; what is wrong or costly>

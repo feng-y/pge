@@ -227,8 +227,12 @@ require_pattern skills/pge-plan/SKILL.md 'on a bare `pge-plan` invocation, disco
   "pge-plan bare invocation research discovery"
 require_pattern skills/pge-plan/SKILL.md 'ask the user to choose when both a discovered artifact and current context look valid' \
   "pge-plan source selection question"
-require_pattern skills/pge-plan/SKILL.md 'Direct planning from intent remains supported when no research artifact exists and the intent is clear enough for Fast Lane' \
-  "pge-plan direct planning fallback"
+require_pattern skills/pge-plan/SKILL.md 'Direct prompt planning is a first-class path' \
+  "pge-plan direct prompt planning capability"
+require_pattern skills/pge-plan/SKILL.md 'Current prompt content is the highest-priority input and must never be ignored' \
+  "pge-plan current prompt highest priority"
+require_pattern skills/pge-plan/SKILL.md 'selector as the source location and the remaining text as binding current user constraints' \
+  "pge-plan selector plus trailing constraints"
 require_pattern skills/pge-plan/SKILL.md 'A discovered research artifact and the current conversation both look like valid upstream sources: ask the user which one to use instead of guessing' \
   "pge-plan context-vs-research guard"
 require_pattern skills/pge-plan/SKILL.md 'Multiple plausible research artifacts and no explicit selector: ask the user which task to continue instead of guessing' \
@@ -237,10 +241,18 @@ require_pattern skills/pge-plan/SKILL.md 'broken handoff instead of silently pre
   "pge-plan broken handoff guard"
 require_pattern skills/pge-plan/SKILL.md 'Self-Evaluation' \
   "pge-plan self evaluation"
-require_pattern skills/pge-plan/SKILL.md 'Consume Upstream Contract.*Intent \+ Ledger \+ Decisions' \
-  "pge-plan flow consumes upstream contract"
+require_pattern skills/pge-plan/SKILL.md 'Consume Selected Source.*Current Constraints' \
+  "pge-plan flow consumes selected source and constraints"
 require_pattern skills/pge-plan/SKILL.md 'Coverage Audit.*requirements \+ decisions \+ phases' \
   "pge-plan flow coverage audit"
+require_pattern skills/pge-plan/SKILL.md 'Input Priority Interpretation' \
+  "pge-plan input priority interpretation"
+require_pattern skills/pge-plan/SKILL.md 'derived research artifact names or depends on an original source-of-truth artifact' \
+  "pge-plan original source reread rule"
+require_pattern skills/pge-plan/SKILL.md 'Current constraint extraction' \
+  "pge-plan current constraint extraction"
+require_pattern skills/pge-plan/SKILL.md 'Scope Compression For Constrained Tasks' \
+  "pge-plan constrained scope compression"
 require_pattern skills/pge-plan/SKILL.md 'authority_ask -> self_eval' \
   "pge-plan flow returns after user answer"
 require_pattern skills/pge-plan/SKILL.md 'authority_ask -> needs_human' \
@@ -257,6 +269,12 @@ require_pattern skills/pge-plan/SKILL.md 'upstream_decision_refs' \
   "pge-plan issue upstream decision refs"
 require_pattern skills/pge-plan/templates/plan.md 'Plan Constraints' \
   "pge-plan plan constraints template"
+require_pattern skills/pge-plan/templates/plan.md 'Input Priority' \
+  "pge-plan input priority template"
+require_pattern skills/pge-plan/templates/plan.md 'Current prompt is the highest-priority input' \
+  "pge-plan current prompt template"
+require_pattern skills/pge-plan/templates/plan.md 'Current Constraints' \
+  "pge-plan current constraints template"
 require_pattern skills/pge-plan/templates/plan.md 'Spec Decisions Coverage' \
   "pge-plan spec decision coverage template"
 require_pattern skills/pge-plan/templates/plan.md 'Phase Boundary' \
@@ -269,6 +287,8 @@ require_pattern skills/pge-plan/templates/plan.md 'upstream_decision_refs' \
   "pge-plan issue decision refs template"
 require_pattern skills/pge-plan/references/self-review.md 'Spec decision coverage' \
   "pge-plan self-review spec decision coverage"
+require_pattern skills/pge-plan/references/self-review.md 'Current prompt constraints have the highest priority' \
+  "pge-plan self-review current prompt priority"
 require_pattern skills/pge-plan/SKILL.md 'READY_FOR_EXECUTE' \
   "pge-plan ready state"
 require_pattern skills/pge-plan/SKILL.md 'Security`: yes \| no' \
