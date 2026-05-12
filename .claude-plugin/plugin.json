@@ -1,6 +1,6 @@
 {
   "name": "pge",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Research, plan, and execute bounded repo-local work for Claude Code.",
   "author": {
     "name": "PGE contributors"
@@ -16,6 +16,7 @@
     "pge-exec",
     "pge-handoff",
     "pge-knowledge",
+    "pge-ai-native-refactor",
     "pge-html",
     "pge-review",
     "pge-diagnose",

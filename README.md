@@ -42,7 +42,7 @@ Each skill produces an artifact or gate result that the next step consumes. You 
 | Review | `pge-review` + optional `pge-challenge` | Review gate: `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; prove-it evidence when needed |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
 
-`pge-handoff`, `pge-knowledge`, `pge-html`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful inside the arc, but they do not replace the main stage contract.
+`pge-ai-native-refactor`, `pge-handoff`, `pge-knowledge`, `pge-html`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
 
 ## Skills
 
@@ -61,6 +61,8 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 - **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Manual verify / prove-it gate before PR. Diffs branch against main, constructs failure scenarios, and verifies each meaningful change with evidence.
 
 ### Utilities
+
+- **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — Shape one human-selected repo evolution direction into a bounded AI-native refactor plan before PGE execution. Focuses one dominant friction: entry, containment, verification, structural toxicity, or a missing mechanical invariant.
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a compact, one-off handoff document for another agent or future session. Matt-style observer summary only: no pipeline control and no knowledge extraction.
 

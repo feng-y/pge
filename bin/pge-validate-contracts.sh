@@ -44,6 +44,7 @@ for file in \
   skills/pge-research/SKILL.md \
   skills/pge-plan/SKILL.md \
   skills/pge-exec/SKILL.md \
+  skills/pge-ai-native-refactor/SKILL.md \
   skills/pge-handoff/SKILL.md \
   skills/pge-knowledge/SKILL.md \
   skills/pge-html/templates/module-map.html \
@@ -73,6 +74,8 @@ require_pattern README.md 'skills/pge-plan/SKILL.md' \
   "README pge-plan surface"
 require_pattern README.md 'skills/pge-exec/SKILL.md' \
   "README pge-exec surface"
+require_pattern README.md 'skills/pge-ai-native-refactor/SKILL.md' \
+  "README pge-ai-native-refactor surface"
 require_pattern README.md 'skills/pge-handoff/SKILL.md' \
   "README pge-handoff surface"
 require_pattern README.md 'skills/pge-review/SKILL.md' \
@@ -92,6 +95,8 @@ require_pattern CLAUDE.md 'skills/pge-review/SKILL.md' \
   "CLAUDE pge-review first read"
 require_pattern CLAUDE.md 'skills/pge-challenge/SKILL.md' \
   "CLAUDE pge-challenge first read"
+require_pattern CLAUDE.md 'skills/pge-ai-native-refactor/SKILL.md' \
+  "CLAUDE pge-ai-native-refactor first read"
 require_pattern CLAUDE.md 'skills/pge-knowledge/SKILL.md' \
   "CLAUDE pge-knowledge first read"
 require_pattern CLAUDE.md 'Research → Plan → Execute → Review → Ship' \
@@ -109,6 +114,8 @@ require_pattern AGENTS.md 'Active review surface' \
   "AGENTS review surface"
 require_pattern AGENTS.md 'Active prove-it surface' \
   "AGENTS prove-it surface"
+require_pattern AGENTS.md 'Active AI-native refactor shaping surface' \
+  "AGENTS ai-native refactor surface"
 require_pattern AGENTS.md '\.pge/tasks-<slug>/research\.md' \
   "AGENTS preferred task artifact flow"
 require_absent_pattern AGENTS.md 'docs/exec-plans/CURRENT_MAINLINE\.md|docs/exec-plans/ISSUES_LEDGER\.md' \
@@ -122,7 +129,7 @@ require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec.*pge-review.*pge-cha
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
   "plugin skill directory allowlist"
-for skill in pge-research pge-plan pge-exec pge-handoff pge-knowledge; do
+for skill in pge-research pge-plan pge-exec pge-ai-native-refactor pge-handoff pge-knowledge; do
   require_pattern .claude-plugin/plugin.json "\"${skill}\"" \
     "plugin ${skill} skill"
 done
@@ -289,6 +296,19 @@ require_pattern skills/pge-plan/references/self-review.md 'Spec decision coverag
   "pge-plan self-review spec decision coverage"
 require_pattern skills/pge-plan/references/self-review.md 'Current prompt constraints have the highest priority' \
   "pge-plan self-review current prompt priority"
+
+require_pattern skills/pge-ai-native-refactor/SKILL.md 'Cannot Enter.*Cannot Contain.*Cannot Verify.*Structural Toxicity.*Missing Invariant' \
+  "pge-ai-native-refactor friction lenses"
+require_pattern skills/pge-ai-native-refactor/SKILL.md 'Matt Architecture Vocabulary' \
+  "pge-ai-native-refactor matt architecture vocabulary"
+require_pattern skills/pge-ai-native-refactor/SKILL.md 'Module.*Interface.*Depth.*Seam.*Adapter.*Leverage.*Locality' \
+  "pge-ai-native-refactor matt terms"
+require_pattern skills/pge-ai-native-refactor/SKILL.md 'PLAN_READY.*INTERACTION_REQUIRED.*BLOCKED' \
+  "pge-ai-native-refactor route contract"
+require_pattern skills/pge-ai-native-refactor/SKILL.md 'does not execute implementation, run PGE, or perform broad architecture modernization' \
+  "pge-ai-native-refactor execution boundary"
+require_pattern skills/pge-ai-native-refactor/SKILL.md 'Do not create `\.pge/` artifacts and do not invoke `pge-plan` automatically' \
+  "pge-ai-native-refactor no auto-PGE boundary"
 require_pattern skills/pge-plan/SKILL.md 'READY_FOR_EXECUTE' \
   "pge-plan ready state"
 require_pattern skills/pge-plan/SKILL.md 'Security`: yes \| no' \

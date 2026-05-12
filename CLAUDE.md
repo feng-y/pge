@@ -18,8 +18,9 @@ Before non-trivial work, read in this order:
 4. `skills/pge-exec/SKILL.md`
 5. `skills/pge-review/SKILL.md`
 6. `skills/pge-challenge/SKILL.md`
-7. `skills/pge-handoff/SKILL.md`
-8. `skills/pge-knowledge/SKILL.md`
+7. `skills/pge-ai-native-refactor/SKILL.md`
+8. `skills/pge-handoff/SKILL.md`
+9. `skills/pge-knowledge/SKILL.md`
 
 ## Truth hierarchy
 
@@ -29,6 +30,7 @@ Active skill surfaces (authoritative):
 - `skills/pge-exec/SKILL.md`
 - `skills/pge-review/SKILL.md`
 - `skills/pge-challenge/SKILL.md`
+- `skills/pge-ai-native-refactor/SKILL.md`
 - `skills/pge-handoff/SKILL.md`
 - `skills/pge-knowledge/SKILL.md`
 
@@ -65,11 +67,12 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 ## Workflow authority
 
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
-- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
+- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions.
 - `pge-research` owns evidence gathering and ambiguity resolution.
 - `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough.
 - `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship.
+- `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
 - `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
 - `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run learnings before any durable repo knowledge is promoted.
 - Planning outputs and run artifacts under `.pge/tasks-<slug>/` are the handoff seams.
