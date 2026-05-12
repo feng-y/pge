@@ -37,7 +37,7 @@ digraph pge_plan {
     resolve_input [label="Resolve Input"];
     classify_depth [label="Classify Depth\n(LIGHT|MEDIUM|DEEP)"];
     read_config [label="Read Setup Config"];
-    consume_upstream [label="Consume Upstream"];
+    consume_upstream [label="Consume Upstream Contract\n(Intent + Ledger + Decisions)"];
     gate_check [label="Gate Check", shape=diamond];
     resolve_input -> classify_depth -> read_config -> consume_upstream -> gate_check;
   }
@@ -48,7 +48,7 @@ digraph pge_plan {
   subgraph cluster_phase2 {
     label="Phase 2: Research + Review";
     style=dashed;
-    coverage_audit [label="Coverage Audit"];
+    coverage_audit [label="Coverage Audit\n(requirements + decisions + phases)"];
     explore [label="Explore gaps\n+flow analysis\n+multi-agent (DEEP)"];
     propose [label="Propose Approaches"];
     eng_review [label="Engineering Review\n(see references/)"];
@@ -62,26 +62,30 @@ digraph pge_plan {
     label="Phase 3: Synthesis";
     style=dashed;
     self_eval [label="Self-Evaluation\n(Decision Classification\n+Authority Limits)"];
-    synthesize [label="Synthesize Intent\n+stop condition"];
+    synthesize [label="Synthesize Intent\n+Plan Constraints\n+Phase Boundary\n+Stop Condition"];
     self_eval -> synthesize;
   }
 
   authority_ask [label="ASK_USER\n(max 1)", shape=doubleoctagon];
+  needs_human [label="NEEDS_HUMAN\n(write best available plan)", shape=doubleoctagon];
   self_eval -> authority_ask [label="User Challenge"];
+  authority_ask -> self_eval [label="answered", style=dashed];
+  authority_ask -> needs_human [label="unanswered / external decision"];
 
   select_approach -> self_eval;
 
   subgraph cluster_phase4 {
     label="Phase 4: Task Output";
     style=dashed;
-    create_issues [label="Create Issues\n(vertical slices)"];
+    create_issues [label="Create Issues\n+decision refs\n(vertical slices)"];
     write_artifact [label="Write Artifact"];
-    self_review [label="Self-Review Loop\n(see references/)", shape=box3d];
+    self_review [label="Self-Review Loop\n(8 checks)\n(see references/)", shape=box3d];
     route [label="Route", shape=note];
     create_issues -> write_artifact -> self_review -> route;
   }
 
   synthesize -> create_issues;
+  needs_human -> write_artifact [label="close stage", style=dashed];
   self_review -> explore [label="confidence\nre-entry (max 1)", style=dashed];
 }
 ```
@@ -91,6 +95,7 @@ digraph pge_plan {
 - **"Let Me Brainstorm Everything First"** — Scale brainstorm to task. If research already recommended, adopt it.
 - **"I Should Ask To Be Safe"** — Questions are expensive. Self-evaluate first. Record assumptions instead.
 - **"Let Me Plan The Whole System"** — Plan only what was asked. Respect upstream scope.
+- **"Let Me Re-Decide The Spec"** — Authoritative upstream decisions are constraints, not fresh options. Plan decides implementation details; it does not re-litigate product behavior, rollout strategy, architecture direction, or scope already settled upstream.
 - **"Issues Should Be Granular"** — Prefer few vertical slices over long micro-task checklists.
 - **"Skip The Engineering Review"** — Even simple tasks get a quick scope check.
 
@@ -118,7 +123,7 @@ When ALL of these are true:
 
 Then:
 - Skip Outside Voice (already conditional on MEDIUM+)
-- Use 3-check self-review (checks 1, 4, 7 only — see `references/self-review.md` Depth Scaling)
+- Use LIGHT self-review from `references/self-review.md`: checks 1, 5, 8 plus check 4 when upstream has a Decision Log or spec-level decisions
 - Skip pressure test
 - Target: 1-2 issues maximum
 - Expected plan time: under 2 minutes
@@ -154,10 +159,23 @@ If the user invoked `pge-plan <task-slug>` or `pge-plan .pge/tasks-<slug>/resear
 | Findings / evidence | Repo Context | as-is |
 | Affected areas | Target Areas | as-is |
 | Constraints / non-goals | Non-goals | as-is |
+| Structured Intent fields | Intent | authoritative unless contradicted |
+| Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
+| Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
+| Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
+| Rollout strategy / compare mode / flags / gray rollout | Issue verification strategy + risks | authoritative |
+| Monitoring metrics / success-fail counters | Required Evidence + Verification | authoritative |
+| Multi-phase structure | Phase Boundary + issue selection | authoritative unless explicitly overridden |
+| Upstream risk assessment | Issue-level Risks | inherit, do not reinvent |
 | Options + recommendation | Strong default for approach | strong default |
 | Assumptions | Inherit | as-is |
 | Open questions (non-blocking) | Risks / Open Questions | pass-through |
 | Open questions (blocking) | BLOCK_PLAN | blocker |
+
+**Decision authority:**
+- Spec-level decisions from upstream are authoritative: product behavior, scope boundary, rollout strategy, monitoring metrics, phase structure, architecture direction, explicit non-goals.
+- Implementation-level choices are plan-owned: concrete file ordering, interface boundaries, issue slicing, test commands, local code patterns, and dependency sequencing.
+- Override a spec-level decision only when repo evidence contradicts it or requirements conflict. Record the override as Decision / Rationale / Alternatives considered, and mark whether user confirmation is required.
 
 ---
 
@@ -165,7 +183,9 @@ If the user invoked `pge-plan <task-slug>` or `pge-plan .pge/tasks-<slug>/resear
 
 ### Coverage Audit
 
-Audit upstream against goal. Mark each requirement: covered / gap to explore / out-of-scope. Do not proceed with silent drops.
+Audit upstream against goal. Mark each requirement: covered / gap to explore / out-of-scope. Also audit every upstream spec decision: inherited / overridden / missing. Do not proceed with silent drops.
+
+Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
 ### Explore (fill gaps)
 
@@ -178,6 +198,8 @@ Only explore gaps not covered by upstream. Use repo/docs/code before asking user
 ### Propose Approaches
 
 Upstream recommended + no contradicting evidence → adopt directly. Otherwise propose 2-3 with tradeoffs.
+
+Do not propose alternatives for authoritative spec-level decisions. Only propose alternatives for implementation-level choices or for upstream decisions contradicted by repo evidence.
 
 ### Engineering Review
 
@@ -195,7 +217,7 @@ Read `references/engineering-review.md` for full review dimensions. Summary:
 
 ### Select Approach
 
-Commit to one. Record selected/rejected/scope reductions. Override upstream if engineering review finds contradicting evidence.
+Commit to one. Record selected/rejected/scope reductions as Decision / Rationale / Alternatives considered. Override upstream only if engineering review finds contradicting evidence or an explicit requirement conflict.
 
 ---
 
@@ -221,9 +243,13 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 ### Synthesize Intent
 
-Produce: intent, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
+If the upstream source has the structured `pge-research` Intent fields, carry them through instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations.
+
+Produce: structured intent, plan constraints, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
 
 **Context budget:** Plan + issues should fit comfortably inside the executor's useful context, with ~50% as an operational ceiling for normal work. >5 detailed issues or 15+ files → split into phased delivery. Prefer fewer vertical slices with complete acceptance criteria over one large plan that forces `pge-exec` to carry stale research, dead ends, and irrelevant raw output.
+
+If upstream defines a multi-phase plan, inherit the phase structure. Produce issues only for the current phase unless the user explicitly asked to plan all phases. Record the phase boundary and what remains deferred.
 
 ---
 
@@ -238,6 +264,7 @@ Vertical slices, not micro-tasks. Rules:
 
 Each issue includes:
 - `ID`, `Title`, `Scope`, `Action` (imperative: what to DO)
+- `upstream_decision_refs` (decision IDs or "none"; referenced decisions must not be changed by exec)
 - `Deliverable` (what must exist when done)
 - `Target Areas` (exact paths: Create/Modify)
 - `Acceptance Criteria`, `Verification Hint`
@@ -262,7 +289,7 @@ mkdir -p .pge/tasks-<slug>/
 ### Self-Review Loop
 
 Read `references/self-review.md` for full protocol (includes `references/multi-round-eval.md` principles). Summary:
-- 7 checks: goal-backward, upstream coverage, traceability, placeholder + rationalization scan, consistency, confidence, downstream simulation
+- 8 checks: goal-backward, upstream coverage, traceability, spec decision coverage, placeholder + rationalization scan, consistency, confidence, downstream simulation
 - Pressure test: construct one failure scenario per issue after checks pass
 - Retry: fix → re-check failed only → max 2 attempts → downgrade to NEEDS_INFO
 - Confidence gate: LOW affecting correctness → re-enter Phase 2 Explore (max 1 re-entry)
@@ -287,7 +314,7 @@ If the user redirects to execution or implementation mid-run, close the stage fi
 
 ## Handoff To Execute
 
-`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
+`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, upstream decisions to preserve, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
 
 ## Guardrails
 

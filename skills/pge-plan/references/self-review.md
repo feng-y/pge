@@ -6,15 +6,15 @@ Loaded by pge-plan Phase 4. This is the primary quality gate for stable executio
 
 Self-review scales with plan depth (from Phase 1 classification):
 
-- **LIGHT** (1-2 issues, single module): Run checks 1, 4, 7 only (goal-backward, placeholder+rationalization scan, downstream simulation). Skip pressure test. Max 1 retry attempt.
-- **MEDIUM** (3-5 issues): Run all 7 checks. Run pressure test. Max 2 retry attempts.
-- **DEEP** (5+ issues, cross-module): Run all 7 checks. Run pressure test. Max 2 retry attempts + confidence gate re-entry.
+- **LIGHT** (1-2 issues, single module): Run checks 1, 5, 8 plus check 4 when upstream has a Decision Log or spec-level decisions. Skip pressure test. Max 1 retry attempt.
+- **MEDIUM** (3-5 issues): Run all 8 checks. Run pressure test. Max 2 retry attempts.
+- **DEEP** (5+ issues, cross-module): Run all 8 checks. Run pressure test. Max 2 retry attempts + confidence gate re-entry.
 
 ## Flow
 
 ```dot
 digraph self_review {
-  "Run 7 checks" [shape=box];
+  "Run 8 checks" [shape=box];
   "All pass?" [shape=diamond];
   "Fix failing checks" [shape=box];
   "Re-run failed checks only" [shape=box];
@@ -25,7 +25,7 @@ digraph self_review {
   "Re-enter Phase 2 Explore\n(1 gap only, max 1 re-entry)" [shape=box];
   "DONE" [shape=doublecircle];
 
-  "Run 7 checks" -> "All pass?";
+  "Run 8 checks" -> "All pass?";
   "All pass?" -> "Confidence gate" [label="yes"];
   "All pass?" -> "Fix failing checks" [label="no"];
   "Fix failing checks" -> "Re-run failed checks only";
@@ -37,13 +37,13 @@ digraph self_review {
   "Downgrade to NEEDS_INFO" -> "Confidence gate";
   "Confidence gate" -> "Re-enter Phase 2 Explore\n(1 gap only, max 1 re-entry)" [label="LOW affects correctness"];
   "Confidence gate" -> "DONE" [label="all HIGH/MEDIUM"];
-  "Re-enter Phase 2 Explore\n(1 gap only, max 1 re-entry)" -> "Run 7 checks";
+  "Re-enter Phase 2 Explore\n(1 gap only, max 1 re-entry)" -> "Run 8 checks";
 }
 ```
 
-## 7 Review Checks
+## 8 Review Checks
 
-Run all 7, record pass/fail per check:
+Run all 8, record pass/fail per check:
 
 1. **Goal-backward verification** — state the goal, work backward: what must be true when done? What artifacts must exist? What wiring connects them? Do the issues produce all of these?
 
@@ -51,18 +51,20 @@ Run all 7, record pass/fail per check:
 
 3. **Traceability** — for each requirement/finding in upstream, which issue covers it? No silent drops.
 
-4. **Placeholder + rationalization scan** — search for:
+4. **Spec decision coverage** — for every upstream spec-level decision, is it inherited, mapped to `Plan Constraints`, referenced by issue `upstream_decision_refs`, represented in verification, or explicitly overridden with Decision / Rationale / Alternatives considered? No silent drops of rollout strategy, monitoring metrics, phase boundaries, architecture direction, risk assessment, or non-goals.
+
+5. **Placeholder + rationalization scan** — search for:
    - Obvious placeholders: TBD, TODO, "implement later", "fill in details"
    - Soft-language evasions: "Add appropriate error handling", "add validation", "handle edge cases", "similar to Issue N" without repeating context
    - Pseudo-specific vagueness: "update relevant files", "ensure proper behavior", "configure as needed"
    
    After fixing, verify the replacement is concrete and actionable — not a synonym of the prohibited phrase.
 
-5. **Consistency check** — target areas, acceptance criteria, and issue scopes must align.
+6. **Consistency check** — target areas, acceptance criteria, issue scopes, and upstream decision refs must align.
 
-6. **Confidence check** — any LOW-confidence assumption affecting correctness? Verify or flag.
+7. **Confidence check** — any LOW-confidence assumption affecting correctness? Verify or flag.
 
-7. **Downstream simulation** — for each issue, imagine Generator receiving it:
+8. **Downstream simulation** — for each issue, imagine Generator receiving it:
    - Can Generator start working immediately, or does it need to guess something?
    - Is the Action imperative and unambiguous? Could two different engineers interpret it differently?
    - Are Target Areas specific enough (exact file paths, not "relevant modules")?
@@ -72,7 +74,7 @@ Run all 7, record pass/fail per check:
 
 ## Pressure Test (after checks pass)
 
-After all 7 checks pass, apply one round of adversarial pressure:
+After all required checks pass, apply one round of adversarial pressure:
 
 **"Where will this plan fail?"** — For each issue, construct one scenario where execution goes wrong despite the plan being "correct":
 - A naming mismatch between what the plan says and what the code actually calls it
@@ -84,7 +86,7 @@ If you find a real vulnerability, fix the relevant issue. If all scenarios are c
 
 ## Retry Protocol
 
-- Run all 7 checks. Record pass/fail.
+- Run all 8 checks. Record pass/fail.
 - If all pass: proceed to pressure test, then confidence gate.
 - If any fail: fix inline. Re-run ONLY the failed checks.
 - If still failing: attempt again (max 2 attempts per failing check).
@@ -93,7 +95,7 @@ If you find a real vulnerability, fix the relevant issue. If all scenarios are c
 
 ## Confidence Gate
 
-If check 6 finds LOW-confidence assumption affecting correctness of a READY_FOR_EXECUTE issue:
+If check 7 finds LOW-confidence assumption affecting correctness of a READY_FOR_EXECUTE issue:
 - Re-enter Phase 2 Explore for that specific gap only.
 - Maximum 1 re-entry.
 - If still LOW after re-entry: downgrade issue to NEEDS_INFO.

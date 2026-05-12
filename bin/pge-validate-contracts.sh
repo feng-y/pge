@@ -156,6 +156,14 @@ require_pattern skills/pge-research/SKILL.md 'research_route: READY_FOR_PLAN \| 
   "pge-research route contract"
 require_pattern skills/pge-research/SKILL.md 'Completion gate' \
   "pge-research completion gate"
+require_pattern skills/pge-research/SKILL.md 'digraph pge_research' \
+  "pge-research execution flow"
+require_pattern skills/pge-research/SKILL.md 'Consume Upstream Contract.*Intent \+ Ledger \+ Decisions' \
+  "pge-research flow consumes upstream contract"
+require_pattern skills/pge-research/SKILL.md 'Spec Coverage Gate.*Ledger \+ Decisions \+ Phases' \
+  "pge-research flow spec coverage gate"
+require_pattern skills/pge-research/SKILL.md 'needs_info -> write_artifact' \
+  "pge-research flow closes blocked route"
 require_pattern skills/pge-research/SKILL.md 'Consume upstream specs' \
   "pge-research upstream input digestion"
 require_pattern skills/pge-research/SKILL.md 'Capability: Upstream Contract Preservation' \
@@ -229,6 +237,38 @@ require_pattern skills/pge-plan/SKILL.md 'broken handoff instead of silently pre
   "pge-plan broken handoff guard"
 require_pattern skills/pge-plan/SKILL.md 'Self-Evaluation' \
   "pge-plan self evaluation"
+require_pattern skills/pge-plan/SKILL.md 'Consume Upstream Contract.*Intent \+ Ledger \+ Decisions' \
+  "pge-plan flow consumes upstream contract"
+require_pattern skills/pge-plan/SKILL.md 'Coverage Audit.*requirements \+ decisions \+ phases' \
+  "pge-plan flow coverage audit"
+require_pattern skills/pge-plan/SKILL.md 'authority_ask -> self_eval' \
+  "pge-plan flow returns after user answer"
+require_pattern skills/pge-plan/SKILL.md 'authority_ask -> needs_human' \
+  "pge-plan flow handles unanswered user challenge"
+require_pattern skills/pge-plan/SKILL.md 'Decision Log / upstream spec decisions' \
+  "pge-plan consumes upstream decisions"
+require_pattern skills/pge-plan/SKILL.md 'Spec decisions coverage is mandatory' \
+  "pge-plan spec decision coverage gate"
+require_pattern skills/pge-plan/SKILL.md 'Spec-level decisions from upstream are authoritative' \
+  "pge-plan spec-level decision authority"
+require_pattern skills/pge-plan/SKILL.md 'Implementation-level choices are plan-owned' \
+  "pge-plan implementation choice authority"
+require_pattern skills/pge-plan/SKILL.md 'upstream_decision_refs' \
+  "pge-plan issue upstream decision refs"
+require_pattern skills/pge-plan/templates/plan.md 'Plan Constraints' \
+  "pge-plan plan constraints template"
+require_pattern skills/pge-plan/templates/plan.md 'Spec Decisions Coverage' \
+  "pge-plan spec decision coverage template"
+require_pattern skills/pge-plan/templates/plan.md 'Phase Boundary' \
+  "pge-plan phase boundary template"
+require_pattern skills/pge-plan/templates/plan.md 'Upstream Decision ID' \
+  "pge-plan decision override id template"
+require_pattern skills/pge-plan/templates/plan.md 'Upstream ID' \
+  "pge-plan upstream id coverage template"
+require_pattern skills/pge-plan/templates/plan.md 'upstream_decision_refs' \
+  "pge-plan issue decision refs template"
+require_pattern skills/pge-plan/references/self-review.md 'Spec decision coverage' \
+  "pge-plan self-review spec decision coverage"
 require_pattern skills/pge-plan/SKILL.md 'READY_FOR_EXECUTE' \
   "pge-plan ready state"
 require_pattern skills/pge-plan/SKILL.md 'Security`: yes \| no' \

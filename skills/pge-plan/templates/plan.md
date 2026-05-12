@@ -11,14 +11,46 @@
 
 ## Intent
 
-<One paragraph: what the user wants, why it matters, what success looks like>
+- The Problem: <carry from research/upstream; what is wrong or costly>
+- The Goal: <target value or capability>
+- Position in Larger Plan: <broader migration/product/cleanup sequence, or "standalone">
+- Why This Step / Why Now: <why this phase/scope is the right next move>
+- What Success Looks Like: <observable outcome>
+- Explicitly Out of Scope: <non-goals with rationale>
+
+## Plan Constraints
+
+Authoritative upstream decisions that planning must inherit. Do not re-litigate these unless explicitly overridden below.
+
+| Decision ID | Decision | Source | Plan handling |
+|-------------|----------|--------|---------------|
+| D1 | <upstream spec decision> | <research.md section / upstream path> | inherited as <constraint / issue ref / verification ref> |
+
+### Decision Overrides
+| Upstream Decision ID | Override Decision | Rationale | Alternatives considered | User confirmation required? |
+|----------------------|-------------------|-----------|-------------------------|-----------------------------|
+| <none or D1> | <overridden decision> | <why repo evidence requires override> | <rejected alternatives> | yes/no |
+
+## Phase Boundary
+
+- upstream_phase_structure: <none or phase list from research/upstream>
+- current_phase: <which phase this plan covers>
+- deferred_phases: <what remains outside this plan and why>
+- phase_boundary_source: <research.md section / upstream path / conversation>
 
 ## Coverage Audit
 
-| Upstream Requirement/Finding | Covered By | Status |
-|------------------------------|-----------|--------|
-| <requirement from upstream> | Issue N | covered |
-| <requirement from upstream> | — | gap (reason) |
+### Requirement Coverage
+| Upstream ID | Requirement/Finding | Covered By | Status |
+|-------------|---------------------|------------|--------|
+| U1 | <requirement from upstream> | Issue N | covered |
+| U2 | <requirement from upstream> | — | gap (reason) |
+
+### Spec Decisions Coverage
+| Upstream Decision | Covered By | Status |
+|-------------------|------------|--------|
+| D1 | Plan Constraint / Issue N / Verification | inherited |
+| D2 | Decision Overrides | overridden (reason) |
 
 ## Engineering Review
 
@@ -40,8 +72,9 @@
 - LOW: <assumptions — list each with verification status>
 
 ### Approach Decision
-- Selected: <approach name> — why: <rationale>
-- Rejected: <approach name> — why: <reason from engineering review>
+| Decision | Rationale | Alternatives considered |
+|----------|-----------|-------------------------|
+| <selected implementation approach> | <why this follows from upstream + repo evidence> | <rejected approaches and why> |
 
 ## Self-Evaluation
 
@@ -55,9 +88,9 @@
 - If unanswered, what is the risk? <description>
 - Decision: SELF_ANSWERED | ASK_USER | ASSUME_AND_RECORD | DEFER_TO_SLICE | BLOCK_PLAN
 
-## Problem
+## Execution Problem Detail
 
-<What is wrong or missing that this plan addresses>
+<Optional code-level detail that clarifies the structured Intent. Do not rewrite or weaken Intent.>
 
 ## Non-goals
 
@@ -90,13 +123,14 @@
 - ID: 1
 - Title: <short title>
 - Scope: <what this issue covers>
+- upstream_decision_refs: <D1, D2, or "none">
 - Action: <imperative — what to DO>
 - Deliverable: <what must exist when done>
 - Target Areas: <exact file paths — Create: path | Modify: path>
 - Acceptance Criteria: <checkable conditions>
 - Verification Hint: <command or check>
 - Verification Type: AUTOMATED | MANUAL | MIXED
-- Execution Type: AFK | HITL
+- Execution Type: AFK | HITL:verify | HITL:decision | HITL:action
 - Test Expectation: <happy path + edge case to test, or "none — [reason]">
 - Required Evidence: <what must be shown to prove done>
 - State: READY_FOR_EXECUTE
@@ -122,6 +156,7 @@
 - AFK issues (fully autonomous): <list>
 - HITL issues (need human during execution): <list>
 - Concurrency: decided by pge-exec at runtime
+- Upstream decisions to preserve: <decision IDs and short labels>
 - Assumptions to preserve: <list>
 - Risks not to ignore: <list>
 

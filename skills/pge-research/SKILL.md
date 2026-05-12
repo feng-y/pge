@@ -27,6 +27,68 @@ Turn a vague or ambiguous intent into a structured research brief through eviden
 Do NOT produce plans, numbered issues, implementation code, function bodies, pseudocode, field rewiring, fallback behavior decisions, or invoke `pge-plan`. This applies even when the task feels simple. Your only output artifact is a research brief written to the task directory.
 </HARD-GATE>
 
+## Execution Flow
+
+Follow this flow exactly. Do not skip gates. Repair the brief before routing `READY_FOR_PLAN`.
+
+```dot
+digraph pge_research {
+  rankdir=TB;
+  node [shape=box, style=rounded];
+
+  subgraph cluster_phase1 {
+    label="Phase 1: Input + Upstream Contract";
+    style=dashed;
+    load_knowledge [label="Load Accumulated Knowledge"];
+    consume_upstream [label="Consume Upstream Contract\n(Intent + Ledger + Decisions)"];
+    preserve_spec [label="Preserve Spec Level\n+Mark Current Scope"];
+    load_knowledge -> consume_upstream -> preserve_spec;
+  }
+
+  subgraph cluster_phase2 {
+    label="Phase 2: Evidence + Ambiguity";
+    style=dashed;
+    explore_context [label="Explore Project Context"];
+    scope_check [label="Scope Check\n(no silent narrowing)"];
+    ambiguity_scan [label="Scan Ambiguity\n+Self-Resolve"];
+    ask_gate [label="Need User Info?", shape=diamond];
+    explore_context -> scope_check -> ambiguity_scan -> ask_gate;
+  }
+
+  needs_info [label="NEEDS_INFO / BLOCKED\n(write best available brief)", shape=doubleoctagon];
+  ask_gate -> needs_info [label="blocking, cannot resolve"];
+
+  subgraph cluster_phase3 {
+    label="Phase 3: Synthesis";
+    style=dashed;
+    synthesize [label="Synthesize\nStated / Inferred / Out"];
+    decisions [label="Decision Log\nDecision / Rationale / Alternatives"];
+    options [label="Options + Recommendation\n(with basis)"];
+    synthesize -> decisions -> options;
+  }
+
+  subgraph cluster_phase4 {
+    label="Phase 4: Quality Gates";
+    style=dashed;
+    preservation [label="Upstream Preservation Review"];
+    coverage [label="Spec Coverage Gate\n(Ledger + Decisions + Phases)"];
+    grill [label="Grill Brief\n(adversarial repair)"];
+    readiness [label="Final Readiness Review"];
+    preservation -> coverage -> grill -> readiness;
+  }
+
+  write_artifact [label="Write Artifact\n.pge/tasks-<slug>/research.md"];
+  route [label="Route\nREADY_FOR_PLAN | NEEDS_INFO | BLOCKED", shape=note];
+
+  preserve_spec -> explore_context;
+  ask_gate -> synthesize [label="resolved / non-blocking"];
+  needs_info -> write_artifact [label="close stage", style=dashed];
+  options -> preservation;
+  readiness -> write_artifact -> route;
+  readiness -> explore_context [label="gap found\n(repair)", style=dashed];
+}
+```
+
 ## Anti-Pattern: "This Is Too Simple To Need Research"
 
 Simple tasks are where hidden assumptions waste the most time. A small request often looks obvious until you read the code and discover naming mismatches, local conventions, or nearby constraints. The research can be short, but you still need to ground it in the repo before handing anything to planning.
@@ -219,8 +281,10 @@ The brief is coverage-complete only when every material upstream item is represe
 
 - Intent
 - Findings
+- Synthesis Summary
 - Affected Areas
 - Constraints
+- Decision Log
 - Options
 - Recommendation
 - Open Questions
