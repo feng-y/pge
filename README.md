@@ -56,7 +56,7 @@ Independent skills for everyday development. Not part of the pipeline — use an
 
 - **[`/pge-diagnose`](./skills/pge-diagnose/SKILL.md)** — Structured 6-phase bug diagnosis: build feedback loop → reproduce → hypothesise → instrument → fix → cleanup.
 
-- **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Challenge Claude to prove its changes work before PR. Diffs branch against main, constructs failure scenarios, verifies each change.
+- **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Manual verify / prove-it gate before PR. Diffs branch against main, constructs failure scenarios, and verifies each meaningful change with evidence.
 
 - **[`/pge-grill-me`](./skills/pge-grill-me/SKILL.md)** — Stress-test a plan or design via relentless interrogation. Walks each branch of the decision tree.
 

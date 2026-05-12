@@ -200,7 +200,7 @@ If you are interrupted or the user changes direction, close the stage first by w
 
 **Transition to planning:**
 
-After writing the brief, output the Final Response block and explicitly tell the user to invoke `pge-plan` next. Do NOT auto-invoke `pge-plan`. Do NOT produce a plan yourself, and do NOT start decomposing the work "just to be helpful." Each pipeline stage is a separate skill invocation and the user decides when to advance.
+After writing the brief, output the Final Response block and explicitly tell the user to invoke `pge-plan <task-slug>` or `pge-plan .pge/tasks-<slug>/research.md` next. Do NOT auto-invoke `pge-plan`. Do NOT produce a plan yourself, and do NOT start decomposing the work "just to be helpful." Each pipeline stage is a separate skill invocation and the user decides when to advance.
 
 ## Key Principles
 
@@ -226,5 +226,5 @@ Use the exact template at `templates/brief.md`.
 - options_count: <N>
 - recommended: <Option name>
 - questions_asked: <0-3>
-- next_skill: pge-plan
+- next_skill: pge-plan <task-slug> | pge-plan .pge/tasks-<slug>/research.md
 ```

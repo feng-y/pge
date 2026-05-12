@@ -100,7 +100,7 @@ digraph pge_plan {
 
 ### Resolve Input
 
-If `ARGUMENTS:` explicitly names a task slug, research path, or other structured upstream input, use that. Otherwise, on a bare `pge-plan` invocation, first discover any research artifact under `.pge/tasks-<slug>/research.md`. If a research artifact is found and the current conversation also contains usable planning context, ask the user which source to continue from instead of guessing. Only fall back to conversation intent automatically when no research artifact exists. Ask only if missing detail is blocking.
+If `ARGUMENTS:` explicitly names a task slug, research path, or other structured upstream input, treat that as the user's selected source and use it without asking again. Otherwise, on a bare `pge-plan` invocation, discover research artifacts under `.pge/tasks-<slug>/research.md` but do not silently select them. Ask the user to confirm a discovered artifact, choose among multiple artifacts, or choose between a discovered artifact and current conversation context. Only fall back to direct planning from conversation intent when no research artifact exists and the intent is lightweight enough to plan fairly.
 
 ### Classify Depth
 
@@ -129,18 +129,19 @@ Read `.pge/config/*`. If `docs-policy.md` or `repo-profile.md` exists, treat as 
 
 ### Consume Upstream Input
 
-Requires structured upstream input. Does not start from bare prompt.
+`pge-plan` consumes a selected upstream source, then produces `plan.md`. The selected source can be a research artifact, a user-specified file/slug, structured notes, or a lightweight clear intent.
 
-On a bare `pge-plan` invocation after `pge-research`, discover `.pge/tasks-<slug>/research.md` first. If that artifact is the only clear upstream source, use it as the canonical handoff. If both the discovered research artifact and the current conversation are plausible upstream sources, ask the user whether to continue from the research artifact or from the current context. Direct planning from intent, conversation, or another accepted structured upstream source remains supported when no research artifact exists, or when the user explicitly chooses that mode.
+If the user invoked `pge-plan <task-slug>` or `pge-plan .pge/tasks-<slug>/research.md`, that explicit selector is consent to consume the matching artifact. If the user invoked bare `pge-plan`, artifact discovery is only a proposal: confirm before consuming a single discovered research artifact, ask the user to choose when multiple artifacts exist, and ask the user to choose when both a discovered artifact and current context look valid. Direct planning from intent remains supported when no research artifact exists and the intent is clear enough for Fast Lane.
 
 **Accepted sources:** (1) pge-research brief, (2) Claude plan mode output, (3) brainstorming output, (4) any structured doc with intent/findings/constraints, (5) self-research Agent for simple intents.
 
 **Gate check:**
 - Ready: consume.
 - Incomplete: STOP. No artifact. Suggest resolving upstream.
-- Missing + simple: spawn research Agent.
+- Missing + simple: use Fast Lane direct planning from clear intent.
 - Missing + complex: STOP. Suggest `pge-research`.
-- Bare `pge-plan` invocation after research, but no `.pge/tasks-<slug>/research.md` can be discovered: only then fall back to direct planning or ask the user to run `pge-research` first.
+- Bare `pge-plan` invocation with one discovered `.pge/tasks-<slug>/research.md`: ask the user to confirm before consuming it.
+- Bare `pge-plan` invocation after research, but no `.pge/tasks-<slug>/research.md` can be discovered: fall back to Fast Lane direct planning only for clear lightweight intent; otherwise ask the user to run `pge-research` first.
 - Explicit continuation requested for a prior research task, but `.pge/tasks-<slug>/research.md` is missing: STOP. Report broken handoff instead of silently pretending the research artifact exists.
 - A discovered research artifact and the current conversation both look like valid upstream sources: ask the user which one to use instead of guessing.
 - Multiple plausible research artifacts and no explicit selector: ask the user which task to continue instead of guessing.
@@ -286,7 +287,7 @@ If the user redirects to execution or implementation mid-run, close the stage fi
 
 ## Handoff To Execute
 
-`pge-exec` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
+`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
 
 ## Guardrails
 
@@ -303,5 +304,5 @@ Do not: write business code, write implementation pseudocode or function bodies,
 - asked_user: yes | no
 - assumptions_recorded: yes | no
 - engineering_review: completed | skipped — reason
-- next_skill: pge-exec | pge-plan (after clarification)
+- next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-plan (after clarification)
 ```

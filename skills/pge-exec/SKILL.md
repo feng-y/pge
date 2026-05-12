@@ -94,7 +94,7 @@ digraph pge_exec {
 
 ## Phase 1: Load & Validate
 
-If `ARGUMENTS:` explicitly names a task slug, plan path, or other execution target, use that. Otherwise, on a bare `pge-exec` invocation, first discover `.pge/tasks-<slug>/plan.md`. If a plan artifact is found and the current conversation also contains usable execution context, ask the user which source to continue from instead of guessing. Only fall back to conversation context automatically when no plan artifact exists. If argument is `test`, use an inline smoke plan bound to a dedicated task directory.
+If `ARGUMENTS:` explicitly names a task slug, plan path, or other execution target, treat that as the user's selected source and use it without asking again. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` but do not silently select one. Ask the user to confirm a single discovered plan, choose among multiple plans, or choose between a discovered plan and current conversation context. Only fall back to conversation context when no plan artifact exists and the context already contains an executable plan contract. If argument is `test`, use an inline smoke plan bound to a dedicated task directory.
 
 **Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec never creates the task directory itself — it expects pge-research or pge-plan to have created it, except for the dedicated smoke-test task directory. Before writing run output, create only the run parent explicitly:
 
@@ -106,6 +106,7 @@ Validate:
 - `plan_route` = `READY_FOR_EXECUTE`
 - ≥1 issue with `State: READY_FOR_EXECUTE`
 - Stop Condition present
+- Bare invocation source selection follows the confirmation rules above before execution starts
 - If both a discovered plan artifact and the current conversation look like valid upstream sources, ask the user whether to execute the plan artifact or continue from the current context
 - If an explicit continuation target is named but the corresponding `.pge/tasks-<slug>/plan.md` is missing, report a broken handoff instead of silently pretending the plan artifact exists
 - If multiple plausible plan artifacts exist and no explicit selector is given, ask the user which task to continue instead of guessing
@@ -310,7 +311,7 @@ After all issues processed, check plan's Stop Condition:
 
 ### Final Review
 
-After Stop Condition, integration verification, and regression checks pass, run the Final Review Gate if triggered. `SUCCESS` requires the gate to be skipped or to return PASS / ADVISORY_ONLY. REPAIR_REQUIRED must either be repaired inside the current bounded plan or route PARTIAL. BLOCKED prevents SUCCESS.
+After Stop Condition, integration verification, and regression checks pass, run the Final Review Gate if triggered. `SUCCESS` requires the gate to be skipped or to return PASS / ADVISORY_ONLY. REPAIR_REQUIRED must either be repaired inside the current bounded plan or route PARTIAL. BLOCKED prevents SUCCESS. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills for the user to run after `pge-exec` completes.
 
 ### Compound (Accumulate Learnings)
 
@@ -420,7 +421,7 @@ For test: minimal dispatch, no handoff file reads. Create `.pge/tasks-smoke-test
 - final_review: skipped | pass | advisory_only | repair_required | blocked
 - learnings_recorded: yes | no
 - artifacts: .pge/tasks-<slug>/runs/<run_id>/
-- next: done | pge-plan (if blocked) | user decision (if HITL)
+- next: done | pge-review <task-slug> | pge-challenge <task-slug> | pge-plan (if blocked) | user decision (if HITL)
 ```
 
 ## Guardrails
