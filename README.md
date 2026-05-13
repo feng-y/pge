@@ -58,7 +58,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-review`](./skills/pge-review/SKILL.md)** — Review-stage gate for changes since a fixed point. Checks standards, spec, simplicity, and verification story before routing to fix, challenge, or ship.
 
-- **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Manual verify / prove-it gate before PR. Diffs branch against main, constructs failure scenarios, and verifies each meaningful change with evidence.
+- **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Manual prove-it gate before PR/ship. Explains the diff, proves current prompt constraints when present, proves execution fulfilled the plan/development requirements, and challenges each meaningful change with evidence.
 
 ### Utilities
 

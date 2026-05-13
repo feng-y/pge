@@ -44,6 +44,8 @@ for file in \
   skills/pge-research/SKILL.md \
   skills/pge-plan/SKILL.md \
   skills/pge-exec/SKILL.md \
+  skills/pge-review/SKILL.md \
+  skills/pge-challenge/SKILL.md \
   skills/pge-ai-native-refactor/SKILL.md \
   skills/pge-handoff/SKILL.md \
   skills/pge-knowledge/SKILL.md \
@@ -413,5 +415,22 @@ require_pattern skills/pge-review/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHA
   "pge-review route contract"
 require_pattern skills/pge-review/SKILL.md 'The default successful route is `READY_FOR_CHALLENGE`' \
   "pge-review default success route"
+
+require_pattern skills/pge-challenge/SKILL.md 'Prompt Challenge Matrix' \
+  "pge-challenge prompt proof matrix"
+require_pattern skills/pge-challenge/SKILL.md 'Plan Fulfillment Matrix' \
+  "pge-challenge plan fulfillment matrix"
+require_pattern skills/pge-challenge/SKILL.md 'Review Self-Proof Matrix' \
+  "pge-challenge self proof matrix"
+require_pattern skills/pge-challenge/SKILL.md 'execution_self_proof' \
+  "pge-challenge execution self proof mode"
+require_pattern skills/pge-challenge/SKILL.md 'prompt_ref: not_provided' \
+  "pge-challenge prompt optional execution mode"
+require_pattern skills/pge-challenge/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_TO_SHIP' \
+  "pge-challenge route contract"
+require_pattern skills/pge-challenge/SKILL.md 'Current prompt outranks older plan/research artifacts' \
+  "pge-challenge prompt priority"
+require_pattern skills/pge-challenge/SKILL.md 'Do not fix implementation' \
+  "pge-challenge no implementation boundary"
 
 printf 'OK: PGE active contracts validated\n'
