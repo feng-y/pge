@@ -422,8 +422,8 @@ require_pattern skills/pge-challenge/SKILL.md 'Plan Fulfillment Matrix' \
   "pge-challenge plan fulfillment matrix"
 require_pattern skills/pge-challenge/SKILL.md 'Review Self-Proof Matrix' \
   "pge-challenge self proof matrix"
-require_pattern skills/pge-challenge/SKILL.md 'execution_self_proof' \
-  "pge-challenge execution self proof mode"
+require_pattern skills/pge-challenge/SKILL.md 'prove_expected \| challenge_claim' \
+  "pge-challenge challenge models"
 require_pattern skills/pge-challenge/SKILL.md 'prompt_ref: not_provided' \
   "pge-challenge prompt optional execution mode"
 require_pattern skills/pge-challenge/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_TO_SHIP' \
