@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listwise 特征执行语义</title>
+<style>
+  :root {
+    --ivory: #FAF9F5;
+    --slate: #141413;
+    --clay: #D97757;
+    --oat: #E3DACC;
+    --olive: #788C5D;
+    --rust: #B04A3F;
+    --gray-150: #F0EEE6;
+    --gray-300: #D1CFC5;
+    --gray-500: #87867F;
+    --gray-700: #3D3D3A;
+    --serif: ui-serif, Georgia, 'Times New Roman', serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--ivory);
+    color: var(--gray-700);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 48px 24px 80px;
+  }
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 40px;
+  }
+  @media (max-width: 960px) { .page { grid-template-columns: 1fr; } }
+
+  header { grid-column: 1 / -1; margin-bottom: 8px; }
+  .repo-line { font-family: var(--mono); font-size: 12.5px; color: var(--gray-500); margin-bottom: 10px; }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: 32px; line-height: 1.25; color: var(--slate); margin-bottom: 16px; }
+  .summary { max-width: 760px; font-size: 15.5px; }
+  .summary code { font-family: var(--mono); font-size: 13px; }
+  h2 { font-family: var(--serif); font-weight: 500; font-size: 22px; color: var(--slate); margin: 36px 0 16px; }
+
+  .diagram-panel { border: 1.5px solid var(--gray-300); border-radius: 12px; background: #fff; padding: 20px; overflow-x: auto; }
+  svg.flow { display: block; max-width: 100%; }
+  .flow text { font-family: var(--mono); font-size: 12px; fill: var(--slate); }
+  .flow .sub { font-size: 10px; fill: var(--gray-500); }
+  .flow .box { fill: #fff; stroke: var(--gray-300); stroke-width: 1.5; }
+  .flow .box.hot { fill: rgba(217,119,87,0.10); stroke: var(--clay); }
+  .flow .box.seq { fill: rgba(120,140,93,0.10); stroke: var(--olive); }
+  .flow .arrow { stroke: var(--gray-500); stroke-width: 1.5; fill: none; }
+
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 18px; padding: 20px 0; border-bottom: 1.5px solid var(--gray-150); }
+  .step:last-of-type { border-bottom: none; }
+  .badge { width: 34px; height: 34px; border-radius: 50%; background: var(--oat); border: 1.5px solid var(--gray-300); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 600; color: var(--slate); font-size: 14px; }
+  .step.hot .badge { background: rgba(217,119,87,0.14); border-color: var(--clay); color: var(--clay); }
+  .step-loc { font-family: var(--mono); font-size: 13px; color: var(--slate); margin-bottom: 6px; }
+  .step-loc .range { color: var(--gray-500); }
+  .step-body p { margin-bottom: 10px; }
+  details.snippet { margin-top: 6px; }
+  details.snippet summary { list-style: none; cursor: pointer; font-size: 12.5px; color: var(--gray-500); font-family: var(--mono); display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; user-select: none; }
+  details.snippet summary::-webkit-details-marker { display: none; }
+  details.snippet summary::before { content: "▸"; font-size: 10px; transition: transform 0.15s ease; }
+  details.snippet[open] summary::before { transform: rotate(90deg); }
+  pre.code { background: var(--slate); color: #E8E6DC; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin-top: 10px; }
+  pre.code .dim { color: var(--gray-500); }
+  pre.code .kw { color: #C9B98A; }
+  pre.code .str { color: #A8BC8C; }
+  pre.code .fn { color: var(--clay); }
+
+  aside { position: sticky; top: 24px; align-self: start; }
+  .panel { border: 1.5px solid var(--gray-300); border-radius: 12px; background: #fff; padding: 18px 20px; margin-bottom: 20px; }
+  .panel h3 { font-family: var(--sans); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-500); margin-bottom: 12px; }
+  .key-files { list-style: none; padding: 0; }
+  .key-files li { margin-bottom: 12px; }
+  .key-files li:last-child { margin-bottom: 0; }
+  .key-files .path { font-family: var(--mono); font-size: 12px; color: var(--slate); display: block; margin-bottom: 2px; word-break: break-all; }
+  .key-files .desc { font-size: 12.5px; color: var(--gray-500); line-height: 1.45; }
+  .gotchas { border: 1.5px solid var(--clay); border-radius: 12px; background: rgba(217,119,87,0.06); padding: 18px 20px; margin-bottom: 20px; }
+  .gotchas h3 { font-family: var(--sans); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--clay); margin-bottom: 10px; }
+  .gotchas ul { list-style: none; padding: 0; }
+  .gotchas li { position: relative; padding-left: 16px; font-size: 13px; margin-bottom: 8px; }
+  .gotchas li::before { content: ""; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; background: var(--clay); border-radius: 2px; }
+  .gotchas code { font-family: var(--mono); font-size: 11.5px; }
+
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  .compare-table th, .compare-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--gray-300); }
+  .compare-table th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); background: var(--gray-150); }
+  .compare-table tr:last-child td { border-bottom: 0; }
+  .compare-table code { font-family: var(--mono); font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="repo-line">model_server · execution semantics</div>
+    <h1>Listwise 特征执行语义</h1>
+    <p class="summary">
+      Listwise 路径下特征执行的完整语义。<code>process_listwise</code> 进入后，先由 <code>CalculateFeasignModule</code> 串行执行 M 个 item 的 User+Item 特征，再由 <code>CalculateSeqFeasignModule</code> 并行执行 K 个 unique sequences 的 Seq 特征。最终 <code>ListwiseQSModel::generate_input()</code> 消费两次执行的输出，组装为 Galaxy input tensors。
+    </p>
+  </header>
+
+  <main>
+    <h2 style="margin-top:0">执行链路</h2>
+    <div class="diagram-panel">
+      <svg class="flow" viewBox="0 0 680 340" width="680" height="340" role="img" aria-label="Listwise execution flow">
+        <defs>
+          <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#87867F"/>
+          </marker>
+        </defs>
+        <!-- Row 1: Entry -->
+        <rect class="box" x="240" y="10" width="200" height="50" rx="10"/>
+        <text x="340" y="34" text-anchor="middle">process_listwise</text>
+        <text class="sub" x="340" y="48" text-anchor="middle">service_impl.cpp:682</text>
+        <!-- Arrow down -->
+        <line class="arrow" x1="340" y1="60" x2="340" y2="85" marker-end="url(#arrowHead)"/>
+        <!-- Row 2: schedule -->
+        <rect class="box" x="220" y="85" width="240" height="50" rx="10"/>
+        <text x="340" y="109" text-anchor="middle">schedule_module_listwise</text>
+        <text class="sub" x="340" y="123" text-anchor="middle">stage_parse_request</text>
+        <!-- Fork arrows -->
+        <line class="arrow" x1="280" y1="135" x2="180" y2="170" marker-end="url(#arrowHead)"/>
+        <line class="arrow" x1="400" y1="135" x2="500" y2="170" marker-end="url(#arrowHead)"/>
+        <!-- Left: User+Item -->
+        <rect class="box hot" x="60" y="170" width="240" height="50" rx="10"/>
+        <text x="180" y="192" text-anchor="middle">CalculateFeasignModule</text>
+        <text class="sub" x="180" y="208" text-anchor="middle">User + Item · 串行 M items · :168</text>
+        <!-- Right: Seq -->
+        <rect class="box seq" x="380" y="170" width="240" height="50" rx="10"/>
+        <text x="500" y="192" text-anchor="middle">CalculateSeqFeasignModule</text>
+        <text class="sub" x="500" y="208" text-anchor="middle">Seq · 并行 K unique seqs · :793</text>
+        <!-- Merge arrows -->
+        <line class="arrow" x1="180" y1="220" x2="280" y2="265" marker-end="url(#arrowHead)"/>
+        <line class="arrow" x1="500" y1="220" x2="400" y2="265" marker-end="url(#arrowHead)"/>
+        <!-- Bottom: generate_input -->
+        <rect class="box hot" x="200" y="265" width="280" height="55" rx="10"/>
+        <text x="340" y="289" text-anchor="middle">ListwiseQSModel::generate_input()</text>
+        <text class="sub" x="340" y="305" text-anchor="middle">User 直传 · Item gather · Seq pad · Masks</text>
+      </svg>
+    </div>
+
+    <h2>执行步骤 Walkthrough</h2>
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="badge">1</div>
+      <div class="step-body">
+        <div class="step-loc">service_impl.cpp<span class="range"> :682</span></div>
+        <p><code>ServiceImpl::process_listwise()</code> 进入 listwise 模块调度链，调用 <code>schedule_module_listwise</code> 进入 <code>stage_parse_request</code>。</p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step hot">
+      <div class="badge">2</div>
+      <div class="step-body">
+        <div class="step-loc">calculate_feasign_module.cpp<span class="range"> :168</span></div>
+        <p><strong>第一次特征执行：User + Item。</strong><code>CalculateFeasignModule</code> 对 M 个候选 item 串行执行 FS 特征计算。每个 item 的 <code>_feasign_list</code> 包含该 item 所有 slot 的 feasign（user + item 混在一起），分离在 convert_to_tensor 阶段按 <code>SlotType</code> 完成。</p>
+        <p>Listwise 路径不走 <code>ParallelFeaRunner</code>，因为 M 通常较小（&lt;100）。</p>
+        <details class="snippet">
+          <summary>FS 路径 — 逐 item 串行</summary>
+<pre class="code"><span class="dim">// calculate_feasign_module.cpp:168</span>
+<span class="kw">for</span> (size_t idx = 0; idx &lt; item_size; ++idx) {
+    p_fea_ctx-&gt;_p_card = &amp;request.items(idx);
+    p_fea_ctx-&gt;reset(0);
+    fea_runner.run(*p_fea_ctx);
+
+    item_feasign_list[idx] = std::move(p_fea_ctx-&gt;_feasign_list);
+
+    <span class="dim">// User dense: 仅从 idx==0 收集</span>
+    <span class="kw">if</span> (idx == 0) user_dense_fea_map = p_fea_ctx-&gt;_user_dense_fea_map;
+    <span class="dim">// Item dense: 每个 item 收集</span>
+    item_dense_fea_map[slot_id][idx] = p_fea_ctx-&gt;_item_dense_fea_map[slot_id];
+}</pre>
+        </details>
+        <details class="snippet">
+          <summary>Hermes 路径 — 批量执行</summary>
+<pre class="code"><span class="dim">// calculate_feasign_module.cpp:308</span>
+hermes_runner-&gt;<span class="fn">RunMaskV2Pro</span>(specpro, fea_ctx, masks, thread_num);
+hermes_runner-&gt;<span class="fn">ToFeatureResultMaskV2</span>(feature_result);
+<span class="dim">// feature_result 包含 user_feasign_span + item_feasign_span</span></pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="badge">3</div>
+      <div class="step-body">
+        <div class="step-loc">calculate_feasign_module.cpp<span class="range"> :258</span></div>
+        <p><strong>convert_to_tensor：分离 User/Item 并构建 tensor。</strong>遍历每个 item 的 feasign_list，按 SlotType 分流到 user_map 和 item_map，然后构建 tensor pairs (values + row_splits)。</p>
+        <details class="snippet">
+          <summary>show source</summary>
+<pre class="code"><span class="dim">// calculate_feasign_module.cpp:258</span>
+<span class="kw">for</span> (idx = 0; idx &lt; item_size; ++idx) {
+    <span class="kw">for</span> (auto sign: item_feasign_list[idx]) {
+        int slot_id = sign &gt;&gt; 48;  <span class="dim">// feasign 高 16 位是 slot_id</span>
+        <span class="kw">if</span> (idx == 0 &amp;&amp; conf_ptr-&gt;slot_type == SlotType::USER) {
+            user_map[slot_id].push_back(sign);
+        } <span class="kw">else if</span> (conf_ptr-&gt;slot_type == SlotType::ITEM) {
+            item_map[slot_id].push_back(sign);
+        }
+    }
+    merge_map(item_size, idx, item_map, item_total_map);
+}
+
+<span class="dim">// 构建 tensor</span>
+builder.<span class="fn">build_user_feasign_tensor</span>(user_slot_config_vec, user_map, ...)
+    → user_feasign_tensor_list <span class="dim">(values + row_splits 成对)</span>
+builder.<span class="fn">build_item_feasign_tensor</span>(item_slot_config_vec, item_total_map, item_size, ...)
+    → item_feasign_tensor_list <span class="dim">(values + row_splits 成对)</span></pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step hot">
+      <div class="badge">4</div>
+      <div class="step-body">
+        <div class="step-loc">calculate_feasign_module.cpp<span class="range"> :793</span></div>
+        <p><strong>第二次特征执行：Seq Context。</strong>先对 sequences 按 <code>vector&lt;int32_t&gt;</code> 内容 hash 去重（N → K unique），然后 <code>ParallelSeqFeaRunner</code> 按线程数分片并行执行。</p>
+        <p>第一个 sequence 先单独执行一次（<code>run_once=true</code>），用于初始化 FS 静态变量（<code>set_pre_calc</code>），然后启动 bthread 并行执行剩余。</p>
+        <details class="snippet">
+          <summary>去重 + 并行执行</summary>
+<pre class="code"><span class="dim">// calculate_feasign_module.cpp:793</span>
+<span class="kw">for</span> (<span class="kw">const auto</span>&amp; [_, score_collection]: score_info_collection_map) {
+    feasign_storage.add_sequences(score_collection.score_info_list);
+    <span class="dim">// 按 vector&lt;int32_t&gt; 内容 hash 去重</span>
+}
+
+ParallelSeqFeaRunner::<span class="fn">parallel_run</span>(fs_runtime, fea_ctx, unique_sequences, ...)
+
+<span class="dim">// parallel_fea_runner.cpp:248 — SubSeqFeaRunner::run()</span>
+<span class="kw">for</span> (i = start; i &lt; end; ++i) {
+    p_fea_ctx-&gt;_p_sequence = &amp;unique_sequences[i];
+    p_fea_ctx-&gt;reset(0);
+    p_fea_runner-&gt;run(*p_fea_ctx);
+    temp_ins_batch.push_back(std::move(p_fea_ctx-&gt;_feasign_list));
+}</pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="badge">5</div>
+      <div class="step-body">
+        <div class="step-loc">calculate_feasign_module.cpp<span class="range"> :856</span></div>
+        <p><strong>Seq convert_to_tensor — 只整理 map，不构建 tensor！</strong>名称有误导性。它将 <code>SlotStorage</code> 按 slot_id 拆分聚合为 <code>seq_item_total_map</code>（slot_id → [K][feasigns]）。真正的 tensor 构建延迟到 <code>generate_input()</code>。</p>
+        <details class="snippet">
+          <summary>show source</summary>
+<pre class="code"><span class="dim">// calculate_feasign_module.cpp:856</span>
+<span class="kw">for</span> (size_t idx = 0; idx &lt; item_size; ++idx) {
+    <span class="kw">for</span> (auto sign: seq_feasign_list[idx]) {
+        int slot_id = sign &gt;&gt; 48;
+        afs::update_map(slot_id, sign, item_map);
+    }
+    afs::merge_map(item_size, idx, item_map, item_total_map);
+}
+<span class="dim">// 输出: seq_item_total_map → slot_id → [K][feasigns]</span>
+<span class="dim">// K = unique_seq_count，每个 unique sequence 对应一行</span></pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step hot">
+      <div class="badge">6</div>
+      <div class="step-body">
+        <div class="step-loc">listwise_qs_model.cpp<span class="range"> :83–264</span></div>
+        <p><strong>Galaxy Input 组装：<code>generate_input()</code></strong> 消费两次特征执行的输出，按三种方式转换为模型 tensors：</p>
+        <p><strong>User</strong>（:122）— 按 slot_idx_map 过滤，直接加入 inputs。Galaxy shape: <code>[1, ...]</code>，模型内部 broadcast。</p>
+        <p><strong>Item</strong>（:168）— 按每条 sequence 的 item indices 从 M 个 item tensors 中 gather。Galaxy shape: <code>[N × list_size, ...]</code>。</p>
+        <p><strong>Seq</strong>（:190）— 每个 batch row 找到其 unique sequence 的 index，<code>create_padded_map</code> 展开为 [N × list_size]，有效位置取 feasign，padding 位置填 -1。然后 rehash + build tensor。Galaxy shape: <code>[N × list_size, ...]</code>。</p>
+        <p><strong>Masks</strong>（:264）— <code>masks[i * list_size + j] = 1.0f</code> if valid, 0.0 if padding。<code>batch_tensor = N × list_size</code>。</p>
+        <details class="snippet">
+          <summary>User 直传</summary>
+<pre class="code"><span class="dim">// listwise_qs_model.cpp:122</span>
+<span class="kw">for</span> (i = 0; i &lt; user_tensors.size(); ++i) {
+    <span class="kw">if</span> (slot_idx_map.contains(user_slot_ids[i])) {
+        inputs.emplace_back(user_output_tensor_names[i], user_tensors[i]);
+    }
+}</pre>
+        </details>
+        <details class="snippet">
+          <summary>Item gather</summary>
+<pre class="code"><span class="dim">// listwise_qs_model.cpp:168</span>
+<span class="dim">// sequences[i] = score_info_list[i]-&gt;_sequence (如 [3, 1, 7, 2])</span>
+afs::<span class="fn">gather</span>(item_tensors[i], item_tensors[i+1],
+            ..., sequences, list_size,
+            outputs, output_tensor_names, slot_ids);
+
+<span class="dim">// 例: M=10, N=50, list_size=4</span>
+<span class="dim">// sequence[0] = [3,1,7,2] → 取 item[3],item[1],item[7],item[2]</span>
+<span class="dim">// 输出: [50×4=200] 行的 tensor</span></pre>
+        </details>
+        <details class="snippet">
+          <summary>Seq indices + padding + masks</summary>
+<pre class="code"><span class="dim">// listwise_qs_model.cpp:190</span>
+<span class="kw">for</span> (seq : sequences) {
+    indices.push_back(feasign_storage.get_indice(*seq));
+    effective_lens.push_back(seq-&gt;size());
+}
+<span class="fn">create_padded_map</span>(seq_slot_config_vec, src_seq_item_total_map,
+                  indices, effective_lens, list_size, seq_item_total_map);
+<span class="dim">// 有效位置: 取对应 unique sequence 的 feasign</span>
+<span class="dim">// padding 位置: 填充 -1 (uint64_t max)</span>
+
+<span class="dim">// Masks — listwise_qs_model.cpp:264</span>
+<span class="kw">for</span> (idx = 0; idx &lt; batch_size; ++idx) {
+    effective_len = min(sequences[idx]-&gt;size(), list_size);
+    <span class="kw">for</span> (j = 0; j &lt; effective_len; ++j)
+        masks[idx * list_size + j] = 1.0f;
+}
+batch_tensor.scalar&lt;int64_t&gt;()() = batch_size * list_size;</pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- Comparison -->
+    <h2>与精排的对比</h2>
+    <table class="compare-table">
+      <thead><tr><th>维度</th><th>Pointwise 精排</th><th>Listwise</th></tr></thead>
+      <tbody>
+        <tr><td>特征类型</td><td>user + item</td><td>user + item + seq</td></tr>
+        <tr><td>执行粒度</td><td>N items</td><td>M items + K unique sequences</td></tr>
+        <tr><td>Galaxy batch_size</td><td><code>N</code></td><td><code>N × list_size</code></td></tr>
+        <tr><td>Item 特征转换</td><td>无（1:1）</td><td>gather（M → N×list_size）</td></tr>
+        <tr><td>Seq 特征</td><td>无</td><td>indices + padding（K → N×list_size）</td></tr>
+        <tr><td>Masks</td><td>无</td><td>有（1.0=有效，0.0=padding）</td></tr>
+      </tbody>
+    </table>
+  </main>
+
+  <aside>
+    <div class="panel">
+      <h3>Key Files</h3>
+      <ul class="key-files">
+        <li><span class="path">service_impl.cpp:682</span><span class="desc">process_listwise 入口</span></li>
+        <li><span class="path">calculate_feasign_module.cpp:168</span><span class="desc">User+Item 特征执行</span></li>
+        <li><span class="path">calculate_feasign_module.cpp:258</span><span class="desc">convert_to_tensor (User/Item 分离)</span></li>
+        <li><span class="path">calculate_feasign_module.cpp:793</span><span class="desc">Seq 特征执行</span></li>
+        <li><span class="path">calculate_feasign_module.cpp:856</span><span class="desc">Seq convert_to_tensor (只整理 map)</span></li>
+        <li><span class="path">parallel_fea_runner.h:173</span><span class="desc">ParallelSeqFeaRunner</span></li>
+        <li><span class="path">listwise_qs_model.cpp:83</span><span class="desc">generate_input() 入口</span></li>
+        <li><span class="path">listwise_qs_model.cpp:190</span><span class="desc">Seq indices + padding</span></li>
+        <li><span class="path">tensor_util.cpp:625</span><span class="desc">create_padded_map()</span></li>
+        <li><span class="path">type_define.h:962</span><span class="desc">SequenceScoreType</span></li>
+        <li><span class="path">type_define.h:1027</span><span class="desc">FeasignStorage</span></li>
+        <li><span class="path">module_schedule_listwise.conf</span><span class="desc">模块调度配置</span></li>
+      </ul>
+    </div>
+
+    <div class="gotchas">
+      <h3>Agent Gotchas</h3>
+      <ul>
+        <li><code>Seq convert_to_tensor()</code> 只产出 map，不构建 tensor。名称有误导性。</li>
+        <li>User 特征只从 <code>idx == 0</code> 的 item 执行上下文收集。</li>
+        <li>Seq pass 复用第一次执行准备好的 <code>FeaContext</code>（共享状态）。</li>
+        <li>ParallelSeqFeaRunner 第一个 seq 先单独执行（初始化 FS 静态变量），再并行剩余。</li>
+        <li>Listwise Item 执行是串行的（不走 ParallelFeaRunner），因为 M &lt; 100。</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h3>关键组件</h3>
+      <ul class="key-files">
+        <li><span class="path">SequenceScoreType</span><span class="desc">打分意图载体，携带 _sequence（item indices 排列）</span></li>
+        <li><span class="path">SequenceScoreCollectionMap</span><span class="desc">按业务 key 分组的序列打分意图集合</span></li>
+        <li><span class="path">FeasignStorage</span><span class="desc">序列去重 + 结果索引</span></li>
+        <li><span class="path">ParallelSeqFeaRunner</span><span class="desc">按线程数分片 unique sequences</span></li>
+        <li><span class="path">SubSeqFeaRunner</span><span class="desc">独立 FeaRunner + FeaContext</span></li>
+        <li><span class="path">DataKeeper::get_data&lt;FsCurator&gt;</span><span class="desc">FSRuntime 请求级快照</span></li>
+      </ul>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>
