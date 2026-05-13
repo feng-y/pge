@@ -2,7 +2,7 @@
 name: pge-review
 description: >
   Review-stage gate for changes since a fixed point. Standards axis checks
-  repo conventions; Spec axis checks against the originating plan/issue;
+  repo conventions; Semantic Alignment axis checks against the originating plan/issue and user intent;
   Simplicity axis flags unnecessary complexity in new code; Verification
   checks whether evidence is strong enough to proceed. Use anytime — not
   limited to pge-exec.
@@ -21,13 +21,21 @@ allowed-tools:
 Review-stage gate for the diff between `HEAD` and a fixed point:
 
 - **Standards** — does the code conform to this repo's documented conventions?
-- **Spec** — does the code faithfully implement what was asked for?
+- **Semantic Alignment** — does the code faithfully implement what was asked for, through the plan contract, without scope drift?
 - **Simplicity** — is the new code as simple as it can be without losing behavior?
 - **Verification** — is there enough evidence to proceed to prove-it / ship?
 
-The standards, spec, and simplicity axes run as parallel sub-agents so they don't pollute each other's context. Verification is aggregated by the main review.
+The standards, semantic alignment, and simplicity axes run as parallel sub-agents so they don't pollute each other's context. Verification is aggregated by the main review.
 
 `pge-review` is the Review stage in the Research → Plan → Execute → Review → Ship arc. It must return a gate route, not just a list of observations.
+
+Review is responsible for checking:
+
+```text
+diff still aligns with original user intent
+```
+
+The plan is the strongest implementation contract, but research/user intent remains relevant when judging whether the plan was narrowed, expanded, or conceptually replaced during execution.
 
 ## Process
 
@@ -37,15 +45,17 @@ Use the argument as the fixed point (commit, branch, tag, `main`). If not provid
 
 Capture: `git diff <fixed-point>...HEAD` and `git log <fixed-point>..HEAD --oneline`.
 
-### 2. Identify the spec source
+### 2. Identify the alignment source
 
-Look for the originating spec in this order:
+Look for the originating intent/contract source in this order:
 
 1. `.pge/tasks-*/plan.md` matching the current branch, task slug, or recent PGE work. Treat `plan.md` as the strongest implementation contract.
 2. A path the user passed as argument, including a task directory or a specific plan/spec document.
 3. Issue references in commit messages — fetch via `gh` when available.
 4. Repo-local spec-like docs that clearly match the branch or task name: `docs/`, `specs/`, `.scratch/`, or `.pge/tasks-*/research.md`. Use research or handoff notes only to recover intent when no plan/spec exists.
-5. If nothing specific is found, ask once. If no spec exists, skip the Spec axis and say so.
+5. If nothing specific is found, ask once. If no spec/intent source exists, skip the Semantic Alignment axis and say so.
+
+When a matching `.pge/tasks-<slug>/research.md` exists beside the plan, read its minimum contract fields (`intent_spec`, `clarify_status`, `plan_delta`, `blockers`, `evidence`) only as needed to detect semantic drift between original intent, plan, and diff.
 
 ### 3. Identify the standards sources
 
@@ -84,7 +94,7 @@ Route rules:
 - Any **Required** finding → `BLOCK_SHIP`.
 - Any unresolved **Important** finding → `NEEDS_FIX`, unless explicitly deferred with rationale and owner.
 - Verification story `weak` → `BLOCK_SHIP` for behavior changes, `NEEDS_FIX` for docs-only or low-risk changes.
-- Spec axis skipped because no spec exists → `NEEDS_FIX` unless the diff is clearly unplanned maintenance and the review states that assumption.
+- Semantic Alignment axis skipped because no spec/intent source exists → `NEEDS_FIX` unless the diff is clearly unplanned maintenance and the review states that assumption.
 - Standards source missing or stale → `NEEDS_FIX` if the diff touches workflow contracts, agent rules, build config, or shared interfaces.
 - Only Advisory/FYI findings with strong or partial verification → `READY_FOR_CHALLENGE`.
 - `READY_TO_SHIP` requires no Required/Important findings, strong verification story, and either a passed `pge-challenge` result or equivalent adversarial evidence in the review input.
@@ -96,8 +106,8 @@ The default successful route is `READY_FOR_CHALLENGE`, not `READY_TO_SHIP`.
 **Standards agent brief:**
 > Read the selected standards sources. Read the diff. Report every place the diff violates a documented current standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Do not cite optional or historical docs as binding unless the main review identified them as current. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
-**Spec agent brief:**
-> Read the selected spec source. Read the diff. Report: (a) requirements missing or partial; (b) behaviour not asked for (scope creep); (c) requirements where implementation looks wrong. Quote the spec line for each finding. If no spec source exists, return "Spec axis skipped: no spec source found." Label every finding: Required / Important / Advisory / FYI. Under 400 words.
+**Semantic Alignment agent brief:**
+> Read the selected plan/spec source and any adjacent research intent contract if provided. Read the diff. Report: (a) plan requirements missing or partial; (b) behaviour not asked for (scope creep); (c) places where the plan no longer appears to preserve the original user/research intent; (d) evidence gaps where the diff may be correct but does not prove the contract. Quote the plan/spec/research line for each finding. If no source exists, return "Semantic Alignment axis skipped: no spec or intent source found." Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Simplicity agent brief:**
 > Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
@@ -125,7 +135,7 @@ If the verification story is weak, surface it as a review finding even if the co
 
 ### 7. Aggregate
 
-Present four sections under `## Standards`, `## Spec`, `## Simplicity`, and `## Verification Story`. Do not merge or rerank the three axes — keep them separate.
+Present four sections under `## Standards`, `## Semantic Alignment`, `## Simplicity`, and `## Verification Story`. Do not merge or rerank the three axes — keep them separate.
 
 End with:
 ```
@@ -137,7 +147,7 @@ End with:
 
 ## Summary
 - Standards: <N findings> (required: X, important: Y, advisory: Z)
-- Spec: <N findings> (required: X, important: Y, advisory: Z)
+- Semantic Alignment: <N findings> (required: X, important: Y, advisory: Z)
 - Simplicity: <N findings> (required: X, important: Y, advisory: Z)
 - Verification story: strong | partial | weak
 - Worst issue: <one-line description or "none">

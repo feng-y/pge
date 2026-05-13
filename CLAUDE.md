@@ -64,6 +64,20 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 - Do not add resident agents unless current mainline explicitly requires it.
 - Every meaningful change should improve either task delivery or future AI-operability.
 
+## Core invariant
+
+Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.
+
+PGE requires contract discipline, not template bureaucracy:
+- Research must expose enough intent, ambiguity status, and evidence for planning.
+- Plan must translate that intent into executable issue contracts without scope drift.
+- Exec must prove code changes satisfy the plan contract.
+- Review must judge whether the diff still aligns with the original intent through the plan.
+- Every stage must consume its explicit invocation input plus relevant current context, including recent user corrections, observed failures, and fresh artifacts. If context changes the goal, scope, or fix target, confirm the interpretation before producing the next contract.
+- Research and plan own intent discovery, repo investigation, option shaping, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
+
+Templates are scaffolds. Required field semantics are binding; prose shape and optional sections should scale with task complexity.
+
 ## Workflow authority
 
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
@@ -104,7 +118,7 @@ Only ask the user for true requirement gaps that block a fair contract.
 ## Validation commands
 
 ```bash
-./bin/pge-validate-contracts.sh     # Validate contract structure
+./bin/pge-validate-contracts.sh     # Validate semantic contract structure
 ./bin/pge-progress-report.sh        # Generate progress report
 ./bin/pge-local-install.sh          # Install plugin to ~/.claude
 ```

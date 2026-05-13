@@ -12,7 +12,20 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 2. **Skipped verification** — code gets written but never tested against the acceptance criteria
 3. **Context collapse** — on larger tasks, the agent forgets constraints from earlier in the conversation and contradicts its own plan
 
-**The fix:** PGE structures work into the common agentic engineering arc: Research → Plan → Execute → Review → Ship. Each boundary has an explicit artifact or gate. Research produces findings. Planning produces a contract. Execution consumes that contract issue-by-issue with built-in verification. Review owns the composed-diff gates, including prove-it checks before shipping. Each phase is a separate skill invocation — you stay in control of when to advance.
+**The fix:** PGE structures work into the common agentic engineering arc: Research → Plan → Execute → Review → Ship. Each boundary has an explicit artifact or gate, but the invariant is semantic alignment, not fixed formatting. Research proves it understands the user's intent. Planning turns that intent into an executable contract. Execution proves code changes satisfy that contract. Review checks the diff still aligns with the original intent before shipping. Each phase is a separate skill invocation — you stay in control of when to advance.
+
+## Core Contract
+
+PGE uses fixed interfaces with flexible expression.
+
+- Research must expose `intent_spec`, `clarify_status`, `plan_delta`, `blockers`, and `evidence`.
+- Plan must expose `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
+- Exec must expose which issue each change implements, whether acceptance passed, what verification ran, and any plan deviations.
+- Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps.
+- Every stage must consume its explicit input plus relevant current context. When context changes intent, scope, or the fix target, the stage must clarify before producing the next contract.
+- Research and plan own discovery and clarification. Exec should not be where major intent or acceptance ambiguity is resolved; that means the upstream contract was not ready.
+
+Templates are scaffolds for consistency. They are not a reason to pad simple tasks or bury the real decision.
 
 ## Quick Start
 
@@ -20,7 +33,7 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 /pge-research   → understand the problem space
 /pge-plan       → produce a bounded plan with issues and acceptance criteria
 /pge-exec       → execute the plan issue by issue with verification
-/pge-review     → review the composed diff against standards, spec, simplicity
+/pge-review     → review the composed diff against standards, alignment, simplicity
 /pge-challenge  → prove meaningful changes survive adversarial checks
 ```
 
@@ -36,8 +49,8 @@ Each skill produces an artifact or gate result that the next step consumes. You 
 
 | Stage | PGE surface | Artifact / gate |
 |---|---|---|
-| Research | `pge-research` | `.pge/tasks-<slug>/research.md` |
-| Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` |
+| Research | `pge-research` | `.pge/tasks-<slug>/research.md` with intent/evidence contract |
+| Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` with executable issue contract |
 | Execute | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
 | Review | `pge-review` + optional `pge-challenge` | Review gate: `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; prove-it evidence when needed |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
@@ -50,13 +63,13 @@ Each skill produces an artifact or gate result that the next step consumes. You 
 
 Skills you use in sequence to go from fuzzy intent to verified code.
 
-- **[`/pge-research`](./skills/pge-research/SKILL.md)** — Explore the problem space before planning. Use when intent is still fuzzy, multiple approaches seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, and writes a research brief that feeds into planning.
+- **[`/pge-research`](./skills/pge-research/SKILL.md)** — Align research understanding with the user's real intent before planning. Use when intent is still fuzzy, multiple approaches seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, and writes the minimum intent/evidence contract that feeds planning.
 
-- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Challenges approaches, synthesizes intent, and decomposes into numbered executable issues with acceptance criteria and verification hints.
+- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, and evidence requirements.
 
-- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue execution, validates with an independent Evaluator, runs a bounded repair loop on failures, and accumulates learnings across issues.
+- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue execution, validates with an independent Evaluator, records evidence, and reports any plan deviation.
 
-- **[`/pge-review`](./skills/pge-review/SKILL.md)** — Review-stage gate for changes since a fixed point. Checks standards, spec, simplicity, and verification story before routing to fix, challenge, or ship.
+- **[`/pge-review`](./skills/pge-review/SKILL.md)** — Review-stage gate for changes since a fixed point. Checks standards, semantic alignment with the plan/original intent, simplicity, and verification story before routing to fix, challenge, or ship.
 
 - **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — Manual prove-it gate before PR/ship. Explains the diff, proves current prompt constraints when present, proves execution fulfilled the plan/development requirements, and challenges each meaningful change with evidence.
 

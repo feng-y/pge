@@ -3,9 +3,10 @@ name: pge-research
 description: >
   You MUST use this before pge-plan when the user's intent is still fuzzy,
   multiple approaches seem viable, the task touches unfamiliar code, or you
-  are tempted to ask clarifying questions before reading the repo. Explore
-  project context, resolve ambiguity from code and docs, and write a research
-  brief for planning. Use this whenever intent needs to become evidence-backed
+  are tempted to ask clarifying questions before reading the repo. Internalize
+  brainstorm, clarify, and zoom-out: discover the real intent, ask only
+  blocking questions, map enough system context, and write a research brief for
+  planning. Use this whenever intent needs to become evidence-backed
   understanding before planning.
 version: 0.1.0
 argument-hint: "<topic or intent>"
@@ -21,7 +22,35 @@ allowed-tools:
 
 # PGE Research
 
-Turn a vague or ambiguous intent into a structured research brief through evidence-driven exploration. Start by understanding the current project context, resolve as much ambiguity as you can from code and docs, then write the brief for planning.
+Turn a vague or ambiguous intent into a structured research brief through evidence-driven exploration. Start by understanding the user's intent, then use repo evidence to resolve ambiguity, zoom out to the relevant system shape, and write the brief for planning.
+
+Research is responsible for **intent alignment**:
+
+```text
+my understanding of the goal = the user's real goal
+```
+
+The artifact shape is flexible, but these semantic fields are mandatory:
+
+```text
+intent_spec
+clarify_status
+plan_delta
+blockers
+evidence
+```
+
+Do not pad the brief to satisfy a template. A short brief is valid when it preserves the user's intent, names what is out of scope, exposes plan-changing ambiguity, and gives planning enough evidence to avoid guessing.
+
+`pge-research` has three built-in capabilities:
+
+- **brainstorm** — native research behavior that generates plausible interpretations, success shapes, approaches, and failure modes before locking onto one reading of the prompt.
+- **clarify / grill-with-me** — when intent is unclear, challenge the user's wording with evidence-backed questions until the goal, scope, and success criteria are clear enough to specify.
+- **zoom-out** — map the relevant modules, flows, boundaries, and ownership at the smallest abstraction level that lets planning proceed without re-exploring.
+
+These are not borrowed rituals, separate stages, or commands to invoke. They are the minimum behavior required for research to produce a better plan input than direct auto-planning from the prompt.
+
+If intent is unclear, do not quietly continue. Enter a lightweight grill-with-me loop: state your current interpretation, challenge the ambiguity, ask the smallest plan-changing question, incorporate the answer, and repeat until the intent can be specified or the route is `NEEDS_INFO`.
 
 <HARD-GATE>
 Do NOT produce plans, numbered issues, implementation code, function bodies, pseudocode, field rewiring, fallback behavior decisions, or invoke `pge-plan`. This applies even when the task feels simple. Your only output artifact is a research brief written to the task directory.
@@ -48,23 +77,29 @@ digraph pge_research {
   subgraph cluster_phase2 {
     label="Phase 2: Evidence + Ambiguity";
     style=dashed;
+    intent_brainstorm [label="Brainstorm\ninterpretations + success shapes\n+ ways plan could be wrong"];
     explore_context [label="Explore Project Context"];
+    zoom_out [label="Zoom-Out Map\nmodules + flows + boundaries"];
     scope_check [label="Scope Check\n(no silent narrowing)"];
-    ambiguity_scan [label="Scan Ambiguity\n+Self-Resolve"];
-    ask_gate [label="Need User Info?", shape=diamond];
-    explore_context -> scope_check -> ambiguity_scan -> ask_gate;
+    clarify_gate [label="Clarify Gate\nCan plan proceed without\ninventing intent?", shape=diamond];
+    grill_user [label="Grill With User\nchallenge ambiguity + ask\nsmallest plan-changing question"];
+    intent_brainstorm -> explore_context -> zoom_out -> scope_check -> clarify_gate;
   }
 
   needs_info [label="NEEDS_INFO / BLOCKED\n(write best available brief)", shape=doubleoctagon];
-  ask_gate -> needs_info [label="blocking, cannot resolve"];
+  clarify_gate -> grill_user [label="unclear intent"];
+  grill_user -> clarify_gate [label="answer incorporated"];
+  clarify_gate -> needs_info [label="still blocking / no answer"];
 
   subgraph cluster_phase3 {
     label="Phase 3: Synthesis";
     style=dashed;
     synthesize [label="Synthesize\nStated / Inferred / Out"];
+    intent_spec [label="Intent Spec\nproblem + goal + scope\n+ success criteria"];
+    value_proof [label="Research Value Proof\nwhat direct auto-plan\nwould miss"];
     decisions [label="Decision Log\nDecision / Rationale / Alternatives"];
     options [label="Options + Recommendation\n(with basis)"];
-    synthesize -> decisions -> options;
+    synthesize -> intent_spec -> value_proof -> decisions -> options;
   }
 
   subgraph cluster_phase4 {
@@ -80,8 +115,8 @@ digraph pge_research {
   write_artifact [label="Write Artifact\n.pge/tasks-<slug>/research.md"];
   route [label="Route\nREADY_FOR_PLAN | NEEDS_INFO | BLOCKED", shape=note];
 
-  preserve_spec -> explore_context;
-  ask_gate -> synthesize [label="resolved / non-blocking"];
+  preserve_spec -> intent_brainstorm;
+  clarify_gate -> synthesize [label="resolved / non-blocking"];
   needs_info -> write_artifact [label="close stage", style=dashed];
   options -> preservation;
   readiness -> write_artifact -> route;
@@ -96,6 +131,14 @@ Simple tasks are where hidden assumptions waste the most time. A small request o
 ## Anti-Pattern: "Let Me Just Ask The User"
 
 Asking the user is the most expensive operation in this system. Every question interrupts flow and adds latency. Before you ask anything, you should have already read the relevant code, checked docs and config, considered reasonable defaults, and decided whether one more file would answer it. If you can answer it yourself by reading one more file, do that instead.
+
+## Anti-Pattern: "Research Without Intent Alignment"
+
+Do not let repo exploration replace understanding the user's goal. Research that lists files and findings but cannot state the user's real desired change, success criteria, non-goals, and what would make the plan wrong is not ready. Planning directly from the user prompt should not outperform research. If research does not change or sharpen what planning should do, the research has failed.
+
+Research must include a value proof in whatever form is shortest: what would a direct auto-plan likely miss, and what did research add that changes planning? If the answer is "nothing," skip the performance theater and route `NEEDS_INFO` or produce a minimal brief that says research added no delta.
+
+If the user's intent is unclear, research must challenge and clarify it with the user before claiming `READY_FOR_PLAN`. Do not present inferred intent as a spec.
 
 ## Anti-Pattern: "Let Me Map The Entire Codebase"
 
@@ -133,28 +176,42 @@ Do not output implementation-shaped research. No function bodies, no method-leve
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Load accumulated knowledge** — read `.pge/config/repo-profile.md` if exists (contains learnings from prior runs: conventions, constraints, patterns). Also search ALL `.pge/tasks-*/runs/*/learnings.md` for patterns relevant to current intent using keyword grep. Prioritize recent learnings (check dates in `[from: ...]` tags). Learnings older than 30 days: verify against current code before relying on them.
-2. **Consume upstream specs** — if the user provided a handoff, exec plan, design doc, issue, or spec-like artifact, read it fully, extract decisions, preserve spec level, and mark current scope before exploring implementation details
-3. **Explore project context** — check files, docs, and recent commits related to the intent
-4. **Check scope first** — narrow or decompose over-scoped work before researching details, but never silently shrink an upstream spec
-5. **Scan for ambiguity** — across scope, affected areas, constraints, existing patterns, terminology, and acceptance
-6. **Separate stated/inferred/out** — distinguish what the user/upstream explicitly said, what you inferred, and what is excluded
-7. **Self-resolve** — answer what you can from code, docs, defaults, and prior learnings before asking
-8. **Ask only when needed** — one at a time, grounded in evidence, and only when it improves correctness more than it adds clarification overhead
-9. **Form options** — propose 1-3 approaches with evidence, tradeoffs, and recommendation only after the direction is clear enough
-10. **Record decisions** — for resolved unknowns or design choices, capture Decision / Rationale / Alternatives considered so planning inherits the reasoning, not just facts
-11. **Review upstream preservation** — run the upstream preservation checklist before writing the brief
-12. **Check spec coverage** — compare the brief against the original intent or upstream spec; READY_FOR_PLAN is forbidden if material requirements disappeared without an explicit scope decision
-13. **Grill the brief** — adversarial self-challenge: cross-check terminology against code, pressure-test evidence and assumptions, detect scope drift
-14. **Final readiness review** — run the plan-readiness checklist and repair any failure before routing READY_FOR_PLAN
-15. **Write research artifact** — save `research.md` to the task directory
-16. **Transition to planning** — report route and point to `pge-plan`
+1. **Resolve stage input and current context** — consume the explicit research prompt plus relevant current conversation, recent user corrections, observed failures, pasted logs, selected artifacts, and fresh outputs from prior stages. Current user text outranks older artifacts. If context changes the intent or fix target, capture that before exploring.
+2. **Load accumulated knowledge** — read `.pge/config/repo-profile.md` if exists (contains learnings from prior runs: conventions, constraints, patterns). Also search ALL `.pge/tasks-*/runs/*/learnings.md` for patterns relevant to current intent using keyword grep. Prioritize recent learnings (check dates in `[from: ...]` tags). Learnings older than 30 days: verify against current code before relying on them.
+3. **Consume upstream specs** — if the user provided a handoff, exec plan, design doc, issue, or spec-like artifact, read it fully, extract decisions, preserve spec level, and mark current scope before exploring implementation details
+4. **Explore project context** — check files, docs, and recent commits related to the intent
+5. **Check scope first** — narrow or decompose over-scoped work before researching details, but never silently shrink an upstream spec
+6. **Brainstorm intent** — as native research behavior, list plausible interpretations of the user's request, success shapes, non-goals, and what would make a plan wrong; do not choose until repo evidence supports it
+7. **Zoom out only as far as needed** — map relevant modules, flows, boundaries, callers/callees, ownership, and terminology; stop before it becomes a generic architecture survey
+8. **Scan for ambiguity** — across scope, affected areas, constraints, existing patterns, terminology, and acceptance
+9. **Clarify / grill-with-me gate** — decide whether planning can proceed without inventing user intent; if not, challenge the ambiguity and ask the smallest plan-changing question before routing `NEEDS_INFO`
+10. **Separate stated/inferred/out** — distinguish what the user/upstream explicitly said, what you inferred, and what is excluded
+11. **Self-resolve** — answer what you can from code, docs, defaults, and prior learnings before asking
+12. **Ask only when needed** — one at a time, grounded in evidence, and only when it improves correctness more than it adds clarification overhead
+13. **Form options** — propose 1-3 approaches with evidence, tradeoffs, and recommendation only after the direction is clear enough
+14. **Produce intent spec** — convert clarified intent into a spec-level statement of problem, goal, scope, success criteria, non-goals, and acceptance seeds
+15. **Challenge intent spec** — verify the spec against user answers, repo evidence, upstream constraints, and rejected interpretations; repair or ask again if it does not hold
+16. **Prove research value** — record what a direct auto-plan would likely miss and what research added to intent, scope, code reality, or acceptance
+17. **Record plan delta** — capture what research changes for planning: what plan should do, avoid, verify, or ask because of the research
+18. **Record decisions** — for resolved unknowns or design choices, capture Decision / Rationale / Alternatives considered so planning inherits the reasoning, not just facts
+19. **Review upstream preservation** — run the upstream preservation checklist before writing the brief
+20. **Check spec coverage** — compare the brief against the original intent or upstream spec; READY_FOR_PLAN is forbidden if material requirements disappeared without an explicit scope decision
+21. **Grill the brief** — adversarial self-challenge: cross-check terminology against code, pressure-test evidence and assumptions, detect scope drift
+22. **Final readiness review** — run the plan-readiness checklist and repair any failure before routing READY_FOR_PLAN
+23. **Write research artifact** — save `research.md` to the task directory
+24. **Transition to planning** — report route and point to `pge-plan`
 
 ## The Process
 
+**Stage input + context intake:**
+
+Research does not only consume the explicit command arguments. It must also consume relevant current context: the latest user wording, user corrections, interrupted prior attempts, challenge/review findings, logs, pasted plans, and any artifact the user is clearly referring to. This context may define the real intent even when no formal research artifact exists.
+
+If that context already contains a candidate problem or fix target, restate it internally before exploring. If the target could mean multiple plans, ask one clarifying question after checking the repo evidence that can resolve it.
+
 **Early-exit for trivial tasks:**
 
-If after step 1 (load knowledge), step 2 (consume upstream specs), and step 3 (explore context), the intent maps to a single obvious file change with no ambiguity, no competing approaches, no upstream spec to preserve, and existing patterns clearly show how to do it — write a minimal brief immediately and skip the full exploration. A 2-line config change doesn't need 6-lens ambiguity scanning. Record: "Early exit — trivial task, single file, pattern clear from <file:line>."
+If after context intake, accumulated knowledge, upstream-spec consumption, and initial repo exploration, the intent maps to a single obvious file change with no ambiguity, no competing approaches, no upstream spec to preserve, and existing patterns clearly show how to do it — write a minimal brief immediately and skip the full exploration. A 2-line config change doesn't need 6-lens ambiguity scanning. Record: "Early exit — trivial task, single file, pattern clear from <file:line>."
 
 **Consume upstream specs:**
 
@@ -187,6 +244,41 @@ Planning should be able to produce executable issues from the brief without re-r
 
 Check out the current project state first. Read `.pge/config/*` if it exists, especially `repo-profile.md` and `docs-policy.md`. Then look at `CLAUDE.md`, `README.md`, and the code directly related to the intent. Recent commits touching relevant areas often reveal constraints that docs miss.
 
+Research starts with intent, not files. Before the code pulls you into local details, write a working intent alignment note:
+
+- what the user explicitly asked for
+- the likely real goal or pain behind it
+- the observable success shape
+- what should stay out of scope
+- which interpretation would lead to a different plan
+
+Then use code and docs to confirm, reject, or sharpen that note.
+
+**Brainstorming is research:**
+
+Use brainstorming to expand before narrowing. This is not an optional ceremony and not a separate command. It is how research avoids silently choosing the first interpretation of the user's words. Generate 2-4 plausible readings or approaches when the prompt is fuzzy, broad, value-laden, or likely to map to multiple code paths. For each one, note:
+
+- what user intent it assumes
+- what code reality would make it viable
+- what would make it the wrong plan
+- what evidence would distinguish it from the other readings
+
+Do not pass all brainstormed possibilities downstream as equal options. By the time research routes `READY_FOR_PLAN`, the brief should recommend a direction or route `NEEDS_INFO` if user authority is required.
+
+For simple tasks, brainstorm can be compact: one chosen reading and one rejected reading is enough if it proves you checked the plan-changing ambiguity.
+
+**Zooming out inside research:**
+
+Use zoom-out to understand the relevant system, not the whole repo. Planning needs the smallest map that explains:
+
+- entrypoints and consumers
+- modules and boundaries likely affected
+- data/control flow through the current behavior
+- terminology the code uses for the user's words
+- risky seams and verification hotspots
+
+If a zoom-out map does not change the plan, shrink it. If pge-plan would need to reread files to understand where work belongs, expand it.
+
 Before asking detailed questions, assess scope. If the intent actually describes multiple independent subsystems, or work that clearly wants decomposition before planning, flag that immediately. Narrow it or decompose it before you spend effort researching details.
 
 If the user explicitly signals uncertainty about the goal or scope — for example "not sure", "messy", "rethink", or "full replacement or refinement" — treat that as intent ambiguity. In that case, prefer one goal-sharpening question before you spend time comparing implementation directions.
@@ -212,6 +304,38 @@ Reframe ambiguous instructions as success criteria. If the user says "make it ro
 
 Most ambiguity resolves itself once you read the code. If the code or docs answer a question, record it as a finding with a `file:line` source. If a reasonable default exists, use it and record it as an assumption with rationale. If something is uncertain but won't change the plan, note it as a non-blocking open question. Only carry a question forward when the answer would materially change planning.
 
+**Clarify gate:**
+
+Before routing `READY_FOR_PLAN`, ask:
+
+```text
+Can pge-plan fairly create executable issues without inventing user intent?
+```
+
+If no, ask the smallest blocking question set or route `NEEDS_INFO`. Blocking questions are limited to three and must affect goal, scope, acceptance, compatibility, or safety. Do not ask questions about details planning can choose by repo convention.
+
+When intent is unclear, use a grill-with-me style:
+
+1. State the current interpretation in one sentence.
+2. Name the ambiguity that would change the plan.
+3. Give the smallest useful choice set, with a recommended default when evidence supports one.
+4. Ask exactly one question.
+5. After the answer, update the Intent Spec and reassess whether more clarification is still plan-changing.
+
+Do not bundle a questionnaire. Do not ask implementation trivia. Do not continue to `READY_FOR_PLAN` until the intent spec can survive the challenge below.
+
+**Intent spec challenge:**
+
+Before `READY_FOR_PLAN`, challenge the produced intent spec:
+
+- Does it preserve the user's explicit words and not replace them with repo-shaped convenience?
+- Does it explain the problem, target goal, scope, non-goals, and observable success?
+- Does it identify what would make a plan wrong?
+- Are inferred parts marked as inferred or confirmed by the user/repo?
+- Would the user recognize this as the thing they meant?
+
+If any answer is no and the repo cannot resolve it, ask the user or route `NEEDS_INFO`.
+
 Keep findings, assumptions, and open questions separate. Findings are what is true in the repo. Assumptions are what is probably safe. Open questions are what planning still cannot fairly decide alone.
 
 Every finding and option must carry a basis:
@@ -232,6 +356,42 @@ When research resolves an unknown, narrows scope, chooses a recommended directio
 - **Alternatives considered** — what else was considered and why it was not chosen
 
 Use this for decisions, not every factual finding. Research may make bounded decisions when repo evidence and upstream intent are strong enough. Do not make product or requirement decisions that still require user authority; those stay as `NEEDS_INFO`.
+
+**Plan delta:**
+
+Research must prove it was useful. Record what planning should do differently because research ran:
+
+- constraints plan must preserve
+- target areas plan should include
+- approaches plan should avoid
+- acceptance seeds exec must prove
+- unresolved questions that block or shape planning
+
+If the plan delta is empty, the brief is not ready. Fix the intent alignment note, zoom-out map, findings, or recommendation.
+
+**Research value proof:**
+
+Before READY_FOR_PLAN, prove the research earned its place in the workflow. Compare against a direct auto-plan from the initial prompt:
+
+- What would direct planning likely assume?
+- Which assumption did research confirm, reject, or refine?
+- Which code reality changes the plan?
+- Which acceptance criterion or non-goal is now clearer?
+- Which question did research avoid by self-resolving from evidence?
+
+This is not a long essay. It is a short proof that research reduced downstream wrongness. If it cannot be filled with concrete deltas, the route should not be `READY_FOR_PLAN` unless the task is explicitly marked as trivial early-exit.
+
+**Minimum contract, flexible shape:**
+
+The brief may use tables, bullets, prose, or a compact key/value block. The required semantics are:
+
+- `intent_spec`: user words, inferred/confirmed goal, success criteria, non-goals, and "plan would be wrong if..."
+- `clarify_status`: whether planning can proceed without inventing intent; any blockers; questions asked or self-resolved.
+- `plan_delta`: what planning must include, avoid, verify, or escalate because research ran.
+- `blockers`: unresolved goal/scope/acceptance/safety gaps, or `none`.
+- `evidence`: repo/user/upstream facts that support the above, with basis and source when available.
+
+Optional sections such as Brainstorm, Clarify Log, Zoom-Out Map, Decision Log, Options, Research Value Proof, and Quality Gates should appear only when they reduce uncertainty or preserve a material decision. They may be compressed into the required fields for simple tasks.
 
 **Exploring approaches:**
 
@@ -347,7 +507,13 @@ Fix every issue you find. If the grill reveals a finding was wrong, remove or co
 
 Before writing `research.md`, verify:
 
-- [ ] Intent has all six fields: Problem, Goal, Larger Plan, Why Now, Success Looks Like, Out of Scope
+- [ ] Intent contract answers problem, goal, larger-plan position, why-now/scope fit, observable success, and out-of-scope items
+- [ ] Intent alignment distinguishes explicit ask, interpreted goal, success shape, non-goals, and plan-changing ambiguity
+- [ ] Brainstorm records the chosen interpretation and any plausible rejected interpretation that would change the plan; omit only when the task is trivial and ambiguity-free
+- [ ] Clarify status says whether planning can proceed without inventing intent
+- [ ] Unclear intent triggered grill-with-me clarification rather than silent assumptions
+- [ ] Intent Spec is challenged and survives against user words, repo evidence, and rejected interpretations
+- [ ] Zoom-out information covers relevant modules, flows, boundaries, terminology, and verification hotspots when planning needs it
 - [ ] `Synthesis Summary` separates Stated, Inferred, and Out
 - [ ] Every finding has a basis: `direct`, `external`, or `reasoned`
 - [ ] `reasoned` items are not presented as user intent or repo fact
@@ -355,6 +521,8 @@ Before writing `research.md`, verify:
 - [ ] Every option has evidence, tradeoff, and a repo-specific failure mode
 - [ ] Material decisions are captured as Decision / Rationale / Alternatives considered
 - [ ] Recommendation follows from evidence, not preference
+- [ ] Research Value Proof identifies what direct auto-planning would likely miss or states a justified trivial early-exit
+- [ ] Plan Delta is non-empty and explains how research changes planning
 - [ ] Blocking `NEEDS CLARIFICATION` questions are limited to three or fewer
 - [ ] Open questions are marked `blocks_plan: yes | no`
 - [ ] pge-plan can create executable issues without rereading upstream docs
@@ -379,7 +547,7 @@ Write the research artifact to:
 .pge/tasks-<slug>/research.md
 ```
 
-Use the template at `templates/brief.md`.
+Use `templates/brief.md` as a scaffold, not a fixed form. The required semantic fields must be present, but optional sections may be omitted or compressed when they do not add planning value.
 
 **Failure paths:**
 
@@ -393,7 +561,7 @@ Not every research run succeeds.
 
 Do NOT declare the research complete, summarize completion, or change routes until BOTH are true:
 
-1. `.pge/tasks-<slug>/research.md` exists and follows `templates/brief.md`
+1. `.pge/tasks-<slug>/research.md` exists and satisfies the required research contract semantics from `templates/brief.md`
 2. You are about to output the Final Response block exactly once
 
 If you are interrupted or the user changes direction, close the stage first by writing the best available brief. Research may end in `READY_FOR_PLAN`, `NEEDS_INFO`, or `BLOCKED`, but it must not end without a written artifact.
@@ -414,7 +582,7 @@ After writing the brief, output the Final Response block and explicitly tell the
 
 ## Research Brief Template
 
-Use the exact template at `templates/brief.md`.
+Use the contract scaffold at `templates/brief.md`. Preserve required field semantics; scale the prose shape to the task.
 
 ## Final Response
 

@@ -25,6 +25,14 @@ Execute a plan produced by `pge-plan`. Orchestrates Generator and Evaluator agen
 
 This is an orchestration skill. It executes the plan by coordinating Generator and Evaluator agents. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
+Exec is responsible for **evidence alignment**:
+
+```text
+my code changes = implementation of the plan contract
+```
+
+For every changed file and every completed issue, exec must be able to say which issue it implements, which acceptance criteria it satisfies, what evidence proves it, and whether it deviated from the plan. Completing a task list is not enough if the evidence no longer points back to the user's goal through the plan.
+
 ## External Dependencies
 
 This skill references agent definitions outside its own directory:
@@ -95,6 +103,10 @@ digraph pge_exec {
 ## Phase 1: Load & Validate
 
 If `ARGUMENTS:` explicitly names a task slug, plan path, or other execution target, treat that as the user's selected source and use it without asking again. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` but do not silently select one. Ask the user to confirm a single discovered plan, choose among multiple plans, or choose between a discovered plan and current conversation context. Only fall back to conversation context when no plan artifact exists and the context already contains an executable plan contract. If argument is `test`, use an inline smoke plan bound to a dedicated task directory.
+
+Exec must also consume relevant current context before dispatching work: latest user constraints, corrections made after the plan, observed failures, manual decisions, and any explicit "do not" or allowed-file restriction. Current user constraints can narrow execution or block it; they cannot silently expand the plan.
+
+Exec is not the stage for major intent discovery or plan-changing clarification. If current context raises many unresolved questions about goal, scope, acceptance, target areas, or verification, route back to `pge-plan` or `pge-research`; the upstream contract was not ready. If context changes goal, scope, acceptance, target areas, or verification, stop and route back unless the plan already authorizes that adjustment.
 
 **Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec never creates the task directory itself — it expects pge-research or pge-plan to have created it, except for the dedicated smoke-test task directory. Before writing run output, create only the run parent explicitly:
 
@@ -204,7 +216,7 @@ When checkpointing, preserve only durable facts: current issue, plan path, state
 For each issue in order:
 
 1. **Dependency check**: if depends on BLOCKED issue → skip, mark BLOCKED.
-2. **Build execution pack**: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, relevant assumptions, dependencies, and directly needed repo context. Do not send whole research logs or unrelated prior issue evidence.
+2. **Build execution pack**: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, relevant assumptions, dependencies, and directly needed repo context. Include the plan `goal`, relevant `non_goals`, and any upstream decision refs needed to preserve semantic alignment. Do not send whole research logs or unrelated prior issue evidence.
 3. **Dispatch Generator**: send the execution pack. Wait for `generator_completion`.
 4. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
 5. **Dispatch Evaluator + Pipeline check**: dispatch Evaluator with issue criteria + Generator evidence. If pipeline conditions are met for the next issue (no dependency, no Target Areas overlap): dispatch Generator for next issue simultaneously. Otherwise: wait for `evaluator_verdict` before proceeding.
@@ -213,6 +225,20 @@ For each issue in order:
    - RETRY → send `required_fixes` to Generator (max 3 per issue), re-evaluate. If next issue was pipelined: let it finish, hold its result until current issue resolves.
    - BLOCK → mark BLOCKED, record reason. If pipelined next issue does not depend on this: evaluate it normally when ready. If it depends: mark BLOCKED.
 7. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
+
+After each PASS, record an issue alignment entry in run evidence or manifest:
+
+```text
+issue_id:
+changed_files:
+plan_contract_fields_satisfied:
+acceptance_result:
+verification_result:
+required_evidence:
+deviation_from_plan: none | <what changed and why>
+```
+
+Any deviation that changes goal, scope, target areas, acceptance, verification, or non-goals must stop execution and route back to `pge-plan` unless the plan already authorized that deviation.
 
 ### Rewind-Style Retry
 
@@ -304,6 +330,8 @@ After all issues processed, check plan's Stop Condition:
 - Passes → SUCCESS
 - Fails but all issues passed → PARTIAL (integration gap)
 - Not all issues passed → PARTIAL or BLOCKED
+
+**Semantic alignment check:** Before SUCCESS, verify the composed diff still satisfies the plan `goal`, preserves `non_goals`, covers all ready issues, and has no unapproved scope drift. If the code is plausible but no longer proves the original plan contract, route PARTIAL and record the gap.
 
 **Integration verification:** If the plan touches 3+ files across 2+ modules, run an integration-level check beyond individual issue verification (full test suite, app startup, or plan-specified integration command). Record result in manifest.
 

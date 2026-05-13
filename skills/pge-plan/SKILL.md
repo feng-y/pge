@@ -22,6 +22,27 @@ Produce one bounded, executable PGE plan artifact at `.pge/tasks-<slug>/plan.md`
 
 This is a planning skill. It does not execute code, edit implementation files, produce implementation pseudocode, publish GitHub issues, or invoke `pge-exec`.
 
+Plan is responsible for **contract alignment**:
+
+```text
+my issues = executable translation of research/user intent and success criteria
+```
+
+The artifact shape is flexible, but these semantic fields are mandatory:
+
+```text
+goal
+non_goals
+issues
+target_areas
+acceptance
+verification
+evidence_required
+risks
+```
+
+Do not write a long plan to satisfy a template. Write the smallest plan that lets `pge-exec` implement without guessing, while preserving the same semantic target from the user/research input.
+
 ## Execution Flow
 
 Follow this flow exactly. Do not skip nodes. Do not reorder phases.
@@ -110,6 +131,22 @@ Always parse the current prompt first. Current prompt content is the highest-pri
 
 Direct prompt planning is a first-class path. A user can invoke `pge-plan <clear intent>` without first running `pge-research`. The plan stage must decide whether that prompt is plan-ready, do the bounded repo exploration needed for planning, and produce `plan.md` when it can fairly define scope, constraints, acceptance, and verification. Route to `NEEDS_INFO` or suggest `pge-research` only when the prompt is too fuzzy, broad, or under-evidenced to plan responsibly.
 
+### Context Intake and Clarification
+
+Plan does not only consume formal research artifacts. It must also consume relevant current context: latest user corrections, interrupted prior attempts, observed failures, pasted logs, challenge/review findings, prior plan-mode notes, and fresh artifacts. Treat that context as input, not as background noise.
+
+Before decomposing into issues, identify the current planning target:
+
+- goal or fix target
+- evidence that makes it real
+- proposed scope
+- explicit non-goals
+- uncertainties that would change the plan
+
+Plan may self-research from intent. If the prompt/context is plan-ready but lacks repo facts, do bounded exploration and produce the plan. If the prompt/context identifies a likely problem but the goal, scope, or acceptance is still ambiguous, ask one clarifying question before writing `plan.md`. The question should confirm the semantic target, not implementation trivia.
+
+If the user confirms, continue planning. If unanswered and the ambiguity changes the plan, route `NEEDS_HUMAN` or `NEEDS_INFO` instead of inventing a broader fix.
+
 ### Classify Depth
 
 - **LIGHT** (1-3 files, single module, clear path): Minimal review, 1-2 issues.
@@ -165,7 +202,7 @@ If priorities conflict:
 - A derived summary cannot override its original source unless it records an explicit user-approved scope decision.
 - Record every override in `Decision Overrides`.
 
-**Accepted sources:** (1) direct prompt or current conversation context, (2) pge-research brief, (3) Claude plan mode output, (4) brainstorming output, (5) any structured doc with intent/findings/constraints, (6) bounded self-research inside pge-plan for plan-ready prompts.
+**Accepted sources:** (1) direct prompt or current conversation context, (2) pge-research brief, (3) Claude plan mode output, (4) brainstorming output, (5) challenge/review findings, logs, failed attempts, or other current-context evidence, (6) any structured doc with intent/findings/constraints, (7) bounded self-research inside pge-plan for plan-ready prompts.
 
 **Gate check:**
 - Ready: consume.
@@ -194,6 +231,11 @@ If priorities conflict:
 | Affected areas | Target Areas | as-is |
 | Constraints / non-goals | Non-goals | as-is |
 | Structured Intent fields | Intent | authoritative unless contradicted |
+| Intent Lock / Intent Spec | Intent + Stop Condition + Acceptance Criteria | authoritative when challenge passed |
+| Clarify / Grill-With-Me Log | Coverage Audit + Risks / Open Questions | confirms plan-changing ambiguity was resolved or remains blocking |
+| Zoom-Out Map | Repo Context + Target Areas + Architecture Assessment | preferred compressed system map; do not redo unless insufficient or contradicted |
+| Research Value Proof | Gate Check + Coverage Audit | required evidence that research adds planning value; weak/missing proof triggers extra scrutiny |
+| Plan Delta | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals | direct planning input; must be mapped or explicitly rejected |
 | Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
 | Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
 | Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
@@ -205,6 +247,18 @@ If priorities conflict:
 | Assumptions | Inherit | as-is |
 | Open questions (non-blocking) | Risks / Open Questions | pass-through |
 | Open questions (blocking) | BLOCK_PLAN | blocker |
+
+**pge-research v2 adaptation:**
+
+When the selected source is a `pge-research` brief with `Intent Lock`, `Intent Spec`, `Clarify / Grill-With-Me Log`, `Zoom-Out Map`, `Research Value Proof`, and `Plan Delta`, or the equivalent minimum contract fields (`intent_spec`, `clarify_status`, `plan_delta`, `blockers`, `evidence`), consume those semantics explicitly:
+
+1. **Intent Spec becomes the plan's goal baseline.** Carry problem, goal, scope, non-goals, success criteria, and acceptance seeds forward. Do not weaken them into a generic summary.
+2. **Clarify status controls planning readiness.** If planning cannot proceed without inventing intent, blockers remain unresolved, or the clarify log shows unresolved plan-changing ambiguity, route `NEEDS_INFO` instead of producing a plan.
+3. **Research Value Proof must have a concrete delta.** If missing or empty, treat the research as a weak derived summary and run a stronger Phase 2 coverage/intent audit before trusting its recommendation. Do not blindly adopt an unproven research brief.
+4. **Plan Delta is contract input unless contradicted.** Every include/avoid/verify/blocker item must appear in plan constraints, non-goals, target areas, acceptance, verification, risks/open questions, or decision overrides.
+5. **Zoom-Out Map limits re-exploration.** Use it as the system map when present. Re-read only the files needed to validate stale, low-confidence, or plan-changing claims.
+
+If an older research brief lacks these v2 sections and minimum contract fields, fall back to the legacy fields (`Intent`, `Findings`, `Affected Areas`, `Options`, `Recommendation`) and record that intent proof was unavailable.
 
 **Current constraint extraction:**
 
@@ -233,9 +287,12 @@ Coverage Audit must include:
 - current user constraints from prompt/trailing arguments
 - original source-of-truth requirements and boundaries when available
 - research-derived requirements and assumptions
+- `Intent Spec`, `Research Value Proof`, and `Plan Delta` items when present
 - repo evidence that confirms, contradicts, or narrows the above
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
+
+Plan Delta coverage is mandatory when upstream contains a `Plan Delta` section or `plan_delta` field. Every include/avoid/verify/blocker item must be covered, rejected with rationale, or escalated.
 
 ### Explore (fill gaps)
 
@@ -293,7 +350,9 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 ### Synthesize Intent
 
-If the upstream source has the structured `pge-research` Intent fields, carry them through instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations.
+If the upstream source has structured `pge-research` v2 fields or the minimum research contract fields, carry `Intent Spec` / `intent_spec` through as the plan's intent baseline instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations. Use `Intent Lock`, `clarify_status`, and the `Clarify / Grill-With-Me Log` to preserve what was explicitly asked, what was inferred, and what was clarified.
+
+If the upstream source only has legacy `Intent` fields, carry them through as before.
 
 Produce: structured intent, plan constraints, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
 
@@ -338,6 +397,8 @@ Each issue includes:
 
 The plan artifact MUST be written only to `.pge/tasks-<slug>/plan.md`. This `.pge/` path is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifact. ID format: `YYYYMMDD-HHMM-<slug>`.
 
+Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Required semantics are binding; optional sections should appear only when they help `pge-exec` execute or help review detect scope drift.
+
 **Task directory:** pge-research creates `.pge/tasks-<slug>/`. pge-plan writes into it. If research was skipped, pge-plan creates the task directory and then writes `plan.md` there:
 
 ```bash
@@ -363,7 +424,7 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 
 Do NOT declare the plan complete, summarize completion, or change routes until BOTH are true:
 
-1. The plan artifact exists at `.pge/tasks-<slug>/plan.md` and follows the template structure
+1. The plan artifact exists at `.pge/tasks-<slug>/plan.md` and satisfies the required plan contract semantics
 2. You are about to output the Final Response block exactly once
 
 If the user redirects to execution or implementation mid-run, close the stage first by writing the best available plan artifact with route `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.

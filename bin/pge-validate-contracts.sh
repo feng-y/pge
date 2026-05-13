@@ -51,16 +51,26 @@ for file in \
   skills/pge-knowledge/SKILL.md \
   skills/pge-html/SKILL.md \
   skills/pge-html/references/template-contracts.md \
-  skills/pge-html/templates/status-report.html \
-  skills/pge-html/templates/research-explainer.html \
-  skills/pge-html/templates/implementation-plan.html \
-  skills/pge-html/templates/flowchart-diagram.html \
-  skills/pge-html/templates/module-map.html \
-  skills/pge-html/templates/execution-semantics.html \
-  skills/pge-html/templates/comparison-board.html \
-  skills/pge-html/templates/review-annotated.html \
-  skills/pge-html/templates/code-review.html \
-  skills/pge-html/templates/pr-writeup.html
+  skills/pge-html/templates/01-exploration-code-approaches.html \
+  skills/pge-html/templates/02-exploration-visual-designs.html \
+  skills/pge-html/templates/03-code-review-pr.html \
+  skills/pge-html/templates/04-code-understanding.html \
+  skills/pge-html/templates/05-design-system.html \
+  skills/pge-html/templates/06-component-variants.html \
+  skills/pge-html/templates/07-prototype-animation.html \
+  skills/pge-html/templates/08-prototype-interaction.html \
+  skills/pge-html/templates/09-slide-deck.html \
+  skills/pge-html/templates/10-svg-illustrations.html \
+  skills/pge-html/templates/11-status-report.html \
+  skills/pge-html/templates/12-incident-report.html \
+  skills/pge-html/templates/13-flowchart-diagram.html \
+  skills/pge-html/templates/14-research-feature-explainer.html \
+  skills/pge-html/templates/15-research-concept-explainer.html \
+  skills/pge-html/templates/16-implementation-plan.html \
+  skills/pge-html/templates/17-pr-writeup.html \
+  skills/pge-html/templates/18-editor-triage-board.html \
+  skills/pge-html/templates/19-editor-feature-flags.html \
+  skills/pge-html/templates/20-editor-prompt-tuner.html
 do
   require_file "$file"
 done
@@ -95,6 +105,14 @@ require_pattern README.md 'skills/pge-knowledge/SKILL.md' \
   "README pge-knowledge surface"
 require_pattern README.md '\.pge/tasks-<slug>/plan\.md' \
   "README preferred plan artifact"
+require_pattern README.md 'semantic alignment' \
+  "README semantic alignment invariant"
+require_pattern README.md 'fixed interfaces with flexible expression' \
+  "README fixed interface flexible expression"
+require_pattern README.md 'Every stage must consume its explicit input plus relevant current context' \
+  "README stage input context intake"
+require_pattern README.md 'Exec should not be where major intent or acceptance ambiguity is resolved' \
+  "README exec ambiguity boundary"
 
 require_pattern CLAUDE.md 'skills/pge-research/SKILL.md' \
   "CLAUDE pge-research first read"
@@ -116,6 +134,14 @@ require_pattern CLAUDE.md 'skills/pge-execute/` — removed' \
   "CLAUDE legacy pge-execute framing"
 require_pattern CLAUDE.md 'Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator' \
   "CLAUDE no legacy orchestrator invariant"
+require_pattern CLAUDE.md 'semantic alignment with the original user intent' \
+  "CLAUDE semantic alignment invariant"
+require_pattern CLAUDE.md 'contract discipline, not template bureaucracy' \
+  "CLAUDE contract discipline invariant"
+require_pattern CLAUDE.md 'Every stage must consume its explicit invocation input plus relevant current context' \
+  "CLAUDE stage input context intake"
+require_pattern CLAUDE.md 'Research and plan own intent discovery' \
+  "CLAUDE research plan own discovery"
 
 require_pattern AGENTS.md 'Active research surface' \
   "AGENTS research surface"
@@ -192,6 +218,24 @@ require_pattern skills/pge-research/SKILL.md 'Upstream preservation review check
   "pge-research upstream preservation review checklist"
 require_pattern skills/pge-research/SKILL.md 'Reframe ambiguous instructions as success criteria' \
   "pge-research success criteria reframing"
+require_pattern skills/pge-research/SKILL.md 'brainstorm.*clarify.*zoom-out|brainstorm.*clarify / grill-with-me.*zoom-out' \
+  "pge-research integrated brainstorm clarify zoom-out"
+require_pattern skills/pge-research/SKILL.md 'Research Value Proof' \
+  "pge-research value proof"
+require_pattern skills/pge-research/SKILL.md 'Intent Spec' \
+  "pge-research intent spec"
+require_pattern skills/pge-research/SKILL.md 'intent alignment' \
+  "pge-research intent alignment"
+require_pattern skills/pge-research/SKILL.md 'intent_spec' \
+  "pge-research minimum contract intent_spec"
+require_pattern skills/pge-research/SKILL.md 'clarify_status' \
+  "pge-research minimum contract clarify_status"
+require_pattern skills/pge-research/SKILL.md 'plan_delta' \
+  "pge-research minimum contract plan_delta"
+require_pattern skills/pge-research/SKILL.md 'Resolve stage input and current context' \
+  "pge-research stage input context intake"
+require_pattern skills/pge-research/SKILL.md 'grill-with-me' \
+  "pge-research user clarification challenge"
 require_pattern skills/pge-research/SKILL.md 'Decision / Rationale / Alternatives considered' \
   "pge-research decision log"
 require_pattern skills/pge-research/SKILL.md 'NEEDS CLARIFICATION.*three' \
@@ -212,6 +256,30 @@ require_pattern skills/pge-research/templates/brief.md 'Why This Step / Why Now'
   "pge-research structured intent why now"
 require_pattern skills/pge-research/templates/brief.md 'Synthesis Summary' \
   "pge-research stated inferred out summary"
+require_pattern skills/pge-research/templates/brief.md 'Intent Lock' \
+  "pge-research intent lock template"
+require_pattern skills/pge-research/templates/brief.md 'minimum contract scaffold' \
+  "pge-research minimum contract scaffold"
+require_pattern skills/pge-research/templates/brief.md 'intent_spec' \
+  "pge-research contract field intent_spec"
+require_pattern skills/pge-research/templates/brief.md 'clarify_status' \
+  "pge-research contract field clarify_status"
+require_pattern skills/pge-research/templates/brief.md 'plan_delta' \
+  "pge-research contract field plan_delta"
+require_pattern skills/pge-research/templates/brief.md 'Brainstorm' \
+  "pge-research brainstorm template"
+require_pattern skills/pge-research/templates/brief.md 'Clarify / Grill-With-Me Log' \
+  "pge-research clarify grill template"
+require_pattern skills/pge-research/templates/brief.md 'Intent Spec' \
+  "pge-research intent spec template"
+require_pattern skills/pge-research/templates/brief.md 'Intent Spec Challenge' \
+  "pge-research intent spec challenge template"
+require_pattern skills/pge-research/templates/brief.md 'Zoom-Out Map' \
+  "pge-research zoom-out map template"
+require_pattern skills/pge-research/templates/brief.md 'Research Value Proof' \
+  "pge-research value proof template"
+require_pattern skills/pge-research/templates/brief.md 'Plan Delta' \
+  "pge-research plan delta template"
 require_pattern skills/pge-research/templates/brief.md 'basis: direct \| external \| reasoned' \
   "pge-research finding basis requirement"
 require_pattern skills/pge-research/templates/brief.md 'validation:' \
@@ -245,6 +313,10 @@ require_pattern skills/pge-plan/SKILL.md 'ask the user to choose when both a dis
   "pge-plan source selection question"
 require_pattern skills/pge-plan/SKILL.md 'Direct prompt planning is a first-class path' \
   "pge-plan direct prompt planning capability"
+require_pattern skills/pge-plan/SKILL.md 'Context Intake and Clarification' \
+  "pge-plan context intake and clarification"
+require_pattern skills/pge-plan/SKILL.md 'Plan may self-research from intent' \
+  "pge-plan self research from intent"
 require_pattern skills/pge-plan/SKILL.md 'Current prompt content is the highest-priority input and must never be ignored' \
   "pge-plan current prompt highest priority"
 require_pattern skills/pge-plan/SKILL.md 'selector as the source location and the remaining text as binding current user constraints' \
@@ -283,8 +355,20 @@ require_pattern skills/pge-plan/SKILL.md 'Implementation-level choices are plan-
   "pge-plan implementation choice authority"
 require_pattern skills/pge-plan/SKILL.md 'upstream_decision_refs' \
   "pge-plan issue upstream decision refs"
+require_pattern skills/pge-plan/SKILL.md 'contract alignment' \
+  "pge-plan contract alignment"
+require_pattern skills/pge-plan/SKILL.md 'goal' \
+  "pge-plan minimum contract goal"
+require_pattern skills/pge-plan/SKILL.md 'non_goals' \
+  "pge-plan minimum contract non_goals"
+require_pattern skills/pge-plan/SKILL.md 'evidence_required' \
+  "pge-plan minimum contract evidence_required"
 require_pattern skills/pge-plan/templates/plan.md 'Plan Constraints' \
   "pge-plan plan constraints template"
+require_pattern skills/pge-plan/templates/plan.md 'minimum contract scaffold' \
+  "pge-plan minimum contract scaffold"
+require_pattern skills/pge-plan/templates/plan.md 'ready_for_exec' \
+  "pge-plan ready_for_exec contract field"
 require_pattern skills/pge-plan/templates/plan.md 'Input Priority' \
   "pge-plan input priority template"
 require_pattern skills/pge-plan/templates/plan.md 'Current prompt is the highest-priority input' \
@@ -363,6 +447,14 @@ require_pattern skills/pge-exec/SKILL.md 'Completion gate' \
   "pge-exec completion gate"
 require_pattern skills/pge-exec/SKILL.md 'not chat-only summaries or ad-hoc pseudocode' \
   "pge-exec real artifact boundary"
+require_pattern skills/pge-exec/SKILL.md 'evidence alignment' \
+  "pge-exec evidence alignment"
+require_pattern skills/pge-exec/SKILL.md 'Semantic alignment check' \
+  "pge-exec semantic alignment check"
+require_pattern skills/pge-exec/SKILL.md 'not the stage for major intent discovery' \
+  "pge-exec ambiguity boundary"
+require_pattern skills/pge-exec/SKILL.md 'route back to `pge-plan` or `pge-research`' \
+  "pge-exec routes upstream for ambiguity"
 
 require_pattern skills/pge-handoff/SKILL.md 'mktemp -t pge-handoff-XXXXXX\.md' \
   "pge-handoff temporary artifact"
@@ -388,26 +480,40 @@ require_pattern skills/pge-html/SKILL.md 'Do not just make Markdown prettier' \
   "pge-html cognition-first rule"
 require_pattern skills/pge-html/SKILL.md 'references/template-contracts\.md' \
   "pge-html template contracts reference"
-require_pattern skills/pge-html/SKILL.md 'execution-semantics' \
-  "pge-html execution semantics style"
+require_pattern skills/pge-html/SKILL.md 'version: 2\.0\.0' \
+  "pge-html v2 version"
+require_pattern skills/pge-html/SKILL.md 'Scoring dimensions' \
+  "pge-html scoring-based template selection"
+require_pattern skills/pge-html/SKILL.md 'structure.*reader-task.*density|structure \+ reader-task.*content-density' \
+  "pge-html scoring dimensions"
+require_pattern skills/pge-html/SKILL.md 'Winner: `04-code-understanding`' \
+  "pge-html listwise template decision"
+require_pattern skills/pge-html/SKILL.md '不丢内容' \
+  "pge-html content preservation rule"
+require_pattern skills/pge-html/SKILL.md '子结构混合' \
+  "pge-html substructure mixing rule"
+require_pattern skills/pge-html/SKILL.md 'Phase 5: Reshape' \
+  "pge-html reshape phase"
+require_pattern skills/pge-html/SKILL.md 'Reference palette by default' \
+  "pge-html reference palette rule"
 require_pattern skills/pge-html/SKILL.md 'Escape all source text before inserting into HTML' \
   "pge-html escaping rule"
 require_pattern skills/pge-html/references/template-contracts.md 'Common Quality Gate' \
   "pge-html common quality gate"
-require_pattern skills/pge-html/references/template-contracts.md '## execution-semantics' \
-  "pge-html execution semantics contract"
-require_pattern skills/pge-html/references/template-contracts.md '## module-map' \
-  "pge-html module map contract"
+require_pattern skills/pge-html/references/template-contracts.md '## code-understanding' \
+  "pge-html code understanding contract"
 require_pattern skills/pge-html/references/template-contracts.md '## code-review' \
   "pge-html code review contract"
-require_pattern skills/pge-html/templates/execution-semantics.html 'Execution Semantics' \
-  "pge-html execution semantics template"
-require_pattern skills/pge-html/templates/execution-semantics.html 'Agent Gotchas First' \
-  "pge-html execution semantics gotchas"
-require_pattern skills/pge-html/templates/execution-semantics.html 'Verification Hotspots' \
-  "pge-html execution semantics verification"
-require_pattern skills/pge-html/templates/execution-semantics.html 'textContent' \
-  "pge-html execution semantics safe text update"
+require_pattern skills/pge-html/templates/04-code-understanding.html 'How authentication flows through the codebase' \
+  "pge-html code understanding template"
+require_pattern skills/pge-html/templates/04-code-understanding.html 'details class="snippet"' \
+  "pge-html code understanding collapsible snippets"
+require_pattern skills/pge-html/templates/11-status-report.html 'Engineering Status' \
+  "pge-html status report template"
+require_pattern skills/pge-html/templates/13-flowchart-diagram.html 'annotated flowchart' \
+  "pge-html flowchart template"
+require_pattern skills/pge-html/templates/16-implementation-plan.html 'Implementation plan' \
+  "pge-html implementation plan template"
 
 require_pattern skills/pge-review/SKILL.md 'Review Gate' \
   "pge-review gate section"
@@ -415,6 +521,10 @@ require_pattern skills/pge-review/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHA
   "pge-review route contract"
 require_pattern skills/pge-review/SKILL.md 'The default successful route is `READY_FOR_CHALLENGE`' \
   "pge-review default success route"
+require_pattern skills/pge-review/SKILL.md 'Semantic Alignment' \
+  "pge-review semantic alignment axis"
+require_pattern skills/pge-review/SKILL.md 'original user intent' \
+  "pge-review original intent check"
 
 require_pattern skills/pge-challenge/SKILL.md 'Prompt Challenge Matrix' \
   "pge-challenge prompt proof matrix"
