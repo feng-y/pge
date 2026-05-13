@@ -8,7 +8,7 @@ description: >
 when_to_use: >
   Use when the user asks for prove-it or 自证.
 version: 0.2.0
-argument-hint: "[task-slug | plan path | base ref]"
+argument-hint: "[statement | task-slug | plan path | base ref]"
 allowed-tools:
   - Read
   - Bash
@@ -38,9 +38,12 @@ No prompt and no execution context means `BLOCK_SHIP`.
 Use only the inputs that exist:
 
 - current diff and optional base ref
+- statement to prove or challenge
 - task slug, `.pge/tasks-<slug>/plan.md`, and `.pge/tasks-<slug>/runs/<run_id>/*`
 - current prompt / latest user constraints
 - `pge-review` output or other explicit development requirement source
+
+If the user provides a sentence to prove or challenge, select `challenge_claim`, set `claim_source: prompt`, use that sentence as `challenged_claim`, produce evidence, and return a conclusion. Remaining arguments may still provide base ref, task slug, or plan path.
 
 Current prompt outranks older plan/research artifacts. If a prompt is present, treat it as the highest-priority requirement source. If no prompt is present, do not block solely for that; use the strongest available execution context.
 
@@ -96,7 +99,9 @@ Run/review artifacts can support proof but cannot waive the plan. A note that sa
 
 For each meaningful change, state the claim, one plausible failure scenario, the evidence required, the evidence produced, and the verdict.
 
-In `challenge_claim` mode, restate the claim first, identify what evidence would disprove it, and test the strongest no-change or simpler-change alternative when the claim concerns a change's necessity, correctness, or boundary.
+In `challenge_claim` mode, restate the sentence being challenged, identify what evidence would prove or disprove it, produce that evidence, and return the conclusion.
+
+For any judgment claim, turn the claim into explicit evidence requirements, produce the evidence, and state what would falsify it. For no-impact claims, this usually includes the protected output's dependency set and proof that the diff does not modify the inputs, state, config, or side effects used by that output.
 
 For waits, retries, sleeps, polling, queue timing, or post-completion delay, challenge necessity explicitly: what race or state transition requires it, why a simpler event/condition check is insufficient, what bound prevents hanging or latency creep, and what evidence proves both the wait-needed and no-extra-wait cases.
 

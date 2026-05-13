@@ -424,6 +424,10 @@ require_pattern skills/pge-challenge/SKILL.md 'Review Self-Proof Matrix' \
   "pge-challenge self proof matrix"
 require_pattern skills/pge-challenge/SKILL.md 'prove_expected \| challenge_claim' \
   "pge-challenge challenge models"
+require_pattern skills/pge-challenge/SKILL.md 'sentence to prove or challenge' \
+  "pge-challenge statement argument"
+require_pattern skills/pge-challenge/SKILL.md 'judgment claim' \
+  "pge-challenge judgment claim proof"
 require_pattern skills/pge-challenge/SKILL.md 'prompt_ref: not_provided' \
   "pge-challenge prompt optional execution mode"
 require_pattern skills/pge-challenge/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_TO_SHIP' \
