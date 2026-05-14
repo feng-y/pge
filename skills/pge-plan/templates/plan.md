@@ -7,6 +7,8 @@ This is a minimum contract scaffold, not a fixed prose template. Keep simple pla
 - plan_id: <YYYYMMDD-HHMM-slug>
 - created_at: <ISO date>
 - upstream_input_ref: <path to research brief, plan mode output, or description>
+- normalization_only: true | false
+- source_kind: pge_research | claude_plan_mode | docs_exec_plan | structured_plan | direct_prompt
 - setup_config_refs: <paths or "none">
 - plan_route: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - depth: LIGHT | MEDIUM | DEEP
@@ -79,6 +81,7 @@ Current prompt is the highest-priority input. Every hard constraint from the cur
 | Source | Role | Priority | Consumed As | Conflicts / Overrides |
 |--------|------|----------|-------------|------------------------|
 | <current prompt / trailing arguments> | hard constraint / latest override / selected scope | highest | <Intent / Non-goals / Target Areas / Verification / issue boundaries> | <none or override ID> |
+| <docs/exec-plans/... if selected or referenced> | canonical planning source | high | <Plan Constraints / Phase Boundary / Scope Boundary / semantic ownership> | <none or override ID> |
 | <original source-of-truth file or prompt, if any> | source of truth | high | <Plan Constraints / Coverage Audit / Phase Boundary> | <none or override ID> |
 | <repo code/docs/config> | evidence | high | <Repo Context / Engineering Review> | <none or contradiction with source> |
 | <research.md or derived summary, if any> | derived summary | medium | <Repo Context / Plan defaults / assumptions> | <none or original source reread needed> |
@@ -93,6 +96,21 @@ Authoritative upstream decisions that planning must inherit. Do not re-litigate 
 | Decision ID | Decision | Source | Plan handling |
 |-------------|----------|--------|---------------|
 | D1 | <upstream spec decision> | <research.md section / upstream path> | inherited as <constraint / issue ref / verification ref> |
+
+#### Boundary Fidelity
+- canonical_exec_plan: <none or docs/exec-plans/...>
+- preserved_phase_scope: <phase/scope decisions inherited exactly>
+- semantic_ownership: <ownership boundaries the plan must preserve>
+- unauthorized_expansions_removed: <helpers / flags / cleanup / broader refactors / abstractions omitted because source did not authorize them>
+
+#### Plan Grill Log
+| Check | Finding | Resolution | Source / Evidence |
+|-------|---------|------------|-------------------|
+| phase/scope fidelity | <pass/gap> | <kept / corrected / asked user / NEEDS_INFO> | <source line or repo evidence> |
+| unauthorized expansion | <none or item> | <removed or explicitly authorized> | <source line or current prompt> |
+| semantic ownership | <pass/gap> | <kept / corrected / asked user> | <source line or repo evidence> |
+| acceptance proves behavior | <pass/gap> | <verification adjusted or blocker recorded> | <source line or repo evidence> |
+| inferred vs stated | <pass/gap> | <assumption recorded or user asked> | <source line or repo evidence> |
 
 #### Decision Overrides
 | Upstream Decision ID | Override Decision | Rationale | Alternatives considered | User confirmation required? |

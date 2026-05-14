@@ -45,6 +45,8 @@ pge-research → pge-plan → pge-exec → pge-review → pge-challenge → ship
 
 Each skill produces an artifact or gate result that the next step consumes. You can enter at any point — skip research if you already know the landscape, skip planning if you already have a plan file, or run review/challenge on ordinary diffs outside the PGE pipeline.
 
+PGE can also adopt plans produced by other workflows. If a Claude plan mode output, `docs/exec-plans/` document, or foreign workflow plan is clear and complete — goal, scope, semantic ownership, non-goals, target areas or ownership boundaries, implementation direction, and verification/evidence checkpoints are all present — `pge-exec` may normalize it into `.pge/tasks-<slug>/plan.md` and execute from the canonical artifact. After normalization, the plan is repo-managed by PGE: run artifacts, evidence, review, and learnings must live under `.pge/tasks-<slug>/runs/<run_id>/`.
+
 ### Workflow Map
 
 | Stage | PGE surface | Artifact / gate |

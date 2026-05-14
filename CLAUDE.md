@@ -90,6 +90,7 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 - `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
 - `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run learnings before any durable repo knowledge is promoted.
 - Planning outputs and run artifacts under `.pge/tasks-<slug>/` are the handoff seams.
+- Clear and complete plans from outside PGE may be adopted into repo management by normalization into `.pge/tasks-<slug>/plan.md`. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Final Review Gate.

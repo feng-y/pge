@@ -1,9 +1,9 @@
 ---
 name: pge-exec
 description: >
-  Execute pge-plan issues using Generator + Evaluator agents.
+  Execute pge-plan issues using peer Generator + Evaluator lanes.
   Consumes .pge/tasks-<slug>/plan.md,
-  dispatches per-issue execution, validates with independent Evaluator, bounded repair loop, accumulates learnings.
+  dispatches per-issue execution, validates with an independent Evaluator, bounded repair loop, accumulates learnings.
 version: 1.0.0
 argument-hint: "<task-slug> | test"
 allowed-tools:
@@ -21,9 +21,9 @@ allowed-tools:
 
 # pge-exec
 
-Execute a plan produced by `pge-plan`. Orchestrates Generator and Evaluator agents per issue.
+Execute a plan produced by `pge-plan`. Coordinates peer Generator and Evaluator lanes per issue.
 
-This is an orchestration skill. It executes the plan by coordinating Generator and Evaluator agents. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
+This is an orchestration skill. It executes the plan by coordinating Generator implementation/self-review and Evaluator independent verification. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
 Exec is responsible for **evidence alignment**:
 
@@ -51,7 +51,7 @@ digraph pge_exec {
   load_plan [label="Load Plan"];
   validate [label="Validate\n(READY_FOR_EXECUTE?)"];
   group [label="Analyze Dependencies\n+ Target Areas"];
-  create_team [label="Create Team\n(1-3 generators + evaluator)"];
+  create_team [label="Create Team\n(generator(s) + evaluator)"];
 
   subgraph cluster_loop {
     label="Per-Issue Loop (with pipeline)";
@@ -96,7 +96,7 @@ digraph pge_exec {
 - **"Replan While Executing"** — Plan is frozen. If wrong, route back to pge-plan.
 - **"Fix Everything I See"** — Stay inside issue scope. Unrelated bugs → deferred items.
 - **"Repair Forever"** — Max 3 attempts per issue. Then BLOCKED.
-- **"Skip Evaluator"** — Every issue gets independent evaluation. No exceptions.
+- **"Skip Evaluator"** — Every issue gets independent verification. No exceptions.
 
 ---
 
@@ -108,7 +108,49 @@ Exec must also consume relevant current context before dispatching work: latest 
 
 Exec is not the stage for major intent discovery or plan-changing clarification. If current context raises many unresolved questions about goal, scope, acceptance, target areas, or verification, route back to `pge-plan` or `pge-research`; the upstream contract was not ready. If context changes goal, scope, acceptance, target areas, or verification, stop and route back unless the plan already authorizes that adjustment.
 
-**Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec never creates the task directory itself — it expects pge-research or pge-plan to have created it, except for the dedicated smoke-test task directory. Before writing run output, create only the run parent explicitly:
+### Plan Completeness Gate
+
+First, before canonical-format validation and before any normalization, decide whether the selected plan is clear and complete enough to execute. This is the hard precondition for accepting Claude plan mode output, `docs/exec-plans/`, or foreign workflow plans.
+
+A plan is execution-complete only when all of these are clear from the selected source plus current user constraints:
+- goal and observable stop condition
+- current phase or bounded scope
+- ordered issues, slices, implementation sections, or equivalent executable work units
+- target areas or unambiguous ownership boundaries for the plan, with enough source structure to assign them mechanically to work units
+- acceptance criteria for the plan, with enough source structure to assign them mechanically to work units
+- verification expectation or evidence requirement for the plan, with enough source structure to assign it mechanically to work units
+- explicit non-goals or scope exclusions when the source narrows scope
+- dependencies or ordering constraints when work units interact
+
+If all fields are present but names differ from PGE terminology, normalize them. If any field is missing but mechanically inferable from the same source without changing scope, record the inference in the canonical plan. Mechanical inference may include deriving issue boundaries from source headings, implementation components, rollout phases, or explicitly listed core changes, as long as each derived issue traces one-to-one to source content.
+
+Clear and complete does not mean perfect PGE formatting. It means the source contains the core constraints: goal, scope/phase boundary, semantic ownership, non-goals, target ownership or areas, intended implementation direction, and verification/evidence checkpoints. An evaluator must be able to tell, from the source plus normalized plan, whether the implementation stayed within scope and satisfied the intended checks. If that is not true, the plan is not executable.
+
+If a missing field requires choosing scope, adding design decisions, inventing target areas, inventing acceptance criteria, changing verification strategy, changing phase boundaries, or resolving semantic ownership, stop before implementation and route `NEEDS_HUMAN`, `BLOCKED`, or back to `pge-plan`.
+
+If the approach is explicit and the checkpoints are complete, execute-normalize directly. "Complete checkpoints" means the source gives enough acceptance, verification, compare, rollout, or evidence criteria for Evaluator and Final Review to judge correctness without inventing new success criteria. Do not reject a plan only because it lacks PGE field names or pre-numbered PGE issues.
+
+This gate applies equally to canonical `.pge/tasks-<slug>/plan.md`, Claude Code plan mode output, `docs/exec-plans/` documents, foreign workflow plans, and current-conversation plan text.
+
+### Non-Canonical Plan Intake
+
+Some selected inputs, especially Claude Code plan mode output, `docs/exec-plans/` documents, and plans produced by other workflows, may be semantically complete plans but not yet in the canonical `.pge/tasks-<slug>/plan.md` execution format. Treat this as a format-normalization problem, not as permission to execute directly in the orchestrator.
+
+When evaluating or normalizing a non-canonical source, read `references/external-plan-normalization.md`. It defines the domain-neutral source shape, field mapping, anonymization rules for resident docs, and stop conditions.
+
+If the selected source is not a canonical `.pge/tasks-<slug>/plan.md`, choose exactly one route before any implementation work:
+- **Normalize in exec:** when the source already contains goal, phase/scope boundary, source work structure, target areas or ownership boundaries, acceptance criteria, verification expectations, and stop condition, convert it into `.pge/tasks-<slug>/plan.md` with `plan_route: READY_FOR_EXECUTE`, `State: READY_FOR_EXECUTE` issues, and a Stop Condition. This conversion may mechanically extract PGE issues from source headings, implementation components, rollout phases, or explicitly listed core changes. Preserve the source document's phase/scope decisions and semantic ownership; do not invent new helpers, flags, cleanup, abstractions, target areas, acceptance criteria, or verification beyond what the source authorizes. Record `source_plan: <path or current conversation plan mode output>`, `source_kind: claude_plan_mode | docs_exec_plan | foreign_workflow_plan | other_structured_plan`, and `normalization_only: true` in the plan.
+- **Stop:** when any required execution field is missing or ambiguous, route `BLOCKED` or `NEEDS_HUMAN` and report the exact missing fields. Do not write implementation code.
+
+Prefer exec normalization over routing back to `pge-plan` when the only problem is format. `pge-plan` should not be required just to rewrap a complete Claude plan mode plan, structured execution document, or foreign workflow plan. If the approach is clear and the checkpoints are complete enough for independent evaluation, `pge-exec` should normalize and execute directly. If `pge-plan` could convert the source without changing decisions, then `pge-exec` can do the same conversion before executing. Route back to `pge-plan` only when the source is not execution-complete or when normalization would require planning judgment.
+
+Normalization is allowed inside `pge-exec` only as a lossless adapter from a complete plan into the canonical execution contract. It is not replanning. If conversion requires changing scope, splitting phases differently, adding acceptance criteria, choosing target files not named or implied by the source, or resolving semantic ownership ambiguity, stop and route back to `pge-plan`.
+
+After normalization, restart Phase 1 validation against the generated canonical plan and continue only if it passes. The run directory, rollback tag, Generator/Evaluator dispatch, state persistence, Final Review Gate, learnings, manifest, and Final Response block remain mandatory.
+
+Normalization adopts the source into repo management. Once `.pge/tasks-<slug>/plan.md` exists, it is the runtime contract for `pge-exec`; the original foreign plan remains source evidence referenced by `source_plan`, not a second contract to execute independently. Any later correction must update or regenerate the canonical plan before execution continues.
+
+**Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec creates the task directory only for the dedicated smoke test or when it is normalizing a semantically complete non-canonical plan into `.pge/tasks-<slug>/plan.md`. Otherwise it expects pge-research or pge-plan to have created the task directory. Before writing run output, create only the run parent explicitly:
 
 ```bash
 mkdir -p .pge/tasks-<slug>/runs/<run_id>/
@@ -140,15 +182,17 @@ Issues with state NEEDS_INFO, BLOCKED, or NEEDS_HUMAN are skipped — they are n
 ### Create Team
 
 Default team composition:
-- `generator` — implements issues (read `handoffs/generator.md` for dispatch protocol)
-- `evaluator` — validates independently (read `handoffs/evaluator.md` for dispatch protocol)
+- `generator` — develops the issue, runs UT/verification, performs self-review, and returns a candidate result (read `handoffs/generator.md` for dispatch protocol)
+- `evaluator` — independently verifies the candidate result and is the only lane that can mark a subtask PASS (read `handoffs/evaluator.md` for review protocol)
+
+Generator and Evaluator are complementary peer lanes under main coordination. Main owns routing, state, health monitoring, and repair scheduling. Generator owns implementation quality before handoff. Evaluator owns independent completion judgment. A `generator_completion READY` means "candidate ready for evaluation", not "issue complete".
 
 **Adaptive scaling** (when READY issue count ≥ 6 AND independent issues exist):
 - Add `generator-2` (same protocol as generator, independent context)
 - At 12+ independent issues: add `generator-3`
-- Cap: max 3 generators. Each generator claims issues from the plan; main assigns non-overlapping issue sets at dispatch time.
+- Cap: max 3 generator lanes. Each generator claims issues from the plan; main assigns non-overlapping issue sets at dispatch time.
 - Only scale when issues have no dependency AND no Target Areas overlap between assigned sets.
-- If scaling conditions are not met: stay with 1 generator (default behavior).
+- If scaling conditions are not met: stay with 1 generator lane (default behavior).
 - **Deviation under scaling**: if a generator needs to touch a file outside its assigned Target Areas, it must report BLOCKED with reason "cross-assignment deviation needed: <file>" rather than proceeding. Main reassigns the issue to the generator that owns that file's Target Areas, or queues it for serial execution after the current wave.
 - **Evaluation ordering**: evaluate in issue-ID order regardless of generator completion order. This keeps the evaluation sequence deterministic and debuggable.
 
@@ -156,17 +200,17 @@ No Planner. The plan IS the frozen contract.
 
 ### Pipeline Parallelism
 
-Default execution is serial: dispatch Generator, wait for completion, dispatch Evaluator, wait for verdict, then next issue. Pipeline parallelism overlaps evaluation with the next generation when safe.
+Default execution is serial: dispatch Generator, wait for candidate completion, dispatch Evaluator, wait for verdict, then next issue. Pipeline parallelism overlaps evaluation with the next generation when safe.
 
 **Activation conditions** (ALL must be true for the next issue):
 - Next issue has NO dependency on current issue
 - Next issue's Target Areas do NOT overlap with current issue's Target Areas
-- Current issue's Generator completed successfully (status READY, not BLOCKED)
+- Current issue's Generator completed successfully with candidate status READY, not BLOCKED
 
 **When activated:**
-- After Generator completes issue N, dispatch Evaluator for N and simultaneously dispatch Generator for N+1.
-- This overlaps E(N) with G(N+1) — evaluator checks N while generator works on N+1.
-- Generator does NOT need to be paused. If E(N) returns PASS: continue normally. If E(N) returns RETRY: let G(N+1) finish naturally, hold its result, repair N, re-evaluate N, then evaluate N+1's held result.
+- After Generator produces a READY candidate for issue N, dispatch Evaluator for N and simultaneously dispatch Generator for N+1.
+- This overlaps E(N) with G(N+1) — Evaluator checks N while Generator works on N+1.
+- Generator does NOT need to be paused. If E(N) returns PASS: continue normally. If E(N) returns RETRY: let G(N+1) finish naturally, hold its result, send the required fixes for N back through main to Generator, re-evaluate N, then evaluate N+1's held result.
 - If E(N) returns BLOCK: let G(N+1) finish. If N+1 does not depend on N, evaluate N+1 normally. If N+1 depends on N, mark N+1 BLOCKED.
 
 **When NOT activated:**
@@ -218,13 +262,25 @@ For each issue in order:
 1. **Dependency check**: if depends on BLOCKED issue → skip, mark BLOCKED.
 2. **Build execution pack**: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, relevant assumptions, dependencies, and directly needed repo context. Include the plan `goal`, relevant `non_goals`, and any upstream decision refs needed to preserve semantic alignment. Do not send whole research logs or unrelated prior issue evidence.
 3. **Dispatch Generator**: send the execution pack. Wait for `generator_completion`.
-4. **Gate**: Deliverable exists? Evidence produced? BLOCKED → mark and continue.
+4. **Candidate gate**: Deliverable exists? Evidence produced? If Generator reports BLOCKED → mark issue BLOCKED or continue to independent issues. READY is only candidate-ready, never PASS.
 5. **Dispatch Evaluator + Pipeline check**: dispatch Evaluator with issue criteria + Generator evidence. If pipeline conditions are met for the next issue (no dependency, no Target Areas overlap): dispatch Generator for next issue simultaneously. Otherwise: wait for `evaluator_verdict` before proceeding.
 6. **Verdict**:
-   - PASS → mark done. If next issue already generating (pipelined): continue to its evaluation when ready. Otherwise: dispatch next issue.
-   - RETRY → send `required_fixes` to Generator (max 3 per issue), re-evaluate. If next issue was pipelined: let it finish, hold its result until current issue resolves.
+   - PASS → mark issue complete. Only Evaluator can produce this transition. If next issue already generating (pipelined): continue to its evaluation when ready. Otherwise: dispatch next issue.
+   - RETRY → main sends `required_fixes` to Generator (max 3 per issue), then re-dispatches Evaluator after Generator returns a new candidate. If next issue was pipelined: let it finish, hold its result until current issue resolves.
    - BLOCK → mark BLOCKED, record reason. If pipelined next issue does not depend on this: evaluate it normally when ready. If it depends: mark BLOCKED.
 7. **No-change guard**: repair with zero file changes = same-failure. Do not re-evaluate.
+
+### Team Communication Consistency
+
+Keep communication lightweight and symmetric:
+- Every dispatched issue expects structured packets: Generator returns `generator_completion` for candidate readiness or BLOCKED; Evaluator returns `evaluator_verdict` for PASS, RETRY, or BLOCK.
+- Idle/startup messages, partial reasoning, and prose summaries are non-terminal. They do not advance state and are not failures by themselves.
+- If a lane cannot proceed because the dispatch is unclear, companion rules are missing, or setup is invalid, it returns the same terminal packet with a blocking reason instead of waiting silently.
+- Main monitors missing packets, sends at most one clarification/nudge, then rebuilds or replaces the lane if needed.
+- Evaluator failures are fed back to main, not directly patched by Evaluator. Main schedules Generator repair using `required_fixes`. The loop exists to complete the task, not merely report failure.
+- Communication failures are orchestration failures, recorded separately from implementation failures.
+
+The issue may continue after lane recovery only if the plan contract is still intact and Target Areas are not conflicted.
 
 After each PASS, record an issue alignment entry in run evidence or manifest:
 

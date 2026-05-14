@@ -6,6 +6,7 @@ description: >
   engineering review, synthesizes intent, and decomposes into executable issues.
 version: 0.5.1
 argument-hint: "<task intent or planning notes>"
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Write
@@ -19,6 +20,8 @@ allowed-tools:
 # PGE Plan
 
 Produce one bounded, executable PGE plan artifact at `.pge/tasks-<slug>/plan.md`.
+
+Run `pge-plan` in the current main reasoning context. Do not hand core planning, phase/scope interpretation, or semantic ownership decisions to an automatically selected lower-capability planning model. Agents may help with bounded evidence gathering or outside voice review, but main owns the plan contract and final decisions.
 
 This is a planning skill. It does not execute code, edit implementation files, produce implementation pseudocode, publish GitHub issues, or invoke `pge-exec`.
 
@@ -73,8 +76,9 @@ digraph pge_plan {
     explore [label="Explore gaps\n+flow analysis\n+multi-agent (DEEP)"];
     propose [label="Propose Approaches"];
     eng_review [label="Engineering Review\n(see references/)"];
+    grill_gate [label="Inconsistency Grill Gate\n(source vs scope vs issues)"];
     select_approach [label="Select Approach"];
-    coverage_audit -> explore -> propose -> eng_review -> select_approach;
+    coverage_audit -> explore -> propose -> eng_review -> grill_gate -> select_approach;
   }
 
   gate_check -> coverage_audit [label="ready"];
@@ -171,6 +175,31 @@ Then:
 
 Fast Lane is the smallest direct prompt path, not the only direct prompt path. MEDIUM and DEEP prompts may also be planned directly when the user gives enough intent, boundaries, and success criteria for Phase 2 research and engineering review to close the remaining implementation-level gaps.
 
+### Fast Normalize (complete upstream plan → PGE contract)
+
+Use this path when the selected source is already a complete plan, including Claude Code plan mode output, `docs/exec-plans/` documents, or a structured design/execution plan, but it is not in canonical `.pge/tasks-<slug>/plan.md` format.
+
+Fast Normalize is allowed for LIGHT, MEDIUM, or DEEP inputs. Depth controls issue count and verification strictness, not whether normalization is available.
+
+The selected source is normalization-ready only when it already contains:
+- goal and observable success or stop condition
+- bounded phase/scope
+- implementation decisions and semantic ownership boundaries
+- non-goals or exclusions when scope is narrowed
+- target modules/files or unambiguous ownership areas
+- verification expectations or evidence requirements
+- enough ordered work structure to derive executable issues without inventing scope
+
+When normalization-ready:
+- Skip broad option generation and outside-voice approach selection.
+- Do not re-decide architecture, rollout strategy, phase boundaries, target ownership, or semantic model.
+- Convert the source into the canonical plan template with `plan_route: READY_FOR_EXECUTE`.
+- Split into the smallest number of execution issues needed for `pge-exec`; issue slicing may decide order and grouping but must not add scope.
+- Mark `normalization_only: true` and record the source path or `claude_plan_mode` source in Metadata.
+- Run Coverage Audit and Inconsistency Grill Gate only against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage.
+
+If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving semantic ownership, or changing phase boundaries, Fast Normalize must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn normalization into replanning.
+
 ### Read Setup Config
 
 Read `.pge/config/*`. If `docs-policy.md` or `repo-profile.md` exists, treat as project constitution — plan must not contradict it without justification. Missing config: degraded mode for simple tasks.
@@ -188,10 +217,13 @@ Before Coverage Audit, build an internal input-priority interpretation. Use it t
 | Input Source | Role | Priority | Handling |
 |---|---|---|---|
 | Current user prompt / trailing arguments | hard constraint, latest override, or selected scope | highest | reflect in Intent, Non-goals, Target Areas, issue boundaries, and Verification; never ignore |
+| `docs/exec-plans/` document explicitly selected or referenced | canonical planning source | high | preserve phase, scope, semantic ownership, non-goals, and success criteria; do not re-decide its authorized boundary |
 | Original user-provided source, spec, issue, design doc, or referenced source-of-truth file | source of truth | high | read when referenced by the selected source or current user; preserve requirements, decisions, boundaries, phases, and success criteria |
 | Repo code/docs/config | evidence | high | confirm feasibility and stale assumptions; may contradict upstream with cited evidence |
 | `pge-research` brief or other summary artifact | derived summary | medium | consume as compressed understanding, but do not let it erase original source constraints or current user constraints |
 | Prior notes, old plans, or non-authoritative summaries | context | low | use only when consistent with higher-priority inputs |
+
+When planning from a `docs/exec-plans/` document, boundary fidelity is the primary quality bar. Preserve the document's phase/scope decisions and semantic ownership exactly unless the current user explicitly overrides them or repo evidence proves a contradiction. Do not add helpers, flags, cleanup, validation systems, broader refactors, or "nice" abstractions that the exec plan did not authorize. In domain-specific planning, treat correctness and semantic ownership as higher priority than generic task breakdown polish.
 
 If a derived research artifact names or depends on an original source-of-truth artifact, and the current planning decision depends on scope, boundaries, rollout, verification, phase position, or "only allowed addition" constraints, read the original source too. Do not plan from a derivative summary alone when the summary is incomplete for those decisions.
 
@@ -285,10 +317,13 @@ Audit inputs against the goal in priority order. Mark each requirement or hard c
 
 Coverage Audit must include:
 - current user constraints from prompt/trailing arguments
+- `docs/exec-plans/` phase/scope decisions when that document is selected or referenced
 - original source-of-truth requirements and boundaries when available
 - research-derived requirements and assumptions
 - `Intent Spec`, `Research Value Proof`, and `Plan Delta` items when present
 - repo evidence that confirms, contradicts, or narrows the above
+
+If `docs/exec-plans/` is the canonical input, audit proposed issues against the source document before writing them. Any issue that introduces unrequested helpers, flags, cleanup, validation expansion, broad refactors, or abstraction work must either cite explicit authorization from the exec plan/current user or be removed.
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
@@ -321,6 +356,26 @@ Read `references/engineering-review.md` for full review dimensions. Summary:
 - Completeness Score (X/10 per approach)
 - Outside Voice (MEDIUM + DEEP — independent challenge Agent)
 - Scope Reduction Prohibition (prohibited phrases + 3 valid reasons)
+
+### Inconsistency Grill Gate
+
+Before selecting the approach and writing issues, actively grill the plan input against the emerging plan. This is not generic brainstorming and not permission to re-decide upstream scope. Its job is to find contradictions early.
+
+Ask these checks in order:
+- Does the proposed approach preserve every authoritative phase/scope decision, especially from `docs/exec-plans/`?
+- Does any issue introduce helpers, flags, cleanup, validation expansion, broad refactors, or abstractions that the source did not authorize?
+- Does the issue split move semantic ownership away from the module or phase named by the source?
+- Do acceptance and verification prove the requested behavior, or only prove that tasks were completed?
+- Is any inferred requirement being treated as stated fact?
+- Is any current user constraint missing from `Plan Constraints`, `Non-goals`, `Target Areas`, issue scope, or `Verification`?
+
+Resolve each inconsistency before synthesis:
+- If code/docs answer it, self-answer with evidence.
+- If it is only an implementation detail, choose the repo-conventional default and record the assumption.
+- If it changes goal, phase, scope, semantic ownership, acceptance, or safety, ask the user one blocking question or route `NEEDS_INFO`.
+- If the inconsistency comes from unrequested expansion, remove the expansion.
+
+Record the result as `Plan Grill Log`: `check`, `finding`, `resolution`, and `source/evidence`. Empty logs are suspicious for MEDIUM/DEEP plans and for any plan sourced from `docs/exec-plans/`.
 
 ### Select Approach
 

@@ -433,8 +433,8 @@ require_pattern skills/pge-exec/SKILL.md 'multiple plausible plan artifacts exis
   "pge-exec ambiguous plan selection guard"
 require_pattern skills/pge-exec/SKILL.md 'mkdir -p \.pge/tasks-<slug>/runs/<run_id>/' \
   "pge-exec run directory creation"
-require_pattern skills/pge-exec/SKILL.md 'Generator \+ Evaluator' \
-  "pge-exec generator/evaluator split"
+require_pattern skills/pge-exec/SKILL.md 'peer Generator \+ Evaluator lanes|Generator and Evaluator are complementary peer lanes' \
+  "pge-exec generator/evaluator peer lanes"
 require_pattern skills/pge-exec/SKILL.md 'pge-exec-pre-<run_id>' \
   "pge-exec rollback tag"
 require_pattern skills/pge-exec/SKILL.md 'state\.json' \
