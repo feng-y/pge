@@ -31,6 +31,28 @@ digraph evaluator {
 }
 ```
 
+## Lifecycle Protocol
+
+Before receiving issue work, `evaluator` must acknowledge team startup with:
+
+```text
+type: lane_ready
+lane: evaluator
+status: READY | BLOCKED
+reason: <none or one sentence>
+```
+
+On teardown, when main sends `shutdown_request`, `evaluator` must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
+
+Human-readable acknowledgement format:
+
+```text
+type: shutdown_response
+lane: evaluator
+status: READY
+reason: <none or one sentence>
+```
+
 ## Dispatch Protocol
 
 Send to `evaluator` after Generator completes with status READY.

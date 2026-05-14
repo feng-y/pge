@@ -419,6 +419,20 @@ require_pattern skills/pge-exec/SKILL.md '^  - TeamDelete$' \
   "pge-exec TeamDelete tool"
 require_pattern skills/pge-exec/SKILL.md '^  - SendMessage$' \
   "pge-exec SendMessage tool"
+require_pattern skills/pge-exec/SKILL.md 'lane_ready' \
+  "pge-exec lane ready preflight"
+require_pattern skills/pge-exec/SKILL.md 'general-purpose' \
+  "pge-exec generator default lane type"
+require_pattern skills/pge-exec/SKILL.md 'agent-skills:code-reviewer' \
+  "pge-exec evaluator default lane type"
+require_pattern skills/pge-exec/SKILL.md 'shutdown_response' \
+  "pge-exec shutdown confirmation"
+require_pattern skills/pge-exec/SKILL.md 'shutdown approval|teammate termination' \
+  "pge-exec runtime-level shutdown completion"
+require_absent_pattern skills/pge-exec/SKILL.md 'TeamDelete\(team_name=team_name\)' \
+  "pge-exec legacy TeamDelete signature"
+require_absent_pattern skills/pge-exec/SKILL.md '`coder` \| `reviewer`|default `coder` / `reviewer`' \
+  "pge-exec legacy default lane types"
 require_pattern skills/pge-exec/SKILL.md '\.pge/tasks-<slug>/runs/<run_id>/' \
   "pge-exec run artifact"
 require_absent_pattern skills/pge-exec/SKILL.md '\.pge/runs/' \
@@ -455,6 +469,18 @@ require_pattern skills/pge-exec/SKILL.md 'not the stage for major intent discove
   "pge-exec ambiguity boundary"
 require_pattern skills/pge-exec/SKILL.md 'route back to `pge-plan` or `pge-research`' \
   "pge-exec routes upstream for ambiguity"
+require_pattern skills/pge-exec/handoffs/generator.md 'type: lane_ready' \
+  "pge-exec generator lane ready packet"
+require_pattern skills/pge-exec/handoffs/generator.md 'type: shutdown_response' \
+  "pge-exec generator shutdown response"
+require_pattern skills/pge-exec/handoffs/generator.md 'shutdown_request' \
+  "pge-exec generator shutdown request handling"
+require_pattern skills/pge-exec/handoffs/evaluator.md 'type: lane_ready' \
+  "pge-exec evaluator lane ready packet"
+require_pattern skills/pge-exec/handoffs/evaluator.md 'type: shutdown_response' \
+  "pge-exec evaluator shutdown response"
+require_pattern skills/pge-exec/handoffs/evaluator.md 'shutdown_request' \
+  "pge-exec evaluator shutdown request handling"
 
 require_pattern skills/pge-handoff/SKILL.md 'mktemp -t pge-handoff-XXXXXX\.md' \
   "pge-handoff temporary artifact"

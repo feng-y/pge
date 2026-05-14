@@ -52,6 +52,7 @@ digraph pge_exec {
   validate [label="Validate\n(READY_FOR_EXECUTE?)"];
   group [label="Analyze Dependencies\n+ Target Areas"];
   create_team [label="Create Team\n(generator(s) + evaluator)"];
+  preflight_team [label="Team Runtime Preflight"];
 
   subgraph cluster_loop {
     label="Per-Issue Loop (with pipeline)";
@@ -71,7 +72,7 @@ digraph pge_exec {
   compound [label="Compound\n(accumulate learnings)"];
   route [label="Route + Teardown", shape=doublecircle];
 
-  load_plan -> validate -> group -> create_team -> dispatch_gen;
+  load_plan -> validate -> group -> create_team -> preflight_team -> dispatch_gen;
   dispatch_gen -> gen_done;
   gen_done -> dispatch_eval [label="READY"];
   gen_done -> blocked [label="BLOCKED"];
@@ -181,6 +182,36 @@ Issues with state NEEDS_INFO, BLOCKED, or NEEDS_HUMAN are skipped — they are n
 
 ### Create Team
 
+Use Claude Code native Agent Teams only. Do not spawn external `claude`, `claude.exe`, shell background workers, or separate login-bound CLI processes as execution lanes. A process existing in the OS process table is not a valid PGE lane.
+
+Team lifecycle:
+
+```python
+team_name = "pge-<run_id>"
+
+TeamCreate(team_name=team_name)
+
+Agent(subagent_type="<generator_subagent_type>", team_name=team_name, name="generator")
+Agent(subagent_type="<evaluator_subagent_type>", team_name=team_name, name="evaluator")
+
+# Optional scaling only after dependency / Target Area checks:
+Agent(subagent_type="<generator_subagent_type>", team_name=team_name, name="generator-2")
+
+SendMessage(message={"type": "shutdown_request"}, to="generator")
+SendMessage(message={"type": "shutdown_request"}, to="evaluator")
+# wait for protocol-level shutdown approval or teammate termination from active lanes, then delete the current team context
+TeamDelete()
+```
+
+Agent resolution:
+
+| PGE lane | Default subagent_type | Responsibility |
+|---|---|---|
+| `generator` | `general-purpose` | develop, run UT/verification, self-review, return candidate |
+| `evaluator` | `agent-skills:code-reviewer` | independently verify candidate, return PASS/RETRY/BLOCK |
+
+If project-specific `generator` or `evaluator` subagent types exist and are available in the current Claude Code runtime, they may be used. Otherwise use the default `general-purpose` / `agent-skills:code-reviewer` lane types while preserving PGE lane names `generator` and `evaluator`. If neither default is available in the current runtime, route `BLOCKED` rather than silently substituting a main-thread fallback.
+
 Default team composition:
 - `generator` — develops the issue, runs UT/verification, performs self-review, and returns a candidate result (read `handoffs/generator.md` for dispatch protocol)
 - `evaluator` — independently verifies the candidate result and is the only lane that can mark a subtask PASS (read `handoffs/evaluator.md` for review protocol)
@@ -197,6 +228,42 @@ Generator and Evaluator are complementary peer lanes under main coordination. Ma
 - **Evaluation ordering**: evaluate in issue-ID order regardless of generator completion order. This keeps the evaluation sequence deterministic and debuggable.
 
 No Planner. The plan IS the frozen contract.
+
+### Team Runtime Preflight
+
+After creating the team and before dispatching any issue, verify that lanes are native, reachable, and protocol-capable.
+
+Preflight checks:
+- `TeamCreate` succeeded and returned/registered a team name.
+- Required lanes exist by team name: `generator`, `evaluator`.
+- Each lane was created through `Agent(..., team_name=team_name, name=<lane>)`, not through a shell process.
+- Each lane's configured `subagent_type` is available in the current runtime.
+- Each lane responds to a short `SendMessage` preflight with structured readiness:
+
+```text
+type: lane_ready
+lane: generator | evaluator
+status: READY | BLOCKED
+reason: <none or one sentence>
+```
+
+Invalid lane states:
+- OS process exists but lane is not registered in the Team system.
+- Lane shows `Not logged in`, cannot receive `SendMessage`, or cannot reply through the Team channel.
+- Lane replies only with idle/startup text and no structured readiness after one nudge.
+- Lane does not send a valid `lane_ready` packet.
+- Lane requires a separate CLI login or external initialization.
+
+Recovery:
+- If `TeamCreate` or one lane spawn fails, cleanup the current team context and retry once with the same team name.
+- If the retry still fails, route `BLOCKED` immediately.
+- If `generator` remains unavailable, route `BLOCKED` with `team_runtime_unavailable: generator`.
+- If `evaluator` remains unavailable, route `BLOCKED`; no issue may PASS without Evaluator.
+- A replacement lane is not usable until it sends a valid `lane_ready` packet.
+- Do not silently fall back to main-thread Generator/Evaluator simulation.
+- If the user explicitly authorizes a non-team fallback, label it as a separate execution mode in state/manifest/final response; do not claim the normal PGE team protocol ran.
+
+Record preflight result in `state.json` and `manifest.md`.
 
 ### Pipeline Parallelism
 
@@ -277,10 +344,11 @@ Keep communication lightweight and symmetric:
 - Idle/startup messages, partial reasoning, and prose summaries are non-terminal. They do not advance state and are not failures by themselves.
 - If a lane cannot proceed because the dispatch is unclear, companion rules are missing, or setup is invalid, it returns the same terminal packet with a blocking reason instead of waiting silently.
 - Main monitors missing packets, sends at most one clarification/nudge, then rebuilds or replaces the lane if needed.
+- A rebuilt or replaced lane must send `lane_ready` before it can receive new work.
 - Evaluator failures are fed back to main, not directly patched by Evaluator. Main schedules Generator repair using `required_fixes`. The loop exists to complete the task, not merely report failure.
 - Communication failures are orchestration failures, recorded separately from implementation failures.
 
-The issue may continue after lane recovery only if the plan contract is still intact and Target Areas are not conflicted.
+The issue may continue after lane recovery only if the replacement lane passed preflight, the plan contract is still intact, and Target Areas are not conflicted.
 
 After each PASS, record an issue alignment entry in run evidence or manifest:
 
@@ -450,7 +518,7 @@ If the user redirects the work mid-run, or the session needs to stop early, pers
 
 ### Teardown
 
-Request shutdown → delete team → write manifest.
+Request shutdown from active lanes, require each lane to approve the shutdown through the team runtime protocol using the request ID from `shutdown_request`, wait for runtime-level shutdown approval or teammate termination, delete the current team context, then write the manifest. A plain-text `shutdown_response` message is only a lane-level acknowledgement; it does not prove the teammate actually exited. If a lane does not acknowledge shutdown through the protocol or does not terminate, record the teardown failure and route `BLOCKED` rather than silently continuing.
 
 ---
 
