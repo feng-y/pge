@@ -15,18 +15,20 @@ Before non-trivial work, read in this order:
 1. `README.md`
 2. `skills/pge-research/SKILL.md`
 3. `skills/pge-plan/SKILL.md`
-4. `skills/pge-exec/SKILL.md`
-5. `skills/pge-review/SKILL.md`
-6. `skills/pge-challenge/SKILL.md`
-7. `skills/pge-ai-native-refactor/SKILL.md`
-8. `skills/pge-handoff/SKILL.md`
-9. `skills/pge-knowledge/SKILL.md`
+4. `skills/pge-plan-normalize/SKILL.md`
+5. `skills/pge-exec/SKILL.md`
+6. `skills/pge-review/SKILL.md`
+7. `skills/pge-challenge/SKILL.md`
+8. `skills/pge-ai-native-refactor/SKILL.md`
+9. `skills/pge-handoff/SKILL.md`
+10. `skills/pge-knowledge/SKILL.md`
 
 ## Truth hierarchy
 
 Active skill surfaces (authoritative):
 - `skills/pge-research/SKILL.md`
 - `skills/pge-plan/SKILL.md`
+- `skills/pge-plan-normalize/SKILL.md`
 - `skills/pge-exec/SKILL.md`
 - `skills/pge-review/SKILL.md`
 - `skills/pge-challenge/SKILL.md`
@@ -81,16 +83,17 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 ## Workflow authority
 
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
-- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
+- `pge-research`, `pge-plan`, `pge-plan-normalize`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions.
 - `pge-research` owns evidence gathering and ambiguity resolution.
+- `pge-plan-normalize` owns lossless conversion of complete external plans into canonical `.pge/tasks-<slug>/plan.md`; exec must not normalize non-canonical sources.
 - `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough.
 - `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship.
 - `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
 - `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
-- `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run learnings before any durable repo knowledge is promoted.
+- `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted.
 - Planning outputs and run artifacts under `.pge/tasks-<slug>/` are the handoff seams.
-- Clear and complete plans from outside PGE may be adopted into repo management by normalization into `.pge/tasks-<slug>/plan.md`. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
+- Clear and complete plans from outside PGE may be adopted into repo management by `pge-plan-normalize` normalization into `.pge/tasks-<slug>/plan.md`. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Final Review Gate.
@@ -128,3 +131,21 @@ Only ask the user for true requirement gaps that block a fair contract.
 
 - Plugin source and marketplace source are the same repo. Installed layout differs from source layout.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents. Other legacy agent/skill files have been removed.
+
+## Skill routing
+
+When the user's request matches an available skill, ALWAYS invoke it using the Skill
+tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
+The skill has specialized workflows that produce better results than ad-hoc answers.
+
+Key routing rules:
+- Product ideas, "is this worth building", brainstorming → invoke office-hours
+- Bugs, errors, "why is this broken", 500 errors → invoke investigate
+- Ship, deploy, push, create PR → invoke ship
+- QA, test the site, find bugs → invoke qa
+- Code review, check my diff → invoke review
+- Update docs after shipping → invoke document-release
+- Weekly retro → invoke retro
+- Design system, brand → invoke design-consultation
+- Visual audit, design polish → invoke design-review
+- Architecture review → invoke plan-eng-review

@@ -10,8 +10,8 @@ Use this command to close one bounded proving/development round.
 
 At round close:
 
-1. update `docs/exec-plans/CURRENT_MAINLINE.md` if the next action changed
-2. update `docs/exec-plans/ISSUES_LEDGER.md` if issues changed, were resolved, or were reclassified
+1. update `docs/exec-plan/CURRENT_MAINLINE.md` if the next action changed
+2. update `docs/exec-plan/ISSUES_LEDGER.md` if issues changed, were resolved, or were reclassified
 3. record whether the round succeeded or failed stably
 4. record the artifact produced
 5. record the next action

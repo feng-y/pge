@@ -1,6 +1,6 @@
 # External Plan Normalization
 
-Loaded by pge-exec when the selected source is not a canonical `.pge/tasks-<slug>/plan.md` but appears clear and complete enough to execute.
+Legacy reference for the external-plan normalization split. `pge-exec` must not load this file during execution. Use `skills/pge-plan-normalize/SKILL.md` as the active normalization surface when the selected source is not a canonical `.pge/tasks-<slug>/plan.md` but appears clear and complete enough to execute.
 
 This reference is intentionally domain-neutral. Do not copy internal project names, repository paths, model names, feature names, metrics, or proprietary implementation details into resident PGE docs. Use this as a shape guide for accepting external plans, not as a template for any specific project.
 
@@ -17,7 +17,7 @@ A strong external plan usually contains:
 - **Verification checkpoints** — unit, integration, compare, rollout, metrics, manual proof, or evidence gates.
 - **Reference evidence** — code references, prior examples, docs, commits, logs, or tests that support the plan.
 
-The source does not need PGE field names, numbered PGE issues, or `.pge/` paths. It must give enough structure for pge-exec to derive those mechanically.
+The source does not need PGE field names, numbered PGE issues, or `.pge/` paths. It must give enough structure for `pge-plan-normalize` to derive those mechanically.
 
 ## Normalization Rules
 
@@ -73,4 +73,4 @@ An external plan is a strong normalization candidate when it has:
 - concrete verification/evidence checkpoints
 - enough structure to split work without changing the plan
 
-For this pattern, pge-exec should normalize and execute directly.
+For this pattern, run `pge-plan-normalize` first, then execute the generated canonical plan with `pge-exec`.

@@ -2,7 +2,7 @@
 name: pge-knowledge
 description: >
   Evaluate and extract repo knowledge from context friction, agent memory, code
-  summaries, and run learnings. Produces quality-scored candidates first; only
+  summaries, and run artifacts. Produces quality-scored candidates first; only
   promotes high-quality, evidence-backed items to durable repo docs.
 argument-hint: "<evaluate|search|prune|export|stats|add> <optional focus>"
 allowed-tools:
@@ -21,7 +21,7 @@ Turn what the agent learned about working in this repo into durable, quality-che
 This is not a handoff and not a generic "save everything we learned" command. It focuses on two sources:
 
 1. **Context friction** — places where the agent struggled because the right context was missing, hidden, duplicated, stale, or hard to discover.
-2. **Memory / code summaries** — agent-produced summaries of project memory, code structure, patterns, or run learnings that may deserve promotion into repo docs.
+2. **Memory / code summaries** — agent-produced summaries of project memory, code structure, patterns, or run artifacts that may deserve promotion into repo docs.
 
 The default output is a quality assessment. Promotion to durable docs happens only for candidates that are specific, evidence-backed, reusable, non-duplicative, and discoverable.
 
@@ -30,7 +30,7 @@ It also manages existing repo knowledge at a lightweight level: review, search, 
 ## When To Use
 
 - The agent repeatedly reread files, forgot constraints, chose the wrong source, or needed user correction because context was unclear.
-- A run produced `learnings.md`, but it is unclear which learnings deserve promotion.
+- A run produced manifest, evidence, deliverables, review findings, or legacy `learnings.md`, but it is unclear which candidates deserve promotion.
 - A memory or code summary exists and needs review before becoming repo knowledge.
 - You want to inspect whether existing repo knowledge is stale, noisy, duplicated, or undiscoverable.
 - The user says the agent's summary captured an important pattern, but quality should be checked first.
@@ -41,7 +41,7 @@ Do not use this for session continuation. Use `pge-handoff` for temporary transf
 
 Parse `ARGUMENTS:`:
 
-- `evaluate` or no command: extract and quality-score candidates from the current context, memory/code summaries, and relevant run learnings.
+- `evaluate` or no command: extract and quality-score candidates from the current context, memory/code summaries, and relevant run artifacts.
 - `search <query>`: search existing repo knowledge for a phrase, task, file, convention, or friction pattern.
 - `prune`: find stale, contradictory, duplicated, or undiscoverable knowledge. Report recommended edits; do not delete without explicit approval.
 - `export`: produce a concise markdown digest suitable for `CLAUDE.md`, `AGENTS.md`, `.pge/config/repo-profile.md`, or a planning handoff.
@@ -59,7 +59,7 @@ If a command is ambiguous, default to `evaluate` and say what was assumed.
 | `domain-context` | Stable domain vocabulary or concept relationships | `CONTEXT.md` |
 | `architecture-context` | Stable architecture decision or trade-off | `docs/adr/<YYYYMMDD>-<slug>.md` |
 | `code-summary` | A compact map of code structure, ownership, or recurring patterns | nearest relevant doc, `.pge/config/repo-profile.md`, or withheld if too broad |
-| `run-learning` | A reusable learning from `.pge/tasks-*/runs/*/learnings.md` | usually `.pge/config/repo-profile.md`, sometimes a skill rule |
+| `run-learning` | A reusable learning from `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}` or legacy `learnings.md` | usually `.pge/config/repo-profile.md`, sometimes a skill rule |
 
 Avoid creating new knowledge locations unless an existing entry point would naturally point future agents there.
 
@@ -72,8 +72,9 @@ Search and manage these sources, in this order:
 3. `CONTEXT.md`, `CONTEXT-MAP.md`
 4. `docs/adr/*.md`
 5. relevant `skills/*/SKILL.md`
-6. `.pge/tasks-*/runs/*/learnings.md`
-7. `.pge/handoffs/*` only for context-friction evidence, never as durable truth
+6. `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}`
+7. legacy `.pge/tasks-*/runs/*/learnings.md` when present, as candidate evidence only
+8. `.pge/handoffs/*` only for context-friction evidence, never as durable truth
 
 For each discovered item, keep its source path. If the source cannot be found again, mark the item as weak or stale instead of relying on it.
 
@@ -108,7 +109,8 @@ Read only relevant sources:
 - Current conversation context
 - `CLAUDE.md`, `AGENTS.md`, `README.md`
 - `.pge/config/*.md` if present
-- `.pge/tasks-*/runs/*/learnings.md` relevant to the focus
+- `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}` relevant to the focus
+- legacy `.pge/tasks-*/runs/*/learnings.md` relevant to the focus, when present
 - `.pge/handoffs/*` only when reviewing context friction, not as truth
 - User-supplied memory or code-summary files
 - Code/docs paths cited by the candidate
@@ -122,7 +124,7 @@ Look for:
 - User corrections that reveal missing resident context
 - Repeated tool/search loops that a better doc would have avoided
 - Ambiguous handoffs or source-selection friction
-- Useful run learnings that recur beyond one task
+- Useful run artifact candidates that recur beyond one task
 - Code summaries that identify stable ownership, flow, or convention
 - Memory entries that are valuable but currently private, hidden, or not discoverable by future agents
 

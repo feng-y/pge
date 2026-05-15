@@ -3,9 +3,9 @@ name: pge-exec
 description: >
   Execute pge-plan issues using peer Generator + Evaluator lanes.
   Consumes .pge/tasks-<slug>/plan.md,
-  dispatches per-issue execution, validates with an independent Evaluator, bounded repair loop, accumulates learnings.
+  dispatches per-issue execution, validates with an independent Evaluator, and runs a bounded repair loop.
 version: 1.0.0
-argument-hint: "<task-slug> | test"
+argument-hint: "<task-slug> | .pge/tasks-<slug>/plan.md"
 allowed-tools:
   - TeamCreate
   - TeamDelete
@@ -21,7 +21,7 @@ allowed-tools:
 
 # pge-exec
 
-Execute a plan produced by `pge-plan`. Coordinates peer Generator and Evaluator lanes per issue.
+Execute a canonical plan produced by `pge-plan` or `pge-plan-normalize`. Coordinates peer Generator and Evaluator lanes per issue.
 
 This is an orchestration skill. It executes the plan by coordinating Generator implementation/self-review and Evaluator independent verification. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
@@ -69,7 +69,6 @@ digraph pge_exec {
 
   plan_verify [label="Stop Condition Check"];
   review_gate [label="Final Review Gate\n(triggered only)"];
-  compound [label="Compound\n(accumulate learnings)"];
   route [label="Route + Teardown", shape=doublecircle];
 
   load_plan -> validate -> group -> create_team -> preflight_team -> dispatch_gen;
@@ -88,7 +87,7 @@ digraph pge_exec {
   pass -> plan_verify [label="all done"];
   blocked -> dispatch_gen [label="non-blocking"];
   blocked -> route [label="blocking"];
-  plan_verify -> review_gate -> compound -> route;
+  plan_verify -> review_gate -> route;
 }
 ```
 
@@ -103,66 +102,35 @@ digraph pge_exec {
 
 ## Phase 1: Load & Validate
 
-If `ARGUMENTS:` explicitly names a task slug, plan path, or other execution target, treat that as the user's selected source and use it without asking again. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` but do not silently select one. Ask the user to confirm a single discovered plan, choose among multiple plans, or choose between a discovered plan and current conversation context. Only fall back to conversation context when no plan artifact exists and the context already contains an executable plan contract. If argument is `test`, use an inline smoke plan bound to a dedicated task directory.
+If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans. Do not execute from conversation context or a non-canonical source.
 
 Exec must also consume relevant current context before dispatching work: latest user constraints, corrections made after the plan, observed failures, manual decisions, and any explicit "do not" or allowed-file restriction. Current user constraints can narrow execution or block it; they cannot silently expand the plan.
 
-Exec is not the stage for major intent discovery or plan-changing clarification. If current context raises many unresolved questions about goal, scope, acceptance, target areas, or verification, route back to `pge-plan` or `pge-research`; the upstream contract was not ready. If context changes goal, scope, acceptance, target areas, or verification, stop and route back unless the plan already authorizes that adjustment.
-
-### Plan Completeness Gate
-
-First, before canonical-format validation and before any normalization, decide whether the selected plan is clear and complete enough to execute. This is the hard precondition for accepting Claude plan mode output, `docs/exec-plans/`, or foreign workflow plans.
-
-A plan is execution-complete only when all of these are clear from the selected source plus current user constraints:
-- goal and observable stop condition
-- current phase or bounded scope
-- ordered issues, slices, implementation sections, or equivalent executable work units
-- target areas or unambiguous ownership boundaries for the plan, with enough source structure to assign them mechanically to work units
-- acceptance criteria for the plan, with enough source structure to assign them mechanically to work units
-- verification expectation or evidence requirement for the plan, with enough source structure to assign it mechanically to work units
-- explicit non-goals or scope exclusions when the source narrows scope
-- dependencies or ordering constraints when work units interact
-
-If all fields are present but names differ from PGE terminology, normalize them. If any field is missing but mechanically inferable from the same source without changing scope, record the inference in the canonical plan. Mechanical inference may include deriving issue boundaries from source headings, implementation components, rollout phases, or explicitly listed core changes, as long as each derived issue traces one-to-one to source content.
-
-Clear and complete does not mean perfect PGE formatting. It means the source contains the core constraints: goal, scope/phase boundary, semantic ownership, non-goals, target ownership or areas, intended implementation direction, and verification/evidence checkpoints. An evaluator must be able to tell, from the source plus normalized plan, whether the implementation stayed within scope and satisfied the intended checks. If that is not true, the plan is not executable.
-
-If a missing field requires choosing scope, adding design decisions, inventing target areas, inventing acceptance criteria, changing verification strategy, changing phase boundaries, or resolving semantic ownership, stop before implementation and route `NEEDS_HUMAN`, `BLOCKED`, or back to `pge-plan`.
-
-If the approach is explicit and the checkpoints are complete, execute-normalize directly. "Complete checkpoints" means the source gives enough acceptance, verification, compare, rollout, or evidence criteria for Evaluator and Final Review to judge correctness without inventing new success criteria. Do not reject a plan only because it lacks PGE field names or pre-numbered PGE issues.
-
-This gate applies equally to canonical `.pge/tasks-<slug>/plan.md`, Claude Code plan mode output, `docs/exec-plans/` documents, foreign workflow plans, and current-conversation plan text.
+Exec is not the stage for major intent discovery, normalization, or plan-changing clarification. If current context raises many unresolved questions about goal, scope, acceptance, target areas, or verification, route back to `pge-plan` or `pge-research`; the upstream contract was not ready. If context changes goal, scope, acceptance, target areas, or verification, stop and route back unless the plan already authorizes that adjustment.
 
 ### Non-Canonical Plan Intake
 
-Some selected inputs, especially Claude Code plan mode output, `docs/exec-plans/` documents, and plans produced by other workflows, may be semantically complete plans but not yet in the canonical `.pge/tasks-<slug>/plan.md` execution format. Treat this as a format-normalization problem, not as permission to execute directly in the orchestrator.
+`pge-exec` consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts. If the selected source is Claude plan mode output, a `docs/exec-plan/` document, a foreign workflow plan, or current-conversation plan text, stop before implementation and route to `pge-plan-normalize`.
 
-When evaluating or normalizing a non-canonical source, read `references/external-plan-normalization.md`. It defines the domain-neutral source shape, field mapping, anonymization rules for resident docs, and stop conditions.
+Report the required next step:
 
-If the selected source is not a canonical `.pge/tasks-<slug>/plan.md`, choose exactly one route before any implementation work:
-- **Normalize in exec:** when the source already contains goal, phase/scope boundary, source work structure, target areas or ownership boundaries, acceptance criteria, verification expectations, and stop condition, convert it into `.pge/tasks-<slug>/plan.md` with `plan_route: READY_FOR_EXECUTE`, `State: READY_FOR_EXECUTE` issues, and a Stop Condition. This conversion may mechanically extract PGE issues from source headings, implementation components, rollout phases, or explicitly listed core changes. Preserve the source document's phase/scope decisions and semantic ownership; do not invent new helpers, flags, cleanup, abstractions, target areas, acceptance criteria, or verification beyond what the source authorizes. Record `source_plan: <path or current conversation plan mode output>`, `source_kind: claude_plan_mode | docs_exec_plan | foreign_workflow_plan | other_structured_plan`, and `normalization_only: true` in the plan.
-- **Stop:** when any required execution field is missing or ambiguous, route `BLOCKED` or `NEEDS_HUMAN` and report the exact missing fields. Do not write implementation code.
+```text
+Non-canonical execution source. Run pge-plan-normalize <source> to create .pge/tasks-<slug>/plan.md, then rerun pge-exec <task-slug>.
+```
 
-Prefer exec normalization over routing back to `pge-plan` when the only problem is format. `pge-plan` should not be required just to rewrap a complete Claude plan mode plan, structured execution document, or foreign workflow plan. If the approach is clear and the checkpoints are complete enough for independent evaluation, `pge-exec` should normalize and execute directly. If `pge-plan` could convert the source without changing decisions, then `pge-exec` can do the same conversion before executing. Route back to `pge-plan` only when the source is not execution-complete or when normalization would require planning judgment.
+Do not read `references/external-plan-normalization.md` from exec. That reference is legacy context for the normalization split and must not reintroduce exec-side conversion.
 
-Normalization is allowed inside `pge-exec` only as a lossless adapter from a complete plan into the canonical execution contract. It is not replanning. If conversion requires changing scope, splitting phases differently, adding acceptance criteria, choosing target files not named or implied by the source, or resolving semantic ownership ambiguity, stop and route back to `pge-plan`.
-
-After normalization, restart Phase 1 validation against the generated canonical plan and continue only if it passes. The run directory, rollback tag, Generator/Evaluator dispatch, state persistence, Final Review Gate, learnings, manifest, and Final Response block remain mandatory.
-
-Normalization adopts the source into repo management. Once `.pge/tasks-<slug>/plan.md` exists, it is the runtime contract for `pge-exec`; the original foreign plan remains source evidence referenced by `source_plan`, not a second contract to execute independently. Any later correction must update or regenerate the canonical plan before execution continues.
-
-**Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec creates the task directory only for the dedicated smoke test or when it is normalizing a semantically complete non-canonical plan into `.pge/tasks-<slug>/plan.md`. Otherwise it expects pge-research or pge-plan to have created the task directory. Before writing run output, create only the run parent explicitly:
+**Task directory resolution:** All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. This keeps the full pipeline (research → plan → exec) under one task directory. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace the required run artifacts. pge-exec expects pge-plan or pge-plan-normalize to have created the task directory. Before writing run output, create only the run parent explicitly:
 
 ```bash
 mkdir -p .pge/tasks-<slug>/runs/<run_id>/
 ```
 
 Validate:
-- `plan_route` = `READY_FOR_EXECUTE`
+- `plan_route` = `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`
 - ≥1 issue with `State: READY_FOR_EXECUTE`
 - Stop Condition present
 - Bare invocation source selection follows the confirmation rules above before execution starts
-- If both a discovered plan artifact and the current conversation look like valid upstream sources, ask the user whether to execute the plan artifact or continue from the current context
 - If an explicit continuation target is named but the corresponding `.pge/tasks-<slug>/plan.md` is missing, report a broken handoff instead of silently pretending the plan artifact exists
 - If multiple plausible plan artifacts exist and no explicit selector is given, ask the user which task to continue instead of guessing
 
@@ -374,7 +342,7 @@ If a Generator attempt used the wrong approach, do not keep correcting through a
 
 This consumes the next normal retry attempt. It never resets or expands the per-issue max of 3 attempts.
 
-Failed raw attempts belong in run evidence. Only confirmed root cause, final repair insight, or a dead end worth avoiding belongs in `learnings.md`.
+Failed raw attempts belong in run evidence. Confirmed root cause, final repair insight, or a dead end worth avoiding belongs in manifest or review evidence for later `pge-knowledge` evaluation.
 
 ### HITL Issues
 
@@ -440,7 +408,7 @@ Review axes:
 Finding handling:
 - **Critical:** real bug, security risk, data loss risk, broken build/test, or stop-condition failure. Do not route SUCCESS. If repair is inside the same plan and retry budget remains, send a bounded repair request; otherwise route PARTIAL/BLOCKED with evidence.
 - **Important:** likely reviewer-blocking issue or missing required regression test. Repair if it is inside the same plan and bounded; otherwise route PARTIAL with a follow-up.
-- **Advisory:** improvement, naming, style, or future cleanup. Do not block SUCCESS; record in `learnings.md`.
+- **Advisory:** improvement, naming, style, or future cleanup. Do not block SUCCESS; record in `review.md`.
 
 Write the synthesized review to `.pge/tasks-<slug>/runs/<run_id>/review.md` when the gate runs. The report should include trigger, files reviewed, verdict (`PASS | REPAIR_REQUIRED | ADVISORY_ONLY | BLOCKED`), findings by severity, and exact file/line evidence.
 
@@ -465,40 +433,16 @@ After all issues processed, check plan's Stop Condition:
 
 After Stop Condition, integration verification, and regression checks pass, run the Final Review Gate if triggered. `SUCCESS` requires the gate to be skipped or to return PASS / ADVISORY_ONLY. REPAIR_REQUIRED must either be repaired inside the current bounded plan or route PARTIAL. BLOCKED prevents SUCCESS. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills for the user to run after `pge-exec` completes.
 
-### Compound (Accumulate Learnings)
+### Run Facts
 
-After execution completes (any route), record what was learned. This is mandatory — even trivial runs record "No significant learnings — execution matched plan expectations." Empty learnings.md is a protocol violation.
+After execution completes, write runtime facts only:
+- `manifest.md`
+- `state.json`
+- `evidence/`
+- `deliverables/`
+- `review.md` when the final review gate runs
 
-Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
-
-```markdown
-# Learnings: <run_id>
-
-## Patterns Discovered
-- <pattern> — source: <file:line> — confidence: HIGH|MEDIUM
-
-## Deviations from Plan
-- <what differed> — why: <root cause> — impact: <what it means for future>
-
-## Repair Insights
-- <what failed> → <what fixed it> — generalizable: yes|no
-
-## Verification Gaps
-- <what the plan's Verification Hint missed> — suggest: <better verification>
-
-## Conventions Confirmed
-- <convention the plan assumed correctly> — now verified in code
-
-## Feedback to Config
-- <learning significant enough to add to repo-profile.md>
-```
-
-**Feedback loop:**
-1. If any learning under "Feedback to Config" exists AND `.pge/config/repo-profile.md` exists: append it.
-2. If `.pge/config/repo-profile.md` doesn't exist but learnings are significant: create it with the learnings as seed content.
-3. Tag each appended learning with `[from: <run_id>, date: <ISO>]` so future runs know the source.
-4. **Confidence decay:** learnings older than 30 days should be treated as "verify before relying on" by downstream skills. pge-research should re-check old learnings against current code before using them as facts.
-5. **Inline doc updates** (matt-skill grill-with-docs pattern): if execution discovered a domain term mismatch, naming convention, or architectural decision not captured in project docs — update `CONTEXT.md` or create an ADR in `docs/adr/` immediately. Don't batch these; capture as they happen.
+Do not promote durable learnings, update `.pge/config/repo-profile.md`, or create ADR/domain docs from exec. If the run exposes reusable knowledge, record the source evidence in manifest or review and route the user to `pge-knowledge evaluate <task-slug>`.
 
 ### Route
 
@@ -511,7 +455,7 @@ Write to task directory: `.pge/tasks-<slug>/runs/<run_id>/learnings.md`
 
 Do NOT declare execution complete, summarize completion, or change routes until BOTH are true:
 
-1. The run artifacts have been written under `.pge/tasks-<slug>/runs/<run_id>/`, including manifest and learnings
+1. The run artifacts have been written under `.pge/tasks-<slug>/runs/<run_id>/`, including manifest, state, evidence, deliverables, and review when triggered
 2. You are about to output the Final Response block exactly once
 
 If the user redirects the work mid-run, or the session needs to stop early, persist the current run state and artifacts first, then route as `PARTIAL`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.
@@ -519,28 +463,6 @@ If the user redirects the work mid-run, or the session needs to stop early, pers
 ### Teardown
 
 Request shutdown from active lanes, require each lane to approve the shutdown through the team runtime protocol using the request ID from `shutdown_request`, wait for runtime-level shutdown approval or teammate termination, delete the current team context, then write the manifest. A plain-text `shutdown_response` message is only a lane-level acknowledgement; it does not prove the teammate actually exited. If a lane does not acknowledge shutdown through the protocol or does not terminate, record the teardown failure and route `BLOCKED` rather than silently continuing.
-
----
-
-## Smoke Test
-
-Argument `test` uses an inline smoke plan bound to a dedicated task directory:
-```
-Task directory: .pge/tasks-smoke-test/
-Issue 1: Write smoke file
-- Action: Create .pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke.txt with content "pge smoke"
-- Deliverable: smoke.txt
-- Target Areas: Create: .pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke.txt
-- Acceptance Criteria: file exists, content = "pge smoke"
-- Verification Type: AUTOMATED
-- Verification Hint: cat .pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke.txt
-- Test Expectation: none (smoke test)
-- Required Evidence: file content output
-- Execution Type: AFK
-- Stop Condition: smoke.txt exists with correct content
-```
-
-For test: minimal dispatch, no handoff file reads. Create `.pge/tasks-smoke-test/` and write all artifacts under that task directory. Rollback tag is skipped for smoke.
 
 ---
 
@@ -555,8 +477,7 @@ For test: minimal dispatch, no handoff file reads. Create `.pge/tasks-smoke-test
         ├── manifest.md         — run metadata + issue results
         ├── evidence/           — per-issue evidence
         ├── deliverables/       — actual deliverables
-        ├── review.md           — final review report when review gate runs
-        └── learnings.md        — compound learnings
+        └── review.md           — final review report when review gate runs
 ```
 
 ## Final Response
@@ -571,7 +492,6 @@ For test: minimal dispatch, no handoff file reads. Create `.pge/tasks-smoke-test
 - issues_total: N
 - stop_condition: passed | failed | not_checked
 - final_review: skipped | pass | advisory_only | repair_required | blocked
-- learnings_recorded: yes | no
 - artifacts: .pge/tasks-<slug>/runs/<run_id>/
 - next: done | pge-review <task-slug> | pge-challenge <task-slug> | pge-plan (if blocked) | user decision (if HITL)
 ```

@@ -42,7 +42,7 @@ Send structured review report to main via message. Format is defined in your age
 - Verdict is one of: `PASS | REPAIR_REQUIRED | ADVISORY_ONLY | BLOCKED`
 - If `REPAIR_REQUIRED`: findings include file:line and fix recommendation
 - If `BLOCKED`: reason explains why execution cannot route SUCCESS
-- If `ADVISORY_ONLY`: record findings in learnings.md, do not block
+- If `ADVISORY_ONLY`: record findings in the synthesized `review.md`, do not block
 
 ## Lifecycle
 
