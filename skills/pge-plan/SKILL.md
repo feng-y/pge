@@ -34,6 +34,10 @@ my issues = executable translation of research/user intent and success criteria
 The artifact shape is flexible, but these semantic fields are mandatory:
 
 ```text
+schema_version
+source_contract_check
+selected_approach
+rejected_approaches
 goal
 non_goals
 issues
@@ -70,7 +74,7 @@ digraph pge_plan {
   gate_check -> gate_stop [label="incomplete/complex"];
 
   subgraph cluster_phase2 {
-    label="Phase 2: Research + Review";
+    label="Phase 2: Approach Design + Engineering Review";
     style=dashed;
     coverage_audit [label="Coverage Audit\n(requirements + decisions + phases)"];
     explore [label="Explore gaps\n+flow analysis\n+multi-agent (DEEP)"];
@@ -250,6 +254,21 @@ If priorities conflict:
 - A discovered research artifact and the current conversation both look like valid upstream sources: ask the user which one to use instead of guessing.
 - Multiple plausible research artifacts and no explicit selector: ask the user which task to continue instead of guessing.
 
+**Source Contract Check:**
+
+When consuming a research brief or structured upstream input, verify before proceeding to approach design:
+
+| Check | Condition | Route |
+|---|---|---|
+| Intent confirmed | confirmed_intent or equivalent is present and specific | CONTINUE_TO_PLAN |
+| Scope explicit | scope_contract or equivalent names in/out/deferred | CONTINUE_TO_PLAN |
+| Success shape usable | success_shape or equivalent is observable and plan-convertible | CONTINUE_TO_PLAN |
+| Intent not confirmed | goal is still fuzzy, multiple unresolved framings | RETURN_TO_RESEARCH |
+| Success shape missing or vague | cannot derive acceptance criteria from it | RETURN_TO_RESEARCH |
+| Blocking ambiguity unresolved | ambiguities with `blocks_plan: yes` remain open | NEEDS_INFO |
+
+Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and plan cannot fairly produce executable issues without inventing user intent. Route `NEEDS_INFO` when a specific blocking question can be answered by the user directly. `CONTINUE_TO_PLAN` means the input is plan-ready.
+
 **Consumption rules:**
 
 | Upstream Content | How to consume | Trust |
@@ -267,7 +286,7 @@ If priorities conflict:
 | Clarify / Grill-With-Me Log | Coverage Audit + Risks / Open Questions | confirms plan-changing ambiguity was resolved or remains blocking |
 | Zoom-Out Map | Repo Context + Target Areas + Architecture Assessment | preferred compressed system map; do not redo unless insufficient or contradicted |
 | Research Value Proof | Gate Check + Coverage Audit | required evidence that research adds planning value; weak/missing proof triggers extra scrutiny |
-| Plan Delta | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals | direct planning input; must be mapped or explicitly rejected |
+| Plan Delta / planning_handoff | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals | compatibility adapter only; legacy `plan_delta` maps to `planning_handoff` with downgraded authority — must not become selected approach without engineering review |
 | Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
 | Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
 | Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
@@ -275,22 +294,27 @@ If priorities conflict:
 | Monitoring metrics / success-fail counters | Required Evidence + Verification | authoritative |
 | Multi-phase structure | Phase Boundary + issue selection | authoritative unless explicitly overridden |
 | Upstream risk assessment | Issue-level Risks | inherit, do not reinvent |
-| Options + recommendation | Strong default for approach | strong default |
+| Options + recommendation | Approach candidates (downgraded authority) | compatibility input only |
 | Assumptions | Inherit | as-is |
 | Open questions (non-blocking) | Risks / Open Questions | pass-through |
 | Open questions (blocking) | BLOCK_PLAN | blocker |
 
 **pge-research v2 adaptation:**
 
-When the selected source is a `pge-research` brief with `Intent Lock`, `Intent Spec`, `Clarify / Grill-With-Me Log`, `Zoom-Out Map`, `Research Value Proof`, and `Plan Delta`, or the equivalent minimum contract fields (`intent_spec`, `clarify_status`, `plan_delta`, `blockers`, `evidence`), consume those semantics explicitly:
+When the selected source is a `pge-research` brief with v2 contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `upstream_contract`, `evidence`, `ambiguities`, `planning_handoff`, `route`), consume those semantics explicitly:
 
-1. **Intent Spec becomes the plan's goal baseline.** Carry problem, goal, scope, non-goals, success criteria, and acceptance seeds forward. Do not weaken them into a generic summary.
-2. **Clarify status controls planning readiness.** If planning cannot proceed without inventing intent, blockers remain unresolved, or the clarify log shows unresolved plan-changing ambiguity, route `NEEDS_INFO` instead of producing a plan.
-3. **Research Value Proof must have a concrete delta.** If missing or empty, treat the research as a weak derived summary and run a stronger Phase 2 coverage/intent audit before trusting its recommendation. Do not blindly adopt an unproven research brief.
-4. **Plan Delta is contract input unless contradicted.** Every include/avoid/verify/blocker item must appear in plan constraints, non-goals, target areas, acceptance, verification, risks/open questions, or decision overrides.
+1. **Source Contract Check.** Before planning, verify: intent confirmed? scope explicit? success shape usable? If not → route `RETURN_TO_RESEARCH` or `NEEDS_INFO`. Do not silently do full intent research when the source is not plan-ready.
+2. **Confirmed intent becomes the plan's goal baseline.** Carry problem, goal, scope, non-goals, success shape, and "plan would be wrong if..." forward. Do not weaken them into a generic summary.
+3. **Planning handoff is boundary-preserving input.** Consume `planning_handoff` (facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers) as constraints on plan design. Do not treat it as a hidden approach recommendation.
+4. **Research Value Proof must have a concrete delta.** If missing or empty, treat the research as a weak derived summary and run a stronger coverage/intent audit before trusting its framing. Do not blindly adopt an unproven research brief.
 5. **Zoom-Out Map limits re-exploration.** Use it as the system map when present. Re-read only the files needed to validate stale, low-confidence, or plan-changing claims.
+6. **Plan owns approach selection.** Research may provide intent framings, evidence, constraints, and known invalid directions as approach inputs. Plan selects the implementation approach through engineering review. Research recommendation of problem framing is informational, not a selected approach.
 
-If an older research brief lacks these v2 sections and minimum contract fields, fall back to the legacy fields (`Intent`, `Findings`, `Affected Areas`, `Options`, `Recommendation`) and record that intent proof was unavailable.
+Legacy compatibility: if an older research brief uses `plan_delta`, `Options`, and `Recommendation` instead of v2 fields, consume them as compatibility input only:
+- `plan_delta` maps to `planning_handoff` with downgraded authority
+- `Options` and `Recommendation` become approach candidates, not selected approach
+- Neither may become the selected approach without current plan engineering review
+- Fall back to legacy fields (`Intent`, `Findings`, `Affected Areas`) and record that v2 contract was unavailable
 
 **Current constraint extraction:**
 
@@ -309,7 +333,7 @@ For each hard constraint, map it to at least one of: `Plan Constraints`, `Non-go
 
 ---
 
-## Phase 2: Approach Research + Engineering Review
+## Phase 2: Approach Design + Engineering Review
 
 ### Coverage Audit
 
@@ -327,7 +351,7 @@ If `docs/exec-plan/` is the canonical input, audit proposed issues against the s
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
-Plan Delta coverage is mandatory when upstream contains a `Plan Delta` section or `plan_delta` field. Every include/avoid/verify/blocker item must be covered, rejected with rationale, or escalated.
+Planning handoff coverage is mandatory when upstream contains a `planning_handoff` section (or legacy `Plan Delta` / `plan_delta` field). Every facts/constraints/invalid-directions/risks/blockers item must be covered, rejected with rationale, or escalated. Legacy `plan_delta` is consumed as compatibility input with downgraded authority.
 
 ### Explore (fill gaps)
 
@@ -472,7 +496,8 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 
 - `READY_FOR_EXECUTE`: ≥1 issue ready, no global blocker.
 - `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`: reserved for `pge-plan-normalize` when a complete external plan requires explicit mechanical assumptions.
-- `NEEDS_INFO`: missing information.
+- `RETURN_TO_RESEARCH`: intent or success shape is not confirmed; plan cannot fairly produce executable issues without inventing user intent. Route back to `pge-research`.
+- `NEEDS_INFO`: missing information that the user can answer directly.
 - `BLOCKED`: cannot produce fair plan.
 - `NEEDS_HUMAN`: human decision needed.
 
