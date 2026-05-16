@@ -210,8 +210,26 @@ require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'alternate_next: 
   "pge-exec transcript challenge prove-it route"
 require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'pge-exec repair review findings for task-alpha' \
   "pge-exec transcript repair rerun prompt"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'pge-exec repair challenge findings for task-alpha' \
+  "pge-exec transcript challenge repair rerun prompt"
 require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'task artifacts: `\.pge/tasks-task-alpha/review\.md`, `\.pge/tasks-task-alpha/challenge\.md`' \
   "pge-exec transcript task artifact repair input"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'source_run_id: run-001' \
+  "pge-exec transcript matching provenance run id"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'reviewed_head: head-abc123' \
+  "pge-exec transcript matching provenance head"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'reviewed_diff_fingerprint: diff-abc123' \
+  "pge-exec transcript matching provenance diff fingerprint"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'provenance validation: PASS' \
+  "pge-exec transcript provenance gate success"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'bounded repair consumption: proceed with `in-contract` findings' \
+  "pge-exec transcript bounded repair proceeds after provenance gate"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'status: BLOCKED' \
+  "pge-exec transcript stale artifact blocked route"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'repair artifact provenance stale or mismatched' \
+  "pge-exec transcript stale artifact reason"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'next: rerun pge-review task-alpha \| rerun pge-challenge task-alpha' \
+  "pge-exec transcript rerun review challenge next step"
 require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'reads matching review/challenge task artifacts plus current context as bounded repair input' \
   "pge-exec transcript task-artifact repair backflow"
 require_pattern docs/exec-plan/pge-exec-boundary-transcript.md '`in-contract` findings stay inside `pge-exec` as bounded repair work' \
@@ -500,7 +518,21 @@ require_pattern skills/pge-exec/SKILL.md 'pge-exec repair challenge findings for
   "pge-exec challenge repair prompt"
 require_pattern skills/pge-exec/SKILL.md '\.pge/tasks-<slug>/review\.md.*\.pge/tasks-<slug>/challenge\.md' \
   "pge-exec task-artifact repair input"
-require_pattern skills/pge-exec/SKILL.md 'current-context review/challenge output as bounded repair input|current context.*bounded repair input' \
+require_pattern skills/pge-exec/SKILL.md 'source_run_id' \
+  "pge-exec repair provenance run-id validation"
+require_pattern skills/pge-exec/SKILL.md 'reviewed_head' \
+  "pge-exec repair provenance reviewed-head validation"
+require_pattern skills/pge-exec/SKILL.md 'reviewed_diff_fingerprint' \
+  "pge-exec repair provenance diff-fingerprint validation"
+require_pattern skills/pge-exec/SKILL.md 'same canonical plan identity' \
+  "pge-exec repair provenance canonical-plan validation"
+require_pattern skills/pge-exec/SKILL.md 'If provenance is missing, ambiguous, stale, or mismatched, reject the artifact and route to rerun the matching review/challenge instead of silently repairing' \
+  "pge-exec repair provenance reject route"
+require_pattern skills/pge-exec/SKILL.md 'route run `BLOCKED`, reject the artifact' \
+  "pge-exec repair provenance blocked route"
+require_pattern skills/pge-exec/SKILL.md 'non-consumable' \
+  "pge-exec repair artifact non-consumable semantics"
+require_pattern skills/pge-exec/SKILL.md 'current-context review/challenge output.*bounded repair input|current context.*bounded repair input' \
   "pge-exec current-context repair input"
 require_pattern skills/pge-exec/SKILL.md 'mkdir -p \.pge/tasks-<slug>/runs/<run_id>/' \
   "pge-exec run directory creation"
@@ -534,7 +566,7 @@ require_pattern skills/pge-exec/SKILL.md '`REPAIR_REQUIRED`.*`NEEDS_FIX`' \
   "pge-exec final review repair mapping"
 require_pattern skills/pge-exec/SKILL.md '`BLOCKED`.*`BLOCK_SHIP`' \
   "pge-exec final review blocked mapping"
-require_pattern skills/pge-exec/SKILL.md 'When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `\.pge/tasks-<slug>/review\.md` or `\.pge/tasks-<slug>/challenge\.md` plus any explicit review/challenge output in current context, and treat `in-contract` findings as bounded repair input' \
+require_pattern skills/pge-exec/SKILL.md 'When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `\.pge/tasks-<slug>/review\.md` or `\.pge/tasks-<slug>/challenge\.md` plus any explicit review/challenge output in current context, but consume task-artifact findings only after provenance validation passes' \
   "pge-exec review challenge backflow"
 require_pattern skills/pge-exec/SKILL.md 'If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing' \
   "pge-exec missing repair input needs human"
@@ -638,6 +670,18 @@ require_pattern skills/pge-review/SKILL.md 'task_dir: \.pge/tasks-<slug>/' \
   "pge-review task artifact path"
 require_pattern skills/pge-review/SKILL.md 'artifact_path: \.pge/tasks-<slug>/review\.md' \
   "pge-review review artifact path"
+require_pattern skills/pge-review/SKILL.md 'source_run_id' \
+  "pge-review provenance run-id field"
+require_pattern skills/pge-review/SKILL.md 'reviewed_head' \
+  "pge-review provenance reviewed-head field"
+require_pattern skills/pge-review/SKILL.md 'reviewed_base_ref' \
+  "pge-review provenance base field"
+require_pattern skills/pge-review/SKILL.md 'reviewed_diff_fingerprint' \
+  "pge-review provenance diff fingerprint field"
+require_pattern skills/pge-review/SKILL.md 'non-consumable for repair' \
+  "pge-review provenance fail-closed repair rule"
+require_pattern skills/pge-review/SKILL.md 'Review Provenance' \
+  "pge-review provenance output block"
 require_pattern skills/pge-review/SKILL.md 'Exec Repair Contract' \
   "pge-review exec repair contract"
 require_pattern skills/pge-review/SKILL.md '`source`:' \
@@ -671,6 +715,20 @@ require_pattern skills/pge-challenge/SKILL.md 'task_dir: \.pge/tasks-<slug>/' \
   "pge-challenge task artifact path"
 require_pattern skills/pge-challenge/SKILL.md 'artifact_path: \.pge/tasks-<slug>/challenge\.md' \
   "pge-challenge challenge artifact path"
+require_pattern skills/pge-challenge/SKILL.md 'source_run_id' \
+  "pge-challenge provenance run-id field"
+require_pattern skills/pge-challenge/SKILL.md 'reviewed_head' \
+  "pge-challenge provenance reviewed-head field"
+require_pattern skills/pge-challenge/SKILL.md 'reviewed_base_ref' \
+  "pge-challenge provenance base field"
+require_pattern skills/pge-challenge/SKILL.md 'reviewed_diff_fingerprint' \
+  "pge-challenge provenance diff fingerprint field"
+require_pattern skills/pge-challenge/SKILL.md 'Reuse the resolved `base_ref` semantics for `reviewed_base_ref`' \
+  "pge-challenge provenance base-ref reuse"
+require_pattern skills/pge-challenge/SKILL.md 'non-consumable for repair' \
+  "pge-challenge provenance fail-closed repair rule"
+require_pattern skills/pge-challenge/SKILL.md 'Challenge Provenance' \
+  "pge-challenge provenance output block"
 require_pattern skills/pge-challenge/SKILL.md 'Execution Feedback Contract' \
   "pge-challenge execution feedback contract"
 require_pattern skills/pge-challenge/SKILL.md '`source`:' \

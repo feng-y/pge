@@ -114,6 +114,14 @@ The default successful route is `READY_FOR_CHALLENGE`, not `READY_TO_SHIP`.
 
 Every review finding that could drive follow-up work must be execution-facing, not just reviewer-facing.
 
+When `task_dir` is available, the task artifact must include a provenance block with the minimum repair identity fields:
+- `source_run_id`
+- `reviewed_head`
+- `reviewed_base_ref` or a resolved equivalent base commit identity
+- `reviewed_diff_fingerprint` or an equivalent stable diff identity
+
+A task artifact is consumable for bounded repair only when that provenance block is present and all minimum fields resolve to the exact reviewed run/diff. Missing, placeholder, or partial provenance makes the artifact non-consumable for repair; fail closed and require a fresh review artifact instead of best-effort matching.
+
 Required per-finding fields:
 - `source`: `standards | semantic_alignment | simplicity | verification`
 - `severity`: `Required | Important | Advisory | FYI`
@@ -175,6 +183,12 @@ End with:
 - artifact_path: .pge/tasks-<slug>/review.md | not_available
 - review_result: BLOCK_SHIP | NEEDS_FIX | READY_FOR_CHALLENGE | READY_TO_SHIP
 - default_repair_path: pge-exec repair review findings for <task-slug> | route upstream to `pge-plan`
+
+## Review Provenance
+- source_run_id: <reviewed run_id or not_available>
+- reviewed_head: <exact reviewed HEAD commit sha>
+- reviewed_base_ref: <exact base ref used for review, or resolved equivalent base commit>
+- reviewed_diff_fingerprint: <stable identity for the reviewed diff>
 
 ## Exec Repair Contract
 | Finding ID | Source | Severity | Scope | Bounded Fix | Evidence | Next Repair Path |

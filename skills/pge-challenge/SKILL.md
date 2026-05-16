@@ -56,6 +56,16 @@ When challenge resolves a `.pge/tasks-<slug>/` source, set:
 
 Write the final challenge output there before the final response. This artifact is the durable prove-it seam for `pge-exec` bounded repair reruns.
 
+When `task_dir` is available, the task artifact must include a provenance block with the minimum repair identity fields:
+- `source_run_id`
+- `reviewed_head`
+- `reviewed_base_ref` or a resolved equivalent base commit identity
+- `reviewed_diff_fingerprint` or an equivalent stable diff identity
+
+Reuse the resolved `base_ref` semantics for `reviewed_base_ref` when possible; do not introduce a second meaning for base identity.
+
+A task artifact is consumable for bounded repair only when that provenance block is present and all minimum fields resolve to the exact reviewed run/diff. Missing, placeholder, partial, or ambiguous provenance makes the artifact non-consumable for repair; fail closed and require a fresh challenge artifact instead of best-effort matching.
+
 ## Base Resolution
 
 ```bash
@@ -160,6 +170,12 @@ Default repair path:
 - changed_files: <count + list>
 - route: BLOCK_SHIP | NEEDS_FIX | READY_TO_SHIP
 - next: pge-exec repair challenge findings for <task-slug> | rerun pge-challenge | ship | route upstream to `pge-plan`
+
+## Challenge Provenance
+- source_run_id: <reviewed run_id or not_available>
+- reviewed_head: <exact reviewed HEAD commit sha>
+- reviewed_base_ref: <exact base_ref used for challenge, or resolved equivalent base commit>
+- reviewed_diff_fingerprint: <stable identity for the reviewed diff>
 
 ## Change Explanation
 - summary:

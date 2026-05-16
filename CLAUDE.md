@@ -84,11 +84,11 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
 - `pge-research`, `pge-plan`, `pge-plan-normalize`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
-- `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback.
+- `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback only after provenance validation against the referenced run, canonical plan identity, and reviewed diff.
 - `pge-research` owns evidence gathering and ambiguity resolution.
 - `pge-plan-normalize` owns lossless conversion of complete external plans into canonical `.pge/tasks-<slug>/plan.md`; exec must not normalize non-canonical sources.
-- `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in an exec-facing repair format.
-- `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in an exec-facing repair format. `pge-exec` may hand off directly to it only as the next legal prove-it step inside the Review stage, not as a bypass around review authority.
+- `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in a provenance-bearing exec-facing repair format.
+- `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in a provenance-bearing exec-facing repair format. `pge-exec` may hand off directly to it only as the next legal prove-it step inside the Review stage, not as a bypass around review authority.
 - `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
 - `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
 - `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted.

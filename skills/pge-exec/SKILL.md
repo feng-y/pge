@@ -1,9 +1,9 @@
 ---
 name: pge-exec
 description: >
-  Execute pge-plan issues using peer Generator + Evaluator lanes.
+  Execute pge-plan issues using concurrent Generator workers and concentrated Evaluator review.
   Consumes .pge/tasks-<slug>/plan.md,
-  dispatches per-issue execution, validates with an independent Evaluator, and runs a bounded repair loop.
+  dispatches bounded execution, requires Generator self-review, invokes independent Evaluator review when risk or batching triggers it, and runs a bounded repair loop.
 version: 1.0.0
 argument-hint: "<task-slug> [--run-id <run_id>] | .pge/tasks-<slug>/plan.md [--run-id <run_id>] | repair review findings for <task-slug>"
 allowed-tools:
@@ -23,9 +23,9 @@ allowed-tools:
 
 ## Purpose
 
-Execute a canonical plan produced by `pge-plan` or `pge-plan-normalize`. `pge-exec` consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and coordinates peer Generator + Evaluator lanes per issue.
+Execute a canonical plan produced by `pge-plan` or `pge-plan-normalize`. `pge-exec` consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and coordinates concurrent Generator workers plus concentrated Evaluator review.
 
-This is an orchestration skill. It executes the plan by coordinating Generator implementation/self-review and Evaluator independent verification. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
+This is an orchestration skill. It executes the plan by coordinating Generator implementation, verification, and self-review. Evaluator is an independent review lane for concentrated or risk-triggered checks, not a mandatory serial step after every issue. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
 Exec is responsible for **evidence alignment**:
 
@@ -42,17 +42,19 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 1. Resolve the selected canonical plan.
 2. Reject non-canonical input and route to `pge-plan-normalize`.
 3. Validate route, stop condition, ready issues, target areas, acceptance, verification, and dependencies.
-4. Select new run vs explicit resume before lane creation.
-5. Create Generator/Evaluator team.
-6. Require both lanes to emit `lane_ready`.
-7. Dispatch Generator per issue.
-8. Require `generator_completion` before evaluation.
-9. Require Evaluator `PASS | RETRY | BLOCK`.
-10. Convert every failure into repair, blocked state, run route, or lane recovery.
-11. Persist state after every transition.
-12. Check stop condition, semantic alignment, regression, and integration.
-13. Run Final Review Gate only when whole-diff risk triggers it.
-14. Teardown using runtime truth, then write artifacts before the final response.
+4. Select new run vs explicit resume before lane creation or issue dispatch.
+5. Build a dependency and Target Area schedule.
+6. Create Generator worker lanes for ready independent work.
+7. Require each active lane to emit `lane_ready`.
+8. Dispatch independent issues concurrently when dependencies and Target Areas allow it.
+9. Require `generator_completion` with self-review and evidence.
+10. Decide whether concentrated Evaluator review is triggered.
+11. If triggered, require Evaluator `PASS | RETRY | BLOCK`; otherwise complete from Generator evidence plus main acceptance checks.
+12. Convert every failure into repair, blocked state, run route, or lane recovery.
+13. Persist state after every transition.
+14. Check stop condition, semantic alignment, regression, and integration.
+15. Run Final Review Gate only when whole-diff risk triggers it.
+16. Teardown using runtime truth, then write artifacts before the final response.
 
 ## Must Not
 
@@ -60,10 +62,10 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not normalize external plans inside exec.
 - Do not read `references/external-plan-normalization.md` from exec.
 - Do not modify the plan.
-- Do not write business code in main instead of dispatching Generator.
-- Do not simulate Generator or Evaluator in main.
-- Do not merge Generator and Evaluator into one lane.
-- Do not skip Evaluator.
+- Do not bottleneck all issues through a fixed Generator -> Evaluator serial pair.
+- Do not claim a Generator issue is complete without self-review, evidence, and main acceptance checks.
+- Do not skip concentrated Evaluator review when a risk trigger fires.
+- Do not let Evaluator findings hang without repair, blocked state, run route, or lane recovery.
 - Do not retry more than 3 attempts per issue.
 - Do not retry a repair with no code or artifact changes.
 - Do not allow destructive git.
@@ -86,7 +88,7 @@ pge-exec repair review findings for <task-slug>
 pge-exec repair challenge findings for <task-slug>
 ```
 
-If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`, and consume any explicit current-context review/challenge output as bounded repair input. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
+If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, keep the task slug as the user-facing entrypoint: use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`, then validate that artifact's provenance before consuming any `in-contract` findings. Validation is mandatory: read the provenance block, verify `source_run_id` resolves to an existing run under the same task, verify that referenced run still matches the current canonical plan identity, and verify the current repo repair target still matches `reviewed_head` plus `reviewed_diff_fingerprint` and `reviewed_base_ref` or a resolved equivalent base commit. If provenance is missing, ambiguous, stale, or mismatched, reject the artifact and route to rerun the matching review/challenge instead of silently repairing. Consume explicit current-context review/challenge output only as additional bounded repair input, not as a substitute for a failed task artifact. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
 
 Non-canonical inputs include Claude plan mode output, `docs/exec-plan/` documents, current conversation plan text, and foreign workflow plans. Stop before implementation and report:
 
@@ -110,7 +112,7 @@ Task directory resolution:
 mkdir -p .pge/tasks-<slug>/runs/<run_id>/
 ```
 
-All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge rerun input comes from `.pge/tasks-<slug>/review.md`, `.pge/tasks-<slug>/challenge.md`, and any explicit current-context repair packet. These `.pge/` paths are canonical. Notes or summaries outside `.pge/` are non-authoritative and must not replace required run artifacts or task-artifact repair input.
+All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge rerun input stays task-level and comes from `.pge/tasks-<slug>/review.md`, `.pge/tasks-<slug>/challenge.md`, and any explicit current-context repair packet. These `.pge/` paths are canonical, but task artifacts are consumable only after provenance validation. Before bounded repair, exec must verify: the artifact belongs to the selected task, the provenance block is present, `source_run_id` exists and is readable, the referenced run resolves to the same canonical plan identity, and the current repo repair target still matches `reviewed_head`, `reviewed_diff_fingerprint`, and `reviewed_base_ref` or a resolved equivalent base commit. Any missing, stale, or mismatched provenance makes the artifact non-consumable and routes to rerun the matching review/challenge. Notes or summaries outside `.pge/` are non-authoritative and must not replace required run artifacts or task-artifact repair input.
 
 ## Plan Validation
 
@@ -350,6 +352,10 @@ Minimum exception routing:
 | post-plan user correction expands scope | route upstream to `pge-plan` or `NEEDS_HUMAN` |
 | ambiguous run selection | stop before lane creation and require explicit resume/new-run decision |
 | selected run has missing/corrupt `state.json` | route selected run `BLOCKED`; do not reuse partial artifacts |
+| repair artifact provenance missing / unreadable / ambiguous | route run `BLOCKED`, reject the artifact, recommend rerunning the matching review/challenge, and do not start bounded repair |
+| repair artifact run reference missing or unreadable | route run `BLOCKED`, reject the artifact, recommend rerunning the matching review/challenge, and do not reuse the artifact as repair truth |
+| repair artifact plan identity mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
+| repair artifact reviewed head / base / diff fingerprint mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
 | TeamCreate or lane spawn failure | cleanup, retry once, then `BLOCKED` |
 | missing `lane_ready` | retry/rebuild once, then `BLOCKED` |
 | generator `BLOCKED` | record issue `BLOCKED`; continue only with independent issues |
@@ -413,7 +419,7 @@ Finding handling:
 - `Important`: repair if bounded and in scope; otherwise route `PARTIAL` with follow-up evidence.
 - `Advisory`: do not block `SUCCESS`; record in `review.md`.
 
-When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md` plus any explicit review/challenge output in current context, and treat `in-contract` findings as bounded repair input. The source of the finding does not change the default repair path. A finding routes upstream to `pge-plan` only when resolving it would require changing the plan contract itself: goal, scope, acceptance, target areas, verification, or non-goals.
+When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md` plus any explicit review/challenge output in current context, but consume task-artifact findings only after provenance validation passes. That validation must confirm the provenance block is present, `source_run_id` resolves to an existing run for the same task, that run still matches the current canonical plan identity, and the current repo repair target still matches `reviewed_head`, `reviewed_diff_fingerprint`, and `reviewed_base_ref` or a resolved equivalent base commit. If the artifact is stale, mismatched, or provenance-missing, reject it as non-consumable and route to rerun the matching review/challenge instead of bounded repair. The source of the finding does not change the default repair path once validation passes. A finding routes upstream to `pge-plan` only when resolving it would require changing the plan contract itself: goal, scope, acceptance, target areas, verification, or non-goals.
 
 Exec final review verdicts are internal to `pge-exec`. They are not the same vocabulary as the later `pge-review` stage routes:
 
