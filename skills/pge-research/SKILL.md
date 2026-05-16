@@ -2,7 +2,7 @@
 name: pge-research
 description: >
   You MUST use this before pge-plan when the user's intent is still fuzzy,
-  multiple approaches seem viable, the task touches unfamiliar code, or you
+  multiple interpretations seem viable, the task touches unfamiliar code, or you
   are tempted to ask clarifying questions before reading the repo. Internalize
   brainstorm, clarify, and zoom-out: discover the real intent, ask only
   blocking questions, map enough system context, and write a research brief for

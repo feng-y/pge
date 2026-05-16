@@ -3,14 +3,14 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Create a plan for adding a dark mode toggle. Research brief exists at .pge/tasks-dark-mode/research.md with research_route: READY_FOR_PLAN, one recommended approach (CSS custom properties), affected areas (3 files), and no blocking questions.",
-      "expected_output": "Consumes the research brief as-is. Adopts the recommended approach without re-brainstorming. Engineering review is present but lightweight (scope challenge confirms minimal change set, no complexity gate triggered). Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
+      "prompt": "Create a plan for adding a dark mode toggle. Research brief exists at .pge/tasks-dark-mode/research.md with route: READY_FOR_PLAN, confirmed intent, planning handoff (CSS custom properties), affected areas (3 files), and no blocking questions.",
+      "expected_output": "Runs Source Contract Check (CONTINUE_TO_PLAN), selects approach through engineering review. Engineering review is present but lightweight (scope challenge confirms minimal change set, no complexity gate triggered). Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
       "dimensions": ["input_adaptation", "engineering_review_scaling", "issue_decomposition"]
     },
     {
       "id": 2,
-      "prompt": "Create a plan for migrating the database layer from raw SQL to an ORM. Research brief exists with 3 options (Prisma, Drizzle, raw query builder), recommendation is Drizzle, affected areas span 12 files across 4 modules, and there is one non-blocking open question about test fixtures.",
-      "expected_output": "Consumes research brief. Engineering review is substantive: scope challenge questions whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers (12 files). Existing solutions check looks for prior art. May propose phased approach as scope reduction. Issues reflect the engineering review findings.",
+      "prompt": "Create a plan for migrating the database layer from raw SQL to an ORM. Research brief exists with 3 approach candidates (Prisma, Drizzle, raw query builder) in planning_handoff, no selected approach, affected areas span 12 files across 4 modules, and there is one non-blocking open question about test fixtures.",
+      "expected_output": "Source Contract Check → CONTINUE_TO_PLAN. Engineering review selects approach from candidates. Engineering review is substantive: scope challenge questions whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers (12 files). Existing solutions check looks for prior art. May propose phased approach as scope reduction. Issues reflect the engineering review findings.",
       "dimensions": ["engineering_review_depth", "complexity_gate", "scope_challenge"]
     },
     {

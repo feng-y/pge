@@ -542,11 +542,11 @@ Do not: write business code, write implementation pseudocode or function bodies,
 ```md
 ## PGE Plan Result
 - plan_path: .pge/tasks-<slug>/plan.md
-- plan_route: READY_FOR_EXECUTE | READY_FOR_EXECUTE_WITH_ASSUMPTIONS | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
+- plan_route: READY_FOR_EXECUTE | READY_FOR_EXECUTE_WITH_ASSUMPTIONS | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - ready_issues: <ids or None>
 - blocked_issues: <ids or None>
 - asked_user: yes | no
 - assumptions_recorded: yes | no
 - engineering_review: completed | skipped — reason
-- next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-plan (after clarification)
+- next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-research <task-slug> (if RETURN_TO_RESEARCH) | pge-plan (after clarification)
 ```

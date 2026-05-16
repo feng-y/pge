@@ -58,7 +58,18 @@ Look for the originating intent/contract source in this order:
 4. Repo-local spec-like docs that clearly match the branch or task name: `docs/`, `specs/`, `.scratch/`, or `.pge/tasks-*/research.md`. Use research or handoff notes only to recover intent when no plan/spec exists.
 5. If nothing specific is found, ask once. If no spec/intent source exists, skip the Semantic Alignment axis and say so.
 
-When a matching `.pge/tasks-<slug>/research.md` exists beside the plan, read its minimum contract fields (`intent_spec`, `clarify_status`, `plan_delta`, `blockers`, `evidence`) only as needed to detect semantic drift between original intent, plan, and diff.
+Treat the selected source as the strongest available contract, not just background context. A contract may be a PGE plan, spec, issue, design document, current prompt, or other structured source that defines goal, scope, acceptance, verification, evidence, route, or downstream handoff semantics.
+
+When the selected source is a PGE plan, extract its contract-bearing fields before review:
+- `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, `risks`, `stop_conditions`, and route/state vocabulary.
+- Any cross-issue verification commands, grep scopes, evidence tables, or manual walkthrough checks.
+- Any templates, examples, evals, references, handoffs, or final response/output formats named by the plan or touched by the diff.
+
+When a matching `.pge/tasks-<slug>/research.md` exists beside the plan, read its v2 minimum contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `upstream_contract`, `evidence`, `ambiguities`, `planning_handoff`, `route`) only as needed to detect semantic drift between original intent, plan, and diff. Legacy fields such as `intent_spec`, `plan_delta`, and `blockers` are compatibility input only; do not treat them as stronger than the current plan/research contract.
+
+If the selected contract declares verification scope or evidence requirements, review must treat them as binding review inputs, not optional author notes. Recursive directory scopes include active calibration surfaces under that directory — `templates/`, `examples`, `evals/`, `references/`, `handoffs/`, and final response/output formats — unless the contract explicitly excludes them.
+
+If the diff changes a contract-bearing surface, also inspect active calibration surfaces that could preserve old behavior: templates, examples, evals, references, handoffs, route/state/verdict definitions, and final response/output formats.
 
 When review resolves a `.pge/tasks-<slug>/` source, set:
 - `task_dir: .pge/tasks-<slug>/`
@@ -77,6 +88,8 @@ Collect from:
 - Linter/formatter configs (note but don't re-check what tooling enforces)
 
 Do not treat broad research notes or historical handoffs as standards unless they explicitly define a current convention.
+
+Standards review is semantic, not just lexical. When the diff changes workflow contracts, skill contracts, agent rules, routing, authority, artifact paths, or output formats, check whether the changed contract remains consistent with the current standards sources even when old terms no longer appear.
 
 ### 4. Review Contract
 
@@ -141,10 +154,10 @@ Default repair path:
 ### 5. Spawn three sub-agents in parallel
 
 **Standards agent brief:**
-> Read the selected standards sources. Read the diff. Report every place the diff violates a documented current standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Do not cite optional or historical docs as binding unless the main review identified them as current. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
+> Read the selected standards sources. Read the diff. Report every place the diff violates a documented current standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Do not cite optional or historical docs as binding unless the main review identified them as current. Do not only search for changed terms; check whether changed contracts remain semantically consistent with standards sources, including ownership, routing, authority, artifact paths, and workflow invariants. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Semantic Alignment agent brief:**
-> Read the selected plan/spec source and any adjacent research intent contract if provided. Read the diff. Report: (a) plan requirements missing or partial; (b) behaviour not asked for (scope creep); (c) places where the plan no longer appears to preserve the original user/research intent; (d) evidence gaps where the diff may be correct but does not prove the contract. Quote the plan/spec/research line for each finding. If no source exists, return "Semantic Alignment axis skipped: no spec or intent source found." Label every finding: Required / Important / Advisory / FYI. Under 400 words.
+> Read the selected plan/spec source and any adjacent research intent contract if provided. Treat the selected source's verification, evidence_required, target areas, acceptance, route/state vocabulary, templates/examples/evals/references/handoffs, and final response/output formats as review scope when they are declared by the contract or touched by the diff. Read the diff. Report: (a) plan requirements missing or partial; (b) behaviour not asked for (scope creep); (c) places where the plan no longer appears to preserve the original user/research intent; (d) evidence gaps where the diff may be correct but does not prove the contract; (e) active calibration surfaces that preserve old contract behavior; (f) route/state/verdict vocabulary mismatches between definitions, templates, handoffs, final responses, examples, and evals. Quote the plan/spec/research line for each finding. If no source exists, return "Semantic Alignment axis skipped: no spec or intent source found." Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
 **Simplicity agent brief:**
 > Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
@@ -169,6 +182,18 @@ Report this as a separate section:
 ```
 
 If the verification story is weak, surface it as a review finding even if the code looks plausible.
+
+### 6.5 Main Cross-Contract Sweep
+
+Before aggregating sub-agent results, main review must do one independent contract-aware sweep. This is not a validator script and not a replacement for sub-agents; it catches cross-file drift that individual axes can miss.
+
+Check:
+- Standards source semantic consistency: changed contract ownership, routing, authority, artifact paths, and output formats still align with `CLAUDE.md`, `AGENTS.md`, `README.md`, and selected standards.
+- Contract-declared review scope: every plan/spec `verification`, `evidence_required`, cross-issue grep scope, or evidence table was actually reviewed or explicitly marked out of scope with rationale.
+- Vocabulary consistency: documented route/state/verdict names are representable in definitions, templates, handoffs, final responses, examples, and evals.
+- Calibration drift: active templates, examples, evals, references, and handoffs do not preserve behavior that the diff claims to replace.
+
+Any failure found here becomes a normal review finding under `standards`, `semantic_alignment`, or `verification` with severity based on impact.
 
 ### 7. Aggregate
 

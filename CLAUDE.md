@@ -71,12 +71,12 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.
 
 PGE requires contract discipline, not template bureaucracy:
-- Research must expose enough intent, ambiguity status, and evidence for planning.
+- Research must expose confirmed intent, scope, success shape, evidence, and planning handoff for planning.
 - Plan must translate that intent into executable issue contracts without scope drift.
 - Exec must prove code changes satisfy the plan contract.
 - Review must judge whether the diff still aligns with the original intent through the plan.
 - Every stage must consume its explicit invocation input plus relevant current context, including recent user corrections, observed failures, and fresh artifacts. If context changes the goal, scope, or fix target, confirm the interpretation before producing the next contract.
-- Research and plan own intent discovery, repo investigation, option shaping, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
+- Research owns confirmed problem: intent discovery, scope, evidence, and ambiguity resolution. Plan owns executable solution: approach selection, engineering review, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
 
 Templates are scaffolds. Required field semantics are binding; prose shape and optional sections should scale with task complexity.
 
@@ -85,7 +85,7 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
 - `pge-research`, `pge-plan`, `pge-plan-normalize`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback only after provenance validation against the referenced run, canonical plan identity, and reviewed diff.
-- `pge-research` owns evidence gathering and ambiguity resolution.
+- `pge-research` owns confirmed problem: intent, scope, success shape, evidence, ambiguity resolution, and planning handoff.
 - `pge-plan-normalize` owns lossless conversion of complete external plans into canonical `.pge/tasks-<slug>/plan.md`; exec must not normalize non-canonical sources.
 - `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in a provenance-bearing exec-facing repair format.
 - `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in a provenance-bearing exec-facing repair format. `pge-exec` may hand off directly to it only as the next legal prove-it step inside the Review stage, not as a bypass around review authority.

@@ -61,7 +61,7 @@ What planning must know because research ran.
 - <hard constraint from user, upstream, or repo reality>
 
 ### known_invalid_directions
-- <approach or scope that evidence shows is wrong>
+- <direction, scope, or constraint violation that evidence shows is wrong>
 
 ### likely_affected_areas
 - <file or module> — reason: <why it may be touched>

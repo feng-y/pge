@@ -6,24 +6,24 @@
       "id": "joint-1",
       "scenario": "Simple task, clean handoff",
       "research_input": "User wants to add a dark mode toggle. Repo has CSS custom properties already.",
-      "research_expected": "Brief with READY_FOR_PLAN, one option (extend existing custom properties), 0 questions, affected areas: 3 CSS files + 1 toggle component.",
-      "plan_expected": "Consumes brief as-is. Engineering Review is lightweight (scope check: 4 files, no complexity gate). Adopts research recommendation without re-brainstorming. Produces 2-3 issues. No questions asked.",
+      "research_expected": "Brief with route: READY_FOR_PLAN, confirmed intent, planning_handoff (facts: existing custom properties work; constraints: must use existing system; invalid directions: full theme redesign), 0 questions, likely_affected_areas: 3 CSS files + 1 toggle component.",
+      "plan_expected": "Consumes brief. Source Contract Check → CONTINUE_TO_PLAN. Engineering Review is lightweight (scope check: 4 files, no complexity gate). Selects approach through engineering review. Produces 2-3 issues. No questions asked.",
       "joint_check": [
-        "Plan Intent matches research Intent verbatim or near-verbatim",
-        "Plan Target Areas matches research Affected Areas",
+        "Plan goal matches research confirmed_intent verbatim or near-verbatim",
+        "Plan Target Areas matches research likely_affected_areas",
         "Plan does NOT re-explore files research already cited with file:line",
         "Engineering Review adds value beyond research (scope challenge, architecture check) without duplicating findings"
       ]
     },
     {
       "id": "joint-2",
-      "scenario": "Complex task, research provides options, plan must review",
-      "research_input": "User wants to migrate state management. Research found 3 options (Redux Toolkit, Zustand, Jotai) with tradeoffs. Recommended Zustand. 12 files affected. 1 non-blocking open question about test mocking strategy.",
-      "research_expected": "Brief with READY_FOR_PLAN, 3 options with evidence, recommendation: Zustand, open question (blocks_plan: no).",
-      "plan_expected": "Consumes brief. Adopts Zustand as strong default. Engineering Review is substantive: scope challenge (12 files → can we migrate incrementally?), architecture (state boundaries, data flow during partial migration), existing solutions (any existing state patterns to preserve?). Complexity gate triggers. Plan may propose phased migration. Open question carried to Risks.",
+      "scenario": "Complex task, research provides approach candidates, plan must review",
+      "research_input": "User wants to migrate state management. Research found 3 approach candidates (Redux Toolkit, Zustand, Jotai) with tradeoffs in planning_handoff. No selected approach. 12 files in likely_affected_areas. 1 non-blocking open question about test mocking strategy.",
+      "research_expected": "Brief with route: READY_FOR_PLAN, confirmed intent, 3 approach candidates in planning_handoff (not as selected approach), open question (blocks_plan: no).",
+      "plan_expected": "Consumes brief. Source Contract Check → CONTINUE_TO_PLAN. Engineering review evaluates candidates and selects approach. Engineering Review is substantive: scope challenge (12 files → can we migrate incrementally?), architecture (state boundaries, data flow during partial migration), existing solutions (any existing state patterns to preserve?). Complexity gate triggers. Plan may propose phased migration. Open question carried to Risks.",
       "joint_check": [
-        "Plan adopts Zustand without re-comparing all 3 options",
-        "Plan Engineering Review challenges the APPROACH (incremental vs big-bang), not the CHOICE (Zustand vs others)",
+        "Plan selects approach through engineering review, does not treat research candidates as pre-selected",
+        "Plan Engineering Review challenges implementation approach (incremental vs big-bang) after selecting from candidates",
         "Research open question appears in Plan Risks / Open Questions",
         "Plan adds engineering depth that research did not cover (failure modes, migration strategy, phasing)"
       ]
@@ -33,7 +33,7 @@
       "scenario": "Research signals blocker, plan must stop",
       "research_input": "User wants to add real-time notifications. Research found the intent is ambiguous (push notifications? in-app? email?) and asked a goal-sharpening question. User did not answer.",
       "research_expected": "Brief with NEEDS_INFO, 1 blocking open question (blocks_plan: yes).",
-      "plan_expected": "Gate check detects research_route: NEEDS_INFO. Stops immediately. Does NOT produce a plan. Tells user to resolve the research blocker first.",
+      "plan_expected": "Gate check detects route: NEEDS_INFO. Stops immediately. Does NOT produce a plan. Tells user to resolve the research blocker first.",
       "joint_check": [
         "Plan does NOT attempt to plan around the ambiguity",
         "Plan does NOT ask its own version of the same question",
@@ -43,14 +43,14 @@
     },
     {
       "id": "joint-4",
-      "scenario": "Research recommendation contradicted by plan exploration",
-      "research_input": "Research recommended approach A (add new service). Plan exploration discovers that the codebase already has a similar service that could be extended instead.",
-      "research_expected": "Brief with READY_FOR_PLAN, recommendation: new service.",
-      "plan_expected": "Consumes brief. During Phase 2 Explore, discovers existing service. Engineering Review Scope Challenge Q1 ('What existing code already solves this?') flags the existing service. Existing Solutions Check confirms prior art. Plan OVERRIDES research recommendation with rationale. Records why research recommendation was rejected.",
+      "scenario": "Research candidate contradicted by plan exploration",
+      "research_input": "Research listed 'add new service' as an approach candidate in planning_handoff. Plan exploration discovers that the codebase already has a similar service that could be extended instead.",
+      "research_expected": "Brief with route: READY_FOR_PLAN, approach candidate: new service (in planning_handoff, not selected).",
+      "plan_expected": "Consumes brief. Source Contract Check → CONTINUE_TO_PLAN. During Phase 2 Explore, discovers existing service. Engineering Review Scope Challenge Q1 ('What existing code already solves this?') flags the existing service. Existing Solutions Check confirms prior art. Plan selects 'extend existing service' over research candidate with rationale. Records why candidate was rejected.",
       "joint_check": [
-        "Plan does NOT blindly follow research recommendation when evidence contradicts it",
-        "Plan records the override with clear rationale in Approach Decision",
-        "Plan credits research for the original recommendation but explains what changed",
+        "Plan does NOT blindly adopt research candidate when evidence contradicts it",
+        "Plan records the selection with clear rationale in selected_approach / rejected_approaches",
+        "Plan credits research for surfacing the candidate but explains what engineering review found",
         "Engineering Review is the mechanism that caught the issue (not ad-hoc exploration)"
       ]
     }

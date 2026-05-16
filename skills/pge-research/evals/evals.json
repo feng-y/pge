@@ -4,13 +4,13 @@
     {
       "id": 1,
       "prompt": "Please research adding a dark mode toggle to this repo. I don't want code yet — I want to understand the current theming pattern, likely affected areas, and the safest direction for planning.",
-      "expected_output": "Produces a repo-grounded research brief with concrete findings, affected areas, assumptions, one likely approach, and a READY_FOR_PLAN-style handoff. Should not ask unnecessary questions if the repo already makes the direction clear.",
+      "expected_output": "Produces a repo-grounded research brief with concrete findings, affected areas, assumptions, confirmed intent, planning handoff, and a READY_FOR_PLAN route. Should not ask unnecessary questions if the repo already makes the direction clear.",
       "files": []
     },
     {
       "id": 2,
       "prompt": "I want to rethink how state is handled here. Right now it feels messy, but I'm not sure if I want a full replacement or just something more maintainable. Research it first.",
-      "expected_output": "Starts by grounding in the repo, then asks intent-sharpening questions only if needed. Questions should focus on intent, constraints, and success criteria rather than implementation details. The output should narrow the space and produce evidence-backed options rather than jump straight into planning.",
+      "expected_output": "Starts by grounding in the repo, then asks intent-sharpening questions only if needed. Questions should focus on intent, constraints, and success criteria rather than implementation details. The output should narrow the space and produce evidence-backed intent framings and scope readings rather than jump straight into planning.",
       "files": []
     },
     {
