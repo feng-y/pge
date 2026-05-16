@@ -63,7 +63,7 @@ Do not pad the brief to satisfy a template. A short brief is valid when it prese
 
 `pge-research` has three built-in capabilities:
 
-- **brainstorm** — native research behavior that generates plausible interpretations, success shapes, approaches, and failure modes before locking onto one reading of the prompt.
+- **brainstorm** — native research behavior that generates plausible interpretations, success shapes, known invalid directions, and failure modes before locking onto one reading of the prompt.
 - **clarify / grill-with-me** — when intent is unclear, challenge the user's wording with evidence-backed questions until the goal, scope, and success criteria are clear enough to specify.
 - **zoom-out** — map the relevant modules, flows, boundaries, and ownership at the smallest abstraction level that lets planning proceed without re-exploring.
 
@@ -267,7 +267,7 @@ Then use code and docs to confirm, reject, or sharpen that note.
 
 **Brainstorming is research:**
 
-Use brainstorming to expand before narrowing. This is not an optional ceremony and not a separate command. It is how research avoids silently choosing the first interpretation of the user's words. Generate 2-4 plausible readings or approaches when the prompt is fuzzy, broad, value-laden, or likely to map to multiple code paths. For each one, note:
+Use brainstorming to expand before narrowing. This is not an optional ceremony and not a separate command. It is how research avoids silently choosing the first interpretation of the user's words. Generate 2-4 plausible readings, scope interpretations, or success shapes when the prompt is fuzzy, broad, value-laden, or likely to map to multiple code paths. For each one, note:
 
 - what user intent it assumes
 - what code reality would make it viable
@@ -413,6 +413,21 @@ The brief may use tables, bullets, prose, or a compact key/value block. The requ
 Optional sections such as Brainstorm Log, Clarify Log, Zoom-Out Map, Decision Log, Research Value Proof, and Quality Gates should appear only when they reduce uncertainty or preserve a material decision. They may be compressed into the required fields for simple tasks.
 
 Legacy compatibility: old `plan_delta` field may be mapped to `planning_handoff` for backward compatibility but carries no authoritative decision weight.
+
+**Field authority classification:**
+
+Each field in the research output carries an authority level:
+
+| Authority | Meaning | How plan should treat |
+|---|---|---|
+| `user_confirmed` | User explicitly stated or confirmed this | Authoritative; do not weaken or reinterpret |
+| `upstream_authoritative` | From an authoritative upstream source (spec, design doc, prior decision) | Inherit unless repo evidence contradicts |
+| `repo_evidence` | Derived from code, docs, config, or command output | High confidence; cite source |
+| `inferred` | Agent inference connecting gaps | Auditable; must not be presented as user intent or repo fact |
+
+Research must classify key findings and confirmed intent fields by authority. Planning inherits authority classification and must not upgrade `inferred` to `user_confirmed`.
+
+**Compatibility adapter rule:** Legacy `plan_delta` may populate `planning_handoff`; legacy `Options` and `Recommendation` may populate approach candidates in planning; neither may become selected approach without current plan engineering review.
 
 **Exploring problem framings:**
 
@@ -570,9 +585,9 @@ Use `templates/brief.md` as a scaffold, not a fixed form. The required semantic 
 
 Not every research run succeeds.
 
-- If critical ambiguity remains and you still cannot plan fairly after repo exploration and intent clarification, set `research_route: BLOCKED`
-- If the task appears infeasible from repo evidence, set `research_route: BLOCKED` and explain why in the brief
-- If the user says "stop" or redirects to implementation/planning mid-run, write the best brief you can to `.pge/tasks-<slug>/research.md` and set `research_route: NEEDS_INFO` or `BLOCKED` instead of silently exiting
+- If critical ambiguity remains and you still cannot plan fairly after repo exploration and intent clarification, set `route: BLOCKED`
+- If the task appears infeasible from repo evidence, set `route: BLOCKED` and explain why in the brief
+- If the user says "stop" or redirects to implementation/planning mid-run, write the best brief you can to `.pge/tasks-<slug>/research.md` and set `route: NEEDS_INFO` or `BLOCKED` instead of silently exiting
 
 **Completion gate:**
 
@@ -608,7 +623,7 @@ Use the contract scaffold at `templates/brief.md`. Preserve required field seman
 - task_dir: .pge/tasks-<slug>/
 - research_path: .pge/tasks-<slug>/research.md
 - schema_version: research.v2
-- research_route: READY_FOR_PLAN | NEEDS_INFO | BLOCKED
+- route: READY_FOR_PLAN | NEEDS_INFO | BLOCKED
 - questions_asked: <0-3>
 - next_skill: pge-plan <task-slug> | pge-plan .pge/tasks-<slug>/research.md
 ```

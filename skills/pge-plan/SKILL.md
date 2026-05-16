@@ -50,6 +50,23 @@ risks
 
 Do not write a long plan to satisfy a template. Write the smallest plan that lets `pge-exec` implement without guessing, while preserving the same semantic target from the user/research input.
 
+`schema_version` is always `plan.v2` for plans produced under this contract.
+
+**Field authority classification:**
+
+Plan inherits authority classification from research and adds its own:
+
+| Authority | Meaning | How exec should treat |
+|---|---|---|
+| `user_confirmed` | User explicitly stated or confirmed | Authoritative; do not deviate |
+| `upstream_authoritative` | From authoritative upstream source or research | Inherit; do not re-litigate |
+| `repo_evidence` | Derived from code, docs, config | High confidence; cite source |
+| `inferred` | Plan inference or design choice | Auditable; exec may flag if implementation contradicts |
+
+Plan must not upgrade `inferred` research findings to `user_confirmed` plan decisions. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
+
+**Compatibility adapter rule:** Legacy `plan_delta` maps to `planning_handoff` with downgraded authority. Legacy `Options` and `Recommendation` become approach candidates only. Neither may become selected approach without current plan engineering review.
+
 ## Execution Flow
 
 Follow this flow exactly. Do not skip nodes. Do not reorder phases.

@@ -18,8 +18,8 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 
 PGE uses fixed interfaces with flexible expression.
 
-- Research must expose `intent_spec`, `clarify_status`, `plan_delta`, `blockers`, and `evidence`.
-- Plan must expose `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
+- Research must expose `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `upstream_contract`, `evidence`, `ambiguities`, `planning_handoff`, and `route`.
+- Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, and any plan deviations.
 - Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.
 - Every stage must consume its explicit input plus relevant current context. When context changes intent, scope, or the fix target, the stage must clarify before producing the next contract.
