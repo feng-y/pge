@@ -44,6 +44,17 @@ Send structured review report to main via message. Format is defined in your age
 - If `BLOCKED`: reason explains why execution cannot route SUCCESS
 - If `ADVISORY_ONLY`: record findings in the synthesized `review.md`, do not block
 
+These are `pge-exec` internal final-review verdicts, not `pge-review` stage routes. Main preserves this mapping when deciding the next stage:
+
+| Exec final review verdict | Closest review-stage route |
+|---|---|
+| `PASS` | `READY_FOR_CHALLENGE` |
+| `ADVISORY_ONLY` | `READY_FOR_CHALLENGE` |
+| `REPAIR_REQUIRED` | `NEEDS_FIX` |
+| `BLOCKED` | `BLOCK_SHIP` |
+
+`READY_TO_SHIP` is not produced by `pge-exec` final review.
+
 ## Lifecycle
 
 - Reviewer agents are ephemeral — spawned for one review, then done

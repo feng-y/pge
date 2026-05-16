@@ -11,6 +11,7 @@ version: 0.2.0
 argument-hint: "[statement | task-slug | plan path | base ref]"
 allowed-tools:
   - Read
+  - Write
   - Bash
   - Glob
   - Grep
@@ -21,6 +22,8 @@ allowed-tools:
 Manual prove-it gate before PR/ship.
 
 `pge-review` asks whether the change looks acceptable. `pge-challenge` asks whether the change can prove itself.
+
+When challenge can resolve a matching `.pge/tasks-<slug>/` task directory, it must write its durable output to `.pge/tasks-<slug>/challenge.md`. That task artifact is the default prove-it failure handoff back into `pge-exec`.
 
 Do not fix implementation, create PRs, merge, deploy, or mark shipped. If proof fails, route back to fix/review.
 
@@ -46,6 +49,12 @@ Use only the inputs that exist:
 If the user provides a sentence to prove or challenge, select `challenge_claim`, set `claim_source: prompt`, use that sentence as `challenged_claim`, produce evidence, and return a conclusion. Remaining arguments may still provide base ref, task slug, or plan path.
 
 Current prompt outranks older plan/research artifacts. If a prompt is present, treat it as the highest-priority requirement source. If no prompt is present, do not block solely for that; use the strongest available execution context.
+
+When challenge resolves a `.pge/tasks-<slug>/` source, set:
+- `task_dir: .pge/tasks-<slug>/`
+- `artifact_path: .pge/tasks-<slug>/challenge.md`
+
+Write the final challenge output there before the final response. This artifact is the durable prove-it seam for `pge-exec` bounded repair reruns.
 
 ## Base Resolution
 
@@ -113,10 +122,34 @@ Pure reasoning is not enough for `PASS`. Use tests, validator output, grep/trace
 - `NEEDS_FIX` — prompt requirement failed, plan/development item is unmet or unproven, meaningful change fails its challenge, or evidence does not support the claim.
 - `READY_TO_SHIP` — change explanation is complete, prompt challenge matrix passes or is `N/A` because no current prompt was supplied, execution self-proof passes against the available plan/development requirements, and every meaningful change has failure scenario plus passing evidence.
 
+## Execution Feedback Contract
+
+This execution feedback contract makes challenge findings consumable by `pge-exec`.
+
+Every challenge finding that could drive follow-up work must be execution-facing, not just reviewer-facing.
+
+Required per-finding fields:
+- `source`: `prompt_challenge | plan_fulfillment | self_proof`
+- `result`: `FAIL | UNPROVEN | PASS | N/A`
+- `scope`: `in-contract | contract-change`
+- `bounded_fix`: the smallest concrete bounded repair needed, or `none`
+- `evidence`: exact prompt/plan/diff/verification citation supporting the finding
+- `next_repair_path`: `pge-exec repair challenge findings for <task-slug>` when `scope: in-contract`; route upstream to `pge-plan` when `scope: contract-change`
+
+Scope classification rules:
+- `in-contract`: the fix stays inside the current plan contract and can be rerun as bounded repair work in `pge-exec`
+- `contract-change`: fixing it would change the plan contract itself — goal, scope, acceptance, target areas, verification, or non-goals
+
+Default repair path:
+- Challenge findings go back to `pge-exec` as bounded repair input.
+- Only `contract-change` findings route upstream to `pge-plan`.
+
 ## Output Contract
 
 ```md
 ## PGE Challenge Result
+- task_dir: .pge/tasks-<slug>/ | not_available
+- artifact_path: .pge/tasks-<slug>/challenge.md | not_available
 - challenge_model: prove_expected | challenge_claim
 - base_ref: <sha/ref>
 - prompt_ref: <current prompt / latest user constraints / not_provided>
@@ -126,7 +159,7 @@ Pure reasoning is not enough for `PASS`. Use tests, validator output, grep/trace
 - execution_context_ref: <run artifact / review artifact / development requirement source / not_available>
 - changed_files: <count + list>
 - route: BLOCK_SHIP | NEEDS_FIX | READY_TO_SHIP
-- next: fix and rerun pge-review | rerun pge-challenge | ship
+- next: pge-exec repair challenge findings for <task-slug> | rerun pge-challenge | ship | route upstream to `pge-plan`
 
 ## Change Explanation
 - summary:
@@ -150,6 +183,11 @@ Pure reasoning is not enough for `PASS`. Use tests, validator output, grep/trace
 | Meaningful Change | Claim | Failure Scenario | Evidence Required | Evidence Produced | Verdict |
 |---|---|---|---|---|---|
 | <change> | <claim> | <plausible failure> | <needed proof> | <actual proof> | PASS / FAIL / UNPROVEN |
+
+## Exec Repair Contract
+| Finding ID | Source | Result | Scope | Bounded Fix | Evidence | Next Repair Path |
+|---|---|---|---|---|---|---|
+| <id> | <prompt_challenge / plan_fulfillment / self_proof> | <FAIL / UNPROVEN / PASS / N/A> | <in-contract / contract-change> | <smallest concrete bounded repair or none> | <file:line / diff / verification citation> | <pge-exec repair challenge findings for <task-slug> / route upstream to `pge-plan`> |
 
 ## Gaps
 - <only if BLOCK_SHIP or NEEDS_FIX>

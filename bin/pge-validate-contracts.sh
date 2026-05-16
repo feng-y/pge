@@ -40,9 +40,12 @@ for file in \
   CLAUDE.md \
   AGENTS.md \
   .claude-plugin/plugin.json \
+  commands/local-install.md \
+  docs/exec-plan/pge-exec-boundary-transcript.md \
   bin/pge-local-install.sh \
   skills/pge-research/SKILL.md \
   skills/pge-plan/SKILL.md \
+  skills/pge-plan-normalize/SKILL.md \
   skills/pge-exec/SKILL.md \
   skills/pge-review/SKILL.md \
   skills/pge-challenge/SKILL.md \
@@ -85,12 +88,16 @@ require_pattern README.md 'Research → Plan → Execute → Review → Ship' \
   "README full workflow arc"
 require_pattern README.md 'pge-review → pge-challenge → ship' \
   "README review prove ship tail"
-require_pattern README.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHALLENGE.*READY_TO_SHIP' \
-  "README review gate routes"
+require_pattern README.md 'routing to fix, challenge, or ship' \
+  "README review gate summary"
 require_pattern README.md 'skills/pge-research/SKILL.md' \
   "README pge-research surface"
 require_pattern README.md 'skills/pge-plan/SKILL.md' \
   "README pge-plan surface"
+require_pattern README.md 'skills/pge-plan-normalize/SKILL.md' \
+  "README pge-plan-normalize surface"
+require_absent_pattern README.md 'support surfaces.*pge-plan-normalize' \
+  "README duplicate pge-plan-normalize support classification"
 require_pattern README.md 'skills/pge-exec/SKILL.md' \
   "README pge-exec surface"
 require_pattern README.md 'skills/pge-ai-native-refactor/SKILL.md' \
@@ -116,6 +123,8 @@ require_pattern README.md 'Exec should not be where major intent or acceptance a
 
 require_pattern CLAUDE.md 'skills/pge-research/SKILL.md' \
   "CLAUDE pge-research first read"
+require_pattern CLAUDE.md 'skills/pge-plan-normalize/SKILL.md' \
+  "CLAUDE pge-plan-normalize first read"
 require_pattern CLAUDE.md 'skills/pge-handoff/SKILL.md' \
   "CLAUDE pge-handoff first read"
 require_pattern CLAUDE.md 'skills/pge-review/SKILL.md' \
@@ -142,9 +151,13 @@ require_pattern CLAUDE.md 'Every stage must consume its explicit invocation inpu
   "CLAUDE stage input context intake"
 require_pattern CLAUDE.md 'Research and plan own intent discovery' \
   "CLAUDE research plan own discovery"
+require_absent_pattern CLAUDE.md 'invoke office-hours|invoke investigate|invoke ship|invoke qa|invoke document-release|invoke plan-eng-review' \
+  "CLAUDE non-PGE generic skill routing"
 
 require_pattern AGENTS.md 'Active research surface' \
   "AGENTS research surface"
+require_pattern AGENTS.md 'Active normalization surface' \
+  "AGENTS normalization surface"
 require_pattern AGENTS.md 'Active review surface' \
   "AGENTS review surface"
 require_pattern AGENTS.md 'Active prove-it surface' \
@@ -164,7 +177,7 @@ require_pattern AGENTS.md 'pge-research.*pge-plan.*pge-exec.*pge-review.*pge-cha
 
 require_pattern .claude-plugin/plugin.json '"skill_directories"' \
   "plugin skill directory allowlist"
-for skill in pge-research pge-plan pge-exec pge-ai-native-refactor pge-handoff pge-knowledge pge-html; do
+for skill in pge-research pge-plan pge-plan-normalize pge-exec pge-ai-native-refactor pge-handoff pge-knowledge pge-html; do
   require_pattern .claude-plugin/plugin.json "\"${skill}\"" \
     "plugin ${skill} skill"
 done
@@ -177,6 +190,34 @@ require_pattern bin/pge-local-install.sh 'skill_directories' \
   "local install skill allowlist support"
 require_pattern bin/pge-local-install.sh 'legacy_cleanup' \
   "local install legacy cleanup support"
+require_pattern commands/local-install.md 'real smoke exercise in a Claude Code runtime surface that can execute the Agent Team control-plane calls' \
+  "local install real Agent Team smoke requirement"
+require_pattern commands/local-install.md 'Do not add a fake inline test mode to `pge-exec`' \
+  "local install fake pge-exec smoke prohibition"
+require_absent_pattern commands/local-install.md '/pge-exec test|pge-exec test|tasks-smoke-test/runs/<run_id>/deliverables/smoke\.txt' \
+  "local install stale fake pge-exec smoke path"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'Non-Canonical Source' \
+  "pge-exec transcript non-canonical route"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'type: lane_ready' \
+  "pge-exec transcript lane-ready packet"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'type: generator_completion' \
+  "pge-exec transcript generator packet"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'type: evaluator_verdict' \
+  "pge-exec transcript evaluator packet"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'next: pge-review task-alpha' \
+  "pge-exec transcript review-stage route"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'alternate_next: pge-challenge task-alpha \(prove-it gate inside Review stage\)' \
+  "pge-exec transcript challenge prove-it route"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'pge-exec repair review findings for task-alpha' \
+  "pge-exec transcript repair rerun prompt"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'task artifacts: `\.pge/tasks-task-alpha/review\.md`, `\.pge/tasks-task-alpha/challenge\.md`' \
+  "pge-exec transcript task artifact repair input"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'reads matching review/challenge task artifacts plus current context as bounded repair input' \
+  "pge-exec transcript task-artifact repair backflow"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md '`in-contract` findings stay inside `pge-exec` as bounded repair work' \
+  "pge-exec transcript in-contract repair boundary"
+require_pattern docs/exec-plan/pge-exec-boundary-transcript.md 'only findings that require changing the plan contract route upstream to `pge-plan`' \
+  "pge-exec transcript contract-change upstream boundary"
 
 for active_skill in \
   skills/pge-research/SKILL.md \
@@ -404,6 +445,12 @@ require_pattern skills/pge-ai-native-refactor/SKILL.md 'Do not create `\.pge/` a
   "pge-ai-native-refactor no auto-PGE boundary"
 require_pattern skills/pge-plan/SKILL.md 'READY_FOR_EXECUTE' \
   "pge-plan ready state"
+require_pattern skills/pge-plan-normalize/SKILL.md 'READY_FOR_EXECUTE_WITH_ASSUMPTIONS' \
+  "pge-plan-normalize assumptions route"
+require_pattern skills/pge-plan-normalize/SKILL.md 'lossless adapter, not a planning workflow' \
+  "pge-plan-normalize role boundary"
+require_pattern skills/pge-plan-normalize/SKILL.md 'Any inferred execution-critical field forces this route' \
+  "pge-plan-normalize inferred critical route"
 require_pattern skills/pge-plan/SKILL.md 'Security`: yes \| no' \
   "pge-plan security flag"
 require_absent_pattern skills/pge-plan/SKILL.md '\.pge/plans/' \
@@ -429,6 +476,12 @@ require_pattern skills/pge-exec/SKILL.md 'shutdown_response' \
   "pge-exec shutdown confirmation"
 require_pattern skills/pge-exec/SKILL.md 'shutdown approval|teammate termination' \
   "pge-exec runtime-level shutdown completion"
+require_pattern skills/pge-exec/SKILL.md 'consumes only canonical `\.pge/tasks-<slug>/plan\.md`' \
+  "pge-exec canonical only"
+require_absent_pattern skills/pge-exec/SKILL.md 'Normalize in exec|Prefer exec normalization|execute-normalize directly' \
+  "stale exec normalization path"
+require_absent_pattern skills/pge-exec/SKILL.md 'Empty learnings\.md is a protocol violation|Feedback to Config' \
+  "stale exec compound path"
 require_absent_pattern skills/pge-exec/SKILL.md 'TeamDelete\(team_name=team_name\)' \
   "pge-exec legacy TeamDelete signature"
 require_absent_pattern skills/pge-exec/SKILL.md '`coder` \| `reviewer`|default `coder` / `reviewer`' \
@@ -437,14 +490,18 @@ require_pattern skills/pge-exec/SKILL.md '\.pge/tasks-<slug>/runs/<run_id>/' \
   "pge-exec run artifact"
 require_absent_pattern skills/pge-exec/SKILL.md '\.pge/runs/' \
   "pge-exec legacy run path"
-require_pattern skills/pge-exec/SKILL.md 'on a bare `pge-exec` invocation, discover `\.pge/tasks-<slug>/plan\.md`' \
-  "pge-exec bare invocation plan discovery"
-require_pattern skills/pge-exec/SKILL.md 'ask the user whether to execute the plan artifact or continue from the current context' \
-  "pge-exec source selection question"
-require_pattern skills/pge-exec/SKILL.md 'report a broken handoff instead of silently pretending the plan artifact exists' \
-  "pge-exec broken handoff guard"
-require_pattern skills/pge-exec/SKILL.md 'multiple plausible plan artifacts exist and no explicit selector is given' \
-  "pge-exec ambiguous plan selection guard"
+require_pattern skills/pge-exec/SKILL.md 'Do not execute from conversation context or a non-canonical source' \
+  "pge-exec rejects non-canonical sources"
+require_pattern skills/pge-exec/SKILL.md 'pge-exec <task-slug> --run-id <run_id>' \
+  "pge-exec explicit run-id invocation"
+require_pattern skills/pge-exec/SKILL.md 'pge-exec repair review findings for <task-slug>' \
+  "pge-exec review repair prompt"
+require_pattern skills/pge-exec/SKILL.md 'pge-exec repair challenge findings for <task-slug>' \
+  "pge-exec challenge repair prompt"
+require_pattern skills/pge-exec/SKILL.md '\.pge/tasks-<slug>/review\.md.*\.pge/tasks-<slug>/challenge\.md' \
+  "pge-exec task-artifact repair input"
+require_pattern skills/pge-exec/SKILL.md 'current-context review/challenge output as bounded repair input|current context.*bounded repair input' \
+  "pge-exec current-context repair input"
 require_pattern skills/pge-exec/SKILL.md 'mkdir -p \.pge/tasks-<slug>/runs/<run_id>/' \
   "pge-exec run directory creation"
 require_pattern skills/pge-exec/SKILL.md 'peer Generator \+ Evaluator lanes|Generator and Evaluator are complementary peer lanes' \
@@ -453,22 +510,48 @@ require_pattern skills/pge-exec/SKILL.md 'pge-exec-pre-<run_id>' \
   "pge-exec rollback tag"
 require_pattern skills/pge-exec/SKILL.md 'state\.json' \
   "pge-exec resume state"
-require_pattern skills/pge-exec/SKILL.md 'learnings\.md' \
-  "pge-exec learnings artifact"
-require_pattern skills/pge-exec/SKILL.md '\.pge/tasks-smoke-test/runs/<run_id>/deliverables/smoke\.txt' \
-  "pge-exec smoke test task-dir path"
+require_pattern skills/pge-exec/SKILL.md 'Non-Team fallback is not a valid `pge-exec` execution mode' \
+  "pge-exec no non-team fallback"
+require_absent_pattern skills/pge-exec/SKILL.md 'In headless mode, auto-approve|In headless mode, pick the first option|record as LOW-confidence assumption' \
+  "pge-exec stale headless HITL auto decision"
+require_pattern skills/pge-exec/SKILL.md 'Headless mode must not turn missing human confirmation into approval or missing human choice into a decision' \
+  "pge-exec headless HITL no false approval"
+require_pattern skills/pge-exec/SKILL.md 'Without human confirmation or an explicit plan-provided automated substitute, route `NEEDS_HUMAN`' \
+  "pge-exec HITL verify needs human"
+require_pattern skills/pge-exec/SKILL.md 'Without a user decision, route `NEEDS_HUMAN`' \
+  "pge-exec HITL decision needs human"
+require_absent_pattern skills/pge-exec/SKILL.md 'learnings_recorded' \
+  "pge-exec stale learnings response field"
+require_pattern skills/pge-exec/SKILL.md 'Do not require `learnings\.md`' \
+  "pge-exec facts-only artifact boundary"
+require_pattern skills/pge-exec/SKILL.md 'pge-challenge <task-slug> \(prove-it gate inside Review stage\)' \
+  "pge-exec challenge next-step review-stage qualifier"
+require_pattern skills/pge-exec/SKILL.md '`PASS`.*`READY_FOR_CHALLENGE`' \
+  "pge-exec final review pass mapping"
+require_pattern skills/pge-exec/SKILL.md '`ADVISORY_ONLY`.*`READY_FOR_CHALLENGE`' \
+  "pge-exec final review advisory mapping"
+require_pattern skills/pge-exec/SKILL.md '`REPAIR_REQUIRED`.*`NEEDS_FIX`' \
+  "pge-exec final review repair mapping"
+require_pattern skills/pge-exec/SKILL.md '`BLOCKED`.*`BLOCK_SHIP`' \
+  "pge-exec final review blocked mapping"
+require_pattern skills/pge-exec/SKILL.md 'When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `\.pge/tasks-<slug>/review\.md` or `\.pge/tasks-<slug>/challenge\.md` plus any explicit review/challenge output in current context, and treat `in-contract` findings as bounded repair input' \
+  "pge-exec review challenge backflow"
+require_pattern skills/pge-exec/SKILL.md 'If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing' \
+  "pge-exec missing repair input needs human"
+require_pattern skills/pge-exec/SKILL.md 'routes upstream to `pge-plan` only when resolving it would require changing the plan contract itself' \
+  "pge-exec contract-change upstream boundary"
+require_pattern skills/pge-exec/SKILL.md 'default post-exec path remains `pge-review` then `pge-challenge`' \
+  "pge-exec default review challenge path"
+require_pattern skills/pge-exec/SKILL.md 'hand off directly to `pge-challenge` as a prove-it gate inside the Review stage' \
+  "pge-exec direct challenge prove-it path"
+require_pattern skills/pge-exec/SKILL.md '`READY_TO_SHIP` is not produced by `pge-exec` final review' \
+  "pge-exec no ready-to-ship final review route"
 require_pattern skills/pge-exec/SKILL.md 'Completion gate' \
   "pge-exec completion gate"
 require_pattern skills/pge-exec/SKILL.md 'not chat-only summaries or ad-hoc pseudocode' \
   "pge-exec real artifact boundary"
 require_pattern skills/pge-exec/SKILL.md 'evidence alignment' \
   "pge-exec evidence alignment"
-require_pattern skills/pge-exec/SKILL.md 'Semantic alignment check' \
-  "pge-exec semantic alignment check"
-require_pattern skills/pge-exec/SKILL.md 'not the stage for major intent discovery' \
-  "pge-exec ambiguity boundary"
-require_pattern skills/pge-exec/SKILL.md 'route back to `pge-plan` or `pge-research`' \
-  "pge-exec routes upstream for ambiguity"
 require_pattern skills/pge-exec/handoffs/generator.md 'type: lane_ready' \
   "pge-exec generator lane ready packet"
 require_pattern skills/pge-exec/handoffs/generator.md 'type: shutdown_response' \
@@ -481,6 +564,10 @@ require_pattern skills/pge-exec/handoffs/evaluator.md 'type: shutdown_response' 
   "pge-exec evaluator shutdown response"
 require_pattern skills/pge-exec/handoffs/evaluator.md 'shutdown_request' \
   "pge-exec evaluator shutdown request handling"
+require_pattern skills/pge-exec/handoffs/reviewer.md '`READY_TO_SHIP` is not produced by `pge-exec` final review' \
+  "pge-exec reviewer handoff no ready-to-ship route"
+require_pattern skills/pge-exec/handoffs/reviewer.md '`REPAIR_REQUIRED`.*`NEEDS_FIX`' \
+  "pge-exec reviewer handoff repair route mapping"
 
 require_pattern skills/pge-handoff/SKILL.md 'mktemp -t pge-handoff-XXXXXX\.md' \
   "pge-handoff temporary artifact"
@@ -547,6 +634,28 @@ require_pattern skills/pge-review/SKILL.md 'BLOCK_SHIP.*NEEDS_FIX.*READY_FOR_CHA
   "pge-review route contract"
 require_pattern skills/pge-review/SKILL.md 'The default successful route is `READY_FOR_CHALLENGE`' \
   "pge-review default success route"
+require_pattern skills/pge-review/SKILL.md 'task_dir: \.pge/tasks-<slug>/' \
+  "pge-review task artifact path"
+require_pattern skills/pge-review/SKILL.md 'artifact_path: \.pge/tasks-<slug>/review\.md' \
+  "pge-review review artifact path"
+require_pattern skills/pge-review/SKILL.md 'Exec Repair Contract' \
+  "pge-review exec repair contract"
+require_pattern skills/pge-review/SKILL.md '`source`:' \
+  "pge-review source field"
+require_pattern skills/pge-review/SKILL.md '`severity`:' \
+  "pge-review severity field"
+require_pattern skills/pge-review/SKILL.md '`scope`:' \
+  "pge-review scope field"
+require_pattern skills/pge-review/SKILL.md '`bounded_fix`:' \
+  "pge-review bounded-fix field"
+require_pattern skills/pge-review/SKILL.md '`next_repair_path`:' \
+  "pge-review next-repair-path field"
+require_pattern skills/pge-review/SKILL.md 'in-contract' \
+  "pge-review in-contract scope anchor"
+require_pattern skills/pge-review/SKILL.md 'contract-change' \
+  "pge-review contract-change scope anchor"
+require_pattern skills/pge-review/SKILL.md 'route upstream to `pge-plan`' \
+  "pge-review contract-change upstream route"
 require_pattern skills/pge-review/SKILL.md 'Semantic Alignment' \
   "pge-review semantic alignment axis"
 require_pattern skills/pge-review/SKILL.md 'original user intent' \
@@ -558,6 +667,28 @@ require_pattern skills/pge-challenge/SKILL.md 'Plan Fulfillment Matrix' \
   "pge-challenge plan fulfillment matrix"
 require_pattern skills/pge-challenge/SKILL.md 'Review Self-Proof Matrix' \
   "pge-challenge self proof matrix"
+require_pattern skills/pge-challenge/SKILL.md 'task_dir: \.pge/tasks-<slug>/' \
+  "pge-challenge task artifact path"
+require_pattern skills/pge-challenge/SKILL.md 'artifact_path: \.pge/tasks-<slug>/challenge\.md' \
+  "pge-challenge challenge artifact path"
+require_pattern skills/pge-challenge/SKILL.md 'Execution Feedback Contract' \
+  "pge-challenge execution feedback contract"
+require_pattern skills/pge-challenge/SKILL.md '`source`:' \
+  "pge-challenge source field"
+require_pattern skills/pge-challenge/SKILL.md '`result`:' \
+  "pge-challenge result field"
+require_pattern skills/pge-challenge/SKILL.md '`scope`:' \
+  "pge-challenge scope field"
+require_pattern skills/pge-challenge/SKILL.md '`bounded_fix`:' \
+  "pge-challenge bounded-fix field"
+require_pattern skills/pge-challenge/SKILL.md '`next_repair_path`:' \
+  "pge-challenge next-repair-path field"
+require_pattern skills/pge-challenge/SKILL.md 'in-contract' \
+  "pge-challenge in-contract scope anchor"
+require_pattern skills/pge-challenge/SKILL.md 'contract-change' \
+  "pge-challenge contract-change scope anchor"
+require_pattern skills/pge-challenge/SKILL.md 'route upstream to `pge-plan`' \
+  "pge-challenge contract-change upstream route"
 require_pattern skills/pge-challenge/SKILL.md 'prove_expected \| challenge_claim' \
   "pge-challenge challenge models"
 require_pattern skills/pge-challenge/SKILL.md 'sentence to prove or challenge' \

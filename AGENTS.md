@@ -25,7 +25,7 @@ This repo uses `CLAUDE.md` as the primary resident agent entry point.
 - Active flow aligns to Research -> Plan -> Execute -> Review -> Ship.
 - `main` owns route, state, and gate decisions.
 - Subagents are bounded helpers, not workflow authorities.
-- Active flow is artifact-first: `.pge/tasks-<slug>/research.md` -> `.pge/tasks-<slug>/plan.md` -> `.pge/tasks-<slug>/runs/<run_id>/*`.
+- Active flow is artifact-first: `.pge/tasks-<slug>/research.md` -> `.pge/tasks-<slug>/plan.md` -> `.pge/tasks-<slug>/runs/<run_id>/*`, with `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md` as bounded repair / prove-it handoff artifacts.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are spawned by pge-exec Final Review Gate.
 
 Do not maintain separate agent rules in this file. All resident rules live in `CLAUDE.md`.

@@ -21,7 +21,7 @@ PGE uses fixed interfaces with flexible expression.
 - Research must expose `intent_spec`, `clarify_status`, `plan_delta`, `blockers`, and `evidence`.
 - Plan must expose `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, and any plan deviations.
-- Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps.
+- Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.
 - Every stage must consume its explicit input plus relevant current context. When context changes intent, scope, or the fix target, the stage must clarify before producing the next contract.
 - Research and plan own discovery and clarification. Exec should not be where major intent or acceptance ambiguity is resolved; that means the upstream contract was not ready.
 
@@ -45,7 +45,7 @@ pge-research → pge-plan → pge-exec → pge-review → pge-challenge → ship
 
 Each skill produces an artifact or gate result that the next step consumes. You can enter at any point — skip research if you already know the landscape, skip planning if you already have a plan file, or run review/challenge on ordinary diffs outside the PGE pipeline.
 
-PGE can also adopt plans produced by other workflows. If a Claude plan mode output, `docs/exec-plan/` document, or foreign workflow plan is clear and complete — goal, scope, semantic ownership, non-goals, target areas or ownership boundaries, implementation direction, and verification/evidence checkpoints are all present — `pge-plan-normalize` may convert it into `.pge/tasks-<slug>/plan.md`. After normalization, `pge-exec` consumes only that canonical artifact. Run artifacts, evidence, review, and any learning candidates must live under `.pge/tasks-<slug>/runs/<run_id>/`.
+PGE can also adopt plans produced by other workflows. If a Claude plan mode output, `docs/exec-plan/` document, or foreign workflow plan is clear and complete — goal, scope, semantic ownership, non-goals, target areas or ownership boundaries, implementation direction, and verification/evidence checkpoints are all present — `pge-plan-normalize` may convert it into `.pge/tasks-<slug>/plan.md`. After normalization, `pge-exec` consumes only that canonical artifact. Run artifacts and execution evidence live under `.pge/tasks-<slug>/runs/<run_id>/`. Review and challenge feedback that may trigger bounded repair reruns lives under `.pge/tasks-<slug>/` so `pge-exec` can consume those task artifacts plus current context directly.
 
 ### Workflow Map
 
@@ -55,10 +55,10 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 | Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` with executable issue contract |
 | Normalize | `pge-plan-normalize` | canonical `.pge/tasks-<slug>/plan.md` adopted from a complete external plan |
 | Execute | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
-| Review | `pge-review` + optional `pge-challenge` | Review gate: `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; prove-it evidence when needed |
+| Review | `pge-review` + optional `pge-challenge` | `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md`; feedback can feed bounded repair reruns via `pge-exec`, upstream to `pge-plan` only for contract changes, and exec may hand off directly to challenge as the prove-it gate inside the Review stage |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
 
-`pge-ai-native-refactor`, `pge-plan-normalize`, `pge-handoff`, `pge-knowledge`, `pge-html`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
+`pge-ai-native-refactor`, `pge-handoff`, `pge-knowledge`, `pge-html`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
 
 ## Skills
 

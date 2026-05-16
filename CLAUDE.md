@@ -84,15 +84,15 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
 - `pge-research`, `pge-plan`, `pge-plan-normalize`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
-- `pge-exec` owns route, state, gates, and execution-window decisions.
+- `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback.
 - `pge-research` owns evidence gathering and ambiguity resolution.
 - `pge-plan-normalize` owns lossless conversion of complete external plans into canonical `.pge/tasks-<slug>/plan.md`; exec must not normalize non-canonical sources.
-- `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough.
-- `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship.
+- `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in an exec-facing repair format.
+- `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in an exec-facing repair format. `pge-exec` may hand off directly to it only as the next legal prove-it step inside the Review stage, not as a bypass around review authority.
 - `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
 - `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
 - `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted.
-- Planning outputs and run artifacts under `.pge/tasks-<slug>/` are the handoff seams.
+- Planning outputs, run artifacts, and review/challenge feedback under `.pge/tasks-<slug>/` are the handoff seams.
 - Clear and complete plans from outside PGE may be adopted into repo management by `pge-plan-normalize` normalization into `.pge/tasks-<slug>/plan.md`. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
@@ -131,21 +131,3 @@ Only ask the user for true requirement gaps that block a fair contract.
 
 - Plugin source and marketplace source are the same repo. Installed layout differs from source layout.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents. Other legacy agent/skill files have been removed.
-
-## Skill routing
-
-When the user's request matches an available skill, ALWAYS invoke it using the Skill
-tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
-The skill has specialized workflows that produce better results than ad-hoc answers.
-
-Key routing rules:
-- Product ideas, "is this worth building", brainstorming → invoke office-hours
-- Bugs, errors, "why is this broken", 500 errors → invoke investigate
-- Ship, deploy, push, create PR → invoke ship
-- QA, test the site, find bugs → invoke qa
-- Code review, check my diff → invoke review
-- Update docs after shipping → invoke document-release
-- Weekly retro → invoke retro
-- Design system, brand → invoke design-consultation
-- Visual audit, design polish → invoke design-review
-- Architecture review → invoke plan-eng-review

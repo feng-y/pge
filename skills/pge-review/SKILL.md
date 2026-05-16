@@ -9,6 +9,7 @@ description: >
 argument-hint: "<fixed-point: branch, commit, tag, or main>"
 allowed-tools:
   - Read
+  - Write
   - Bash
   - Grep
   - Glob
@@ -28,6 +29,8 @@ Review-stage gate for the diff between `HEAD` and a fixed point:
 The standards, semantic alignment, and simplicity axes run as parallel sub-agents so they don't pollute each other's context. Verification is aggregated by the main review.
 
 `pge-review` is the Review stage in the Research → Plan → Execute → Review → Ship arc. It must return a gate route, not just a list of observations.
+
+When review can resolve a matching `.pge/tasks-<slug>/` task directory, it must write its durable output to `.pge/tasks-<slug>/review.md`. That task artifact is the default repair handoff back into `pge-exec`.
 
 Review is responsible for checking:
 
@@ -56,6 +59,12 @@ Look for the originating intent/contract source in this order:
 5. If nothing specific is found, ask once. If no spec/intent source exists, skip the Semantic Alignment axis and say so.
 
 When a matching `.pge/tasks-<slug>/research.md` exists beside the plan, read its minimum contract fields (`intent_spec`, `clarify_status`, `plan_delta`, `blockers`, `evidence`) only as needed to detect semantic drift between original intent, plan, and diff.
+
+When review resolves a `.pge/tasks-<slug>/` source, set:
+- `task_dir: .pge/tasks-<slug>/`
+- `artifact_path: .pge/tasks-<slug>/review.md`
+
+Write the final review output there before the final response. This artifact is the durable repair seam for `pge-exec` bounded repair reruns.
 
 ### 3. Identify the standards sources
 
@@ -101,6 +110,26 @@ Route rules:
 
 The default successful route is `READY_FOR_CHALLENGE`, not `READY_TO_SHIP`.
 
+### 4.6 Task Artifact + Exec Repair Contract
+
+Every review finding that could drive follow-up work must be execution-facing, not just reviewer-facing.
+
+Required per-finding fields:
+- `source`: `standards | semantic_alignment | simplicity | verification`
+- `severity`: `Required | Important | Advisory | FYI`
+- `scope`: `in-contract | contract-change`
+- `bounded_fix`: the smallest concrete bounded repair needed, or `none`
+- `evidence`: exact spec/diff/verification citation supporting the finding
+- `next_repair_path`: `pge-exec repair review findings for <task-slug>` when `scope: in-contract`; `route upstream to pge-plan` when `scope: contract-change`
+
+Scope classification rules:
+- `in-contract`: the fix stays inside the current plan contract and can be rerun as bounded repair work in `pge-exec`
+- `contract-change`: fixing it would change the plan contract itself — goal, scope, acceptance, target areas, verification, or non-goals
+
+Default repair path:
+- Review findings go back to `pge-exec` as bounded repair input.
+- Only `contract-change` findings route upstream to `pge-plan`.
+
 ### 5. Spawn three sub-agents in parallel
 
 **Standards agent brief:**
@@ -137,13 +166,26 @@ If the verification story is weak, surface it as a review finding even if the co
 
 Present four sections under `## Standards`, `## Semantic Alignment`, `## Simplicity`, and `## Verification Story`. Do not merge or rerank the three axes — keep them separate.
 
+When `task_dir` is available, write the final output to `artifact_path` before the final response.
+
 End with:
 ```
+## Review Artifact
+- task_dir: .pge/tasks-<slug>/ | not_available
+- artifact_path: .pge/tasks-<slug>/review.md | not_available
+- review_result: BLOCK_SHIP | NEEDS_FIX | READY_FOR_CHALLENGE | READY_TO_SHIP
+- default_repair_path: pge-exec repair review findings for <task-slug> | route upstream to `pge-plan`
+
+## Exec Repair Contract
+| Finding ID | Source | Severity | Scope | Bounded Fix | Evidence | Next Repair Path |
+|---|---|---|---|---|---|---|
+| <id> | <standards / semantic_alignment / simplicity / verification> | <Required / Important / Advisory / FYI> | <in-contract / contract-change> | <smallest concrete bounded repair or none> | <file:line / diff / verification citation> | <pge-exec repair review findings for <task-slug> / route upstream to `pge-plan`> |
+
 ## Review Gate
 - route: BLOCK_SHIP | NEEDS_FIX | READY_FOR_CHALLENGE | READY_TO_SHIP
 - reason: <one sentence>
 - required_before_next: <fixes/evidence or "none">
-- next: fix and rerun pge-review | pge-challenge <task-slug> | ship
+- next: pge-exec repair review findings for <task-slug> | pge-challenge <task-slug> | ship | route upstream to `pge-plan`
 
 ## Summary
 - Standards: <N findings> (required: X, important: Y, advisory: Z)
