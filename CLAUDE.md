@@ -122,7 +122,6 @@ Only ask the user for true requirement gaps that block a fair contract.
 ## Validation commands
 
 ```bash
-./bin/pge-validate-contracts.sh     # Validate semantic contract structure
 ./bin/pge-progress-report.sh        # Generate progress report
 ./bin/pge-local-install.sh          # Install plugin to ~/.claude
 ```

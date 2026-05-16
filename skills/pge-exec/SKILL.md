@@ -1,9 +1,9 @@
 ---
 name: pge-exec
 description: >
-  Execute pge-plan issues using concurrent Generator workers and concentrated Evaluator review.
-  Consumes .pge/tasks-<slug>/plan.md,
-  dispatches bounded execution, requires Generator self-review, invokes independent Evaluator review when risk or batching triggers it, and runs a bounded repair loop.
+  Execute canonical .pge/tasks-<slug>/plan.md issues using concurrent Generator workers
+  and concentrated or risk-triggered Evaluator review. pge-exec owns dispatch,
+  scheduling, state, evidence alignment, bounded repair, and the final execution route.
 version: 1.0.0
 argument-hint: "<task-slug> [--run-id <run_id>] | .pge/tasks-<slug>/plan.md [--run-id <run_id>] | repair review findings for <task-slug>"
 allowed-tools:
@@ -23,9 +23,9 @@ allowed-tools:
 
 ## Purpose
 
-Execute a canonical plan produced by `pge-plan` or `pge-plan-normalize`. `pge-exec` consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and coordinates concurrent Generator workers plus concentrated Evaluator review.
+Execute a canonical .pge/tasks-<slug>/plan.md produced by `pge-plan` or `pge-plan-normalize`. `pge-exec` is the execution control plane: it consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and owns concurrent scheduling, runtime state, evidence alignment, bounded repair, and the final execution route.
 
-This is an orchestration skill. It executes the plan by coordinating Generator implementation, verification, and self-review. Evaluator is an independent review lane for concentrated or risk-triggered checks, not a mandatory serial step after every issue. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
+This is an orchestration skill. Generator owns implementation, verification, self-review, and evidence production. Evaluator is an independent QA/review lane used for concentrated review windows, risk-triggered checks, and the `DEEP` evaluator window. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
 Exec is responsible for **evidence alignment**:
 
@@ -48,13 +48,12 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 7. Require each active lane to emit `lane_ready`.
 8. Dispatch independent issues concurrently when dependencies and Target Areas allow it.
 9. Require `generator_completion` with self-review and evidence.
-10. Decide whether concentrated Evaluator review is triggered.
-11. If triggered, require Evaluator `PASS | RETRY | BLOCK`; otherwise complete from Generator evidence plus main acceptance checks.
-12. Convert every failure into repair, blocked state, run route, or lane recovery.
-13. Persist state after every transition.
-14. Check stop condition, semantic alignment, regression, and integration.
-15. Run Final Review Gate only when whole-diff risk triggers it.
-16. Teardown using runtime truth, then write artifacts before the final response.
+10. Dispatch Evaluator immediately when a concentrated or risk-triggered review condition fires; otherwise keep independent Generator work moving and queue the candidate for the next concentrated review window.
+11. Apply Evaluator `PASS | RETRY | BLOCK` only where review is dispatched, and send failures into bounded repair, blocked state, run route, or lane recovery.
+12. Persist state after every transition.
+13. Check stop condition, semantic alignment, regression, and integration.
+14. Run Final Review Gate only when whole-diff risk triggers it.
+15. Teardown using runtime truth, then write artifacts before the final response.
 
 ## Must Not
 
@@ -63,7 +62,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not read `references/external-plan-normalization.md` from exec.
 - Do not modify the plan.
 - Do not bottleneck all issues through a fixed Generator -> Evaluator serial pair.
-- Do not claim a Generator issue is complete without self-review, evidence, and main acceptance checks.
+- Do not claim a Generator issue is complete without self-review, evidence, and any concentrated or risk-triggered Evaluator review required by the issue or review window.
 - Do not skip concentrated Evaluator review when a risk trigger fires.
 - Do not let Evaluator findings hang without repair, blocked state, run route, or lane recovery.
 - Do not retry more than 3 attempts per issue.
@@ -88,7 +87,7 @@ pge-exec repair review findings for <task-slug>
 pge-exec repair challenge findings for <task-slug>
 ```
 
-If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, keep the task slug as the user-facing entrypoint: use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`, then validate that artifact's provenance before consuming any `in-contract` findings. Validation is mandatory: read the provenance block, verify `source_run_id` resolves to an existing run under the same task, verify that referenced run still matches the current canonical plan identity, and verify the current repo repair target still matches `reviewed_head` plus `reviewed_diff_fingerprint` and `reviewed_base_ref` or a resolved equivalent base commit. If provenance is missing, ambiguous, stale, or mismatched, reject the artifact and route to rerun the matching review/challenge instead of silently repairing. Consume explicit current-context review/challenge output only as additional bounded repair input, not as a substitute for a failed task artifact. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
+If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, keep the task slug as the user-facing entrypoint and use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`. The provenance and backflow rules in Final Review govern whether those findings are consumable. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
 
 Non-canonical inputs include Claude plan mode output, `docs/exec-plan/` documents, current conversation plan text, and foreign workflow plans. Stop before implementation and report:
 
@@ -112,7 +111,7 @@ Task directory resolution:
 mkdir -p .pge/tasks-<slug>/runs/<run_id>/
 ```
 
-All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge rerun input stays task-level and comes from `.pge/tasks-<slug>/review.md`, `.pge/tasks-<slug>/challenge.md`, and any explicit current-context repair packet. These `.pge/` paths are canonical, but task artifacts are consumable only after provenance validation. Before bounded repair, exec must verify: the artifact belongs to the selected task, the provenance block is present, `source_run_id` exists and is readable, the referenced run resolves to the same canonical plan identity, and the current repo repair target still matches `reviewed_head`, `reviewed_diff_fingerprint`, and `reviewed_base_ref` or a resolved equivalent base commit. Any missing, stale, or mismatched provenance makes the artifact non-consumable and routes to rerun the matching review/challenge. Notes or summaries outside `.pge/` are non-authoritative and must not replace required run artifacts or task-artifact repair input.
+All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge rerun input stays task-level and comes from `.pge/tasks-<slug>/review.md`, `.pge/tasks-<slug>/challenge.md`, and any explicit current-context repair packet. Notes or summaries outside `.pge/` are non-authoritative and must not replace required run artifacts or task-artifact repair input.
 
 ## Plan Validation
 
@@ -164,7 +163,7 @@ Agent resolution:
 
 If project-specific `generator` or `evaluator` subagent types exist and are available in the current runtime, they may be used. Otherwise use the default `general-purpose` / `agent-skills:code-reviewer` lane types while preserving PGE lane names `generator` and `evaluator`. If neither default is available, route `BLOCKED` instead of silently substituting a main-thread fallback.
 
-Generator and Evaluator are complementary peer lanes under main coordination. Main owns routing, state, health monitoring, and repair scheduling. Generator owns implementation quality before handoff. Evaluator owns independent completion judgment. A `generator_completion READY` means candidate-ready for evaluation, not issue complete.
+Generator and Evaluator are complementary peer lanes under main coordination. Main owns routing, concurrent scheduling, state, health monitoring, bounded repair scheduling, completion transitions, and the final execution route. Generator owns implementation quality before handoff. Evaluator owns independent QA verdicts for candidates it reviews. A `generator_completion READY` means candidate-ready for main-controlled review, not issue complete.
 
 Required lane preflight:
 
@@ -192,7 +191,7 @@ Recovery:
 - If `TeamCreate` or one lane spawn fails, cleanup the current team context and retry once with the same team name.
 - If retry still fails, route `BLOCKED`.
 - If `generator` remains unavailable, route `BLOCKED` with `team_runtime_unavailable: generator`.
-- If `evaluator` remains unavailable, route `BLOCKED`; no issue may pass without Evaluator.
+- If `evaluator` remains unavailable, route `BLOCKED` for any issue or review window that requires concentrated or risk-triggered evaluation; do not silently downgrade to Generator-only review.
 - A replacement lane is not usable until it sends valid `lane_ready`.
 - Non-Team fallback is not a valid `pge-exec` execution mode. If native Team lanes cannot run, route `BLOCKED` or use a separately documented execution path outside this skill.
 
@@ -210,7 +209,17 @@ Read these authoritative handoff contracts:
 
 ## Issue Loop
 
-Default execution is serial: dispatch Generator, wait for candidate completion, dispatch Evaluator, wait for verdict, then move to the next issue. Pipeline parallelism overlaps evaluation with next generation only when safe.
+Default execution is generator-first with concurrent scheduling. Evaluator is an independent QA/review lane used in concentrated review windows or immediately when a risk trigger fires; do not force a fixed Generator -> Evaluator serial hop after every issue.
+
+Evaluator dispatch triggers:
+- retry or prior review disagreement
+- shared interface change
+- protocol or artifact-layout change
+- `Security: yes` or destructive work
+- cross-issue composition or shared-behavior risk
+- missing evidence, weak evidence, or failed verification
+- explicit user request for independent review
+- `DEEP` evaluator window before route decisions
 
 For each ready issue:
 
@@ -220,25 +229,30 @@ For each ready issue:
 4. Require exactly one terminal `generator_completion` packet for that attempt.
 5. Candidate gate: deliverable exists, evidence is present, status is `READY` or `BLOCKED`, changed files are listed, and deviations are recorded.
 6. If Generator reports `BLOCKED`, skip Evaluator and record issue `BLOCKED`.
-7. Dispatch Evaluator with issue criteria and Generator evidence using `skills/pge-exec/handoffs/evaluator.md`.
-8. If pipeline conditions are met for the next issue, dispatch Generator for the next issue while Evaluator checks the current issue.
-9. Require exactly one terminal `evaluator_verdict`.
+7. If an evaluator dispatch trigger fires, dispatch Evaluator with issue criteria and Generator evidence using `skills/pge-exec/handoffs/evaluator.md`.
+8. Otherwise keep the candidate in the concentrated review queue and continue dispatching independent Generator work when dependencies and Target Areas allow it.
+9. Require exactly one terminal `evaluator_verdict` for each candidate sent to Evaluator.
 10. Apply verdict:
-    - `PASS`: mark issue complete. Only Evaluator can produce this transition.
+    - `PASS`: mark issue complete.
     - `RETRY`: main sends bounded `repair_request` to Generator, up to 3 total attempts.
-    - `BLOCK`: record blocker; continue only with independent issues.
-11. No-change guard: repair with zero file or artifact changes is same-failure. Do not re-evaluate.
-12. After each terminal issue state, record issue alignment evidence.
+    - `BLOCK` with reason `manual verification pending`: route `NEEDS_HUMAN` instead of issue `BLOCKED`.
+    - other `BLOCK`: record blocker; continue only with independent issues.
+11. Before route decisions for queued candidates, run a concentrated Evaluator review window in issue-ID order. `DEEP` runs require a `DEEP` evaluator window before the Final Review Gate.
+12. No-change guard: repair with zero file or artifact changes is same-failure. Do not re-evaluate.
+13. After each terminal issue state, record issue alignment evidence.
+
+Every Generator `READY` candidate must receive an Evaluator `PASS` before its issue status becomes `PASS`. Immediate triggers dispatch Evaluator as soon as the candidate is ready; other candidates wait in the concentrated review queue until the next evaluator window. Main may reject malformed or incomplete candidates before Evaluator, but it must not mark a Generator-only candidate complete.
 
 Pipeline activation requires all of:
 - next issue has no dependency on current issue
 - next issue's Target Areas do not overlap with current issue's Target Areas
 - current issue's Generator completed with candidate `READY`, not `BLOCKED`
+- any immediate evaluator trigger on the current issue has been handled or the candidate is explicitly held for the next concentrated review window
 
 When pipeline is active:
-- If E(N) returns `PASS`, continue normally.
-- If E(N) returns `RETRY`, let G(N+1) finish, hold its result, repair N through main, re-evaluate N, then evaluate held N+1.
-- If E(N) returns `BLOCK`, let G(N+1) finish. Evaluate N+1 only if it is independent; otherwise mark it `BLOCKED`.
+- If immediate E(N) returns `PASS`, continue normally.
+- If immediate E(N) returns `RETRY`, let independent G(N+1) work finish, hold later candidates, repair N through main, re-evaluate N, then resume queued review in issue-ID order.
+- If immediate E(N) returns `BLOCK`, let independent Generator work finish. Release later candidates only if they remain independent.
 
 Communication consistency:
 - Idle/startup messages, partial reasoning, and prose summaries are non-terminal.
@@ -301,7 +315,7 @@ Resumable states:
 - `IN_PROGRESS`
 - `PARTIAL`
 - recoverable `BLOCKED` after the blocking input or environment issue has changed
-- `NEEDS_HUMAN` only after the required human decision has been supplied
+- `NEEDS_HUMAN` only after the required human input has been supplied, including confirmation, decision, or manual action completion
 
 Non-resumable by default:
 - `SUCCESS`
@@ -361,7 +375,8 @@ Minimum exception routing:
 | generator `BLOCKED` | record issue `BLOCKED`; continue only with independent issues |
 | missing or malformed `generator_completion` | nudge once, then lane recovery or issue `BLOCKED` |
 | evaluator `RETRY` | send bounded `repair_request` through main |
-| evaluator `BLOCK` | record issue `BLOCKED`; continue only if independent |
+| evaluator `BLOCK` with `manual verification pending` | route `NEEDS_HUMAN`; do not downgrade missing human verification into issue `BLOCKED` |
+| other evaluator `BLOCK` | record issue `BLOCKED`; continue only if independent |
 | missing or malformed `evaluator_verdict` | nudge once, then lane recovery or issue/run `BLOCKED` |
 | no-change repair | stop retry loop and route issue `BLOCKED` if no new approach |
 | dependency blocked | dependent issue becomes `BLOCKED` with dependency reason |
@@ -384,7 +399,7 @@ Handle by subtype:
 - `HITL:action`: pause execution, tell user what manual action is needed, and route `NEEDS_HUMAN`.
 - Legacy `HITL` without subtype: treat as `HITL:decision`.
 
-Headless mode must not turn missing human confirmation into approval or missing human choice into a decision. If a future plan explicitly allows a headless substitute, the run must record it as a substitute with evidence and confidence, not as human verification or human decision.
+Headless mode must not turn missing human confirmation into approval, missing human choice into a decision, or missing human action completion into a completed action. If a future plan explicitly allows a headless substitute, the run must record it as a substitute with evidence and confidence, not as human verification, human decision, or manual action completion.
 
 ## Final Review
 
@@ -419,7 +434,7 @@ Finding handling:
 - `Important`: repair if bounded and in scope; otherwise route `PARTIAL` with follow-up evidence.
 - `Advisory`: do not block `SUCCESS`; record in `review.md`.
 
-When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md` plus any explicit review/challenge output in current context, but consume task-artifact findings only after provenance validation passes. That validation must confirm the provenance block is present, `source_run_id` resolves to an existing run for the same task, that run still matches the current canonical plan identity, and the current repo repair target still matches `reviewed_head`, `reviewed_diff_fingerprint`, and `reviewed_base_ref` or a resolved equivalent base commit. If the artifact is stale, mismatched, or provenance-missing, reject it as non-consumable and route to rerun the matching review/challenge instead of bounded repair. The source of the finding does not change the default repair path once validation passes. A finding routes upstream to `pge-plan` only when resolving it would require changing the plan contract itself: goal, scope, acceptance, target areas, verification, or non-goals.
+When `pge-exec` is rerun after `pge-review`, `pge-challenge`, or external review, read the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md` plus any explicit review/challenge output in current context, but consume task-artifact findings only after provenance validation passes. That validation must confirm the provenance block is present, `source_run_id` resolves to an existing run for the same task, that run still matches the current canonical plan identity, and the current repo repair target still matches `reviewed_head`, `reviewed_diff_fingerprint`, and `reviewed_base_ref` or a resolved equivalent base commit. If the artifact is stale, mismatched, or provenance-missing, reject it as non-consumable and route to rerun the matching review/challenge instead of bounded repair. Once validation passes, in-contract review/challenge findings default back into `pge-exec` bounded repair. A finding routes upstream to `pge-plan` only when resolving it would require changing the plan contract itself: goal, scope, acceptance, target areas, verification, or non-goals.
 
 Exec final review verdicts are internal to `pge-exec`. They are not the same vocabulary as the later `pge-review` stage routes:
 
@@ -453,7 +468,7 @@ Route values:
 - `SUCCESS`: all issues `PASS`, Stop Condition passes, final review skipped/`PASS`/`ADVISORY_ONLY`
 - `PARTIAL`: some progress, some blocked, regression/integration gap, or unresolved bounded final-review finding
 - `BLOCKED`: no issues could complete, or a blocking run-level failure prevents trustworthy continuation
-- `NEEDS_HUMAN`: HITL decision/action required
+- `NEEDS_HUMAN`: HITL verification, decision, or action required
 
 ## Artifacts
 

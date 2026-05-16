@@ -117,9 +117,8 @@ Local development:
 
 ## Development
 
-Validate contracts and check progress:
+Check progress:
 
 ```bash
-./bin/pge-validate-contracts.sh
 ./bin/pge-progress-report.sh
 ```
