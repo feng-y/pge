@@ -2,8 +2,9 @@
 name: pge-plan
 description: >
   Produce a bounded, engineering-reviewed PGE plan under `.pge/tasks-<slug>/plan.md`.
-  Adapts any structured upstream input, researches and challenges approaches with
-  engineering review, synthesizes intent, and decomposes into executable issues.
+  Supports fast-adopt for explicit external plans that are already clear and complete.
+  Researches and challenges approaches with engineering review, synthesizes intent,
+  and decomposes into executable issues.
 version: 0.5.1
 argument-hint: "<task intent or planning notes>"
 disable-model-invocation: true

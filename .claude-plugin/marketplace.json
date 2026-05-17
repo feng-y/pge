@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "pge",
-      "description": "Setup, plan, and execute bounded repo-local work for Claude Code.",
+      "description": "Research, plan, and execute bounded repo-local work for Claude Code.",
       "source": "./"
     }
   ]

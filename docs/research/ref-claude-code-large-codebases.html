@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code 大型代码库最佳实践 — 学习结论</title>
+<style>
+  :root {
+    --ivory:   #FAF9F5;
+    --paper:   #FFFFFF;
+    --slate:   #141413;
+    --clay:    #D97757;
+    --clay-d:  #B85C3E;
+    --oat:     #E3DACC;
+    --olive:   #788C5D;
+    --g100:    #F0EEE6;
+    --g200:    #E6E3DA;
+    --g300:    #D1CFC5;
+    --g500:    #87867F;
+    --g700:    #3D3D3A;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans:  system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono:  ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--ivory);
+    color: var(--g700);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    padding: 56px 24px 120px;
+  }
+  .page { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: 48px; }
+  @media (max-width: 960px) { .page { grid-template-columns: 1fr; } aside { order: 2; position: static !important; } }
+
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--g500); margin-bottom: 10px; }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: 30px; color: var(--slate); letter-spacing: -0.01em; margin-bottom: 12px; }
+  .lead { max-width: 640px; margin-bottom: 24px; color: var(--g700); }
+  h2 { font-family: var(--serif); font-weight: 500; font-size: 21px; color: var(--slate); margin: 40px 0 12px; border-bottom: 1px solid var(--g200); padding-bottom: 8px; }
+  h3 { font-size: 15px; font-weight: 600; color: var(--slate); margin: 24px 0 8px; }
+  p { margin-bottom: 12px; max-width: 680px; }
+  code { font-family: var(--mono); font-size: 13px; background: var(--g100); padding: 1px 5px; border-radius: 3px; }
+  ul, ol { margin: 8px 0 16px 20px; max-width: 680px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--slate); }
+
+  /* flow diagram */
+  .flow-diagram { border: 1.5px solid var(--g300); border-radius: 14px; background: var(--paper); padding: 28px; margin: 16px 0 24px; overflow-x: auto; }
+  .flow-diagram svg { display: block; margin: 0 auto; }
+
+  /* comparison table */
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 12px 0 20px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--g300); }
+  th { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--g500); font-weight: 500; background: var(--g100); }
+  td code { font-size: 12px; }
+
+  /* cards */
+  .card { border: 1.5px solid var(--g300); border-radius: 12px; background: var(--paper); padding: 20px; margin: 12px 0; }
+  .card-title { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--clay); margin-bottom: 8px; }
+
+  /* pattern sections */
+  .pattern { border-left: 3px solid var(--clay); padding-left: 16px; margin: 16px 0 24px; }
+  .pattern-num { font-family: var(--mono); font-size: 11px; color: var(--clay); letter-spacing: 0.08em; }
+
+  /* key insight */
+  .insight { background: rgba(217,119,87,0.08); border-radius: 8px; padding: 16px 20px; margin: 16px 0; border-left: 3px solid var(--clay); }
+  .insight strong { color: var(--clay-d); }
+
+  /* details/collapse */
+  details { margin: 8px 0 16px; }
+  details summary { cursor: pointer; font-weight: 500; color: var(--slate); font-size: 14px; padding: 8px 0; }
+  details[open] summary { margin-bottom: 8px; }
+
+  /* sidebar */
+  aside { position: sticky; top: 32px; align-self: start; border: 1.5px solid var(--g300); border-radius: 12px; background: var(--paper); padding: 18px; }
+  aside .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g500); margin-bottom: 12px; }
+  aside ul { list-style: none; margin: 0; padding: 0; }
+  aside li { margin-bottom: 10px; }
+  aside a { text-decoration: none; color: var(--g700); font-size: 13px; transition: color 0.15s; }
+  aside a:hover { color: var(--clay); }
+  aside .tag { display: inline-block; font-family: var(--mono); font-size: 10px; background: var(--g100); color: var(--g500); padding: 2px 6px; border-radius: 3px; margin-left: 4px; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--g300); margin: 16px 0 0; }
+  .tab { padding: 10px 16px; font-size: 13px; font-family: var(--mono); cursor: pointer; border: none; background: none; color: var(--g500); border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab.active { color: var(--clay); border-bottom-color: var(--clay); }
+  .tab:hover { color: var(--slate); }
+  .tab-content { display: none; padding: 16px 0; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+<div class="page">
+<main>
+<div class="eyebrow">Research &amp; Learning · Claude Code at Scale</div>
+<h1>Claude Code 大型代码库最佳实践</h1>
+<p class="lead">
+  来源：<a href="https://claude.com/blog/how-claude-code-works-in-large-codebases-best-practices-and-where-to-start" style="color:var(--clay)">Anthropic Blog, 2026-05-14</a>。
+  核心结论：模型周围的 harness（CLAUDE.md、hooks、skills、plugins、MCP）决定 Claude Code 在大型代码库中的表现，比模型本身更重要。
+</p>
+
+<div class="insight" id="core-insight">
+  <strong>核心洞察：</strong>Claude Code 像工程师一样导航代码库（遍历文件系统、grep、跟踪引用），不需要 RAG 索引。但它需要足够的起始上下文知道从哪里找。Harness 的质量决定导航质量。
+</div>
+
+<h2 id="harness">Harness &gt; Model</h2>
+<p>最常见的误解：Claude Code 的能力完全由模型决定。实际上，围绕模型构建的生态系统（harness）决定了实际表现。Harness 由五个扩展点构成，构建顺序很重要——每一层建立在前一层之上。</p>
+
+<div class="flow-diagram">
+  <svg width="720" height="120" viewBox="0 0 720 120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="var(--clay)"/></marker>
+    </defs>
+    <!-- boxes -->
+    <rect x="10" y="35" width="110" height="50" rx="8" fill="var(--paper)" stroke="var(--clay)" stroke-width="1.5"/>
+    <text x="65" y="63" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--slate)">CLAUDE.md</text>
+    <text x="65" y="76" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--g500)">每次会话加载</text>
+
+    <rect x="155" y="35" width="100" height="50" rx="8" fill="var(--paper)" stroke="var(--olive)" stroke-width="1.5"/>
+    <text x="205" y="63" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--slate)">Hooks</text>
+    <text x="205" y="76" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--g500)">事件触发</text>
+
+    <rect x="290" y="35" width="100" height="50" rx="8" fill="var(--paper)" stroke="var(--olive)" stroke-width="1.5"/>
+    <text x="340" y="63" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--slate)">Skills</text>
+    <text x="340" y="76" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--g500)">按需加载</text>
+
+    <rect x="425" y="35" width="100" height="50" rx="8" fill="var(--paper)" stroke="var(--olive)" stroke-width="1.5"/>
+    <text x="475" y="63" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--slate)">Plugins</text>
+    <text x="475" y="76" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--g500)">分发层</text>
+
+    <rect x="560" y="35" width="120" height="50" rx="8" fill="var(--paper)" stroke="var(--olive)" stroke-width="1.5"/>
+    <text x="620" y="63" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--slate)">MCP Servers</text>
+    <text x="620" y="76" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--g500)">外部连接</text>
+
+    <!-- arrows -->
+    <line x1="120" y1="60" x2="153" y2="60" stroke="var(--clay)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="255" y1="60" x2="288" y2="60" stroke="var(--clay)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="390" y1="60" x2="423" y2="60" stroke="var(--clay)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="525" y1="60" x2="558" y2="60" stroke="var(--clay)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- build order label -->
+    <text x="360" y="16" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--g500)">构建顺序 →</text>
+    <!-- additional capabilities -->
+    <text x="360" y="108" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--g500)">+ LSP（符号级导航） + Subagents（探索与编辑分离）</text>
+  </svg>
+</div>
+
+<h2 id="extension-points">五个扩展点详解</h2>
+
+<div data-tabs>
+<div class="tabs">
+  <button class="tab active">CLAUDE.md</button>
+  <button class="tab">Hooks</button>
+  <button class="tab">Skills</button>
+  <button class="tab">Plugins</button>
+  <button class="tab">MCP</button>
+</div>
+
+<div class="tab-content active">
+  <h3>CLAUDE.md — 基础上下文层</h3>
+  <ul>
+    <li>每次会话自动加载：root 文件给全局视图，子目录文件给局部约定</li>
+    <li>保持精简：只放广泛适用的内容，膨胀会拖累性能</li>
+    <li>分层加载：Claude 沿目录树向上走，逐层加载每个 CLAUDE.md</li>
+  </ul>
+  <p><strong>常见错误：</strong>把应该放在 skill 里的可复用专业知识塞进 CLAUDE.md</p>
+</div>
+
+<div class="tab-content">
+  <h3>Hooks — 自我改进层</h3>
+  <ul>
+    <li><strong>Stop hook：</strong>会话结束时反思发生了什么，提议 CLAUDE.md 更新</li>
+    <li><strong>Start hook：</strong>动态加载团队特定上下文，每个开发者自动获得正确配置</li>
+    <li>对 lint/format 等自动检查，hooks 比依赖 Claude 记住指令更一致</li>
+  </ul>
+  <p><strong>常见错误：</strong>用 prompt 做应该自动运行的事情</p>
+</div>
+
+<div class="tab-content">
+  <h3>Skills — 按需专业知识</h3>
+  <ul>
+    <li>渐进式披露：专业工作流和领域知识只在任务需要时加载</li>
+    <li>可以绑定到特定路径（如支付服务的部署 skill 只在该目录激活）</li>
+    <li>避免所有专业知识竞争上下文空间</li>
+  </ul>
+  <p><strong>常见错误：</strong>把所有东西都塞进 CLAUDE.md 而不是用 skill</p>
+</div>
+
+<div class="tab-content">
+  <h3>Plugins — 分发层</h3>
+  <ul>
+    <li>将 skills、hooks、MCP 配置打包为单个可安装包</li>
+    <li>新工程师第一天安装即获得与老手相同的上下文和能力</li>
+    <li>通过 managed marketplace 全组织分发更新</li>
+  </ul>
+  <p><strong>常见错误：</strong>让好的配置停留在部落知识阶段</p>
+</div>
+
+<div class="tab-content">
+  <h3>MCP Servers — 外部连接</h3>
+  <ul>
+    <li>连接 Claude 到内部工具、数据源、API</li>
+    <li>最成熟的团队：构建 MCP server 暴露结构化搜索作为 Claude 可直接调用的工具</li>
+    <li>其他用途：内部文档、工单系统、分析平台</li>
+  </ul>
+  <p><strong>常见错误：</strong>在基础还没搞好时就去建 MCP 连接</p>
+</div>
+</div>
+
+<details>
+<summary>补充能力：LSP 与 Subagents</summary>
+<div class="card" style="margin-top:12px">
+  <div class="card-title">LSP 集成</div>
+  <p>给 Claude 与 IDE 相同的符号级导航。没有 LSP 时，Claude 用文本模式匹配，可能落在错误的符号上。对多语言代码库（尤其 C/C++）是最高价值投资之一。</p>
+  <p>一家企业软件公司在 Claude Code 部署前全组织部署了 LSP 集成，专门为了让 C/C++ 导航在规模上可靠。</p>
+</div>
+<div class="card">
+  <div class="card-title">Subagents</div>
+  <p>隔离的 Claude 实例，有自己的上下文窗口。模式：启动只读 subagent 映射子系统并写入文件，然后主 agent 带着全貌进行编辑。将探索与编辑分离。</p>
+</div>
+</details>
+
+<h2 id="patterns">三个配置模式</h2>
+
+<div class="pattern">
+  <div class="pattern-num">模式 1</div>
+  <h3>让代码库在规模上可导航</h3>
+  <ul>
+    <li><strong>精简分层 CLAUDE.md：</strong>root 文件只放指针和关键陷阱，其他都是噪音</li>
+    <li><strong>在子目录初始化，不在 repo root：</strong>Claude 自动向上走加载所有 CLAUDE.md</li>
+    <li><strong>按子目录限定 test/lint 命令：</strong>改一个服务时跑全套会超时并浪费上下文</li>
+    <li><strong>用 .ignore 排除生成文件：</strong>在 <code>.claude/settings.json</code> 提交 <code>permissions.deny</code> 规则</li>
+    <li><strong>构建代码库地图：</strong>当目录结构不能自解释时，在 repo root 放一个轻量 markdown 列出顶层文件夹</li>
+    <li><strong>运行 LSP：</strong>让 Claude 按符号搜索而非字符串搜索</li>
+  </ul>
+</div>
+
+<div class="pattern">
+  <div class="pattern-num">模式 2</div>
+  <h3>随模型演进主动维护 CLAUDE.md</h3>
+  <ul>
+    <li>为当前模型写的指令可能对未来模型起反作用</li>
+    <li>例：告诉 Claude 把每次重构拆成单文件变更 → 阻止新模型做协调的跨文件编辑</li>
+    <li>补偿特定模型限制的 skills/hooks 在限制消失后变成开销</li>
+    <li><strong>节奏：</strong>每 3-6 个月做一次有意义的配置审查，加上每次重大模型发布后</li>
+  </ul>
+</div>
+
+<div class="pattern">
+  <div class="pattern-num">模式 3</div>
+  <h3>指定 Claude Code 管理和采纳的所有权</h3>
+  <ul>
+    <li>最快扩散的部署：广泛访问前有专门的基础设施投入</li>
+    <li>一个小团队（甚至一个人）在开发者首次接触前就接好了工具</li>
+    <li><strong>组织归属：</strong>Developer Experience / Developer Productivity 团队</li>
+    <li><strong>新兴角色：</strong>Agent Manager — 混合 PM/工程师，专门管理 Claude Code 生态</li>
+    <li><strong>最小可行版本：</strong>一个 DRI，拥有配置、权限策略、plugin marketplace、CLAUDE.md 约定的所有权</li>
+    <li>没有集中化 → 自下而上的采纳产生热情但碎片化，知识停留在部落阶段</li>
+  </ul>
+</div>
+
+<h2 id="org">组织治理（受监管行业）</h2>
+<ul>
+  <li>从定义好的已批准 skills 集合开始</li>
+  <li>要求代码审查流程（AI 生成代码与人类代码相同标准）</li>
+  <li>有限的初始访问，随信心增长扩展</li>
+  <li>尽早建立跨职能工作组（工程 + 信息安全 + 治理）</li>
+</ul>
+
+<h2 id="pge-implications">对 PGE 的启示</h2>
+<div class="card">
+  <div class="card-title">PGE 已经做对的</div>
+  <ul>
+    <li>Skills 作为按需专业知识（pge-research、pge-plan、pge-exec 等）</li>
+    <li>Plugin 分发（.claude-plugin/plugin.json + marketplace.json）</li>
+    <li>CLAUDE.md 分层（repo root + skill 级别）</li>
+    <li>Subagent 模式（Generator/Evaluator 作为隔离 Agent Teams）</li>
+  </ul>
+</div>
+<div class="card">
+  <div class="card-title">可以改进的方向</div>
+  <ul>
+    <li><strong>Hooks 自我改进：</strong>考虑 stop hook 在 pge-exec 完成后提议 CLAUDE.md 更新</li>
+    <li><strong>LSP 集成：</strong>当前 pge-exec Generator 依赖 grep/read，LSP 可以提升符号导航精度</li>
+    <li><strong>配置审查节奏：</strong>随模型升级定期审查 skill 约束是否仍然必要</li>
+    <li><strong>代码库地图：</strong>README.md 已经做了这个工作，但可以更结构化</li>
+  </ul>
+</div>
+</main>
+<aside>
+<div class="label">导航</div>
+<ul>
+<li><a href="#core-insight">核心洞察</a></li>
+<li><a href="#harness">Harness 架构</a> <span class="tag">关键</span></li>
+<li><a href="#extension-points">五个扩展点</a></li>
+<li><a href="#patterns">三个配置模式</a></li>
+<li><a href="#org">组织层面</a></li>
+<li><a href="#pge-implications">PGE 启示</a> <span class="tag">行动</span></li>
+</ul>
+</aside>
+</div>
+<script>
+document.querySelectorAll('[data-tabs]').forEach(group => {
+  const tabs = group.querySelectorAll('.tab');
+  const contents = group.querySelectorAll('.tab-content');
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      contents[i].classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>

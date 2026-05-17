@@ -40,7 +40,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 ## Critical Path
 
 1. Resolve the selected canonical plan.
-2. Reject non-canonical input and route to `pge-plan`.
+2. Ask once before activating non-canonical input; route to `pge-plan` if confirmed, stop if declined.
 3. Validate route, stop condition, ready issues, target areas, acceptance, verification, and dependencies.
 4. Select new run vs explicit resume before lane creation or issue dispatch.
 5. Build a dependency and Target Area schedule.
@@ -89,11 +89,13 @@ pge-exec repair challenge findings for <task-slug>
 
 If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, keep the task slug as the user-facing entrypoint and use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`. The provenance and backflow rules in Final Review govern whether those findings are consumable. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
 
-Non-canonical inputs include Claude plan mode output, `docs/exec-plan/` documents, current conversation plan text, and foreign workflow plans. Stop before implementation and report:
+Non-canonical inputs include Claude plan mode output, `docs/exec-plan/` documents, current conversation plan text, and foreign workflow plans. Ask once whether to activate the source through `pge-plan`:
 
 ```text
-Non-canonical execution source. Run pge-plan <source> to create .pge/tasks-<slug>/plan.md, then rerun pge-exec <task-slug>.
+Non-canonical execution source. Activate through pge-plan <source>? (yes / no)
 ```
+
+If confirmed, route to `pge-plan <source>` and resume after a canonical `.pge/tasks-<slug>/plan.md` exists. If declined or still ambiguous, stop before execution.
 
 This route is not a guarantee that execution can continue. `pge-plan` may return `READY_FOR_EXECUTE`, `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, `NEEDS_HUMAN`, or `BLOCKED`. Exec resumes only after a ready canonical plan exists.
 
@@ -359,7 +361,7 @@ Minimum exception routing:
 
 | Failure surface | Required handling |
 |---|---|
-| non-canonical source | stop and route to `pge-plan` before implementation |
+| non-canonical source | ask once whether to activate through `pge-plan`; stop if declined or ambiguous |
 | `pge-plan` returns `NEEDS_HUMAN` or `BLOCKED` | do not bypass; resume exec only after a ready canonical plan exists |
 | missing canonical plan | `BLOCKED` with broken handoff reason |
 | invalid plan route / missing stop condition / no ready issues | `BLOCKED` before execution |
