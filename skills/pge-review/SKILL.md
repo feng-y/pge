@@ -26,7 +26,7 @@ Review-stage gate for the diff between `HEAD` and a fixed point:
 - **Simplicity** — is the new code as simple as it can be without losing behavior?
 - **Verification** — is there enough evidence to proceed to prove-it / ship?
 
-The standards, semantic alignment, and simplicity axes run as parallel sub-agents so they don't pollute each other's context. Verification is aggregated by the main review.
+The standards, semantic alignment, and simplicity axes run as parallel sub-agents when the Review Depth Gate selects STANDARD or DEEP depth. For FAST reviews, main handles all review directly. Verification is aggregated by the main review at all depths.
 
 `pge-review` is the Review stage in the Research → Plan → Execute → Review → Ship arc. It must return a gate route, not just a list of observations.
 
@@ -48,7 +48,126 @@ Use the argument as the fixed point (commit, branch, tag, `main`). If not provid
 
 Capture: `git diff <fixed-point>...HEAD` and `git log <fixed-point>..HEAD --oneline`.
 
-### 2. Identify the alignment source
+### 2. Review Depth Gate
+
+After pinning the fixed point and before expensive source expansion or sub-agent spawning, classify the review depth. This gate uses changed files, diff shape, and obvious risk triggers — it does not require reading every alignment source up front.
+
+**Inputs:**
+- changed files (from the diff)
+- diff size (file count, line count)
+- changed surface type (docs, implementation, contract, schema, API, config)
+- task/plan availability
+- risk triggers (see below)
+
+**Depth selection** is priority ordered and conservative:
+
+```text
+if any DEEP trigger appears -> DEEP
+else if any STANDARD trigger appears -> STANDARD
+else if all FAST conditions hold -> FAST
+else -> STANDARD
+```
+
+If the risk level is unclear, upgrade rather than downgrade:
+
+```text
+uncertain FAST vs STANDARD -> STANDARD
+uncertain STANDARD vs DEEP -> DEEP
+```
+
+File count is only a weak hint. A one-file route/state/schema/API/manifest/skill-contract change is still DEEP.
+
+#### FAST
+
+Use only when ALL are true:
+
+- small diff, roughly 1-3 files
+- no public API, route/state/verdict, schema, manifest/config, artifact layout, security, persistence, or cross-module behavior
+- no meaningful downstream consumers
+- no explicit user request for deep review
+- no uncertainty about downstream consumers or contract impact
+- no plan/spec/contract source that needs semantic alignment review
+
+Behavior:
+- main-thread review only, no sub-agent axes
+- still pin fixed point
+- still inspect the diff
+- still produce a Review Gate route
+- run Verification Story
+- if a Coherence trigger surface is touched, this is not FAST; upgrade to DEEP
+
+#### STANDARD
+
+Use for normal bounded work that is not FAST and does not hit a DEEP trigger:
+
+- multi-file but bounded change
+- plan/spec exists or semantic alignment matters, but the diff does not hit a DEEP trigger
+- one or two risk surfaces
+- no security or broad cross-module coupling
+- no route/state/schema/artifact-layout/public-API/manifest/handoff high-risk trigger
+
+Behavior:
+- run only relevant axes (see Axis Selection below)
+- Standards axis if standards-sensitive files changed
+- Semantic Alignment axis if behavior/contract/spec alignment matters
+- Simplicity axis if implementation code changed
+- Coherence Pass if triggered
+
+If there is any live plan/spec/contract source and the diff is not clearly trivial, prefer STANDARD over FAST unless the change is purely mechanical and carries no meaningful semantic alignment risk.
+
+If Coherence Pass is triggered by a high-risk semantic surface, upgrade to DEEP. STANDARD may still run a small coherence-style check for low-risk shared behavior when producer/consumer/validator are obvious and local.
+
+#### DEEP
+
+Use when any high-risk trigger appears:
+
+- route/state/verdict vocabulary
+- schema or artifact layout
+- public API or CLI behavior
+- manifest/config consumed by tooling
+- handoff or skill contract
+- security/auth/data access/secrets/destructive behavior
+- persistence/migration/recovery semantics
+- cross-module shared behavior
+- large diff or unclear ownership
+
+Behavior:
+- full axes (all sub-agents)
+- Coherence Pass required
+- stronger Verification Story
+- explicit producer / consumer / validator / evidence mapping
+- artifact output required when task directory exists
+
+#### Axis Selection
+
+Axes are conditional, not automatic:
+
+| Axis | Trigger |
+|---|---|
+| Standards | Standards-sensitive files, resident rules, config, manifest, style/convention surfaces |
+| Semantic Alignment | Plan/spec/contract exists, behavior changed, acceptance/evidence changed, user intent could drift |
+| Simplicity | Implementation code changed |
+| Verification Story | Always (all depths) |
+| Coherence Pass | Contract/API/route/state/schema/manifest/config/handoff/artifact/shared behavior changed |
+
+Skipped axes must be recorded with a short reason.
+
+FAST has no sub-agent axes. If review needs a sub-agent axis, the selected depth is at least STANDARD.
+
+**Output** (recorded as the first section of review output, before Standards/Semantic Alignment/Simplicity/Verification Story):
+
+```md
+## Review Depth
+- review_depth: FAST | STANDARD | DEEP
+- reason: <why this depth was selected>
+- triggered_axes: <standards / semantic_alignment / simplicity / verification / coherence>
+- skipped_axes: <axis + reason>
+- coherence_required: yes | no
+```
+
+After depth classification, resolve only the alignment/standards sources needed by the selected depth and axes.
+
+### 3. Identify the alignment source
 
 Look for the originating intent/contract source in this order:
 
@@ -77,7 +196,7 @@ When review resolves a `.pge/tasks-<slug>/` source, set:
 
 Write the final review output there before the final response. This artifact is the durable repair seam for `pge-exec` bounded repair reruns.
 
-### 3. Identify the standards sources
+### 4. Identify the standards sources
 
 Collect from:
 - `CLAUDE.md` as the primary resident rules, plus `AGENTS.md` for repo routing/invariants when present.
@@ -91,7 +210,7 @@ Do not treat broad research notes or historical handoffs as standards unless the
 
 Standards review is semantic, not just lexical. When the diff changes workflow contracts, skill contracts, agent rules, routing, authority, artifact paths, or output formats, check whether the changed contract remains consistent with the current standards sources even when old terms no longer appear.
 
-### 4. Review Contract
+### 5. Review Contract
 
 Every finding must carry a severity label:
 
@@ -102,7 +221,7 @@ Every finding must carry a severity label:
 
 Use these labels consistently across all three axes. Avoid unlabeled findings.
 
-### 4.5 Review Gate
+### 5.5 Review Gate
 
 The review must end with one route:
 
@@ -123,7 +242,7 @@ Route rules:
 
 The default successful route is `READY_FOR_CHALLENGE`, not `READY_TO_SHIP`.
 
-### 4.6 Task Artifact + Exec Repair Contract
+### 5.6 Task Artifact + Exec Repair Contract
 
 Every review finding that could drive follow-up work must be execution-facing, not just reviewer-facing.
 
@@ -151,7 +270,9 @@ Default repair path:
 - Review findings go back to `pge-exec` as bounded repair input.
 - Only `contract-change` findings route upstream to `pge-plan`.
 
-### 5. Spawn three sub-agents in parallel
+### 6. Spawn sub-agents (conditional on depth)
+
+Skip this step entirely for FAST depth. For STANDARD, spawn only the axes triggered by the depth gate. For DEEP, spawn all three axes.
 
 **Standards agent brief:**
 > Read the selected standards sources. Read the diff. Report every place the diff violates a documented current standard. Cite the standard (file + rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Do not cite optional or historical docs as binding unless the main review identified them as current. Do not only search for changed terms; check whether changed contracts remain semantically consistent with standards sources, including ownership, routing, authority, artifact paths, and workflow invariants. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
@@ -162,7 +283,7 @@ Default repair path:
 **Simplicity agent brief:**
 > Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
 
-### 6. Verification Story
+### 7. Verification Story
 
 Before finalizing the review, inspect the verification evidence behind the diff:
 
@@ -183,7 +304,7 @@ Report this as a separate section:
 
 If the verification story is weak, surface it as a review finding even if the code looks plausible.
 
-### 6.4 Coherence Pass (triggered)
+### 7.4 Coherence Pass (triggered)
 
 When the diff changes a semantic contract surface, expand review from diff-local inspection to producer / consumer / validator / evidence coherence checking. This pass is bounded to the changed surface, not the whole repo.
 
@@ -210,7 +331,7 @@ When the diff changes a semantic contract surface, expand review from diff-local
 
 **Skip condition:** If the diff does not touch any trigger surface, this pass does not run.
 
-### 6.5 Main Cross-Contract Sweep
+### 7.5 Main Cross-Contract Sweep
 
 Before aggregating sub-agent results, main review must do one independent contract-aware sweep. This is not a validator script and not a replacement for sub-agents; it catches cross-file drift that individual axes can miss.
 
@@ -222,14 +343,21 @@ Check:
 
 Any failure found here becomes a normal review finding under `standards`, `semantic_alignment`, or `verification` with severity based on impact.
 
-### 7. Aggregate
+### 8. Aggregate
 
-Present four sections under `## Standards`, `## Semantic Alignment`, `## Simplicity`, and `## Verification Story`. Do not merge or rerank the three axes — keep them separate.
+Present the Review Depth block first, then the axis sections. For FAST reviews, only Verification Story is present. For STANDARD/DEEP, present the triggered axes under `## Standards`, `## Semantic Alignment`, `## Simplicity`, and `## Verification Story`. Do not merge or rerank the axes — keep them separate. Record skipped axes with reasons.
 
 When `task_dir` is available, write the final output to `artifact_path` before the final response.
 
 End with:
 ```
+## Review Depth
+- review_depth: FAST | STANDARD | DEEP
+- reason: <why this depth was selected>
+- triggered_axes: <standards / semantic_alignment / simplicity / verification / coherence>
+- skipped_axes: <axis + reason>
+- coherence_required: yes | no
+
 ## Review Artifact
 - task_dir: .pge/tasks-<slug>/ | not_available
 - artifact_path: .pge/tasks-<slug>/review.md | not_available
