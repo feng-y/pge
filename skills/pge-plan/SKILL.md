@@ -535,6 +535,26 @@ Resolve each inconsistency before synthesis:
 
 Record the result as `Plan Grill Log`: `check`, `finding`, `resolution`, and `source/evidence`. Empty logs are suspicious for MEDIUM/DEEP plans and for any plan sourced from `docs/exec-plan/`.
 
+### Coherence Verification for High-Risk Surfaces
+
+When a plan changes any of these surfaces, generated issues must include acceptance criteria or verification that checks producer / consumer / validator / evidence coherence:
+
+- semantic contracts (skill contracts, handoff schemas, artifact layouts)
+- route / state / verdict vocabulary
+- public APIs or CLI interfaces
+- schemas, manifests, or config that other components consume
+- shared helpers or behavior with downstream consumers
+
+For each affected surface, the issue's acceptance or verification must identify:
+- **Producer**: what writes or defines the value/contract
+- **Consumer**: what reads, executes, or depends on it
+- **Validator**: what accepts or rejects it (gates, checks, tests)
+- **Evidence**: proof that the post-change contract is internally consistent across all three
+
+Grep can support coherence evidence but cannot be the sole proof for semantic-contract correctness. A grep hit confirms a string exists; it does not confirm that the producer's output, the consumer's expectation, and the validator's acceptance criteria still agree after the change.
+
+This guidance does not require inspecting the entire repo. Scope the coherence check to the changed surface and its direct producers, consumers, and validators.
+
 ### Select Approach
 
 Commit to one. Record selected/rejected/scope reductions as Decision / Rationale / Alternatives considered. Override upstream only if engineering review finds contradicting evidence or an explicit requirement conflict.

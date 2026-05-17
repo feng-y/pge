@@ -126,6 +126,23 @@ For waits, retries, sleeps, polling, queue timing, or post-completion delay, cha
 
 Pure reasoning is not enough for `PASS`. Use tests, validator output, grep/trace, runtime/manual evidence, screenshots, or file/line proof appropriate to the change.
 
+#### False-Positive Search
+
+Before passing any meaningful change, ask: **"What can be true in the evidence while the stated goal is still false?"**
+
+This question catches the class of failure where all grep checks pass, all tests pass, and all evidence looks correct — but the actual goal remains unmet because the evidence does not prove what it appears to prove.
+
+For contract / API / route-state / schema / config / shared-behavior changes, answer using producer / consumer / validator / evidence coherence:
+- Can the producer emit a value that satisfies the evidence check but violates the consumer's expectation?
+- Can the validator accept a state that the evidence confirms but the goal prohibits?
+- Can grep evidence confirm a string exists while the semantic contract it belongs to is internally inconsistent?
+
+`READY_TO_SHIP` requires this question to have one of:
+- Passing evidence: a concrete explanation of why the false-positive scenario is impossible given the current diff and verification.
+- Justified N/A: the change is trivial enough (typo, formatting, comment-only) that no meaningful false-positive scenario exists.
+
+Group related changes by semantic contract when answering — one answer per contract surface, not one per file.
+
 ### 5. Route
 
 - `BLOCK_SHIP` — base/diff is unclear, challenge cannot fairly run, or no prompt/plan/run/review/development requirement source exists.

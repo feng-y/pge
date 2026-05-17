@@ -183,6 +183,33 @@ Report this as a separate section:
 
 If the verification story is weak, surface it as a review finding even if the code looks plausible.
 
+### 6.4 Coherence Pass (triggered)
+
+When the diff changes a semantic contract surface, expand review from diff-local inspection to producer / consumer / validator / evidence coherence checking. This pass is bounded to the changed surface, not the whole repo.
+
+**Trigger surfaces:**
+- semantic contracts (skill contracts, handoff schemas, artifact layouts)
+- route / state / verdict vocabulary
+- public APIs or CLI interfaces
+- schemas, manifests, or config consumed by other components
+- shared helpers or behavior with downstream consumers
+
+**When triggered, for each changed surface:**
+
+1. Identify the **producer** (what writes or defines the value/contract).
+2. Identify the **consumer(s)** (what reads, executes, or depends on it).
+3. Identify the **validator** (what accepts, rejects, or gates it).
+4. Check the **post-change artifact or behavior as a whole** for the triggered contract — not only the changed lines.
+5. Verify that producer output, consumer expectation, and validator acceptance still agree after the change.
+
+**Evidence rules:**
+- Grep can support coherence evidence but cannot be the sole proof. A grep hit confirms a string exists; it does not confirm that producer, consumer, and validator still agree semantically.
+- The pass must inspect the post-change state of the contract, not only the diff hunks.
+
+**Findings:** Coherence failures become normal review findings using the existing severity model (Required / Important / Advisory / FYI) and repair routing (in-contract / contract-change). A coherence failure where producer and validator disagree on allowed values is typically Required. A coherence failure where documentation lags behind implementation is typically Important.
+
+**Skip condition:** If the diff does not touch any trigger surface, this pass does not run.
+
 ### 6.5 Main Cross-Contract Sweep
 
 Before aggregating sub-agent results, main review must do one independent contract-aware sweep. This is not a validator script and not a replacement for sub-agents; it catches cross-file drift that individual axes can miss.
