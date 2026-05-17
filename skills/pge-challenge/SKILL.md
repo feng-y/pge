@@ -156,7 +156,7 @@ This execution feedback contract makes challenge findings consumable by `pge-exe
 Every challenge finding that could drive follow-up work must be execution-facing, not just reviewer-facing.
 
 Required per-finding fields:
-- `source`: `prompt_challenge | plan_fulfillment | self_proof`
+- `source`: `prompt_challenge | plan_fulfillment | self_proof | false_positive_search`
 - `result`: `FAIL | UNPROVEN | PASS | N/A`
 - `scope`: `in-contract | contract-change`
 - `bounded_fix`: the smallest concrete bounded repair needed, or `none`
@@ -217,10 +217,15 @@ Default repair path:
 |---|---|---|---|---|---|
 | <change> | <claim> | <plausible failure> | <needed proof> | <actual proof> | PASS / FAIL / UNPROVEN |
 
+## False-Positive Search
+| Semantic Contract | False-Positive Scenario | Why Evidence Could Mislead | Coherence Evidence | Verdict |
+|---|---|---|---|---|
+| <contract surface or N/A> | <what can be true in evidence while goal is false> | <how grep/tests could pass while contract is inconsistent> | <producer/consumer/validator proof or justified N/A> | PASS / N/A |
+
 ## Exec Repair Contract
 | Finding ID | Source | Result | Scope | Bounded Fix | Evidence | Next Repair Path |
 |---|---|---|---|---|---|---|
-| <id> | <prompt_challenge / plan_fulfillment / self_proof> | <FAIL / UNPROVEN / PASS / N/A> | <in-contract / contract-change> | <smallest concrete bounded repair or none> | <file:line / diff / verification citation> | <pge-exec repair challenge findings for <task-slug> / route upstream to `pge-plan`> |
+| <id> | <prompt_challenge / plan_fulfillment / self_proof / false_positive_search> | <FAIL / UNPROVEN / PASS / N/A> | <in-contract / contract-change> | <smallest concrete bounded repair or none> | <file:line / diff / verification citation> | <pge-exec repair challenge findings for <task-slug> / route upstream to `pge-plan`> |
 
 ## Gaps
 - <only if BLOCK_SHIP or NEEDS_FIX>
