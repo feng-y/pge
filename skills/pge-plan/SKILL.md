@@ -205,13 +205,13 @@ Then:
 
 Fast Lane is the smallest direct prompt path, not the only direct prompt path. MEDIUM and DEEP prompts may also be planned directly when the user gives enough intent, boundaries, and success criteria for Phase 2 research and engineering review to close the remaining implementation-level gaps.
 
-### Fast Normalize (complete upstream plan → PGE contract)
+### Fast Adopt (explicit external plan → PGE contract)
 
-Use this path when the selected source is already a complete plan, including Claude Code plan mode output, `docs/exec-plan/` documents, or a structured design/execution plan, but it is not in canonical `.pge/tasks-<slug>/plan.md` format.
+Use this path when the selected source is already an explicit plan — including Claude Code plan mode output, `docs/exec-plan/` documents, gstack/Codex reviewed plans, design execution notes, or a structured design/execution plan — but it is not in canonical `.pge/tasks-<slug>/plan.md` format.
 
-Fast Normalize is allowed for LIGHT, MEDIUM, or DEEP inputs. Depth controls issue count and verification strictness, not whether normalization is available.
+Fast Adopt is allowed for LIGHT, MEDIUM, or DEEP inputs. Depth controls issue count and verification strictness, not whether adoption is available.
 
-The selected source is normalization-ready only when it already contains:
+The selected source is adoption-ready only when it already contains:
 - goal and observable success or stop condition
 - bounded phase/scope
 - implementation decisions and semantic ownership boundaries
@@ -220,15 +220,17 @@ The selected source is normalization-ready only when it already contains:
 - verification expectations or evidence requirements
 - enough ordered work structure to derive executable issues without inventing scope
 
-When normalization-ready:
+When adoption-ready:
 - Skip broad option generation and outside-voice approach selection.
 - Do not re-decide architecture, rollout strategy, phase boundaries, target ownership, or semantic model.
-- Convert the source into the canonical plan template with `plan_route: READY_FOR_EXECUTE`.
+- Preserve source goal, scope, approach, and reviewed decisions.
+- Convert the source into the canonical plan template with `plan_route: READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`. Use `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` only when assumptions are explicit, mechanical, and non-scope-changing.
+- Materialize PGE execution contract fields: issue slices, target areas, acceptance, verification, dependencies, execution type, evidence required, and stop condition.
 - Split into the smallest number of execution issues needed for `pge-exec`; issue slicing may decide order and grouping but must not add scope.
-- Mark `normalization_only: true` and record the source path or `claude_plan_mode` source in Metadata.
+- Mark `fast_adopt: true` and record the source path or `claude_plan_mode` source in Metadata.
 - Run Coverage Audit and Inconsistency Grill Gate only against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage.
 
-If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving semantic ownership, or changing phase boundaries, Fast Normalize must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn normalization into replanning.
+If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving semantic ownership, or changing phase boundaries, Fast Adopt must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn adoption into replanning.
 
 ### Read Setup Config
 
@@ -654,7 +656,7 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 Plan-level routes (final plan output):
 
 - `READY_FOR_EXECUTE`: ≥1 issue ready, no global blocker.
-- `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`: reserved for `pge-plan-normalize` when a complete external plan requires explicit mechanical assumptions.
+- `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`: used by `pge-plan` fast-adopt when a complete external plan requires explicit mechanical assumptions.
 - `RETURN_TO_RESEARCH`: intent or success shape is not confirmed; plan cannot fairly produce executable issues without inventing user intent. Route back to `pge-research`.
 - `NEEDS_INFO`: missing information that the user can answer directly.
 - `BLOCKED`: cannot produce fair plan.

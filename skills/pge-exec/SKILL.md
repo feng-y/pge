@@ -23,7 +23,7 @@ allowed-tools:
 
 ## Purpose
 
-Execute a canonical .pge/tasks-<slug>/plan.md produced by `pge-plan` or `pge-plan-normalize`. `pge-exec` is the execution control plane: it consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and owns concurrent scheduling, runtime state, evidence alignment, bounded repair, and the final execution route.
+Execute a canonical .pge/tasks-<slug>/plan.md produced by `pge-plan`. `pge-exec` is the execution control plane: it consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and owns concurrent scheduling, runtime state, evidence alignment, bounded repair, and the final execution route.
 
 This is an orchestration skill. Generator owns implementation, verification, self-review, and evidence production. Evaluator is an independent QA/review lane used for concentrated review windows, risk-triggered checks, and the `DEEP` evaluator window. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
@@ -40,7 +40,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 ## Critical Path
 
 1. Resolve the selected canonical plan.
-2. Reject non-canonical input and route to `pge-plan-normalize`.
+2. Reject non-canonical input and route to `pge-plan`.
 3. Validate route, stop condition, ready issues, target areas, acceptance, verification, and dependencies.
 4. Select new run vs explicit resume before lane creation or issue dispatch.
 5. Build a dependency and Target Area schedule.
@@ -59,7 +59,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 
 - Do not execute from conversation context or a non-canonical source.
 - Do not normalize external plans inside exec.
-- Do not read `references/external-plan-normalization.md` from exec.
+- Do not read stale normalization references from exec.
 - Do not modify the plan.
 - Do not bottleneck all issues through a fixed Generator -> Evaluator serial pair.
 - Do not claim a Generator issue is complete without self-review, evidence, and any concentrated or risk-triggered Evaluator review required by the issue or review window.
@@ -92,10 +92,10 @@ If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/pla
 Non-canonical inputs include Claude plan mode output, `docs/exec-plan/` documents, current conversation plan text, and foreign workflow plans. Stop before implementation and report:
 
 ```text
-Non-canonical execution source. Run pge-plan-normalize <source> to create .pge/tasks-<slug>/plan.md, then rerun pge-exec <task-slug>.
+Non-canonical execution source. Run pge-plan <source> to create .pge/tasks-<slug>/plan.md, then rerun pge-exec <task-slug>.
 ```
 
-This route is not a guarantee that execution can continue. `pge-plan-normalize` may return `READY_FOR_EXECUTE`, `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, `NEEDS_HUMAN`, or `BLOCKED`. Exec resumes only after normalize returns a ready canonical plan.
+This route is not a guarantee that execution can continue. `pge-plan` may return `READY_FOR_EXECUTE`, `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, `NEEDS_HUMAN`, or `BLOCKED`. Exec resumes only after a ready canonical plan exists.
 
 Exec must consume relevant current context before dispatching work: latest user constraints, corrections made after the plan, observed failures, manual decisions, explicit "do not" or allowed-file restrictions, and task artifacts such as `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md` when execution is rerunning from review/challenge feedback. Current context and task artifacts may narrow execution, pause it, or block it; they cannot silently expand the plan.
 
@@ -359,8 +359,8 @@ Minimum exception routing:
 
 | Failure surface | Required handling |
 |---|---|
-| non-canonical source | stop and route to `pge-plan-normalize` before implementation |
-| normalize returns `NEEDS_HUMAN` or `BLOCKED` | do not bypass; resume exec only after a ready canonical plan exists |
+| non-canonical source | stop and route to `pge-plan` before implementation |
+| `pge-plan` returns `NEEDS_HUMAN` or `BLOCKED` | do not bypass; resume exec only after a ready canonical plan exists |
 | missing canonical plan | `BLOCKED` with broken handoff reason |
 | invalid plan route / missing stop condition / no ready issues | `BLOCKED` before execution |
 | post-plan user correction expands scope | route upstream to `pge-plan` or `NEEDS_HUMAN` |

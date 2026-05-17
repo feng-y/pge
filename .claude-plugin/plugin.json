@@ -13,7 +13,6 @@
   "skill_directories": [
     "pge-research",
     "pge-plan",
-    "pge-plan-normalize",
     "pge-exec",
     "pge-handoff",
     "pge-knowledge",
