@@ -72,6 +72,21 @@ What planning must know because research ran.
 ### unresolved_blockers
 - <blocking question or "none"> — type: NEEDS_CLARIFICATION | NEEDS_INFO | BLOCKED
 
+## experience_design_context
+
+Capture when the task shapes a human-facing surface. Skip with reason for purely internal technical work.
+
+- experience_scope: none | user-facing | artifact-facing | visual | interaction | workflow | documentation | cli_or_prompt
+- skip_reason: <required when experience_scope is none; e.g., "internal refactor, no human-facing change">
+- audience: <who encounters this surface and in what context>
+- artifact_purpose: <what the artifact does for the audience>
+- experience_success_shape: <what "good" feels like from the audience perspective>
+- what_would_disappoint: <concrete ways the result could be technically correct but experientially wrong>
+- brand_tone_visual_constraints: <existing tone, voice, visual language, or brand rules — optional>
+- design_system_conventions: <relevant component patterns, layout conventions, or artifact standards — optional>
+- screenshots_mockups_references: <existing examples, mockups, or reference points — optional>
+- relevant_states_fallback_concerns: <error states, empty states, edge cases that affect experience — optional>
+
 ## route
 
 <READY_FOR_PLAN | NEEDS_INFO | BLOCKED>

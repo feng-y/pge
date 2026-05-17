@@ -183,6 +183,35 @@ Research is not planning with softer nouns. Do not start decomposing implementat
 
 Research can start from a fresh prompt or from an existing handoff, exec plan, design doc, issue, prior research, or spec-like artifact. When upstream input exists, research must preserve that contract before adding new findings. The goal is capability, not case-specific patching: PGE research should be able to consume prior work without information loss.
 
+## Capability: Experience/Design Context Capture
+
+When the task shapes a human-facing workflow, artifact, interface, prompt, CLI, report, generated HTML, documentation, or decision surface, research must capture experience/design context alongside intent. This context informs planning without prescribing solutions.
+
+**When to capture:** Any task where experience quality is part of success — where a technically correct but poorly shaped result would disappoint the user.
+
+**Experience-scope decision:** Every research brief must record one of:
+
+```text
+experience_scope: none | user-facing | artifact-facing | visual | interaction | workflow | documentation | cli_or_prompt
+```
+
+When `experience_scope` is `none`, record a `skip_reason` (e.g., "purely internal refactor, no human-facing surface").
+
+**What to capture** (scale to task complexity — not all fields apply to every task):
+
+- **audience** — who encounters this surface and in what context
+- **artifact_purpose** — what the artifact is for, what job it does for the audience
+- **experience_success_shape** — what "good" feels like from the audience perspective
+- **what_would_disappoint** — concrete ways the result could be technically correct but experientially wrong
+- **brand_tone_visual_constraints** — existing tone, voice, visual language, or brand rules (optional)
+- **design_system_conventions** — relevant component patterns, layout conventions, or artifact standards (optional)
+- **screenshots_mockups_references** — existing examples, mockups, or reference points (optional)
+- **relevant_states_fallback_concerns** — error states, empty states, edge cases that affect experience (optional)
+
+**Boundary:** Research captures problem-side experience context. Research must not choose final implementation approach, final layout, final component design, or final acceptance criteria — those belong to planning and execution.
+
+**Skip rule:** Purely internal technical tasks (refactors with no user-facing change, internal data migrations, build tooling, test infrastructure) skip this context with a recorded reason.
+
 ## Anti-Pattern: "Let Me Shrink The Spec Into My Favorite Subproblem"
 
 When the user provides an upstream handoff, exec plan, design doc, issue, or existing spec, that document is part of the input contract. Do not reduce a broad upstream design into a small local code question unless the user explicitly asked for that narrowing. Research must preserve the upstream intent, value, larger-plan position, requirements, phases, constraints, and success criteria, then explain any proposed narrowing as a scope decision.

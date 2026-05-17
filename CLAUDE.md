@@ -76,7 +76,7 @@ PGE requires contract discipline, not template bureaucracy:
 - Exec must prove code changes satisfy the plan contract.
 - Review must judge whether the diff still aligns with the original intent through the plan.
 - Every stage must consume its explicit invocation input plus relevant current context, including recent user corrections, observed failures, and fresh artifacts. If context changes the goal, scope, or fix target, confirm the interpretation before producing the next contract.
-- Research owns confirmed problem: intent discovery, scope, evidence, and ambiguity resolution. Plan owns executable solution: approach selection, engineering review, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
+- Research owns confirmed problem: intent discovery, scope, evidence, ambiguity resolution, and when relevant the problem-side experience/design context for human-facing or artifact-facing work. Plan owns executable solution: approach selection, engineering review, and plan-changing clarification. Plan must consume that experience context in acceptance, verification, and evidence without moving solution ownership back into research. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
 
 Templates are scaffolds. Required field semantics are binding; prose shape and optional sections should scale with task complexity.
 

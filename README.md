@@ -66,9 +66,9 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 
 Skills you use in sequence to go from fuzzy intent to verified code.
 
-- **[`/pge-research`](./skills/pge-research/SKILL.md)** — Align research understanding with the user's real intent before planning. Use when intent is still fuzzy, multiple interpretations seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, and writes the minimum intent/evidence contract that feeds planning.
+- **[`/pge-research`](./skills/pge-research/SKILL.md)** — Align research understanding with the user's real intent before planning. Use when intent is still fuzzy, multiple interpretations seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, captures problem-side experience/design context when the task shapes a human-facing or artifact-facing surface, and writes the minimum intent/evidence contract that feeds planning.
 
-- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, and evidence requirements.
+- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, and evidence requirements, runs depth-scaled engineering review, and traces major acceptance criteria back to both success-shape rationale and verification/evidence.
 
 - **[`/pge-plan-normalize`](./skills/pge-plan-normalize/SKILL.md)** — Convert a complete external plan into the canonical `.pge/tasks-<slug>/plan.md` contract without replanning. Use this before execution when the source is already clear but not in PGE format.
 

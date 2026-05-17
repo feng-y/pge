@@ -97,10 +97,19 @@ digraph pge_plan {
     explore [label="Explore gaps\n+flow analysis\n+multi-agent (DEEP)"];
     propose [label="Propose Approaches"];
     eng_review [label="Engineering Review\n(see references/)"];
+    eng_gate [label="Engineering Review Gate\n(see references/\nengineering-review-gate.md)", shape=diamond];
     grill_gate [label="Inconsistency Grill Gate\n(source vs scope vs issues)"];
     select_approach [label="Select Approach"];
-    coverage_audit -> explore -> propose -> eng_review -> grill_gate -> select_approach;
+    coverage_audit -> explore -> propose -> eng_review -> eng_gate;
+    eng_gate -> grill_gate [label="PASS"];
+    eng_gate -> propose [label="REWORK_PLAN", style=dashed];
+    grill_gate -> select_approach;
   }
+
+  eng_gate_research [label="RETURN_TO_RESEARCH", shape=doubleoctagon];
+  eng_gate_info [label="NEEDS_INFO\n(ask 1 question)", shape=doubleoctagon];
+  eng_gate -> eng_gate_research [label="unclear intent/scope"];
+  eng_gate -> eng_gate_info [label="blocking question"];
 
   gate_check -> coverage_audit [label="ready"];
 
@@ -398,6 +407,112 @@ Read `references/engineering-review.md` for full review dimensions. Summary:
 - Outside Voice (MEDIUM + DEEP — independent challenge Agent)
 - Scope Reduction Prohibition (prohibited phrases + 3 valid reasons)
 
+### Engineering Review Gate
+
+Read `references/engineering-review-gate.md` for the authoritative gate contract. This section is only the entry summary; do not duplicate or override the detailed gate rules here.
+
+The gate runs after engineering review dimensions and before approach selection. It is plan-owned and does not route through research unless intent/scope/success shape is genuinely unclear.
+
+Minimum invariant: the Engineering Review Gate always runs Step 0 Scope Challenge. LIGHT tasks get the minimal Step 0 engineering check; they do not skip the whole gate.
+
+The gate checks, scaled by depth:
+- scope discipline and existing-code reuse
+- architecture fit when applicable
+- code quality for DEEP work
+- test coverage and failure modes when applicable
+- verification-story quality at all depths
+- performance risk for DEEP work
+- semantic evidence rows when grep/manual checks verify claims
+
+**Engineering Review Gate verdict:** `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`
+
+- `PASS` → proceed to approach selection and synthesis.
+- `REWORK_PLAN` → fix findings inline, re-run affected checks before proceeding.
+- `RETURN_TO_RESEARCH` → intent/scope/success shape genuinely unclear; route back to `pge-research`.
+- `NEEDS_INFO` → ask one blocking question, then re-run gate.
+
+`SKIP_NOT_APPLICABLE` remains valid in the normalized quality-gate result shape, but only for individual gate dimensions or non-engineering gates. The engineering review gate itself always runs Step 0 and therefore does not use `SKIP_NOT_APPLICABLE` as its overall verdict.
+
+The gate verdict is recorded in the plan artifact under `### Engineering Review Gate`.
+
+### Quality Gate Result Shape
+
+All plan quality gates use the same compact result shape. Fill only fields that carry useful evidence for the current gate; do not turn this into template bureaucracy.
+
+```
+gate: <gate name>
+status: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO | SKIP_NOT_APPLICABLE
+reason: <one sentence explaining the verdict>
+evidence: <file:line citations or semantic evidence rows>
+required_plan_changes: <specific changes needed if REWORK_PLAN, or "none">
+skip_reason: <required when status is SKIP_NOT_APPLICABLE>
+audit_note: <required for automatic decisions — what was decided and why>
+rating_before: <1-10 quality rating before gate ran>
+rating_after: <1-10 quality rating after gate fixes applied>
+ten_out_of_ten_bar: <what would make this a 10/10 — aspirational target>
+```
+
+**Field rules:**
+- `status` may be `SKIP_NOT_APPLICABLE` for an individual dimension or a non-engineering gate. The overall Engineering Review Gate verdict still uses `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`.
+- `skip_reason` is mandatory when `status` is `SKIP_NOT_APPLICABLE`. Omit otherwise.
+- `audit_note` is mandatory for any automatic decision (gate self-resolved without user input). Omit when user explicitly chose the outcome.
+- `required_plan_changes` lists concrete fixes when `status` is `REWORK_PLAN`. Set to "none" for other statuses.
+- `rating_before` / `rating_after` are 1-10 integers. `rating_after` may equal `rating_before` when no fixes were applied.
+- `ten_out_of_ten_bar` is a single sentence describing the aspirational quality ceiling for this gate's dimension.
+
+### Experience Context Gate
+
+`pge-plan` must explicitly consume the research-side `experience_design_context` surface when the task is human-facing or artifact-facing.
+
+**Inputs:**
+- `experience_scope`
+- `skip_reason`
+- `audience`
+- `artifact_purpose`
+- `experience_success_shape`
+- `what_would_disappoint`
+- optional constraints/references such as tone, design-system conventions, screenshots/mockups, and relevant fallback states
+
+**What this gate checks:**
+- whether the plan recognized that experience quality is part of success
+- whether research supplied enough problem-side context for planning to preserve
+- whether acceptance, verification, and evidence reflect that context instead of silently dropping it
+
+**Gate outcomes:**
+- `PASS` — experience context exists and the plan consumes it clearly in acceptance / verification / evidence
+- `SKIP_NOT_APPLICABLE` — the task is purely internal or research already recorded `experience_scope: none` with an adequate `skip_reason`
+- `RETURN_TO_RESEARCH` — audience, experience success shape, or disappointment risk is unclear enough that the problem contract itself is not settled
+- `REWORK_PLAN` — research context is clear, but the plan failed to consume it in acceptance / verification / evidence
+- `NEEDS_INFO` — one specific human answer is still required and neither repo evidence nor research can resolve it
+
+**Boundary rule:** unclear audience/success should route `RETURN_TO_RESEARCH` only when it changes the problem contract. If the problem contract is already clear and only the plan failed to reflect it, use `REWORK_PLAN`.
+
+### Depth-Scaled Gate Selection
+
+Which gates run depends on the classified depth:
+
+| Depth | Gates Applied | Skip Policy |
+|-------|--------------|-------------|
+| LIGHT | Engineering Review Gate (Step 0 + verification-story check) + Experience Context Gate when applicable | Experience Context Gate may `SKIP_NOT_APPLICABLE` for clearly internal tasks. |
+| MEDIUM | Engineering Review Gate (MEDIUM dimensions) + Experience Context Gate when applicable | Skipped non-engineering gates require `skip_reason`. |
+| DEEP | Engineering Review Gate plus all applicable non-engineering gates | Non-engineering gates may `SKIP_NOT_APPLICABLE` only with explicit reason. |
+
+LIGHT tasks must not pay DEEP ceremony. DEEP tasks must not skip gates without evidence that the dimension is irrelevant.
+
+### Route Mapping
+
+Gate verdicts map to plan routing. No gate may invent route vocabulary outside these values:
+
+| Verdict | When to use | Route effect |
+|---------|-------------|--------------|
+| `PASS` | All applicable dimensions clear | Proceed to approach selection |
+| `REWORK_PLAN` | Solution, verification, acceptance, or coverage is weak but problem is clear | Fix inline, re-run affected checks |
+| `RETURN_TO_RESEARCH` | Problem contract (intent, scope, success shape) is unclear — not for weak solutions | Escalate to plan-level `RETURN_TO_RESEARCH` |
+| `NEEDS_INFO` | Specific blocking question the user can answer | Ask one question, re-run gate |
+| `SKIP_NOT_APPLICABLE` | Specific non-engineering gate or individual dimension does not fairly apply in the current context | Record `skip_reason`, run the remaining applicable review path |
+
+**Boundary rule:** `RETURN_TO_RESEARCH` is reserved for unclear problem contracts. If the problem is clear but the solution/verification/acceptance is weak, the correct verdict is `REWORK_PLAN`. Gates must not conflate "hard to solve" with "unclear intent."
+
 ### Inconsistency Grill Gate
 
 Before selecting the approach and writing issues, actively grill the plan input against the emerging plan. This is not generic brainstorming and not permission to re-decide upstream scope. Its job is to find contradictions early.
@@ -451,6 +566,31 @@ If the upstream source has structured `pge-research` v2 fields or the minimum re
 If the upstream source only has legacy `Intent` fields, carry them through as before.
 
 Produce: structured intent, plan constraints, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
+
+### Success Shape → Acceptance + Verification Trace
+
+Before writing major acceptance criteria, trace each to its source. This proves acceptance is derived from user intent, not invented, and that verification/evidence still points back to the same source.
+
+| Acceptance Criterion | Source | Source Type | Acceptance Trace | Verification / Evidence Trace |
+|---------------------|--------|-------------|------------------|-------------------------------|
+| <criterion> | <research success_shape / upstream constraint / current prompt / technical approach> | success_shape / upstream / prompt / technical | <why this criterion follows> | <how verification/evidence proves this criterion> |
+
+**Source types:**
+- `success_shape`: derived from research `success_shape`, `experience_success_shape`, or `what_would_disappoint`
+- `upstream`: derived from upstream contract, spec decision, or constraint
+- `prompt`: derived directly from current user prompt when no research exists
+- `technical`: added to support the selected approach (must not expand scope)
+
+**Rules:**
+- Every major acceptance criterion must trace to at least one source
+- Every major acceptance criterion must also point to the verification/evidence that proves it
+- Technical acceptance criteria are valid only when they support the selected approach — they must not introduce new features, expand scope, or add requirements the user did not ask for
+- If success shape is missing or unusable (vague, contradictory, or cannot derive acceptance), route `RETURN_TO_RESEARCH` or `NEEDS_INFO` — do not silently invent acceptance criteria
+- The trace supports both technical success (code works correctly) and human-facing/artifact-facing success (user intent is satisfied)
+
+**Depth scaling:**
+- LIGHT plans with 1-2 obvious criteria from a clear prompt: a single sentence trace is sufficient (e.g., "All criteria derive directly from the user prompt requesting X, and the verification/evidence section proves those criteria directly.")
+- MEDIUM/DEEP plans: use the trace table for major criteria
 
 **Context budget:** Plan + issues should fit comfortably inside the executor's useful context, with ~50% as an operational ceiling for normal work. >5 detailed issues or 15+ files → split into phased delivery. Prefer fewer vertical slices with complete acceptance criteria over one large plan that forces `pge-exec` to carry stale research, dead ends, and irrelevant raw output.
 
@@ -511,12 +651,22 @@ Read `references/self-review.md` for full protocol (includes `references/multi-r
 
 ### Route
 
+Plan-level routes (final plan output):
+
 - `READY_FOR_EXECUTE`: ≥1 issue ready, no global blocker.
 - `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`: reserved for `pge-plan-normalize` when a complete external plan requires explicit mechanical assumptions.
 - `RETURN_TO_RESEARCH`: intent or success shape is not confirmed; plan cannot fairly produce executable issues without inventing user intent. Route back to `pge-research`.
 - `NEEDS_INFO`: missing information that the user can answer directly.
 - `BLOCKED`: cannot produce fair plan.
 - `NEEDS_HUMAN`: human decision needed.
+
+Engineering Review Gate verdicts (Phase 2 internal, control flow before approach selection):
+
+- `PASS`: gate cleared, proceed to approach selection.
+- `REWORK_PLAN`: fixable issues found; fix inline and re-run affected checks.
+- `RETURN_TO_RESEARCH`: intent/scope/success shape genuinely unclear; escalates to plan-level `RETURN_TO_RESEARCH`.
+- `NEEDS_INFO`: specific blocking question; escalates to plan-level `NEEDS_INFO` if user input required.
+- `SKIP_NOT_APPLICABLE`: available only inside per-dimension or non-engineering quality-gate records; it is not the overall Engineering Review Gate verdict.
 
 ### Completion gate
 
@@ -547,6 +697,6 @@ Do not: write business code, write implementation pseudocode or function bodies,
 - blocked_issues: <ids or None>
 - asked_user: yes | no
 - assumptions_recorded: yes | no
-- engineering_review: completed | skipped — reason
+- engineering_review: completed (gate: PASS|REWORK_PLAN|RETURN_TO_RESEARCH|NEEDS_INFO) | skipped — reason
 - next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-research <task-slug> (if RETURN_TO_RESEARCH) | pge-plan (after clarification)
 ```

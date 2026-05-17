@@ -63,6 +63,14 @@ Validate the upstream research/input before planning proceeds.
 
 - <observable criterion that must be true when execution is complete>
 
+### Success Shape → Acceptance + Verification Trace
+
+| Acceptance Criterion | Source | Source Type | Acceptance Trace | Verification / Evidence Trace |
+|---------------------|--------|-------------|------------------|-------------------------------|
+| <criterion from acceptance section> | <where it comes from> | success_shape / upstream / prompt / technical | <one sentence: why this follows> | <how verification/evidence proves it> |
+
+For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table with a single sentence trace (e.g., "All criteria derive directly from the user prompt requesting X, and the verification/evidence section proves those criteria directly.").
+
 ## verification
 
 <How to verify the plan as a whole is complete after all issues execute — commands, checks, or manual proof>
@@ -118,6 +126,20 @@ Authoritative upstream decisions that planning must inherit.
 | U1 | <requirement from upstream> | Issue N | covered |
 | U2 | <requirement from upstream> | — | gap (reason) |
 
+### Engineering Review Gate
+
+- Depth: LIGHT | MEDIUM | DEEP
+- Verdict: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
+- Step 0 (Scope Challenge): <summary>
+- Architecture: <summary or "N/A — LIGHT depth">
+- Code Quality: <summary or "N/A — not DEEP">
+- Test Coverage: <summary or "N/A — LIGHT depth">
+- Verification Story: <how acceptance is proven by verification/evidence>
+- Performance: <summary or "N/A — not DEEP">
+- Failure Modes: <count identified, count mitigated>
+- Semantic Evidence: <count rows recorded>
+- ASCII Diagrams: <count or "none required">
+
 ### Engineering Review
 
 #### Scope Challenge
@@ -133,6 +155,30 @@ Authoritative upstream decisions that planning must inherit.
 ### Assumptions
 
 - <assumption> — confidence: HIGH|MEDIUM|LOW — reason: <why reasonable> — verification: <how to confirm>
+
+### Quality Gate Results
+
+Use one compact record per gate or gate dimension when it helps downstream execution or review:
+
+```text
+gate: <gate name>
+status: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO | SKIP_NOT_APPLICABLE
+reason: <one sentence explaining the verdict>
+evidence: <file:line citations or semantic evidence rows>
+required_plan_changes: <specific changes needed if REWORK_PLAN, or "none">
+skip_reason: <required when status is SKIP_NOT_APPLICABLE>
+audit_note: <required for automatic decisions — what was decided and why>
+rating_before: <1-10 quality rating before the gate ran>
+rating_after: <1-10 quality rating after fixes applied>
+ten_out_of_ten_bar: <what would make this a 10/10>
+```
+
+Optional summary table when it helps:
+
+| Gate | Status | Rating | Skip Reason | Audit Note |
+|------|--------|--------|-------------|------------|
+| Engineering Review | <status> | <before>→<after> | — | <note> |
+| Experience Context | <status> | <before>→<after> | <reason if skipped> | <note> |
 
 ### Self-Evaluation
 
