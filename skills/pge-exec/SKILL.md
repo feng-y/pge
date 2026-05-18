@@ -52,7 +52,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 11. Apply Evaluator `PASS | RETRY | BLOCK` only where review is dispatched, and send failures into bounded repair, blocked state, run route, or lane recovery.
 12. Persist state after every transition.
 13. Check stop condition, semantic alignment, regression, and integration.
-14. Run Final Review Gate only when whole-diff risk triggers it.
+14. Run Final Review Gate for every completed execution before `SUCCESS`.
 15. Teardown using runtime truth, then write artifacts before the final response.
 
 ## Must Not
@@ -405,19 +405,9 @@ Headless mode must not turn missing human confirmation into approval, missing hu
 
 ## Final Review
 
-Evaluator validates each issue against its acceptance criteria. Final Review Gate is a thin whole-diff / cross-issue risk gate after issue evaluation, stop condition, integration verification, and regression checks.
+Evaluator validates each issue against its acceptance criteria. Final Review Gate is the whole-diff / cross-issue review after issue evaluation, stop condition, integration verification, and regression checks.
 
-Trigger when any condition is true:
-- multiple issues changed shared behavior or must compose correctly
-- public API, CLI, skill contract, handoff schema, or artifact layout changed
-- stateful behavior, persistence, migration, or recovery semantics changed
-- auth, safety, destructive action, sensitive-data handling, data access, or secrets changed
-- any issue has `Security: yes`
-- Generator/Evaluator needed retries, disagreed materially, or left residual risk
-- changed files cross ownership boundaries enough that issue-level acceptance may miss whole-diff risk
-- user explicitly requested review
-
-Skip for LIGHT runs only when all are true: 1-2 files changed, no shared interface, no security-sensitive surface, automated verification passed, and no justified drift.
+Run Final Review Gate for every completed execution before routing `SUCCESS`. There is no LIGHT skip. Small, low-risk runs use a compact review shape, but they still must produce a final-review verdict and write `.pge/tasks-<slug>/runs/<run_id>/review.md`. The simplification is review depth and report size, not whether review happens.
 
 External dependencies:
 - `agents/pge-code-reviewer.md` is the default read-only reviewer.
@@ -430,6 +420,7 @@ Review shape:
 - For security-sensitive or test-heavy DEEP runs, main may add at most one specialist read-only reviewer only when it can run in parallel and synthesize compactly.
 - Maximum 3 review agents total.
 - Use `skills/pge-exec/handoffs/reviewer.md`.
+- For compact reviews, keep the reviewer prompt and synthesized report short: changed files, plan alignment, verification evidence, and blocking/advisory findings only.
 
 Finding handling:
 - `Critical`: do not route `SUCCESS`. Repair if in scope and retry budget remains; otherwise route `PARTIAL` or `BLOCKED`.
@@ -464,10 +455,12 @@ Integration verification: if the plan touches 3+ files across 2+ modules, run an
 
 Regression check: after all per-issue evaluations pass, re-run Verification Hints from prior `PASS` issues. If any regressed, route `PARTIAL` with regression evidence.
 
-After Stop Condition, integration verification, and regression checks pass, run Final Review Gate if triggered. `SUCCESS` requires the gate to be skipped or to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
+After Stop Condition, integration verification, and regression checks pass, run Final Review Gate. `SUCCESS` requires the gate to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
+
+Final response `next` is the next explicit stage recommendation, not an automatic invocation. For a normal execution `SUCCESS`, default to `pge-review <task-slug>`. Use `pge-challenge <task-slug>` only when final-review state and current context already make challenge the next legal Review-stage action. Use `pge-plan` for upstream contract blockers and `user decision` for HITL. Do not output `next: done` for a normal post-plan execution success; exec success means the Execute stage is complete, not that Review/Challenge/Ship are complete.
 
 Route values:
-- `SUCCESS`: all issues `PASS`, Stop Condition passes, final review skipped/`PASS`/`ADVISORY_ONLY`
+- `SUCCESS`: all issues `PASS`, Stop Condition passes, final review `PASS`/`ADVISORY_ONLY`
 - `PARTIAL`: some progress, some blocked, regression/integration gap, or unresolved bounded final-review finding
 - `BLOCKED`: no issues could complete, or a blocking run-level failure prevents trustworthy continuation
 - `NEEDS_HUMAN`: HITL verification, decision, or action required
@@ -482,7 +475,7 @@ Write runtime facts only:
 ├── state.json
 ├── evidence/
 ├── deliverables/
-└── review.md      # only when Final Review Gate runs
+└── review.md      # required for completed executions before SUCCESS
 ```
 
 Manifest should include run metadata, plan id, plan path, run selection, rollback tag, skipped issues, issue results, verification summary, final route, exception records, and reusable knowledge candidates with evidence references.
@@ -506,7 +499,7 @@ After runtime shutdown approval or teammate termination, delete the current team
 
 Completion gate: do not declare execution complete, summarize completion, or change routes until both are true:
 
-1. Run artifacts have been written under `.pge/tasks-<slug>/runs/<run_id>/`, including manifest, state, evidence, deliverables, and review when triggered.
+1. Run artifacts have been written under `.pge/tasks-<slug>/runs/<run_id>/`, including manifest, state, evidence, deliverables, and review for completed executions before `SUCCESS`.
 2. You are about to output the Final Response block exactly once.
 
 If the user redirects the work mid-run, or the session needs to stop early, persist current run state and artifacts first, then route as `PARTIAL`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.
@@ -522,7 +515,7 @@ Final response:
 - issues_blocked: N
 - issues_total: N
 - stop_condition: passed | failed | not_checked
-- final_review: skipped | pass | advisory_only | repair_required | blocked
+- final_review: pass | advisory_only | repair_required | blocked
 - artifacts: .pge/tasks-<slug>/runs/<run_id>/
-- next: done | pge-review <task-slug> | pge-challenge <task-slug> (prove-it gate inside Review stage) | pge-plan (if blocked) | user decision (if HITL)
+- next: pge-review <task-slug> | pge-challenge <task-slug> (prove-it gate inside Review stage) | pge-plan (if blocked) | user decision (if HITL)
 ```

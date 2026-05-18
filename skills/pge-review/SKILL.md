@@ -242,6 +242,8 @@ Route rules:
 
 The default successful route is `READY_FOR_CHALLENGE`, not `READY_TO_SHIP`.
 
+Final response `next` is the next explicit stage recommendation, not an automatic invocation. For the default successful review route `READY_FOR_CHALLENGE`, output `next: pge-challenge <task-slug>`. Output `next: ship` only when the route is `READY_TO_SHIP` and the review input already contains passed `pge-challenge` evidence or equivalent adversarial proof. Do not use `ship`, `done`, or similar completion language for an ordinary passed review; Review passing means the Review gate is complete, not that Challenge/Ship are complete.
+
 ### 5.6 Task Artifact + Exec Repair Contract
 
 Every review finding that could drive follow-up work must be execution-facing, not just reviewer-facing.
@@ -379,7 +381,7 @@ End with:
 - route: BLOCK_SHIP | NEEDS_FIX | READY_FOR_CHALLENGE | READY_TO_SHIP
 - reason: <one sentence>
 - required_before_next: <fixes/evidence or "none">
-- next: pge-exec repair review findings for <task-slug> | pge-challenge <task-slug> | ship | route upstream to `pge-plan`
+- next: pge-exec repair review findings for <task-slug> | pge-challenge <task-slug> | ship only when route is READY_TO_SHIP | route upstream to `pge-plan`
 
 ## Summary
 - Standards: <N findings> (required: X, important: Y, advisory: Z)
