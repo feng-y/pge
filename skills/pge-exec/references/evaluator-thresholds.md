@@ -12,6 +12,14 @@ These conditions produce automatic verdicts without judgment:
 | Files modified outside Target Areas (unjustified) | BLOCK | "scope drift: <files> not in target areas" |
 | Generator self-reported BLOCKED | — | Do not evaluate. Main handles. |
 
+When a Verification Hint fails, attribute the failure before writing the verdict:
+- `issue_under_review`: failure is in the issue's own Target Areas or deliverable.
+- `sibling_issue`: failure stack points to another issue's Target Areas or sibling lane changes.
+- `newly_added_run_file`: failure stack points to files added elsewhere in the same run.
+- `environment_or_manual`: command/tooling/manual prerequisite is unavailable.
+
+For `sibling_issue` or `newly_added_run_file`, return RETRY with the attribution and implicated files. Main must route shared-tree contamination, hold the reviewed issue, repair the source first, and retry verification after the tree is buildable.
+
 ## Acceptance Criteria Check
 
 For each criterion in the issue's Acceptance Criteria:
@@ -45,6 +53,7 @@ When issuing RETRY, the `required_fixes` field must be:
 - "File src/auth.ts:42 — missing null check on `user.token` before comparison"
 - "Test for error path missing: what happens when API returns 500?"
 - "Verification command `npm test` exits with code 1: TypeError at line 23"
+- "Shared-tree contamination: verification for issue 1 fails in issue 2 file src/search.ts; restore buildability there before retrying issue 1"
 
 **Bad:**
 - "Add more tests" (not specific)
@@ -53,6 +62,8 @@ When issuing RETRY, the `required_fixes` field must be:
 - "Several issues found" (not bounded)
 
 One specific fix per RETRY. If multiple issues exist, report the most critical one — Generator will re-submit and you'll catch the next one.
+
+Exception: when `failure_attribution` is `sibling_issue` or `newly_added_run_file`, `required_fixes` is a main-orchestrator routing instruction, not a current-issue Generator patch request. Name the implicated source files and the buildability condition to restore.
 
 ## Calibration Notes
 
@@ -239,6 +250,8 @@ evidence_checked:
   - <what was independently verified>
   - <command run and result>
 scope_check: clean | drift_detected | drift_justified
+failure_attribution: issue_under_review | sibling_issue | newly_added_run_file | environment_or_manual | not_applicable
+implicated_files: <files involved in failed verification, or "none">
 adversarial_findings: <count or "not_applicable">
 quality_bar: passed | <which check failed>
 ```
@@ -302,4 +315,20 @@ Evaluator Action: Run `npm test -- --grep 'user search'`
 Result: Exit code 1 — "TypeError: Cannot read property 'query' of undefined at line 42"
 Verdict: RETRY
 Required Fixes: "Test fails with TypeError at search.test.ts:42 — req.query is undefined in test setup, add mock request object"
+Failure Attribution: issue_under_review
+Implicated Files: search.test.ts
+```
+
+### Example 5: RETRY — shared-tree contamination
+
+```
+Issue: "Add user search endpoint"
+Verification Hint: "npm test -- --grep 'user search'"
+Generator Evidence: "Endpoint created, tests written"
+Evaluator Action: Run `npm test -- --grep 'user search'`
+Result: Exit code 1 — compile error in src/admin-report.ts added by issue 2
+Verdict: RETRY
+Required Fixes: "Shared-tree contamination: issue 1 verification is blocked by src/admin-report.ts from issue 2; restore buildability there before retrying issue 1"
+Failure Attribution: sibling_issue
+Implicated Files: src/admin-report.ts
 ```

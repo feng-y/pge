@@ -49,6 +49,7 @@ Validate the upstream research/input before planning proceeds.
 - Target Areas: <exact file paths — Create: path | Modify: path>
 - Acceptance Criteria: <checkable conditions>
 - Verification Hint: <command or check>
+- Verification Coupling: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
 - Verification Type: AUTOMATED | MANUAL | MIXED
 - Execution Type: AFK | HITL:verify | HITL:decision | HITL:action
 - Test Expectation: <happy path + edge case to test, or "none — [reason]">
@@ -106,6 +107,8 @@ Justification: <one line explaining why this route is correct>
 - Eligible issues: <list>
 - AFK issues: <list>
 - HITL issues: <list>
+- Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
+- Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>
 - Upstream decisions to preserve: <decision IDs and short labels, or "none">
 - Risks not to ignore: <list>
 

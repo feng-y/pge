@@ -75,6 +75,7 @@ Target Areas: <exact file paths — Create: X | Modify: Y>
 Test Expectation: <happy path + edge case + error path>
 Required Evidence: <what you must produce to prove done>
 Verification Hint: <command to run>
+Verification Coupling: <none | compile-coupled with issue IDs | shared verification with issue IDs | isolated worktree required | serial verification required>
 
 ## Context
 
@@ -99,7 +100,8 @@ Companion rules path: `skills/pge-exec/references/generator-rules.md` in the sou
 - Deviation classification:
   - auto-fix-local: broken test, wrong import, typo → fix silently
   - auto-fix-critical: missing error handling, validation → fix + record in deviations
-  - stop-for-architectural: new service, schema change, scope expansion → BLOCKED
+  - implementation-blocked: compile error, include/type-surface mismatch, local interface assembly failure, or sibling run change preventing verification → report BLOCKED with the exact failing file/command and whether a local repair appears possible
+  - contract-blocked: new service, schema change, scope expansion, public API change, user decision, package install failure, or plan contract ambiguity → report BLOCKED with the contract reason
 - Never retry with no changes (same input → same output = stop)
 - Destructive git prohibition: never force-push, reset --hard, clean -f
 - Package install safety: failed install → BLOCKED, not auto-retry
@@ -120,6 +122,9 @@ evidence: <summary of what was produced>
 changed_files: <list>
 deviations: <any deviations from plan, or "none">
 deferred_items: <unrelated issues found, or "none">
+blocker_classification: implementation-blocked | contract-blocked | none
+blocker_source_files: <files implicated if BLOCKED, or "none">
+blocker_repairability: local_repair_possible | needs_main_takeover | needs_plan_or_human | exhausted | none
 ```
 
 ## Repair
@@ -165,6 +170,7 @@ Action: <original issue Action>
 Deliverable: <original deliverable>
 Target Areas: <original Target Areas>
 Verification Hint: <original command>
+Verification Coupling: <original issue Verification Coupling>
 
 ## Rules
 
@@ -191,4 +197,4 @@ Verification Hint: <original command>
 - Deliverable file exists
 - Required Evidence is present in the completion message
 - status is READY or BLOCKED (not missing)
-- If BLOCKED: record reason, skip Evaluator, mark issue BLOCKED
+- If BLOCKED: main skips Evaluator, classifies the blocker, and routes through implementation-blocked repair/takeover or contract-blocked issue state. Generator BLOCKED is not automatically terminal.

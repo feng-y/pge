@@ -230,6 +230,8 @@ The review must end with one route:
 - `READY_FOR_CHALLENGE` — review passed; proceed to `pge-challenge` for adversarial proof.
 - `READY_TO_SHIP` — only when the user explicitly requested review-only shipping readiness and prove-it evidence is already strong.
 
+`BLOCK_SHIP` blocks shipping and challenge progression; it is not a terminal repair route. Required findings with `scope: in-contract` still go back to `pge-exec repair review findings for <task-slug>`.
+
 Route rules:
 
 - Any **Required** finding → `BLOCK_SHIP`.

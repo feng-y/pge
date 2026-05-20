@@ -43,9 +43,16 @@ When encountering issues during execution:
 |----------|----------|--------|
 | **auto-fix-local** | Broken test, wrong import, typo, missing null check, format error | Fix silently, no permission needed |
 | **auto-fix-critical** | Missing error handling, validation gap, auth check, missing index | Fix + record in deviations |
-| **stop-for-architectural** | New service needed, schema change, library swap, scope expansion, public API change | Report BLOCKED immediately |
+| **implementation-blocked** | Compile error, include mismatch, forward declaration/type-surface mismatch, local interface assembly failure, sibling issue change breaking verification | Report BLOCKED with exact failing command, source files, and local repairability |
+| **contract-blocked** | New service needed, schema change, library swap, scope expansion, public API change, user decision required, plan ambiguity | Report BLOCKED with the contract blocker |
 
-Priority: stop-for-architectural wins. If unsure → stop-for-architectural.
+Priority: contract-blocked wins only when the fix would require changing goal, scope, Target Areas, Acceptance Criteria, Verification Hint, non-goals, or user decisions. If the failure is code-level and locally repairable within the current contract, classify it as implementation-blocked so main can repair or take over.
+
+Implementation-blocked is not a license to stop the run. It is a signal to main that code can still be repaired inside the current contract. Include enough evidence for main to act without rediscovering the failure:
+- failing command and shortest relevant output
+- implicated file paths
+- whether the failure appears caused by this issue, a sibling issue, or newly added files in the same run
+- whether a local fix seems possible
 
 ## No-Change Guard
 

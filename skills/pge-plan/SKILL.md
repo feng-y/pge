@@ -556,6 +556,20 @@ Grep can support coherence evidence but cannot be the sole proof for semantic-co
 
 This guidance does not require inspecting the entire repo. Scope the coherence check to the changed surface and its direct producers, consumers, and validators.
 
+### Verification Coupling And Parallel Safety
+
+Before writing issue dependencies, classify whether planned issues share a verification surface:
+
+- Same build graph, compile unit, generated artifact set, test suite, app startup, or integration command → compile-coupled / verification-coupled.
+- Pure docs/text edits or independent scripts outside a shared build graph → not coupled unless their verification command is shared.
+
+For coupled issues, the plan must prevent same-working-tree contamination by doing at least one of:
+- add explicit issue dependencies so implementation and verification occur in a safe order,
+- require serial integration verification in issue-ID order after each coupled issue,
+- state that isolated worktrees are required for parallel authoring.
+
+Do not rely on non-overlapping Target Areas alone as proof of parallel safety. If two issues can make the same verification command fail, record the coupling in the issue `Risks`, `Dependencies`, or `Verification Coupling` field and in `Handoff To Execute`.
+
 ### Select Approach
 
 Commit to one. Record selected/rejected/scope reductions as Decision / Rationale / Alternatives considered. Override upstream only if engineering review finds contradicting evidence or an explicit requirement conflict.
@@ -644,6 +658,7 @@ Each issue includes:
 - `Deliverable` (what must exist when done)
 - `Target Areas` (exact paths: Create/Modify)
 - `Acceptance Criteria`, `Verification Hint`
+- `Verification Coupling`: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
 - `Verification Type`: AUTOMATED | MANUAL | MIXED
 - `Execution Type`: AFK | HITL:verify | HITL:decision | HITL:action
 - `Test Expectation`: happy path + edge case + error path (+ integration if boundary)
@@ -651,6 +666,8 @@ Each issue includes:
 - `State`: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - `Dependencies`, `Risks`
 - `Security`: yes | no (yes if issue touches auth, data access, API boundaries, secrets, or permissions. Triggers stricter Evaluator thresholds.)
+
+When issues are compile-coupled or share a verification surface, `Dependencies`, `Risks`, and `Verification Coupling` must make the safe execution strategy explicit. If safe parallel execution requires isolated worktrees, say so; otherwise require serial verification. Do not leave this for `pge-exec` to infer from Target Areas alone.
 
 ### Write Plan Artifact
 

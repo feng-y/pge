@@ -65,6 +65,9 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not claim a Generator issue is complete without self-review, evidence, and any concentrated or risk-triggered Evaluator review required by the issue or review window.
 - Do not skip concentrated Evaluator review when a risk trigger fires.
 - Do not let Evaluator findings hang without repair, blocked state, run route, or lane recovery.
+- Do not route a generator `BLOCKED` terminally until main classifies it as implementation-blocked or contract-blocked.
+- Do not mark an issue failed when its verification is blocked by sibling issue changes or newly added files from the same run.
+- Do not run compile-coupled issues in the same working tree with immediate verification.
 - Do not retry more than 3 attempts per issue.
 - Do not retry a repair with no code or artifact changes.
 - Do not allow destructive git.
@@ -123,6 +126,7 @@ Validate before lane creation:
 - At least one issue under `## Slices` has `State: READY_FOR_EXECUTE`.
 - Stop Condition is present and checkable.
 - Each ready issue has Action, Deliverable, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Test Expectation, Required Evidence, Dependencies, Risks, and Security.
+- Newly produced plans should include Verification Coupling. If a legacy or external canonical plan omits it, main must classify verification coupling before dispatch and treat the missing field as `unknown` until that check resolves it to `none`, `compile-coupled`, `shared verification`, `isolated worktree required`, or `serial verification required`.
 - Dependencies reference known issue IDs.
 - Target Areas are concrete enough for scope drift checks.
 
@@ -202,6 +206,9 @@ Adaptive scaling:
 - At 12+ independent issues, add `generator-3`.
 - Cap at 3 generator lanes.
 - Scale only when assigned issues have no dependencies and no Target Area overlap.
+- Before dispatching parallel generators, check verification coupling. Issues that enter the same build graph, compile unit, shared generated artifact set, or common verification command are compile-coupled even if their Target Areas do not overlap.
+- Compile-coupled issues must not use same-working-tree parallel generation plus immediate verification. Use isolated worktrees per generator, or allow parallel authoring only if main serializes integration verification on a clean tree in issue-ID order.
+- Documentation-only issues, pure text edits, and independent scripts that do not participate in a common build or verification graph may run concurrently in the same working tree when their Target Areas do not overlap.
 - If a generator needs a file outside assigned Target Areas, it reports `BLOCKED` with reason `cross-assignment deviation needed: <file>`.
 - Evaluate in issue-ID order regardless of generator completion order.
 
@@ -226,17 +233,22 @@ Evaluator dispatch triggers:
 For each ready issue:
 
 1. Dependency check: if the issue depends on a `BLOCKED` issue, mark it `BLOCKED` with dependency reason.
-2. Build execution pack: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, Verification Hint, relevant assumptions, dependencies, directly needed repo context, plan `goal`, relevant `non_goals`, and upstream decision refs needed for semantic alignment.
+2. Build execution pack: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, Verification Hint, Verification Coupling, relevant assumptions, dependencies, directly needed repo context, plan `goal`, relevant `non_goals`, and upstream decision refs needed for semantic alignment.
 3. Dispatch Generator using `skills/pge-exec/handoffs/generator.md`.
 4. Require exactly one terminal `generator_completion` packet for that attempt.
-5. Candidate gate: deliverable exists, evidence is present, status is `READY` or `BLOCKED`, changed files are listed, and deviations are recorded.
-6. If Generator reports `BLOCKED`, skip Evaluator and record issue `BLOCKED`.
+5. Candidate gate: deliverable exists for `READY`, evidence is present, status is `READY` or `BLOCKED`, changed files are listed, deviations are recorded, and any `BLOCKED` packet includes blocker classification, source files, and repairability.
+6. If Generator reports `BLOCKED`, skip Evaluator and classify the blocker before changing the issue route:
+   - `implementation-blocked`: compile errors, include-surface mismatch, forward-declaration or type-surface problems, sibling issue contamination, local interface assembly errors, or other code-level failures that do not require user decisions or plan contract changes.
+   - `contract-blocked`: unclear plan, insufficient scope, user decision required, target area/scope boundary would need to change, acceptance/verification/non-goal conflict, external environment or package-install blocker, or any fix that would mutate the plan contract.
+   - Implementation-blocked must not terminally end the run. Hold dependent or contaminated issues, schedule bounded repair on the blocker source issue or main-thread takeover, restore a buildable tree, then retry affected verification.
+   - Contract-blocked may record issue `BLOCKED` and continue only with independent issues.
 7. If an evaluator dispatch trigger fires, dispatch Evaluator with issue criteria and Generator evidence using `skills/pge-exec/handoffs/evaluator.md`.
 8. Otherwise keep the candidate in the concentrated review queue and continue dispatching independent Generator work when dependencies and Target Areas allow it.
 9. Require exactly one terminal `evaluator_verdict` for each candidate sent to Evaluator.
 10. Apply verdict:
     - `PASS`: mark issue complete.
-    - `RETRY`: main sends bounded `repair_request` to Generator, up to 3 total attempts.
+    - `RETRY` with `failure_attribution: sibling_issue | newly_added_run_file`: route `shared_tree_contamination`; set the reviewed issue to `HELD`, promote the implicated source issue/file to priority repair or main-thread takeover, recover the tree, then rerun the held issue's verification.
+    - other `RETRY`: main sends bounded `repair_request` to Generator, up to 3 total attempts.
     - `BLOCK` with reason `manual verification pending`: route `NEEDS_HUMAN` instead of issue `BLOCKED`.
     - other `BLOCK`: record blocker; continue only with independent issues.
 11. Before route decisions for queued candidates, run a concentrated Evaluator review window in issue-ID order. `DEEP` runs require a `DEEP` evaluator window before the Final Review Gate.
@@ -253,14 +265,25 @@ Pipeline activation requires all of:
 
 When pipeline is active:
 - If immediate E(N) returns `PASS`, continue normally.
-- If immediate E(N) returns `RETRY`, let independent G(N+1) work finish, hold later candidates, repair N through main, re-evaluate N, then resume queued review in issue-ID order.
+- If immediate E(N) returns `RETRY` with `failure_attribution: sibling_issue | newly_added_run_file`, hold N, repair the implicated source first, re-run N verification after the tree is buildable, then resume queued review in issue-ID order.
+- If immediate E(N) returns any other `RETRY`, let independent G(N+1) work finish, hold later candidates, repair N through main, re-evaluate N, then resume queued review in issue-ID order.
 - If immediate E(N) returns `BLOCK`, let independent Generator work finish. Release later candidates only if they remain independent.
+- If verification for issue A fails in files owned by issue B, files newly added by the same run, or a sibling lane's changed surface, treat it as `shared_tree_contamination`, not issue A failure. Set A to `HELD`, promote the contaminating issue or file owner to priority repair, recover the whole tree to a buildable state, then rerun A's verification.
+
+Main-thread takeover is mandatory when a blocker is locally repairable, code-level, inside the current task scope, does not require a user decision, and does not require changing the plan. Takeover means main:
+1. reads the blocker file and immediate type/include/caller surface,
+2. decides whether a local patch can restore compilation or verification,
+3. applies the smallest in-scope fix or sends one bounded repair request,
+4. reruns the failed build/verification command,
+5. restores the original issue verification chain after the tree is buildable.
+
+Code that can be locally repaired is not terminally blocked. Only plan changes, user decisions, true scope escape, unrecoverable environment/tooling failure, or exhausted bounded repair may end the run as `BLOCKED`.
 
 Communication consistency:
 - Idle/startup messages, partial reasoning, and prose summaries are non-terminal.
 - If a lane cannot proceed because dispatch is unclear or setup is invalid, it returns the terminal packet with a blocking reason.
 - Main sends at most one clarification/nudge for missing or malformed packets, then rebuilds/replaces the lane or routes `BLOCKED`.
-- Evaluator failures feed back to main. Evaluator does not patch. Main schedules Generator repair using `required_fixes`.
+- Evaluator failures feed back to main. Evaluator does not patch. Main schedules Generator repair using `required_fixes` only for current-issue failures; sibling/new-run-file attribution routes through shared-tree contamination first.
 - Communication failures are orchestration failures, recorded separately from implementation failures.
 
 After each `PASS`, record:
@@ -291,7 +314,7 @@ Generator rules summary:
 Evaluator rules summary:
 - Read `skills/pge-exec/references/evaluator-thresholds.md`.
 - Required Evidence missing means `RETRY`.
-- Verification Hint fails means `RETRY`.
+- Verification Hint fails means `RETRY` with `failure_attribution`; sibling/new-run-file attribution routes through shared-tree contamination, not current-issue repair.
 - Any Acceptance Criterion unmet means `RETRY` with specific feedback.
 - Deliverable missing means `BLOCK`.
 - Scope drift outside Target Areas means `BLOCK`.
@@ -374,9 +397,12 @@ Minimum exception routing:
 | repair artifact reviewed head / base / diff fingerprint mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
 | TeamCreate or lane spawn failure | cleanup, retry once, then `BLOCKED` |
 | missing `lane_ready` | retry/rebuild once, then `BLOCKED` |
-| generator `BLOCKED` | record issue `BLOCKED`; continue only with independent issues |
+| generator `BLOCKED` from compile/include/type/local interface failure | classify as implementation-blocked; hold dependent or contaminated issues; schedule bounded repair or main takeover; retry verification after the tree is buildable |
+| generator `BLOCKED` from sibling issue or newly added file breaking verification | route `shared_tree_contamination`; issue under verification becomes `HELD`; contaminating source becomes priority repair; rerun held verification after recovery |
+| generator `BLOCKED` from plan/scope/user-decision dependency | classify as contract-blocked; record issue `BLOCKED`; continue only with independent issues |
 | missing or malformed `generator_completion` | nudge once, then lane recovery or issue `BLOCKED` |
-| evaluator `RETRY` | send bounded `repair_request` through main |
+| evaluator `RETRY` with `failure_attribution: sibling_issue | newly_added_run_file` | route `shared_tree_contamination`; hold reviewed issue; repair implicated source first; rerun held verification after recovery |
+| other evaluator `RETRY` | send bounded `repair_request` through main |
 | evaluator `BLOCK` with `manual verification pending` | route `NEEDS_HUMAN`; do not downgrade missing human verification into issue `BLOCKED` |
 | other evaluator `BLOCK` | record issue `BLOCKED`; continue only if independent |
 | missing or malformed `evaluator_verdict` | nudge once, then lane recovery or issue/run `BLOCKED` |
@@ -384,7 +410,9 @@ Minimum exception routing:
 | dependency blocked | dependent issue becomes `BLOCKED` with dependency reason |
 | Target Area drift | route issue `BLOCKED` or route upstream if plan boundary changed |
 | HITL confirmation, decision, or action required | route `NEEDS_HUMAN`; do not auto-approve or choose defaults in headless mode |
-| verification command unavailable/fails | Evaluator returns `RETRY` or `BLOCK` with evidence |
+| verification command fails from compile/include/type/local interface error | implementation-blocked; repair or takeover before terminal routing |
+| verification command fails in sibling issue or newly added file | route `shared_tree_contamination`; hold affected issue and repair source first |
+| verification command unavailable or requires external/manual input | Evaluator returns `RETRY`, `BLOCK`, or `NEEDS_HUMAN` with evidence according to subtype |
 | state write failure | stop execution and route run `BLOCKED`; do not continue without recoverable state |
 | artifact write failure | route `BLOCKED`; do not claim completion |
 | final review `REPAIR_REQUIRED` | repair if bounded, otherwise `PARTIAL` |

@@ -78,6 +78,7 @@ Independently validate that Generator's deliverable satisfies the plan issue.
 Acceptance Criteria: <issue Acceptance Criteria>
 Required Evidence: <issue Required Evidence>
 Verification Hint: <issue Verification Hint>
+Verification Coupling: <issue Verification Coupling>
 Verification Type: <AUTOMATED | MANUAL | MIXED>
 Target Areas: <issue Target Areas — scope boundary>
 
@@ -124,6 +125,8 @@ evidence_checked:
   - <what was independently verified>
   - <command run and result>
 scope_check: clean | drift_detected | drift_justified
+failure_attribution: issue_under_review | sibling_issue | newly_added_run_file | environment_or_manual | not_applicable
+implicated_files: <files involved in failed verification, or "none">
 adversarial_findings: <count or "not_applicable">
 quality_bar: passed | <which check failed>
 ```
@@ -135,6 +138,8 @@ When issuing RETRY, `required_fixes` must be:
 - Actionable: Generator must know exactly what to change
 - Bounded: one fix per RETRY, not a laundry list
 - Verifiable: you must be able to check the fix was applied
+
+Exception: for `failure_attribution: sibling_issue | newly_added_run_file`, `required_fixes` is for main routing, not for the reviewed issue's Generator. It must identify the implicated files/source issue and the buildability condition to restore. Main will hold the reviewed issue and repair the source first.
 
 ## MANUAL Verification
 
@@ -149,8 +154,10 @@ If Verification Type = MANUAL:
 
 - verdict is one of: PASS, RETRY, BLOCK
 - reason is present
-- If RETRY: required_fixes is present and specific
+- If RETRY: required_fixes is present and specific. For `failure_attribution: sibling_issue | newly_added_run_file`, it must identify the contamination source instead of asking the reviewed issue to patch unrelated files.
 - If BLOCK: reason explains why execution cannot continue
+
+If verification fails in files outside the issue under review but inside another issue's Target Areas, newly added run files, or a sibling lane's changed surface, set `failure_attribution` accordingly. Main treats that as shared-tree contamination and must not count it as the reviewed issue's failure until the tree is buildable again.
 
 ## Relationship To Final Review
 
