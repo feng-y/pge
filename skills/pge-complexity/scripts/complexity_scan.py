@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Lightweight complexity hotspot scanner for pge-complexity.
+"""Heuristic complexity hotspot scanner for pge-complexity.
 
-This script is intentionally heuristic. It produces leads for human/agent review,
-not proof of performance problems. Nesting detection is indentation-oriented and
-best for Python or consistently formatted code; treat brace-language findings as
-lower-confidence leads unless confirmed by reading the code.
+This script produces leads for human/agent review, not proof of performance
+problems. Python files use AST analysis for common loop patterns; other
+languages use textual heuristics. Confirm important findings by reading code.
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
+import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Iterable
 
 
-SKIP_DIRS = {
+DEFAULT_EXCLUDES = {
     ".git",
     ".hg",
     ".svn",
@@ -27,52 +29,53 @@ SKIP_DIRS = {
     "vendor",
     "dist",
     "build",
-    "target",
+    ".next",
+    ".nuxt",
+    "coverage",
+    "__pycache__",
     ".venv",
     "venv",
-    "__pycache__",
-    "coverage",
+    "target",
+    ".turbo",
 }
 
-CODE_EXTS = {
+TEXT_EXTENSIONS = {
     ".py",
     ".js",
     ".jsx",
     ".ts",
     ".tsx",
-    ".go",
+    ".mjs",
+    ".cjs",
     ".java",
-    ".kt",
-    ".rs",
+    ".go",
     ".rb",
     ".php",
-    ".c",
-    ".cc",
+    ".cs",
     ".cpp",
+    ".cc",
+    ".c",
     ".h",
     ".hpp",
-    ".cs",
     ".swift",
 }
 
-FUNC_PATTERNS = [
-    re.compile(r"^\s*def\s+([A-Za-z_][\w]*)\s*\("),
-    re.compile(r"^\s*async\s+def\s+([A-Za-z_][\w]*)\s*\("),
-    re.compile(r"^\s*function\s+([A-Za-z_$][\w$]*)\s*\("),
-    re.compile(r"^\s*(?:export\s+)?(?:async\s+)?(?:function\s+)?([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\("),
-    re.compile(r"^\s*(?:public|private|protected|static|\s)+[\w<>\[\], ?]+\s+([A-Za-z_][\w]*)\s*\("),
-]
-
-LOOP_RE = re.compile(r"\b(for|while|forEach)\b|(?:\.|\b)(?:map|filter|reduce)\s*\(")
-BRANCH_RE = re.compile(r"\b(if|elif|else if|switch|case|catch|except)\b")
-EXPENSIVE_RE = re.compile(r"\b(sort|sorted|groupby|distinct|join|query|fetch|request|readFile|writeFile)\b")
+LOOP_RE = re.compile(r"\b(for|while|forEach)\b|(?:\.|\b)(?:map|filter|reduce|some|every)\s*\(")
+MEMBERSHIP_RE = re.compile(r"(\.includes\s*\(|\.indexOf\s*\(|\.find\s*\(|\.findIndex\s*\(|\bin_array\s*\(|\bcontains\s*\()")
+SORT_RE = re.compile(r"(\.sort\s*\(|\bsorted\s*\(|\bsort\s*\()")
+QUERY_IN_LOOP_RE = re.compile(
+    r"\b(fetch|axios\.|request\s*\(|query\s*\(|execute\s*\(|findMany\s*\(|findOne\s*\(|findUnique\s*\(|select\s*\(|where\s*\()\b",
+    re.IGNORECASE,
+)
+RENDER_HINT_RE = re.compile(r"\b(function\s+[A-Z][A-Za-z0-9_]*|const\s+[A-Z][A-Za-z0-9_]*\s*=|export\s+default\s+function\s+[A-Z])")
 
 
 @dataclass
 class Finding:
-    severity: str
-    path: Path
+    path: str
     line: int
+    severity: str
+    kind: str
     signal: str
     data_size_driver: str
     current_complexity: str
@@ -80,249 +83,477 @@ class Finding:
     amplification_point: str
     expensive_boundary: str
     state_complexity: str
+    attribution: str
     correctness_invariant: str
     recommendation: str
+    expected_impact: str
+    risk: str
     tests_needed: str
+    decision: str
 
 
-def iter_files(root: Path):
+def finding(
+    *,
+    path: Path,
+    root: Path,
+    line: int,
+    severity: str,
+    kind: str,
+    signal: str,
+    data_size_driver: str,
+    current_complexity: str,
+    proposed_complexity: str,
+    amplification_point: str,
+    expensive_boundary: str,
+    state_complexity: str,
+    correctness_invariant: str,
+    recommendation: str,
+    expected_impact: str,
+    risk: str,
+    tests_needed: str,
+    decision: str,
+) -> Finding:
+    return Finding(
+        path=rel(path, root),
+        line=line,
+        severity=severity,
+        kind=kind,
+        signal=signal,
+        data_size_driver=data_size_driver,
+        current_complexity=current_complexity,
+        proposed_complexity=proposed_complexity,
+        amplification_point=amplification_point,
+        expensive_boundary=expensive_boundary,
+        state_complexity=state_complexity,
+        attribution="not_applicable",
+        correctness_invariant=correctness_invariant,
+        recommendation=recommendation,
+        expected_impact=expected_impact,
+        risk=risk,
+        tests_needed=tests_needed,
+        decision=decision,
+    )
+
+
+def iter_files(root: Path, excludes: set[str]) -> Iterable[Path]:
     if root.is_file():
-        if root.suffix in CODE_EXTS:
+        if root.suffix in TEXT_EXTENSIONS:
             yield root
         return
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
-        for name in filenames:
-            path = Path(dirpath) / name
-            if path.suffix in CODE_EXTS:
+        dirnames[:] = [d for d in dirnames if d not in excludes]
+        for filename in filenames:
+            path = Path(dirpath) / filename
+            if path.suffix in TEXT_EXTENSIONS:
                 yield path
 
 
-def indentation(line: str) -> int:
-    return len(line) - len(line.lstrip(" "))
-
-
-def function_name(line: str) -> str | None:
-    for pattern in FUNC_PATTERNS:
-        match = pattern.match(line)
-        if match:
-            return match.group(1)
-    return None
-
-
-def scan_file(path: Path, root: Path) -> list[Finding]:
+def read_text(path: Path) -> str | None:
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        try:
+            return path.read_text(encoding="latin-1")
+        except OSError:
+            return None
     except OSError:
-        return []
+        return None
 
-    lines = text.splitlines()
-    findings: list[Finding] = []
-    rel = path.relative_to(root) if path.is_relative_to(root) else path
 
-    if len(lines) > 800:
-        findings.append(
-            Finding(
-                "P1",
-                rel,
-                1,
-                f"large file ({len(lines)} lines)",
-                "lines / responsibilities",
-                "navigation and review complexity grows with file size",
-                "same runtime complexity; lower navigation and change risk if split by cohesive boundary",
-                "mixed responsibilities across one file",
-                "none from static scan",
-                "module ownership and navigation complexity",
-                "public behavior and module ownership remain unchanged",
-                "split by domain boundary or extract named helpers only where it reduces navigation cost",
-                "review module ownership and run existing tests",
+def rel(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
+class PythonVisitor(ast.NodeVisitor):
+    def __init__(self, path: Path, root: Path) -> None:
+        self.path = path
+        self.root = root
+        self.loop_depth = 0
+        self.findings: list[Finding] = []
+
+    def add_loop_finding(self, node: ast.AST) -> None:
+        self.findings.append(
+            finding(
+                path=self.path,
+                root=self.root,
+                line=getattr(node, "lineno", 1),
+                severity="high",
+                kind="nested-loop",
+                signal="Nested loop may create O(n*m) or worse behavior.",
+                data_size_driver="outer input size * inner input size",
+                current_complexity="possibly O(n*m) or worse depending on input sizes",
+                proposed_complexity="often O(n+m) with indexing/pre-grouping, if semantics allow",
+                amplification_point="nested iteration / repeated scan",
+                expensive_boundary="none from AST scan",
+                state_complexity="loop body state depends on surrounding code",
+                correctness_invariant="same matching, ordering, deduplication, grouping, and missing-value behavior",
+                recommendation="Check whether a map/set index, grouping, batching, or a single-pass algorithm can replace the inner scan.",
+                expected_impact="May remove multiplicative growth on large inputs.",
+                risk="medium",
+                tests_needed="fixture or benchmark with input sizes that exercise the nested path",
+                decision="needs measurement",
             )
         )
 
-    stack: list[tuple[int, int]] = []
-    current_func: tuple[str, int, int] | None = None
+    def visit_For(self, node: ast.For) -> None:
+        self._visit_loop(node)
+
+    def visit_While(self, node: ast.While) -> None:
+        self._visit_loop(node)
+
+    def _visit_loop(self, node: ast.AST) -> None:
+        if self.loop_depth >= 1:
+            self.add_loop_finding(node)
+        self.loop_depth += 1
+        self.generic_visit(node)
+        self.loop_depth -= 1
+
+    def visit_Compare(self, node: ast.Compare) -> None:
+        if self.loop_depth and any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
+            self.findings.append(
+                finding(
+                    path=self.path,
+                    root=self.root,
+                    line=getattr(node, "lineno", 1),
+                    severity="medium",
+                    kind="membership-in-loop",
+                    signal="Membership check inside a loop can become O(n*m) when the right side is a list or computed sequence.",
+                    data_size_driver="loop count * membership collection size",
+                    current_complexity="possibly O(n*m)",
+                    proposed_complexity="often O(n+m) with a set/dict, if equality semantics allow",
+                    amplification_point="repeated membership scan",
+                    expensive_boundary="none from AST scan",
+                    state_complexity="equality/hashability semantics may constrain replacement",
+                    correctness_invariant="same equality, normalization, duplicate, and missing-value semantics",
+                    recommendation="Build a set or dict once before the loop when membership equality is stable.",
+                    expected_impact="Can remove repeated linear membership scans.",
+                    risk="medium",
+                    tests_needed="fixture covering duplicates, missing values, and equality edge cases",
+                    decision="needs measurement",
+                )
+            )
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        name = call_name(node.func)
+        lowered = name.lower()
+        if self.loop_depth and name in {"sorted", "sort"}:
+            self.findings.append(
+                finding(
+                    path=self.path,
+                    root=self.root,
+                    line=getattr(node, "lineno", 1),
+                    severity="high",
+                    kind="sort-in-loop",
+                    signal="Sorting inside a loop is often avoidable repeated O(n log n) work.",
+                    data_size_driver="loop count * sorted collection size",
+                    current_complexity="often O(k*n log n) or worse",
+                    proposed_complexity="often O(n log n) or O(k log n) with heap/binary insertion, if semantics allow",
+                    amplification_point="repeated sorting",
+                    expensive_boundary="sort",
+                    state_complexity="comparator or intermediate sorted state may be semantic",
+                    correctness_invariant="same ordering, stability, comparator behavior, and intermediate visibility",
+                    recommendation="Sort once outside the loop, maintain a heap, or use binary search/insertion if intermediate order is required.",
+                    expected_impact="Can remove repeated sort cost.",
+                    risk="medium",
+                    tests_needed="fixture covering ordering ties and intermediate-state expectations",
+                    decision="needs measurement",
+                )
+            )
+        if self.loop_depth and name in {"filter", "map"}:
+            self.findings.append(
+                finding(
+                    path=self.path,
+                    root=self.root,
+                    line=getattr(node, "lineno", 1),
+                    severity="medium",
+                    kind="repeated-scan",
+                    signal=f"{name}() inside a loop may repeatedly scan a collection.",
+                    data_size_driver="loop count * transformed collection size",
+                    current_complexity="possibly O(n*m)",
+                    proposed_complexity="often O(n+m) with precomputed grouping or combined pass",
+                    amplification_point="repeated collection transform",
+                    expensive_boundary="none from AST scan",
+                    state_complexity="transform side effects or laziness may constrain refactor",
+                    correctness_invariant="same transform output, ordering, side effects, and laziness/eagerness semantics",
+                    recommendation="Consider precomputing an index/grouping or combining passes.",
+                    expected_impact="Can reduce repeated scans and allocations.",
+                    risk="medium",
+                    tests_needed="fixture covering ordering and side-effect expectations",
+                    decision="needs measurement",
+                )
+            )
+        if self.loop_depth and lowered in {"fetch", "request", "query", "execute", "find", "find_one", "find_many", "select", "where"}:
+            self.findings.append(
+                finding(
+                    path=self.path,
+                    root=self.root,
+                    line=getattr(node, "lineno", 1),
+                    severity="high",
+                    kind="io-or-query-in-loop",
+                    signal="Potential database/API/file operation inside a loop.",
+                    data_size_driver="loop count * I/O/query cost",
+                    current_complexity="N+1 style behavior or repeated I/O",
+                    proposed_complexity="batch/preload/cache if authorization and filtering semantics allow",
+                    amplification_point="per-item I/O",
+                    expensive_boundary="database/API/file operation",
+                    state_complexity="authorization, filtering, ordering, retry, and error behavior constrain batching",
+                    correctness_invariant="same auth, filters, tenancy, ordering, pagination, retry, and error semantics",
+                    recommendation="Look for N+1 behavior; batch or preload while preserving auth, filters, ordering, and error handling.",
+                    expected_impact="Can reduce round trips and tail latency.",
+                    risk="high",
+                    tests_needed="integration fixture or query/API trace proving identical records and ordering",
+                    decision="needs measurement",
+                )
+            )
+        self.generic_visit(node)
+
+
+def call_name(func: ast.AST) -> str:
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return ""
+
+
+def scan_python(path: Path, root: Path, text: str) -> list[Finding]:
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return scan_text(path, root, text)
+    visitor = PythonVisitor(path, root)
+    visitor.visit(tree)
+    return visitor.findings
+
+
+def scan_text(path: Path, root: Path, text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    lines = text.splitlines()
     loop_stack: list[tuple[int, int]] = []
+    render_lines = component_ranges(lines) if path.suffix in {".jsx", ".tsx", ".js", ".ts"} else set()
 
     for idx, line in enumerate(lines, start=1):
         stripped = line.strip()
-        if not stripped or stripped.startswith(("#", "//", "*")):
+        if not stripped or stripped.startswith(("//", "#", "*")):
             continue
-
-        name = function_name(line)
-        if name:
-            if current_func:
-                func_name, start, _ = current_func
-                length = idx - start
-                if length > 80:
-                    findings.append(
-                        Finding(
-                            "P1" if length > 140 else "P2",
-                            rel,
-                            start,
-                            f"long function `{func_name}` ({length} lines)",
-                            "branches / statements in one function",
-                            "branch and state complexity grows with function length",
-                            "same runtime complexity unless repeated work is removed; lower control-flow risk",
-                            "large single-function control surface",
-                            "none from static scan",
-                            "long function with mixed phases",
-                            "same outputs, side effects, ordering, and error handling for the function's callers",
-                            "extract cohesive phases or name intermediate concepts; keep behavior unchanged",
-                            "unit or integration test covering the function's call path",
-                        )
-                    )
-            current_func = (name, idx, indentation(line))
-
-        indent = indentation(line)
-        while stack and indent <= stack[-1][0]:
-            stack.pop()
-        while loop_stack and indent <= loop_stack[-1][1]:
-            loop_stack.pop()
-
-        if BRANCH_RE.search(stripped) or LOOP_RE.search(stripped):
-            stack.append((indent, idx))
-            if len(stack) >= 5:
-                findings.append(
-                    Finding(
-                        "P1",
-                        rel,
-                        idx,
-                        f"deep control nesting (depth {len(stack)})",
-                        "branch combinations",
-                        "cyclomatic/control-flow complexity is high",
-                        "same Big-O; lower branch complexity with guard clauses or phase extraction",
-                        "nested branch/loop stack",
-                        "none from static scan",
-                        "deep branch nesting",
-                        "same branch behavior, edge-case handling, and side effects",
-                        "reduce nesting with guard clauses, smaller phases, or data-driven dispatch",
-                        "tests for each branch that remains behaviorally relevant",
-                    )
-                )
+        indent = len(line) - len(line.lstrip(" "))
+        loop_stack = [(level, lno) for level, lno in loop_stack if level < indent + 4]
 
         if LOOP_RE.search(stripped):
             if loop_stack:
                 findings.append(
-                    Finding(
-                        "P0",
-                        rel,
-                        idx,
-                        "nested loop or collection pass may be O(n*m)",
-                        "outer input size * inner input size",
-                        "possibly O(n*m) or worse depending on input sizes",
-                        "often O(n+m) with indexing/pre-grouping, if semantics allow",
-                        "nested iteration / repeated scan",
-                        "none from static scan",
-                        "loop body state depends on surrounding code",
-                        "same matching, ordering, deduplication, grouping, and missing-value behavior",
-                        "check whether an index, set/map lookup, pre-grouping, or single-pass accumulation can replace repeated scans",
-                        "benchmark or fixture with input sizes that exercise the nested path",
+                    finding(
+                        path=path,
+                        root=root,
+                        line=idx,
+                        severity="high",
+                        kind="nested-or-callback-loop",
+                        signal="Loop or array iteration appears inside another loop/callback.",
+                        data_size_driver="outer input size * inner input size",
+                        current_complexity="possibly O(n*m)",
+                        proposed_complexity="often O(n+m) with indexing/grouping/batching, if semantics allow",
+                        amplification_point="nested iteration / callback iteration",
+                        expensive_boundary="none from textual scan",
+                        state_complexity="callback captures and side effects may constrain refactor",
+                        correctness_invariant="same ordering, grouping, deduplication, side effects, and missing-value behavior",
+                        recommendation="Check whether indexing, grouping, batching, or a single-pass algorithm can remove repeated scans.",
+                        expected_impact="May remove multiplicative growth on large inputs.",
+                        risk="medium",
+                        tests_needed="fixture or benchmark with large representative collections",
+                        decision="needs measurement",
                     )
                 )
-            loop_stack.append((idx, indent))
+            loop_stack.append((indent, idx))
 
-        if EXPENSIVE_RE.search(stripped) and loop_stack:
+        if loop_stack and MEMBERSHIP_RE.search(stripped):
             findings.append(
-                Finding(
-                    "P1",
-                    rel,
-                    idx,
-                    "potential expensive operation inside loop",
-                    "loop count * expensive operation cost",
-                    "loop cost multiplied by expensive operation cost",
-                    "same or lower Big-O depending on batching/caching; lower constant factor at minimum",
-                    "per-item expensive work",
-                    "sort/query/fetch/request/file operation inside loop",
-                    "loop body side effects may constrain batching",
-                    "same I/O, caching, retry, ordering, and error semantics",
-                    "move invariant work out of the loop, cache results, or batch the operation if behavior allows",
-                    "measurement around the loop or benchmark with representative input",
+                finding(
+                    path=path,
+                    root=root,
+                    line=idx,
+                    severity="medium",
+                    kind="membership-in-loop",
+                    signal="Membership/search operation appears inside iterative code.",
+                    data_size_driver="loop count * searched collection size",
+                    current_complexity="possibly O(n*m)",
+                    proposed_complexity="often O(n+m) with Set/Map/precomputed lookup",
+                    amplification_point="repeated membership/search scan",
+                    expensive_boundary="none from textual scan",
+                    state_complexity="equality and object identity may constrain replacement",
+                    correctness_invariant="same equality, normalization, duplicate, and ordering behavior",
+                    recommendation="Consider a Set/Map or precomputed lookup if equality and ordering semantics allow it.",
+                    expected_impact="Can remove repeated linear search.",
+                    risk="medium",
+                    tests_needed="fixture covering object identity, duplicates, and missing values",
+                    decision="needs measurement",
                 )
             )
 
-    if current_func:
-        func_name, start, _ = current_func
-        length = len(lines) + 1 - start
-        if length > 80:
+        if loop_stack and SORT_RE.search(stripped):
             findings.append(
-                Finding(
-                    "P1" if length > 140 else "P2",
-                    rel,
-                    start,
-                    f"long function `{func_name}` ({length} lines)",
-                    "branches / statements in one function",
-                    "branch and state complexity grows with function length",
-                    "same runtime complexity unless repeated work is removed; lower control-flow risk",
-                    "large single-function control surface",
-                    "none from static scan",
-                    "long function with mixed phases",
-                    "same outputs, side effects, ordering, and error handling for the function's callers",
-                    "extract cohesive phases or name intermediate concepts; keep behavior unchanged",
-                    "unit or integration test covering the function's call path",
+                finding(
+                    path=path,
+                    root=root,
+                    line=idx,
+                    severity="high",
+                    kind="sort-in-loop",
+                    signal="Sort appears inside iterative code.",
+                    data_size_driver="loop count * sorted collection size",
+                    current_complexity="often O(k*n log n)",
+                    proposed_complexity="often O(n log n) if sort can move out of loop",
+                    amplification_point="repeated sorting",
+                    expensive_boundary="sort",
+                    state_complexity="comparator or intermediate sorted state may be semantic",
+                    correctness_invariant="same ordering, stable sort behavior, and comparator semantics",
+                    recommendation="Move sorting out of the loop or use a heap/binary-search strategy if intermediate order is needed.",
+                    expected_impact="Can remove repeated sort cost.",
+                    risk="medium",
+                    tests_needed="fixture covering ties, ordering stability, and intermediate state",
+                    decision="needs measurement",
                 )
             )
 
-    return dedupe(findings)
+        if loop_stack and QUERY_IN_LOOP_RE.search(stripped):
+            findings.append(
+                finding(
+                    path=path,
+                    root=root,
+                    line=idx,
+                    severity="high",
+                    kind="io-or-query-in-loop",
+                    signal="Potential database/API/file operation inside a loop.",
+                    data_size_driver="loop count * I/O/query cost",
+                    current_complexity="N+1 style behavior or repeated I/O",
+                    proposed_complexity="batch/preload/cache if semantics allow",
+                    amplification_point="per-item I/O",
+                    expensive_boundary="database/API/file operation",
+                    state_complexity="auth/filter/order/retry/error behavior may constrain batching",
+                    correctness_invariant="same auth, filters, tenancy, ordering, pagination, retry, and error behavior",
+                    recommendation="Look for N+1 behavior; batch or preload while preserving auth, filters, ordering, and error handling.",
+                    expected_impact="Can reduce round trips and tail latency.",
+                    risk="high",
+                    tests_needed="integration fixture or trace proving identical records and ordering",
+                    decision="needs measurement",
+                )
+            )
+
+        if idx in render_lines and any(token in stripped for token in [".filter(", ".map(", ".sort(", ".reduce("]):
+            findings.append(
+                finding(
+                    path=path,
+                    root=root,
+                    line=idx,
+                    severity="medium",
+                    kind="render-derived-work",
+                    signal="Collection transform appears in a likely UI component render path.",
+                    data_size_driver="render frequency * collection size",
+                    current_complexity="recomputed derived data on render",
+                    proposed_complexity="same Big-O per derivation, lower repeated render cost with memoization/selectors/virtualization",
+                    amplification_point="render churn",
+                    expensive_boundary="UI render path",
+                    state_complexity="dependency arrays and mutable inputs may constrain memoization",
+                    correctness_invariant="same rendered output and update behavior for every semantic input",
+                    recommendation="For large collections, consider memoized selectors, server-side derivation, or virtualization.",
+                    expected_impact="Can reduce repeated render work for large lists.",
+                    risk="medium",
+                    tests_needed="UI fixture/profiler check covering data updates and dependency changes",
+                    decision="needs measurement",
+                )
+            )
+
+    return findings
+
+
+def component_ranges(lines: list[str]) -> set[int]:
+    active_until = 0
+    interesting: set[int] = set()
+    brace_balance = 0
+    in_component = False
+
+    for idx, line in enumerate(lines, start=1):
+        if RENDER_HINT_RE.search(line):
+            in_component = True
+            active_until = idx + 120
+            brace_balance = 0
+        if in_component:
+            interesting.add(idx)
+            brace_balance += line.count("{") - line.count("}")
+            if idx > active_until or (idx > active_until - 110 and brace_balance <= 0 and "}" in line):
+                in_component = False
+    return interesting
 
 
 def dedupe(findings: list[Finding]) -> list[Finding]:
-    seen = set()
-    result = []
-    for finding in findings:
-        key = (finding.severity, finding.path, finding.line, finding.signal)
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(finding)
+    seen: set[tuple[str, int, str]] = set()
+    result: list[Finding] = []
+    for item in findings:
+        key = (item.path, item.line, item.kind)
+        if key not in seen:
+            seen.add(key)
+            result.append(item)
     return result
 
 
+def severity_rank(item: Finding) -> tuple[int, str, int]:
+    order = {"high": 0, "medium": 1, "info": 2}
+    return (order.get(item.severity, 3), item.path, item.line)
+
+
+def render_markdown(findings: list[Finding]) -> str:
+    if not findings:
+        return "No obvious complexity hotspots found by heuristic scanning.\n"
+    lines = ["# Complexity Hotspots", ""]
+    for item in findings:
+        lines.extend(
+            [
+                f"## {item.severity.upper()} {item.kind}",
+                f"- Location: `{item.path}:{item.line}`",
+                f"- Finding: {item.signal}",
+                f"- Data-size driver: {item.data_size_driver}",
+                f"- Current complexity: {item.current_complexity}",
+                f"- Proposed complexity: {item.proposed_complexity}",
+                f"- Correctness invariant: {item.correctness_invariant}",
+                f"- Recommendation: {item.recommendation}",
+                f"- Expected impact: {item.expected_impact}",
+                f"- Risk: {item.risk}",
+                f"- Tests needed: {item.tests_needed}",
+                "",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Heuristic complexity hotspot scanner.")
-    parser.add_argument("path", nargs="?", default=".", help="file or directory to scan")
-    parser.add_argument("--limit", type=int, default=40, help="maximum findings to print")
+    parser = argparse.ArgumentParser(description="Scan a repository for likely complexity hotspots.")
+    parser.add_argument("root", nargs="?", default=".", help="Repository, directory, or file to scan.")
+    parser.add_argument("--format", choices=["markdown", "json"], default="markdown")
+    parser.add_argument("--exclude", action="append", default=[], help="Additional directory name to exclude.")
+    parser.add_argument("--max-findings", "--limit", dest="max_findings", type=int, default=80)
     args = parser.parse_args()
 
-    root = Path(args.path).resolve()
-    scan_root = root if root.is_dir() else root.parent
-    files = list(iter_files(root))
-
+    root = Path(args.root).resolve()
+    excludes = DEFAULT_EXCLUDES | set(args.exclude)
     findings: list[Finding] = []
-    for file_path in files:
-        findings.extend(scan_file(file_path.resolve(), scan_root))
+    files = list(iter_files(root, excludes))
 
-    order = {"P0": 0, "P1": 1, "P2": 2}
-    findings.sort(key=lambda f: (order.get(f.severity, 9), str(f.path), f.line))
+    for path in files:
+        text = read_text(path)
+        if text is None:
+            continue
+        if path.suffix == ".py":
+            findings.extend(scan_python(path, root, text))
+        else:
+            findings.extend(scan_text(path, root, text))
 
-    print("# Complexity Scan")
-    print()
-    print(f"- scope: {root}")
-    print(f"- files_scanned: {len(files)}")
-    print(f"- findings: {len(findings)}")
-    print("- mode: heuristic leads, not proof")
-    print("- limitation: indentation-oriented nesting; confirm brace-language findings by reading code")
-    print()
-
-    if not findings:
-        print("No obvious static complexity hotspots found.")
-        return 0
-
-    print("## Findings")
-    for idx, finding in enumerate(findings[: args.limit], start=1):
-        print(f"{idx}. **{finding.severity}** `{finding.path}:{finding.line}` — {finding.signal}")
-        print(f"   - data-size driver: {finding.data_size_driver}")
-        print(f"   - current complexity: {finding.current_complexity}")
-        print(f"   - proposed complexity: {finding.proposed_complexity}")
-        print(f"   - amplification point: {finding.amplification_point}")
-        print(f"   - expensive boundary: {finding.expensive_boundary}")
-        print(f"   - state complexity: {finding.state_complexity}")
-        print("   - attribution: not_applicable")
-        print(f"   - correctness invariant: {finding.correctness_invariant}")
-        print(f"   - recommendation: {finding.recommendation}")
-        print(f"   - tests needed: {finding.tests_needed}")
-    if len(findings) > args.limit:
-        print()
-        print(f"... {len(findings) - args.limit} more findings omitted by --limit.")
+    findings = sorted(dedupe(findings), key=severity_rank)[: args.max_findings]
+    if args.format == "json":
+        print(json.dumps([asdict(item) for item in findings], indent=2))
+    else:
+        print(render_markdown(findings))
     return 0
 
 

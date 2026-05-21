@@ -65,10 +65,11 @@ For changed-code modes, report against the changed files and emphasize new or to
 Optional helper:
 
 ```bash
-python3 <this-skill-dir>/scripts/complexity_scan.py <path>
+python3 <this-skill-dir>/scripts/complexity_scan.py <path> --format markdown
+python3 <this-skill-dir>/scripts/complexity_scan.py <path> --format json
 ```
 
-Use the helper only after target context is clear. Do not ask the user to use `--staged`, `--ref`, or other script flags; those are not the skill interface. If installed plugin paths differ, locate this skill directory first. The helper is strongest for simple path-level static leads; if it misses the target shape, ignore it and continue from code evidence.
+Use the helper only after target context is clear. Do not ask the user to use `--staged`, `--ref`, or other script flags; those are not the skill interface. If installed plugin paths differ, locate this skill directory first. The helper supports `--format markdown|json`, `--exclude <dir>`, and `--max-findings <n>`. If it misses the target shape, ignore it and continue from code evidence.
 
 ### 2. Universal Analysis Pass
 
@@ -87,6 +88,8 @@ For each relevant file, function, module, changed hunk, symbol, or chain step, i
 | **Proof path** | How would we prove a change safe and useful? | unit fixture, regression test, benchmark, trace replay, profiler, query plan, production metric |
 
 Do not recommend an optimization until the data-size driver and correctness invariant are explicit. If growth shape is unknown, say `unknown from static review` rather than guessing.
+
+Use `references/optimization-playbook.md` for common transformations and correctness checks.
 
 ### 3. Triage
 
@@ -211,6 +214,8 @@ Recommended shape:
 ### Not Changing
 - <areas intentionally left alone>
 ```
+
+Use `references/report-template.md` as the report contract. The inline shape above is the minimum version.
 
 Ranking rubric for Best Opportunities:
 
