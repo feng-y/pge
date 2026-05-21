@@ -2,10 +2,11 @@
 name: pge-html
 version: 2.0.0
 description: >
-  Convert Markdown files or agent output into self-contained HTML cognition
-  tools. Use when a human needs to inspect, compare, explain, review, present,
-  or navigate complex repo artifacts visually. Not part of the pipeline.
-argument-hint: "<file.md> [--open] [--share] [--style 01-exploration-code-approaches|04-code-understanding|11-status-report|13-flowchart-diagram|14-research-feature-explainer|16-implementation-plan|17-pr-writeup]"
+  Compose task-specific HTML cognition artifacts from source material:
+  Markdown, code, diffs, logs, repo context, git history, browser/MCP context,
+  or agent output. Use when a human needs to understand, compare, review,
+  decide, tune, edit, or share complex work. Not part of the pipeline.
+argument-hint: "<source> [--open] [--share] [--style 01-exploration-code-approaches|04-code-understanding|11-status-report|13-flowchart-diagram|14-research-feature-explainer|16-implementation-plan|17-pr-writeup]"
 allowed-tools:
   - Read
   - Write
@@ -15,15 +16,19 @@ allowed-tools:
 
 # PGE HTML
 
-Convert Markdown into polished, self-contained HTML pages. Standalone utility — not a pipeline stage.
+Compose self-contained HTML cognition artifacts. Standalone utility — not a pipeline stage.
 
-HTML is for human understanding, participation, and decision-making, not for skill-to-skill contracts. Keep canonical PGE artifacts in Markdown. Generate HTML only when the user benefits from a visual, navigable, interactive, or shareable cognition tool.
+`pge-html` is not a Markdown-to-HTML converter. Input is source material. Output is a task-specific cognition surface: a visual, navigable, interactive, or shareable artifact that helps a human understand, judge, review, tune, or decide faster.
+
+HTML is for human understanding, participation, and decision-making, not for skill-to-skill contracts. Keep canonical PGE artifacts in Markdown. Compose HTML only when the user benefits from an artifact, not when the source merely needs a prettier rendering.
 
 Treat HTML as a visual output medium, not a text container. Prefer layouts, diagrams, motion-lite interactions, spatial grouping, and visual comparison when they let the reader grasp structure faster than prose.
 
+HTML is also a working surface. When the human needs to tune, rank, annotate, configure, compare, or choose, make the page a small local editor with an explicit export such as copy-as-prompt, copy-as-Markdown, copy-as-JSON, or copy-diff. The export is how the human's decision returns to Claude Code or to the repo.
+
 ## Core Rule
 
-Do not just make Markdown prettier. Before writing HTML, state the cognitive job the page replaces:
+Do not just make source material prettier. Before writing HTML, state the cognitive job the artifact performs:
 - choose between approaches
 - understand code structure
 - understand runtime/execution semantics
@@ -34,13 +39,36 @@ Do not just make Markdown prettier. Before writing HTML, state the cognitive job
 - tune a prompt/config
 - let a human compare, annotate, reorder, tune, or export a decision
 
-If the output does not make that job faster than reading Markdown, repair it before returning.
+If the output does not make that job faster than reading the source material, repair it before returning.
 
-Never mechanically translate or copy the Markdown into HTML. The Markdown is evidence and raw material; the HTML must be a redesigned artifact with a new information architecture.
+Never mechanically translate or copy source material into HTML. Source material is evidence and raw material; the HTML must be a redesigned artifact with a new information architecture.
 
-Treat the input Markdown as source material, not as the page structure. Rebuild the content model from the facts and relationships; do not preserve weak headings, long note order, or repetitive tables just because the Markdown used them.
+Treat input documents as source material, not as page structure. Rebuild the content model from facts and relationships; do not preserve weak headings, long note order, or repetitive tables just because the source used them.
 
 Default to an artifact, not a document. A good page should help the user inspect or manipulate the work: compare options, follow a path, expose evidence, adjust parameters, copy an edited prompt/config, or share a readable review surface.
+
+Prefer HTML most strongly when the output is likely to exceed what a human will actually read in raw Markdown. Long plans, multi-source research, complex reviews, feature explainers, and run summaries should become scannable visual artifacts with progressive disclosure rather than longer Markdown reports.
+
+## Artifact Mode
+
+Before composing the artifact, classify the mode. This determines how much of the source structure may survive. The default mode is **Cognition Artifact**.
+
+| Level | Meaning | Allowed source-order reuse | Use when |
+|---|---|---|---|
+| **Cognition Artifact** | New information architecture around the reader's task | low | default; required for technical chains, execution semantics, architecture, code review, multi-source reports, design exploration, or anything over about 100 lines |
+| **Presentation Artifact** | Same core argument, redesigned for sharing/presentation | medium | user needs a shareable artifact and the source is already well-structured |
+| **Translation / Preservation** | Same structure, different language or wording | high | user explicitly asks to translate or preserve the document |
+
+Use **Cognition Artifact** for `execution-semantics`, `code-understanding`, complex explainers, long plans, and review artifacts. In this mode, source headings are evidence labels at most; they must not become the page outline unless that outline is demonstrably the best cognitive structure.
+
+Mechanical-output warning signs:
+- the generated page has nearly the same major section order as the source
+- most source headings have a direct `<section>` counterpart
+- the reader must still read top-to-bottom to understand the main model
+- the primary HTML additions are cards, chips, styling, or collapses around unchanged prose
+- interactions hide/show existing sections but do not answer a concrete question faster
+
+If two or more warning signs are present, stop and redesign around the cognition task before writing the final file.
 
 ## When To Use
 
@@ -55,6 +83,8 @@ Default to an artifact, not a document. A good page should help the user inspect
 - Building one-off editors for prompts, flags, ticket ranking, datasets, annotations, or structured config with copy/export output
 - Synthesizing multiple local sources into a visual report or gallery
 - Creating a small "copy as prompt" panel that exports the user's chosen option back to Markdown
+- Creating a purpose-built one-off editor where text prompts are a poor control surface: feature flags, prompts, ticket buckets, dataset curation, annotations, crop/position values, colors, easing curves, schedules, or regexes
+- Producing a gallery or map from many local files, git history entries, browser observations, or MCP-provided records
 
 ## When Not To Use
 
@@ -73,10 +103,11 @@ digraph pge_html {
   subgraph cluster_input {
     label="Phase 1: Input";
     style=dashed;
-    read_source [label="Read source file(s)"];
+    read_source [label="Read source(s):\nfile(s), repo context,\ngit, browser, MCP"];
+    classify_level [label="Classify artifact mode:\ncognition, presentation,\nor preservation"];
     define_job [label="Define cognitive job\n(one sentence)"];
     extract_model [label="Extract content model\n(entities, relationships,\ntransformations, decisions)"];
-    read_source -> define_job -> extract_model;
+    read_source -> classify_level -> define_job -> extract_model;
   }
 
   subgraph cluster_select {
@@ -97,7 +128,8 @@ digraph pge_html {
     label="Phase 3: Per-Module Structure";
     style=dashed;
     read_template [label="Read main template\nfrom templates/"];
-    segment_content [label="Segment source into\ncontent modules"];
+    design_surface [label="Design primary surface\naround reader question"];
+    segment_content [label="Map source facts into\nartifact modules,\nnot source sections"];
     per_module [label="For each module:\nselect sub-template\nfrom 20 templates", shape=box];
     has_flow [label="Has execution flow\nor call chain?", shape=diamond];
     use_svg [label="Hand-write inline SVG\n(13-flowchart style:\nboxes + arrows + labels)"];
@@ -107,7 +139,7 @@ digraph pge_html {
     use_table [label="Use compare table\n(01 tradeoffs style)"];
     assemble [label="Assemble all modules\ninto page skeleton"];
 
-    read_template -> segment_content -> per_module;
+    read_template -> design_surface -> segment_content -> per_module;
     per_module -> has_flow;
     has_flow -> use_svg [label="yes"];
     has_flow -> has_code [label="no"];
@@ -143,11 +175,12 @@ digraph pge_html {
     check_density [label="Scan for density issues:\ncrowded sections,\nwall-of-text, card soup"];
     check_hierarchy [label="Check visual hierarchy:\nfirst viewport dominance,\nprogressive disclosure"];
     check_completeness [label="Verify no content lost\nvs source file"];
+    check_mechanical [label="Check mechanical-output\nwarning signs"];
     reshape_fix [label="Restructure:\ncollapse dense blocks,\npromote key info,\nadjust grid/spacing"];
     reshape_pass [label="Reshape pass?", shape=diamond];
     final_write [label="Final write"];
 
-    check_density -> check_hierarchy -> check_completeness -> reshape_pass;
+    check_density -> check_hierarchy -> check_completeness -> check_mechanical -> reshape_pass;
     reshape_pass -> final_write [label="yes"];
     reshape_pass -> reshape_fix [label="no"];
     reshape_fix -> check_density;
@@ -167,6 +200,16 @@ digraph pge_html {
 - Temporary/session output: if the artifact is only for current-session inspection, write under `.pge/html/<topic>.html`.
 - Do not put shareable artifacts under `.pge/`; that directory is for ignored local workflow state.
 - All HTML outputs must remain self-contained with no external assets or network calls.
+
+## Source Ingestion
+
+Use all relevant local context the user authorizes or provides:
+- source files and existing PGE artifacts
+- git diff, history, PR notes, and review output
+- browser observations or screenshots when the user asks for UI/prototype inspection
+- MCP/app context such as issue trackers or team notes when explicitly available in the session
+
+Do not assume HTML input must start from one Markdown file. When multiple sources are involved, synthesize the facts into one designed information model and keep provenance visible near the claim it supports.
 
 ## Template Source
 
@@ -230,6 +273,8 @@ Key distinction: 01 is for "which approach should we choose?" — mutually exclu
    - 需要参与者/组件表 → 用 `14-research-feature-explainer` 的 panel + list
    - 如果没有合适的子模板 → 从 20 个模板中选最接近的组件，不要自造新结构
 3. **密集内容用折叠** — 完整代码块、详细参数列表、长表格用 `<details>` 折叠，保持页面呼吸感。摘要/关键行在外面，完整内容折叠内。
+4. **HTML-native before prose** — 如果信息天然是流程、空间、差异、状态、层级、时间线、可调参数或可编辑结构，优先用 SVG、表格、网格、tabs、filters、sliders、toggles、drag/reorder、copy/export 等浏览器原生表达，不要退回长段落。
+5. **Share-ready by default** — 面向他人阅读的产物要能脱离当前对话理解：顶部说明目的、来源、更新时间、如何阅读，以及哪些结论是 confirmed / inferred / unresolved。不要依赖会话上下文。
 
 ## Generated HTML Evaluation
 
@@ -242,6 +287,7 @@ Required self-check:
 - **Template contract**: every required component in `references/template-contracts.md` is present.
 - **Evidence**: important claims carry compact source paths, commands, confidence, or provenance.
 - **Interaction**: tabs, filters, collapses, copy/export, or local controls change what the reader can inspect or reuse when the job needs participation.
+- **Shareability**: teammate-facing artifacts include enough provenance, orientation, and durable links/paths to be understandable outside the current chat.
 - **Visual failure scan**: no card soup, placeholder residue, text overflow, file-path dump sidebars, or prose-only first screen.
 - **Safety**: source-derived text is escaped or inserted with `textContent`; generated JavaScript does not use source-derived `innerHTML`.
 

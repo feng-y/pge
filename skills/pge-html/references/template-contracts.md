@@ -9,6 +9,7 @@ Every generated page must answer:
 - What should a future agent avoid or verify?
 - What can the reader do with the artifact: compare, annotate, tune, copy, export, or share?
 - What HTML-native visual representation best fits the job: map, diagram, deck, annotated code, gallery, or local control surface?
+- What context does the page need to carry so a teammate can understand it outside the current chat?
 
 ## Common Quality Gate
 
@@ -21,6 +22,8 @@ All styles must include:
 - **No placeholder residue**: no TODO, TBD, lorem ipsum, placeholder comments, or fake external links.
 - **Escaped source content**: no source-derived `innerHTML`.
 - **Action/export surface**: when the page supports a decision or edit, include a copy/export result that can be pasted back into Claude Code.
+- **Share context**: teammate-facing artifacts include source/provenance, updated date or run context when relevant, and enough orientation to read without the originating conversation.
+- **HTML-native fit**: flows, state, timelines, alternatives, spatial relationships, tunable values, and editable structured data are represented with diagrams, controls, grids, filters, or exportable local state before prose.
 - **No mechanical translation**: do not copy Markdown heading order, tables, or prose blocks into HTML unless that structure is the best visual model for the cognitive job.
 - **Sidebar discipline**: sidebars/rails are for navigation, filters, current selection, or start-here orientation; do not use them as dumps for evidence paths or long source lists.
 
@@ -32,6 +35,8 @@ Visual quality gate:
 - avoid monotone beige/cream/slate palettes; use restrained contrast and semantic accent colors
 - turn generated Markdown structure into a designed information model; do not render every heading/table in source order when it weakens comprehension
 - pages meant for choice/edit/review must include interaction that changes what the user can decide or export; decorative interaction does not count
+- pages synthesized from multiple files, git history, browser observations, or MCP records must keep provenance near the claims it supports, not only in a footer
+- for cognition artifacts, source heading order must not be the page outline unless the generation explicitly justifies why that order is the fastest cognition path
 
 ## minimal
 
@@ -98,6 +103,23 @@ Fails if:
 - options are unevenly described
 - recommendation lacks rationale
 - the page cannot support a decision
+
+## editor / local-control-surface
+
+Cognitive job: let the human manipulate a hard-to-describe decision or structured value and export the result back to Claude Code or the repo.
+
+Required:
+- editable controls matched to the data type: toggles, sliders, segmented controls, text areas, drag/reorder, tags, or table rows
+- live preview or validation when the choice affects generated text/config/behavior
+- dependency, prerequisite, warning, or constraint display when present
+- copy/export result: prompt, Markdown, JSON, diff, or changed keys
+- reset or clear affordance when edits are non-trivial
+- source/provenance for the initial values
+
+Fails if:
+- the UI edits values but cannot export the result
+- controls are generic text fields when the data has a clearer native control
+- validation appears only after export
 
 ## review / review-annotated
 
@@ -210,14 +232,17 @@ Cognitive job: understand a runtime path, data transformation chain, or feature 
 
 Required:
 - one-sentence semantic model
-- start-here rail: entrypoint, consumer, verification hotspot
-- main diagram showing entry -> execution modules -> intermediate structures -> consumer, visible in the first viewport on desktop
-- data-shape strip: input, intermediate, output shapes
-- per-entity or per-branch drilldown tabs/cards
-- comparison to nearby path when useful
-- verification hotspots: where to prove equivalence or correctness
+- first viewport answers the central runtime question directly; do not spend the first screen on terminology or source-document orientation
+- start-here rail: entrypoint, consumer, verification hotspot, and the one mental model the reader must keep
+- main diagram showing source -> grouping/state -> transformation surface -> per-branch/per-entity outputs -> consumer, visible in the first viewport on desktop
+- data-shape strip: input, intermediate, output shapes, including the repeated unit or row/cell semantics when present
+- value/cell formation surface when the topic is tensor, matrix, row, record, or request transformation: fix one representative unit and show where its values come from
+- per-entity or per-branch drilldown tabs/cards that answer a question, not just hide source sections
+- side-by-side comparison for nearby runtime branches when useful; for branch deltas, show the same unit through both branches
+- verification hotspots: where to prove equivalence or correctness, attached to the relevant transformation step
 - context-friction notes near the top, not only at the end
 - source/evidence confidence per major claim
+- detailed code anchors, boundary conditions, examples, and return semantics should be second-level drilldowns unless they are the primary cognition object
 
 Fails if:
 - it is a static module map with code snippets
@@ -226,6 +251,14 @@ Fails if:
 - the reader must read every section to answer the core runtime questions
 - transformations are not visible as input -> output relationships
 - generated Markdown order is copied directly instead of redesigned around the semantic model
+- terminology, object registry, or source-document sections appear before the main runtime model
+- tabs merely correspond to Markdown headings instead of answering "where does this value/state come from?"
+
+For tensor/matrix/listwise-style sources, prefer this artifact shape:
+- first screen: one-sentence model + main diagram + the repeated unit, such as `(group_idx, position_idx)`
+- second screen: a "cell/value origin viewer" for the representative unit
+- third screen: branch comparison for the same unit, such as gen vs non-gen or old vs new
+- later drilldowns: object registry, code anchors, boundary conditions, examples, return/writeback semantics, verification
 
 ## flowchart-diagram
 
