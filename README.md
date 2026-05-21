@@ -58,7 +58,7 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 | Review | `pge-review` + optional `pge-challenge` | `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md`; feedback can feed bounded repair reruns via `pge-exec` only after provenance validation, upstream to `pge-plan` only for contract changes, and exec may hand off directly to challenge as the prove-it gate inside the Review stage |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
 
-`pge-ai-native-refactor`, `pge-handoff`, `pge-knowledge`, `pge-html`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
+`pge-ai-native-refactor`, `pge-handoff`, `pge-knowledge`, `pge-html`, `pge-complexity`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
 
 ## Skills
 
@@ -85,6 +85,8 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 - **[`/pge-knowledge`](./skills/pge-knowledge/SKILL.md)** — Evaluate context friction, agent memory, code summaries, and run artifact candidates before promoting high-quality candidates into repo knowledge.
 
 - **[`/pge-html`](./skills/pge-html/SKILL.md)** — Compose human-facing, shareable HTML cognition artifacts and one-off local editors from source material for plans, reports, reviews, comparisons, dashboards, module maps, execution semantics, prompts, configs, and triage surfaces while keeping Markdown as the canonical pipeline artifact.
+
+- **[`/pge-complexity`](./skills/pge-complexity/SKILL.md)** — Report-first complexity and performance-hotspot analysis. Finds likely algorithmic, nesting, function-size, and file-size hotspots; modifies code only when explicitly requested.
 
 ### Developer Tools
 
