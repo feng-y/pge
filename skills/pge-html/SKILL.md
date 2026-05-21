@@ -1,6 +1,6 @@
 ---
 name: pge-html
-version: 2.0.0
+version: 2.1.0
 description: >
   Compose task-specific HTML cognition artifacts from source material:
   Markdown, code, diffs, logs, repo context, git history, browser/MCP context,
