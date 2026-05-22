@@ -80,6 +80,8 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — Shape one human-selected repo evolution direction into a bounded AI-native refactor plan before PGE execution. Focuses one dominant friction: entry, containment, verification, structural toxicity, or a missing mechanical invariant.
 
+- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Superpowers brainstorming bundled locally without installing Superpowers. Starts from original goal A, asks one question at a time, compares 2-3 approaches, gets user approval, writes `.pge/tasks-<slug>/spark.md` in a research-comparable artifact format, and stops after the user-approved spec.
+
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a compact, one-off handoff document for another agent or future session. Matt-style observer summary only: no pipeline control and no knowledge extraction.
 
 - **[`/pge-knowledge`](./skills/pge-knowledge/SKILL.md)** — Evaluate context friction, agent memory, code summaries, and run artifact candidates before promoting high-quality candidates into repo knowledge.

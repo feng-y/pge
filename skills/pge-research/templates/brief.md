@@ -4,12 +4,20 @@ This is a minimum contract scaffold, not a fixed prose template. Scale depth to 
 
 ## schema_version: research.v2
 
+## research_mode
+
+- modes: early_exit | superpowers_brainstorming | upstream_preservation | design_surface | standard
+- trigger_basis: <why each selected mode applies>
+
 ## intent_framings
 
 Capture the user's goal from multiple angles before locking intent.
 
+- Original goal A: <the user/upstream outcome before any implementation path was inferred>
 - Explicit ask: <what the user/upstream literally asked for>
 - Interpreted goal: <confirmed or clearly marked inference>
+- Implementation hypothesis B: <possible path/system framing, or "none yet">
+- A/B drift check: <why B still serves A, or what would prove B is the wrong frame>
 - Problem statement: <why the current state is insufficient, broken, costly, confusing, or risky>
 - Position in larger plan: <broader migration/product/cleanup sequence, or "standalone">
 - Why this step / why now: <why this scope is the right next move>
@@ -18,8 +26,10 @@ Capture the user's goal from multiple angles before locking intent.
 
 Lock intent only after framings are reconciled. Mark inferences explicitly.
 
+- Original goal preserved: <goal A in the user's/outside artifact's terms>
 - Confirmed goal: <the target value or capability the user wants>
 - Confirmation basis: <user statement / upstream doc / self-resolved from evidence>
+- Implementation hypothesis status: none | candidate_only | scope_decision | user_confirmed_goal_change
 - Inferred parts: <list any inferences not yet confirmed, or "none">
 
 ## scope_contract
@@ -32,6 +42,34 @@ Lock intent only after framings are reconciled. Mark inferences explicitly.
 
 - Observable completion state: <what must be true when done>
 - Plan would be wrong if: <conditions that would make the plan miss user intent>
+
+## experience_scope
+
+- experience_scope: none | user-facing | artifact-facing | visual | interaction | workflow | documentation | cli_or_prompt
+- skip_reason: <required when experience_scope is none; e.g., "internal refactor, no human-facing change">
+
+## design_surface_context
+
+Required when `experience_scope` is not `none`. Omit only when `experience_scope` is `none`.
+
+- product_or_surface: <what human-facing surface is being shaped>
+- audience: <who encounters this surface and in what context>
+- artifact_purpose: <what the artifact or surface does for the audience>
+- usage_context: <where/when/how the audience uses it>
+- experience_success_shape: <what "good" feels like from the audience perspective>
+- what_would_disappoint: <ways the result could be technically correct but experientially wrong>
+- design_system_sources: <existing component, layout, prompt, report, doc, or CLI conventions>
+- design_system_status: explicit | inferred | absent
+- category_baseline: <outside or local references that define expected quality, when relevant>
+- expected_conventions: <table-stakes conventions users likely expect, when relevant>
+- generic_risks: <category patterns that would feel generic, misleading, or off-position>
+- safe_tradeoffs: <tradeoffs planning may consider without violating intent>
+- risky_tradeoffs: <tradeoffs that would likely disappoint or narrow intent>
+- experience_framings: <2-3 possible experience framings and why one is preferred, when non-trivial>
+- design_dimension_gaps: <information still missing across hierarchy, density, flow, states, tone, or evidence>
+- visual_evidence_sources: <screenshots, rendered pages, artifacts, or "not_available: reason">
+- rendered_evidence_limits: <what was or was not inspected visually, when relevant>
+- anti_slop_risks: <generic, overdesigned, under-specified, or misleading patterns to avoid>
 
 ## upstream_contract
 
@@ -49,6 +87,16 @@ Findings that support the contract. Each must have basis and source.
 ## ambiguities
 
 - <ambiguity> — type: requirement_gap | design_choice | implementation_detail — status: resolved | open — resolution: <how resolved, or "blocks plan">
+
+## interactive_alignment
+
+- questions_asked: <0-3>
+- opening_focus: original_goal | implementation_hypothesis | no_user_interaction — rationale: <why the opening did or did not start from A>
+- original_goal_question: <question used to recover/confirm A before discussing B, or "not needed: reason">
+- user_answers_incorporated: <answer summary, or "none">
+- user_confirmed_fields: <goal/scope/success/non-goals confirmed by user, or "none">
+- inferred_fields_left_for_planning: <fields still inferred but non-blocking, or "none">
+- no_question_rationale: <required when questions_asked is 0; include authority basis>
 
 ## planning_handoff
 
@@ -69,23 +117,11 @@ What planning must know because research ran.
 ### verification_risks
 - <what could silently pass review but be wrong>
 
+### design_experience_constraints
+- <required when experience_scope is not none; otherwise "none">
+
 ### unresolved_blockers
 - <blocking question or "none"> — type: NEEDS_CLARIFICATION | NEEDS_INFO | BLOCKED
-
-## experience_design_context
-
-Capture when the task shapes a human-facing surface. Skip with reason for purely internal technical work.
-
-- experience_scope: none | user-facing | artifact-facing | visual | interaction | workflow | documentation | cli_or_prompt
-- skip_reason: <required when experience_scope is none; e.g., "internal refactor, no human-facing change">
-- audience: <who encounters this surface and in what context>
-- artifact_purpose: <what the artifact does for the audience>
-- experience_success_shape: <what "good" feels like from the audience perspective>
-- what_would_disappoint: <concrete ways the result could be technically correct but experientially wrong>
-- brand_tone_visual_constraints: <existing tone, voice, visual language, or brand rules — optional>
-- design_system_conventions: <relevant component patterns, layout conventions, or artifact standards — optional>
-- screenshots_mockups_references: <existing examples, mockups, or reference points — optional>
-- relevant_states_fallback_concerns: <error states, empty states, edge cases that affect experience — optional>
 
 ## route
 
