@@ -43,17 +43,18 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 2. Ask once before activating non-canonical input; route to `pge-plan` if confirmed, stop if declined.
 3. Validate route, stop condition, ready issues, target areas, acceptance, verification, and dependencies.
 4. Select new run vs explicit resume before lane creation or issue dispatch.
-5. Build a dependency and Target Area schedule.
-6. Create Generator worker lanes for ready independent work.
-7. Require each active lane to emit `lane_ready`.
-8. Dispatch independent issues concurrently when dependencies and Target Areas allow it.
-9. Require `generator_completion` with self-review and evidence.
-10. Dispatch Evaluator immediately when a concentrated or risk-triggered review condition fires; otherwise keep independent Generator work moving and queue the candidate for the next concentrated review window.
-11. Apply Evaluator `PASS | RETRY | BLOCK` only where review is dispatched, and send failures into bounded repair, blocked state, run route, or lane recovery.
-12. Persist state after every transition.
-13. Check stop condition, semantic alignment, regression, and integration.
-14. Run Final Review Gate for every completed execution before `SUCCESS`.
-15. Teardown using runtime truth, then write artifacts before the final response.
+5. Initialize run artifacts, including `implementation-notes.md`, before implementation work starts.
+6. Build a dependency and Target Area schedule.
+7. Create Generator worker lanes for ready independent work.
+8. Require each active lane to emit `lane_ready`.
+9. Dispatch independent issues concurrently when dependencies and Target Areas allow it.
+10. Require `generator_completion` with self-review and evidence.
+11. Dispatch Evaluator immediately when a concentrated or risk-triggered review condition fires; otherwise keep independent Generator work moving and queue the candidate for the next concentrated review window.
+12. Apply Evaluator `PASS | RETRY | BLOCK` only where review is dispatched, and send failures into bounded repair, blocked state, run route, or lane recovery.
+13. Persist state and implementation notes after every transition that creates a decision, deviation, tradeoff, blocker, or verification gap.
+14. Check stop condition, semantic alignment, regression, and integration.
+15. Run Final Review Gate for every completed execution before `SUCCESS`.
+16. Teardown using runtime truth, then write artifacts before the final response.
 
 ## Must Not
 
@@ -73,6 +74,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not allow destructive git.
 - Do not auto-retry failed package installs.
 - Do not promote durable knowledge, append `.pge/config/repo-profile.md`, create ADRs, or require `learnings.md`.
+- Do not use `implementation-notes.md` to change scope, rewrite acceptance, waive verification, or approve plan-changing deviations.
 - Do not output `PASS`, `MERGED`, `SHIPPED`, or `READY_TO_SHIP` as the exec route.
 - Do not advance state from idle notifications, startup prose, or partial summaries.
 - Do not leave any runtime exception in an unknown or unowned state.
@@ -117,6 +119,8 @@ mkdir -p .pge/tasks-<slug>/runs/<run_id>/
 ```
 
 All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge rerun input stays task-level and comes from `.pge/tasks-<slug>/review.md`, `.pge/tasks-<slug>/challenge.md`, and any explicit current-context repair packet. Notes or summaries outside `.pge/` are non-authoritative and must not replace required run artifacts or task-artifact repair input.
+
+`implementation-notes.md` is a required run artifact for execution-relevant notes that are not already explicit in the plan. Initialize it when creating a new run. On resume, append to the existing file and preserve prior entries as historical run context.
 
 ## Plan Validation
 
@@ -236,7 +240,7 @@ For each ready issue:
 2. Build execution pack: include only this issue's Action, Deliverable, Target Areas, Acceptance Criteria, Test Expectation, Required Evidence, Verification Hint, Verification Coupling, relevant assumptions, dependencies, directly needed repo context, plan `goal`, relevant `non_goals`, and upstream decision refs needed for semantic alignment.
 3. Dispatch Generator using `skills/pge-exec/handoffs/generator.md`.
 4. Require exactly one terminal `generator_completion` packet for that attempt.
-5. Candidate gate: deliverable exists for `READY`, evidence is present, status is `READY` or `BLOCKED`, changed files are listed, deviations are recorded, and any `BLOCKED` packet includes blocker classification, source files, and repairability.
+5. Candidate gate: deliverable exists for `READY`, evidence is present, status is `READY` or `BLOCKED`, changed files are listed, deviations and implementation notes are recorded, and any `BLOCKED` packet includes blocker classification, source files, and repairability.
 6. If Generator reports `BLOCKED`, skip Evaluator and classify the blocker before changing the issue route:
    - `implementation-blocked`: compile errors, include-surface mismatch, forward-declaration or type-surface problems, sibling issue contamination, local interface assembly errors, or other code-level failures that do not require user decisions or plan contract changes.
    - `contract-blocked`: unclear plan, insufficient scope, user decision required, target area/scope boundary would need to change, acceptance/verification/non-goal conflict, external environment or package-install blocker, or any fix that would mutate the plan contract.
@@ -253,7 +257,8 @@ For each ready issue:
     - other `BLOCK`: record blocker; continue only with independent issues.
 11. Before route decisions for queued candidates, run a concentrated Evaluator review window in issue-ID order. `DEEP` runs require a `DEEP` evaluator window before the Final Review Gate.
 12. No-change guard: repair with zero file or artifact changes is same-failure. Do not re-evaluate.
-13. After each terminal issue state, record issue alignment evidence.
+13. Update `implementation-notes.md` when the issue created an unplanned-but-in-scope implementation decision, tradeoff, deviation, blocker, learned constraint, follow-up, or verification gap.
+14. After each terminal issue state, record issue alignment evidence.
 
 Every Generator `READY` candidate must receive an Evaluator `PASS` before its issue status becomes `PASS`. Immediate triggers dispatch Evaluator as soon as the candidate is ready; other candidates wait in the concentrated review queue until the next evaluator window. Main may reject malformed or incomplete candidates before Evaluator, but it must not mark a Generator-only candidate complete.
 
@@ -300,6 +305,22 @@ deviation_from_plan: none | <what changed and why>
 
 Any deviation that changes goal, scope, target areas, acceptance, verification, or non-goals must stop execution and route back to `pge-plan` unless the plan already authorized that deviation.
 
+Implementation notes are audit notes, not a parallel plan. Record only facts that help review or continuation:
+
+```md
+## Implementation Notes
+
+### <timestamp or issue id>
+- type: decision | tradeoff | deviation | blocker | follow_up | verification_gap
+- issue: <issue id or run-level>
+- note: <what happened>
+- rationale: <why this was acceptable or why execution stopped>
+- plan_impact: none | in_scope | route_upstream_required
+- evidence: <file path, command, artifact, or reviewer packet>
+```
+
+Use `route_upstream_required` for anything that would change goal, scope, target areas, acceptance, verification, or non-goals, then stop and route to `pge-plan` or `pge-research`. Use `follow_up` only for work that should not expand the current run.
+
 Rewind-style retry: if a Generator attempt used the wrong approach, record the learned constraint, return to the clean issue execution pack, and redispatch a fresh attempt with what the failed attempt proved, what path must not be repeated, unchanged Action/Acceptance Criteria, and the smallest allowed repair direction. This consumes the next normal retry attempt and never resets the per-issue max of 3 attempts.
 
 Generator rules summary:
@@ -334,7 +355,7 @@ Run selection rules:
 - An already completed `SUCCESS` run is not resumed by default; a later invocation starts a new run unless the user explicitly asks to inspect, repair, or rerun that run.
 - missing, unreadable, or corrupt selected `state.json` routes the selected run `BLOCKED`; do not reuse partial artifacts as current truth.
 - A new run must never overwrite an existing run directory.
-- A resumed run writes to the same run directory and preserves previous `PASS`, `BLOCKED`, and evidence records.
+- A resumed run writes to the same run directory and preserves previous `PASS`, `BLOCKED`, evidence records, and `implementation-notes.md` entries.
 
 Resumable states:
 - `IN_PROGRESS`
@@ -378,7 +399,7 @@ Session hygiene:
 - Warning: around 50%, finish the current issue, persist state, and avoid starting a new issue in the same context.
 - Stop: around 60% or visible degradation, write state/handoff, include a compact restart hint, and resume from artifacts in a fresh session.
 
-Global exception closure: any failure in source routing, plan validation, run selection, team creation, lane preflight, generator execution, evaluator execution, state persistence, artifact writing, final review, HITL handling, or teardown must become explicit state, evidence, route, and next allowed action. No exception may leave the run in an unowned `unknown` state.
+Global exception closure: any failure in source routing, plan validation, run selection, team creation, lane preflight, generator execution, evaluator execution, state persistence, implementation-note persistence, artifact writing, final review, HITL handling, or teardown must become explicit state, evidence, route, and next allowed action. No exception may leave the run in an unowned `unknown` state.
 
 Minimum exception routing:
 
@@ -501,12 +522,15 @@ Write runtime facts only:
 .pge/tasks-<slug>/runs/<run_id>/
 ├── manifest.md
 ├── state.json
+├── implementation-notes.md
 ├── evidence/
 ├── deliverables/
 └── review.md      # required for completed executions before SUCCESS
 ```
 
-Manifest should include run metadata, plan id, plan path, run selection, rollback tag, skipped issues, issue results, verification summary, final route, exception records, and reusable knowledge candidates with evidence references.
+Manifest should include run metadata, plan id, plan path, run selection, rollback tag, skipped issues, issue results, implementation-notes path plus note count by type, verification summary, final route, exception records, and reusable knowledge candidates with evidence references.
+
+`implementation-notes.md` should stay concise and append-only within a run. It records decisions the plan did not spell out, in-scope deviations and their rationale, tradeoffs made to preserve scope or simplicity, blocked decisions that routed upstream, follow-ups intentionally parked outside the current run, and verification gaps or uncertainty that remain. If there are no notes, write a single line: `No execution-time decisions, deviations, tradeoffs, follow-ups, or verification gaps recorded.`
 
 Do not require `learnings.md`. Do not append repo profile. Do not create ADRs or domain docs. Durable promotion belongs to `pge-knowledge`.
 
@@ -528,6 +552,7 @@ After runtime shutdown approval or teammate termination, delete the current team
 Completion gate: do not declare execution complete, summarize completion, or change routes until both are true:
 
 1. Run artifacts have been written under `.pge/tasks-<slug>/runs/<run_id>/`, including manifest, state, evidence, deliverables, and review for completed executions before `SUCCESS`.
+   Include `implementation-notes.md` even when it records that no execution-time notes were needed.
 2. You are about to output the Final Response block exactly once.
 
 If the user redirects the work mid-run, or the session needs to stop early, persist current run state and artifacts first, then route as `PARTIAL`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.
@@ -545,5 +570,6 @@ Final response:
 - stop_condition: passed | failed | not_checked
 - final_review: pass | advisory_only | repair_required | blocked
 - artifacts: .pge/tasks-<slug>/runs/<run_id>/
+- implementation_notes: .pge/tasks-<slug>/runs/<run_id>/implementation-notes.md
 - next: pge-review <task-slug> | pge-challenge <task-slug> (prove-it gate inside Review stage) | pge-plan (if blocked) | user decision (if HITL)
 ```

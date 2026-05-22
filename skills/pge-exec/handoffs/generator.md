@@ -91,6 +91,7 @@ Assumptions: <from plan's Assumptions section>
 4. Produce Required Evidence.
 5. Self-review the code: correctness, scope drift, maintainability, test adequacy, and obvious regressions.
 6. Do NOT self-approve or mark the issue complete. `READY` means candidate-ready for main-controlled review, including concentrated or risk-triggered Evaluator review when scheduled. Evaluator decides PASS/RETRY/BLOCK whenever that review runs.
+7. Report execution-time implementation notes for decisions, tradeoffs, deviations, blockers, follow-ups, learned constraints, or verification gaps that the plan did not spell out. Use `implementation_notes: none` only when no such notes exist.
 
 ## Execution Rules (read references/generator-rules.md for full detail)
 
@@ -121,6 +122,12 @@ deliverable_path: <path>
 evidence: <summary of what was produced>
 changed_files: <list>
 deviations: <any deviations from plan, or "none">
+implementation_notes:
+  - type: decision | tradeoff | deviation | blocker | follow_up | verification_gap
+    note: <what happened, or "none">
+    rationale: <why this was acceptable or why execution stopped>
+    plan_impact: none | in_scope | route_upstream_required
+    evidence: <file path, command, artifact, or "none">
 deferred_items: <unrelated issues found, or "none">
 blocker_classification: implementation-blocked | contract-blocked | none
 blocker_source_files: <files implicated if BLOCKED, or "none">
@@ -177,7 +184,7 @@ Verification Coupling: <original issue Verification Coupling>
 1. Fix ONLY what required_fixes specifies.
 2. Do not broaden scope.
 3. Re-run Verification Hint. Record output.
-4. Send fresh generator_completion.
+4. Send fresh generator_completion, including updated `implementation_notes`.
 5. If same fix fails with no new approach: report BLOCKED.
 6. If approach is fundamentally wrong (not a local fix): report BLOCKED with reason.
 ---END REPAIR DATA---
