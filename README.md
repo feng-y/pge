@@ -86,7 +86,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-knowledge`](./skills/pge-knowledge/SKILL.md)** — Evaluate context friction, agent memory, code summaries, and run artifact candidates before promoting high-quality candidates into repo knowledge.
 
-- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Compose human-facing, shareable HTML cognition artifacts and one-off local editors from source material for plans, reports, reviews, comparisons, dashboards, module maps, execution semantics, prompts, configs, and triage surfaces while keeping Markdown as the canonical pipeline artifact.
+- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Render canonical PGE artifacts into faithful single-file HTML pages and derived decision boards. Faithful pages preserve source structure; decision boards compress artifacts into issue, evidence, risk, gate, and human-attention views while keeping Markdown/JSON/evidence as the source of truth. Also supports non-PGE cognition, presentation, and local-editor HTML artifacts.
 
 - **[`/pge-complexity`](./skills/pge-complexity/SKILL.md)** — Report-first complexity and performance-hotspot analysis. Finds likely algorithmic, nesting, function-size, and file-size hotspots; modifies code only when explicitly requested.
 

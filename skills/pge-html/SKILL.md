@@ -1,12 +1,12 @@
 ---
 name: pge-html
-version: 2.1.0
+version: 2.2.0
 description: >
-  Compose task-specific HTML cognition artifacts from source material:
-  Markdown, code, diffs, logs, repo context, git history, browser/MCP context,
-  or agent output. Use when a human needs to understand, compare, review,
-  decide, tune, edit, or share complex work. Not part of the pipeline.
-argument-hint: "<source> [--open] [--share] [--style 01-exploration-code-approaches|04-code-understanding|11-status-report|13-flowchart-diagram|14-research-feature-explainer|16-implementation-plan|17-pr-writeup]"
+  Render canonical PGE artifacts into faithful HTML pages and derived decision
+  boards. Faithful pages preserve source structure; decision boards compress
+  artifacts into issue, evidence, risk, and gate views for human judgment.
+  HTML is never the source of truth and is not part of the pipeline.
+argument-hint: "render <source>|board <plan|run|gate|handoff|source>|<source> [--open] [--share] [--style 01-exploration-code-approaches|04-code-understanding|11-status-report|13-flowchart-diagram|14-research-feature-explainer|16-implementation-plan|17-pr-writeup]"
 allowed-tools:
   - Read
   - Write
@@ -16,11 +16,50 @@ allowed-tools:
 
 # PGE HTML
 
-Compose self-contained HTML cognition artifacts. Standalone utility — not a pipeline stage.
+Compose self-contained HTML artifacts for human reading and judgment. Standalone utility — not a pipeline stage.
 
-`pge-html` is not a Markdown-to-HTML converter. Input is source material. Output is a task-specific cognition surface: a visual, navigable, interactive, or shareable artifact that helps a human understand, judge, review, tune, or decide faster.
+For canonical PGE artifacts, `pge-html` has two command families that must stay distinct:
 
-HTML is for human understanding, participation, and decision-making, not for skill-to-skill contracts. Keep canonical PGE artifacts in Markdown. Compose HTML only when the user benefits from an artifact, not when the source merely needs a prettier rendering.
+1. **Faithful rendering mode**: render canonical Markdown/JSON/evidence into a single-file HTML page without reinterpreting the content.
+2. **Decision-board mode**: derive a high-density view model from canonical artifacts, then render that view model into an HTML board for fast human judgment.
+
+For non-PGE source material, `pge-html` may still produce cognition, presentation, preservation, or local-editor artifacts using the template system below.
+
+HTML is for human understanding, participation, and decision-making, not for skill-to-skill contracts. Keep canonical PGE artifacts in Markdown/JSON/evidence files. Compose HTML only when the user benefits from an artifact, not when the source merely needs a prettier rendering.
+
+HTML is never a new fact source. A decision board may aggregate and derive, but every derived conclusion must point back to canonical artifacts or evidence. If the HTML says `GO`, `RETRY`, `BLOCK`, or `ESCALATE`, the board must show which canonical state, review finding, acceptance criterion, or evidence item supports that conclusion.
+
+When decision-board mode needs an intermediate model, treat it as a derived view model, for example:
+
+```text
+canonical artifacts
+  - research.md
+  - plan.md
+  - state.json
+  - runs/<run_id>/*
+  - review.md
+  - challenge.md
+  - evidence/*
+
+        -> extract / normalize
+
+pge-html-view.json
+  - task_summary
+  - phase
+  - verdict
+  - issue_cards
+  - acceptance_matrix
+  - evidence_map
+  - risk_list
+  - human_attention
+  - next_action
+
+        -> render
+
+single-file HTML
+```
+
+`pge-html-view.json` is a derived view, not a runtime contract. It can be exported for inspection or copy/prompt workflows, but the SSOT remains the original Markdown/JSON/evidence artifacts until an owning PGE stage updates them.
 
 Treat HTML as a visual output medium, not a text container. Prefer layouts, diagrams, motion-lite interactions, spatial grouping, and visual comparison when they let the reader grasp structure faster than prose.
 
@@ -28,12 +67,22 @@ HTML is also a working surface. When the human needs to tune, rank, annotate, co
 
 ## Core Rule
 
-Do not just make source material prettier. Before writing HTML, state the cognitive job the artifact performs:
+First classify the command family:
+
+- `render`: faithful artifact rendering; preserve source meaning and structure, improve readability, and do not add conclusions.
+- `board`: derived decision surface; aggregate canonical artifacts into a view model, then render issue/evidence/risk/gate views with provenance.
+- default source mode: non-PGE cognition, presentation, preservation, or editor artifact.
+
+Do not blur the two. Faithful rendering may reformat but must not reinterpret. Decision boards may aggregate and derive, but derived conclusions require visible source support.
+
+Before writing HTML, state the cognitive job the artifact performs:
+- read/share a canonical artifact faithfully
 - choose between approaches
 - understand code structure
 - understand runtime/execution semantics
 - review a diff
 - inspect run status
+- decide whether to GO, RETRY, BLOCK, or ESCALATE
 - explain a concept
 - present a PR
 - tune a prompt/config
@@ -41,25 +90,51 @@ Do not just make source material prettier. Before writing HTML, state the cognit
 
 If the output does not make that job faster than reading the source material, repair it before returning.
 
-Never mechanically translate or copy source material into HTML. Source material is evidence and raw material; the HTML must be a redesigned artifact with a new information architecture.
+In `render` mode, the source order and wording are part of the contract. Preserve them except for safe visual affordances: table styling, heading anchors, table of contents, code highlighting, collapses, local links, and single-file packaging.
 
-Treat input documents as source material, not as page structure. Rebuild the content model from facts and relationships; do not preserve weak headings, long note order, or repetitive tables just because the source used them.
+In `board` mode, never mechanically translate or copy source material into HTML. Source material is evidence and raw material; the board must be a redesigned artifact with a new information architecture. Treat input documents as source material, not as page structure. Rebuild the content model from facts and relationships; do not preserve weak headings, long note order, or repetitive tables just because the source used them.
 
-Default to an artifact, not a document. A good page should help the user inspect or manipulate the work: compare options, follow a path, expose evidence, adjust parameters, copy an edited prompt/config, or share a readable review surface.
+Default to an artifact, not a document, except in `render` mode where preserving the document is the point. A good non-render page should help the user inspect or manipulate the work: compare options, follow a path, expose evidence, adjust parameters, copy an edited prompt/config, or share a readable review surface.
 
 Prefer HTML most strongly when the output is likely to exceed what a human will actually read in raw Markdown. Long plans, multi-source research, complex reviews, feature explainers, and run summaries should become scannable visual artifacts with progressive disclosure rather than longer Markdown reports.
 
 ## Artifact Mode
 
-Before composing the artifact, classify the mode. This determines how much of the source structure may survive. The default mode is **Cognition Artifact**.
+Before composing the artifact, classify the mode. This determines how much of the source structure may survive. The default mode is **Cognition Artifact** unless the user explicitly asks for `render` or the task is a canonical PGE artifact that only needs faithful sharing.
 
 | Level | Meaning | Allowed source-order reuse | Use when |
 |---|---|---|---|
+| **Faithful Render** | Same facts and structure, improved HTML reading/sharing | required | `render plan.md`, `render research.md`, `render review.md`, `render runs/<run_id>/`; user asks to preserve or share a canonical artifact |
 | **Cognition Artifact** | New information architecture around the reader's task | low | default; required for technical chains, execution semantics, architecture, code review, multi-source reports, design exploration, or anything over about 100 lines |
+| **Decision Board** | Derived view model for a judgment/action | low | `board plan`, `board run`, `board gate`, `board handoff`; user needs status, gaps, risks, attention, or route |
 | **Presentation Artifact** | Same core argument, redesigned for sharing/presentation | medium | user needs a shareable artifact and the source is already well-structured |
 | **Translation / Preservation** | Same structure, different language or wording | high | user explicitly asks to translate or preserve the document |
 
 Use **Cognition Artifact** for `execution-semantics`, `code-understanding`, complex explainers, long plans, and review artifacts. In this mode, source headings are evidence labels at most; they must not become the page outline unless that outline is demonstrably the best cognitive structure.
+
+Use **Decision Board** for PGE judgment surfaces. A board is not a prose summary. It should compress artifacts into decision structures:
+
+```text
+Decision Summary:
+GO / RETRY / BLOCK / ESCALATE
+
+Acceptance Matrix:
+Acceptance -> Covered? -> Evidence -> Confidence -> Gap
+
+Issue Board:
+Issue -> Status -> Evidence -> Risk -> Next Action
+
+Human Attention:
+Only these decisions require human judgment
+```
+
+Board outputs should prioritize:
+
+1. Acceptance -> Evidence Matrix
+2. Issue / Slice Cards
+3. Risk / Unknown Board
+4. Review / Challenge Findings Board
+5. Human Attention
 
 Mechanical-output warning signs:
 - the generated page has nearly the same major section order as the source
@@ -68,11 +143,15 @@ Mechanical-output warning signs:
 - the primary HTML additions are cards, chips, styling, or collapses around unchanged prose
 - interactions hide/show existing sections but do not answer a concrete question faster
 
-If two or more warning signs are present, stop and redesign around the cognition task before writing the final file.
+These warning signs apply to non-render modes. In `render` mode, source order and source headings are expected; judge the page on faithful preservation, readability, navigation, and SSOT safety instead.
+
+If two or more warning signs are present in a non-render mode, stop and redesign around the cognition task before writing the final file.
 
 ## When To Use
 
+- Rendering `plan.md`, `research.md`, `review.md`, `state.json`, or a run directory into a faithful single-file HTML page for local reading or sharing
 - Sharing a plan or research brief with teammates who will not read raw Markdown
+- Generating a high-density PGE decision board for plan, run, gate, or handoff judgment
 - Reviewing a long document that benefits from visual hierarchy
 - Generating a run dashboard from exec artifacts
 - Creating an interactive view with tabs, collapsible sections, or diagrams
@@ -89,6 +168,7 @@ If two or more warning signs are present, stop and redesign around the cognition
 ## When Not To Use
 
 - Pipeline artifacts that other skills consume directly
+- Any situation where the HTML would become the only place a verdict, requirement, acceptance criterion, or risk exists
 - Quick notes or scratch files
 - Files that need version-control-friendly diffs
 - Long-lived canonical truth that should remain greppable Markdown
@@ -104,10 +184,11 @@ digraph pge_html {
     label="Phase 1: Input";
     style=dashed;
     read_source [label="Read source(s):\nfile(s), repo context,\ngit, browser, MCP"];
-    classify_level [label="Classify artifact mode:\ncognition, presentation,\nor preservation"];
+    classify_command [label="Classify command family:\nrender, board,\nor default source mode"];
+    classify_level [label="Classify artifact mode:\nfaithful, cognition,\ndecision board,\npresentation,\nor preservation"];
     define_job [label="Define cognitive job\n(one sentence)"];
-    extract_model [label="Extract content model\n(entities, relationships,\ntransformations, decisions)"];
-    read_source -> classify_level -> define_job -> extract_model;
+    extract_model [label="Extract content model\nor derived view model\n(entities, relationships,\ntransformations, decisions,\nprovenance)"];
+    read_source -> classify_command -> classify_level -> define_job -> extract_model;
   }
 
   subgraph cluster_select {
@@ -211,6 +292,18 @@ Use all relevant local context the user authorizes or provides:
 
 Do not assume HTML input must start from one Markdown file. When multiple sources are involved, synthesize the facts into one designed information model and keep provenance visible near the claim it supports.
 
+For PGE artifacts, treat these as canonical inputs:
+
+- `.pge/tasks-<slug>/research.md`
+- `.pge/tasks-<slug>/plan.md`
+- `.pge/tasks-<slug>/state.json`
+- `.pge/tasks-<slug>/runs/<run_id>/*`
+- `.pge/tasks-<slug>/review.md`
+- `.pge/tasks-<slug>/challenge.md`
+- evidence files, command output, screenshots, and changed-file lists recorded by the owning stage
+
+Decision boards may normalize these into a `pge-html-view.json`-shaped model, but that model must preserve provenance for each status, confidence, risk, gap, and recommended next action.
+
 ## Template Source
 
 All templates come from `templates/` — the full set from [html-effectiveness](https://github.com/ThariqS/html-effectiveness). Do not invent new templates. Use these directly as the structure and visual quality bar.
@@ -264,17 +357,21 @@ Key distinction: 01 is for "which approach should we choose?" — mutually exclu
 
 ## Content Rules
 
-1. **不丢内容** — 源文件的所有信息必须出现在 HTML 中。模板决定结构和表现形式，不决定内容取舍。
-2. **子结构混合** — 主模板决定页面骨架，但子区域可以从其他模板选择最合适的组件表达：
+1. **Mode boundary** — `render` preserves source content and source order; `board` compresses into decision structures with provenance. Do not mix faithful rendering and derived judgment without labeling the derived area.
+2. **保真模式不丢内容** — In `render` mode, the source file's information must appear in the HTML. The template decides presentation, not meaning.
+3. **决策板不造事实** — In `board` mode, compress rather than summarize. Derived statuses, confidence, gaps, risk, and next action must cite canonical artifacts or evidence. If support is missing, show `Evidence: none` or `Confidence: unknown` rather than filling the gap with prose.
+4. **Human Attention is mandatory for boards** — Every decision board must include a compact section listing only the decisions that require human judgment.
+5. **No HTML-only verdicts** — New verdicts, changed acceptance criteria, and changed risk decisions must be exported back as a prompt, Markdown patch, JSON patch, or explicit human instruction; they are not authoritative until the owning PGE stage updates canonical artifacts.
+6. **子结构混合** — 主模板决定页面骨架，但子区域可以从其他模板选择最合适的组件表达：
    - 需要流程图/调用链/执行链路 → 手写 inline SVG，视觉风格参考 `13-flowchart-diagram`（boxes + arrows + labels + 可点击节点）
    - 需要线性步骤 walkthrough → 用 `04-code-understanding` 的 `.step` 结构
    - 需要折叠代码 → 用 `04-code-understanding` 的 `<details class="snippet">`
    - 需要 metrics strip → 用 `11-status-report` 的 metric cards
    - 需要参与者/组件表 → 用 `14-research-feature-explainer` 的 panel + list
    - 如果没有合适的子模板 → 从 20 个模板中选最接近的组件，不要自造新结构
-3. **密集内容用折叠** — 完整代码块、详细参数列表、长表格用 `<details>` 折叠，保持页面呼吸感。摘要/关键行在外面，完整内容折叠内。
-4. **HTML-native before prose** — 如果信息天然是流程、空间、差异、状态、层级、时间线、可调参数或可编辑结构，优先用 SVG、表格、网格、tabs、filters、sliders、toggles、drag/reorder、copy/export 等浏览器原生表达，不要退回长段落。
-5. **Share-ready by default** — 面向他人阅读的产物要能脱离当前对话理解：顶部说明目的、来源、更新时间、如何阅读，以及哪些结论是 confirmed / inferred / unresolved。不要依赖会话上下文。
+7. **密集内容用折叠** — 完整代码块、详细参数列表、长表格用 `<details>` 折叠，保持页面呼吸感。摘要/关键行在外面，完整内容折叠内。
+8. **HTML-native before prose** — 如果信息天然是流程、空间、差异、状态、层级、时间线、可调参数或可编辑结构，优先用 SVG、表格、网格、tabs、filters、sliders、toggles、drag/reorder、copy/export 等浏览器原生表达，不要退回长段落。
+9. **Share-ready by default** — 面向他人阅读的产物要能脱离当前对话理解：顶部说明目的、来源、更新时间、如何阅读，以及哪些结论是 confirmed / inferred / unresolved。不要依赖会话上下文。
 
 ## Generated HTML Evaluation
 
@@ -282,8 +379,10 @@ After generation, inspect the HTML as an artifact, not only as source text.
 
 Required self-check:
 - **Job fit**: name the cognitive job and confirm the selected template is the best fit. If the page is about one behavior path, it should not look like a broad module inventory.
+- **Mode fit**: confirm whether this is `render` or `board`. `render` must preserve source structure; `board` must expose provenance for every derived judgment.
 - **First viewport**: the primary cognition object is visible near the top: diagram, execution surface, comparison, diff, dashboard, or walkthrough entry.
-- **Information architecture**: the page reorganizes source facts around the job instead of preserving Markdown order.
+- **Information architecture**: in `render`, the page preserves source structure with better navigation; in non-render modes, the page reorganizes source facts around the job instead of preserving Markdown order.
+- **SSOT safety**: no verdict, acceptance criterion, requirement, or risk exists only in HTML.
 - **Template contract**: every required component in `references/template-contracts.md` is present.
 - **Evidence**: important claims carry compact source paths, commands, confidence, or provenance.
 - **Interaction**: tabs, filters, collapses, copy/export, or local controls change what the reader can inspect or reuse when the job needs participation.
@@ -299,9 +398,10 @@ Every style has required components. Read `references/template-contracts.md` bef
 
 Common requirements:
 - top-level cognitive job statement
-- at least one visual structure that is not just a long prose column
+- at least one visual structure that is not just a long prose column for non-render modes; render mode may use TOC, anchors, collapses, tables, and code styling as its structure
 - "start here" or equivalent orientation when the source is code/domain knowledge
 - verification/evidence surface when the source is plan, review, execution, or code semantics
+- decision boards include Decision Summary, Acceptance Matrix, Issue Board, Risk/Unknowns, Review/Challenge Findings when present, Human Attention, and Next Action
 - context-friction or gotchas when the page is meant to guide future agents
 - copy/export panel only when it has a useful downstream prompt or action
 
@@ -398,12 +498,16 @@ All templates in `templates/` are from [html-effectiveness](https://github.com/T
 ## Examples
 
 ```text
-/pge-html .pge/tasks-auth/plan.md --style 16-implementation-plan
-/pge-html .pge/tasks-auth/runs/run-001/manifest.md --style 11-status-report
+/pge-html render .pge/tasks-auth/plan.md --style 16-implementation-plan
+/pge-html render .pge/tasks-auth/research.md
+/pge-html render .pge/tasks-auth/runs/run-001/
+/pge-html board plan .pge/tasks-auth/
+/pge-html board run .pge/tasks-auth/runs/run-001/
+/pge-html board gate .pge/tasks-auth/
 /pge-html docs/domain-knowledge/listwise-feature-execution.md --open
 /pge-html docs/domain-knowledge/auth-flow.md --style 04-code-understanding --open
 /pge-html docs/research/ref-superpowers.md --style 14-research-feature-explainer --open
-/pge-html .pge/tasks-auth/runs/run-001/review.md --style 03-code-review-pr
+/pge-html render .pge/tasks-auth/runs/run-001/review.md --style 03-code-review-pr
 /pge-html docs/pr-auth-rewrite.md --style 17-pr-writeup --open
 ```
 
@@ -413,9 +517,12 @@ All templates in `templates/` are from [html-effectiveness](https://github.com/T
 ## PGE HTML Result
 - source: <input file>
 - output: <output .html file>
+- mode: render | board | cognition | presentation | preservation
 - style: minimal | rich | dashboard | comparison | review | explainer | code-understanding | module-map | execution-semantics | code-review | pr-writeup
 - cognitive_job: <what this page helps the reader do faster>
+- canonical_sources: <source artifacts used as SSOT>
+- view_model: none | <derived pge-html-view.json path or inline summary>
 - required_components: pass | repaired | failed
-- evaluation: <one-line result of generated HTML self-check>
+- evaluation: <one-line result of mode fit, SSOT safety, and generated HTML self-check>
 - opened: yes | no
 ```
