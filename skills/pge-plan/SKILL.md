@@ -5,7 +5,7 @@ description: >
   Supports fast-adopt for explicit external plans that are already clear and complete.
   Researches and challenges approaches with engineering review, synthesizes intent,
   and decomposes into executable issues.
-version: 0.5.1
+version: 0.5.2
 argument-hint: "<task intent or planning notes>"
 disable-model-invocation: true
 allowed-tools:
@@ -43,10 +43,13 @@ goal
 non_goals
 issues
 target_areas
+forbidden_areas
 acceptance
 verification
 evidence_required
 risks
+terminal_conditions
+plan_gate
 ```
 
 Do not write a long plan to satisfy a template. Write the smallest plan that lets `pge-exec` implement without guessing, while preserving the same semantic target from the user/research input.
@@ -136,8 +139,10 @@ digraph pge_plan {
     create_issues [label="Create Issues\n+decision refs\n(vertical slices)"];
     write_artifact [label="Write Artifact"];
     self_review [label="Self-Review Loop\n(8 checks)\n(see references/)", shape=box3d];
+    plan_gate_final [label="Final Plan Gate\n(contract + repo reality\n+ exec readiness\n+ skill stability)", shape=diamond];
     route [label="Route", shape=note];
-    create_issues -> write_artifact -> self_review -> route;
+    create_issues -> write_artifact -> self_review -> plan_gate_final -> route;
+    plan_gate_final -> create_issues [label="REVISE", style=dashed];
   }
 
   synthesize -> create_issues;
@@ -225,11 +230,12 @@ When adoption-ready:
 - Skip broad option generation and outside-voice approach selection.
 - Do not re-decide architecture, rollout strategy, phase boundaries, target ownership, or semantic model.
 - Preserve source goal, scope, approach, and reviewed decisions.
-- Convert the source into the canonical plan template with `plan_route: READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`. Use `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` only when assumptions are explicit, mechanical, and non-scope-changing.
+- Convert the source into the canonical plan template, including `forbidden_areas` and `plan_gate`.
+- Use `plan_route: READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` only after the Final Plan Gate passes. Use `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` only when assumptions are explicit, mechanical, and non-scope-changing.
 - Materialize PGE execution contract fields: issue slices, target areas, acceptance, verification, dependencies, execution type, evidence required, and stop condition.
 - Split into the smallest number of execution issues needed for `pge-exec`; issue slicing may decide order and grouping but must not add scope.
 - Mark `fast_adopt: true` and record the source path or `claude_plan_mode` source in Metadata.
-- Run Coverage Audit and Inconsistency Grill Gate only against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage.
+- Run Coverage Audit, Inconsistency Grill Gate, Engineering Review Gate, and Final Plan Gate against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
 
 If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving semantic ownership, or changing phase boundaries, Fast Adopt must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn adoption into replanning.
 
@@ -437,6 +443,33 @@ The gate checks, scaled by depth:
 `SKIP_NOT_APPLICABLE` remains valid in the normalized quality-gate result shape, but only for individual gate dimensions or non-engineering gates. The engineering review gate itself always runs Step 0 and therefore does not use `SKIP_NOT_APPLICABLE` as its overall verdict.
 
 The gate verdict is recorded in the plan artifact under `### Engineering Review Gate`.
+
+### Final Plan Gate
+
+Read `references/plan-gate.md` for the authoritative final gate contract. This is the hard execution-contract gate for the whole plan after issues, acceptance, verification, and evidence are written.
+
+The Final Plan Gate is stronger than the Engineering Review Gate. The Engineering Review Gate is a mandatory gstack-style engineering pressure layer inside `pge-plan`, reflecting that gstack has no separate plan-construction skill and relies on plan engineering review to harden plans before coding. The Final Plan Gate owns the veto: it decides whether the hardened plan may enter `pge-exec`.
+
+Stability rule: run the Final Plan Gate exactly in the order defined by `references/plan-gate.md`. Use the exact verdict and field vocabulary. Apply at most one inline repair pass per failed layer, rerun only the affected layer plus downstream layers, and stop instead of looping if the same layer fails twice.
+
+The gate has five layers:
+
+1. **Contract Completeness Gate** — goal, non-goals, repo facts, target areas, forbidden areas, vertical slices, acceptance criteria, verification path, evidence requirements, stop condition, and risks/unknowns are present and usable.
+2. **Engineering Review Gate** — consumes the existing engineering review verdict and confirms engineering findings were repaired or explicitly routed.
+3. **Repo Reality Gate** — target files/modules, entry paths, existing semantics, dynamic/config-driven paths, hidden runtime behavior, and forbidden areas are grounded in repo evidence.
+4. **Execution Readiness Gate** — slices are bounded, independently verifiable where claimed, retry/block/escalate routing is clear, exec context is sufficient, and human decisions are explicit.
+5. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, explicit legacy compatibility, clear clarification/terminal routes, and complete handoff fields.
+
+**Final Plan Gate verdict:** `PASS | REVISE | ESCALATE | REJECT`
+
+- `PASS` → `.pge/tasks-<slug>/plan.md` is frozen as the canonical execution contract and may route `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`.
+- `REVISE` → direction is valid, but the execution contract is incomplete; repair the plan and rerun the failed gate layer before route.
+- `ESCALATE` → human/challenge decision is needed because a key assumption, scope boundary, or repo reality question is unresolved; route `NEEDS_HUMAN` or `NEEDS_INFO`.
+- `REJECT` → plan is wrong, unsafe, or not executable; route `BLOCKED` or `RETURN_TO_RESEARCH` depending on whether the problem contract itself is invalid.
+
+No `PASS`, no `pge-exec`. A plan with Final Plan Gate `REVISE`, `ESCALATE`, or `REJECT` must not produce a ready execution route.
+
+Record the result in the plan artifact under `## plan_gate`. Each failed verdict must name `failed_gate`, `failed_criterion`, `required_repair`, and `exec_allowed: no`.
 
 ### Quality Gate Result Shape
 
@@ -700,6 +733,18 @@ Plan-level routes (final plan output):
 - `BLOCKED`: cannot produce fair plan.
 - `NEEDS_HUMAN`: human decision needed.
 
+Ready routes require Final Plan Gate `PASS` and `exec_allowed: yes`. If the gate returns:
+
+- `REVISE`: repair the plan inline and rerun failed gate layers before final route; if repair cannot complete in this planning turn, route `BLOCKED` with the required repair.
+- `ESCALATE`: route `NEEDS_HUMAN` or `NEEDS_INFO` and mark `exec_allowed: no`.
+- `REJECT`: route `BLOCKED` or `RETURN_TO_RESEARCH` and mark `exec_allowed: no`.
+
+`.pge/tasks-<slug>/plan.md` is the frozen canonical execution contract only when `plan_gate.verdict: PASS` and `plan_route` is ready. Do not create a separate `canonical-plan.md`; separate draft/frozen plan files would create a second truth surface.
+
+New plan artifacts use `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Legacy aliases may be read during adoption, but new artifacts must use the canonical headings so `pge-exec` can consume them predictably.
+
+Plans must also include `## terminal_conditions` for known clarification or stop cases: missing evidence, ambiguous selector, stale artifact, plan-changing context, unsafe scope expansion, unverified repo reality, unavailable required checks, and human-only decisions. These are not runtime exceptions. Each condition must either be self-resolved from evidence, confirmed through the normal one-question ask path, or mapped to one gate verdict plus one plan route. If no terminal conditions exist, write the canonical `none | PASS | READY_FOR_EXECUTE | yes` row.
+
 Engineering Review Gate verdicts (Phase 2 internal, control flow before approach selection):
 
 - `PASS`: gate cleared, proceed to approach selection.
@@ -738,5 +783,7 @@ Do not: write business code, write implementation pseudocode or function bodies,
 - asked_user: yes | no
 - assumptions_recorded: yes | no
 - engineering_review: completed (gate: PASS|REWORK_PLAN|RETURN_TO_RESEARCH|NEEDS_INFO) | skipped — reason
+- plan_gate: PASS | REVISE | ESCALATE | REJECT
+- exec_allowed: yes | no
 - next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-research <task-slug> (if RETURN_TO_RESEARCH) | pge-plan (after clarification)
 ```

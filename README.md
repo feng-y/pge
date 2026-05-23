@@ -45,15 +45,15 @@ pge-research → pge-plan → pge-exec → pge-review → pge-challenge → ship
 
 Each skill produces an artifact or gate result that the next step consumes. You can enter at any point — skip research if you already know the landscape, skip planning if you already have a plan file, or run review/challenge on ordinary diffs outside the PGE pipeline.
 
-PGE can also adopt plans produced by other workflows. If a Claude plan mode output, `docs/exec-plan/` document, or foreign workflow plan is clear and complete — goal, scope, semantic ownership, non-goals, target areas or ownership boundaries, implementation direction, and verification/evidence checkpoints are all present — `pge-plan` fast-adopt converts it into `.pge/tasks-<slug>/plan.md`. After adoption, `pge-exec` consumes only that canonical artifact. Run artifacts and execution evidence live under `.pge/tasks-<slug>/runs/<run_id>/`. Review and challenge feedback that may trigger bounded repair reruns lives under `.pge/tasks-<slug>/`, but `pge-exec` must validate artifact provenance against the referenced run, canonical plan identity, and reviewed diff before consuming those task artifacts as repair input.
+PGE can also adopt plans produced by other workflows. If a Claude plan mode output, `docs/exec-plan/` document, or foreign workflow plan is clear and complete — goal, scope, semantic ownership, non-goals, target areas or ownership boundaries, implementation direction, and verification/evidence checkpoints are all present — `pge-plan` fast-adopt converts it into `.pge/tasks-<slug>/plan.md` and runs the Final Plan Gate before execution is allowed. After adoption, `pge-exec` consumes only that canonical artifact when `plan_gate` passes. Run artifacts and execution evidence live under `.pge/tasks-<slug>/runs/<run_id>/`. Review and challenge feedback that may trigger bounded repair reruns lives under `.pge/tasks-<slug>/`, but `pge-exec` must validate artifact provenance against the referenced run, canonical plan identity, and reviewed diff before consuming those task artifacts as repair input.
 
 ### Workflow Map
 
 | Stage | PGE surface | Artifact / gate |
 |---|---|---|
 | Research | `pge-research` | `.pge/tasks-<slug>/research.md` with intent/evidence contract |
-| Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` with executable issue contract |
-| Plan (external) | `pge-plan` fast-adopt | canonical `.pge/tasks-<slug>/plan.md` adopted from a complete external plan |
+| Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` with executable issue contract and Final Plan Gate |
+| Plan (external) | `pge-plan` fast-adopt | canonical `.pge/tasks-<slug>/plan.md` adopted from a complete external plan after Final Plan Gate |
 | Execute | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
 | Review | `pge-review` + optional `pge-challenge` | `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md`; feedback can feed bounded repair reruns via `pge-exec` only after provenance validation, upstream to `pge-plan` only for contract changes, and exec may hand off directly to challenge as the prove-it gate inside the Review stage |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
@@ -68,7 +68,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-research`](./skills/pge-research/SKILL.md)** — Align research understanding with the user's real intent before planning. Use when intent is still fuzzy, multiple interpretations seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, captures problem-side experience/design context when the task shapes a human-facing or artifact-facing surface, and writes the minimum intent/evidence contract that feeds planning.
 
-- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, and evidence requirements, runs depth-scaled engineering review, and traces major acceptance criteria back to both success-shape rationale and verification/evidence. Also supports fast-adopt for explicit external plans that are already clear and complete.
+- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, evidence requirements, forbidden areas, depth-scaled engineering review, repo reality checks, and a Final Plan Gate that must pass before `pge-exec`. Also supports fast-adopt for explicit external plans that are already clear and complete.
 
 - **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue execution, validates with an independent Evaluator, records evidence, and reports any plan deviation.
 

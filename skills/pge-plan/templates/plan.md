@@ -37,6 +37,10 @@ Validate the upstream research/input before planning proceeds.
 
 - <file or module> — reason: <why it will be touched>
 
+## forbidden_areas
+
+- <file, module, behavior, or scope area exec must not touch> — reason: <why excluded>
+
 ## issues
 
 ### Issue 1: <Title>
@@ -84,15 +88,42 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 
 - <risk> — impact: <what happens if unresolved> — mitigation: <how to handle>
 
+## terminal_conditions
+
+| Condition | Gate Verdict | Plan Route | Exec Allowed | Handling |
+|-----------|--------------|------------|--------------|----------|
+| none | PASS | READY_FOR_EXECUTE | yes | No terminal conditions identified. |
+| <missing evidence / ambiguous selector / stale artifact / plan-changing context / human-only decision / unavailable check / unsafe scope expansion> | REVISE / ESCALATE / REJECT | NEEDS_INFO / NEEDS_HUMAN / RETURN_TO_RESEARCH / BLOCKED / no final route until repaired | yes/no | <self-resolve from evidence, ask one confirmation question, or stop before exec> |
+
+## plan_gate
+
+- Verdict: PASS | REVISE | ESCALATE | REJECT
+- Exec Allowed: yes | no
+- Failed Gate: Contract Completeness | Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
+- Failed Criterion: <criterion or "none">
+- Evidence: <file:line / artifact / command / user statement / "none">
+- Required Repair: <specific repair or "none">
+- Rationale: <one sentence>
+
+### Gate Checklist
+
+| Gate | Status | Evidence | Required Repair |
+|------|--------|----------|-----------------|
+| Contract Completeness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Engineering Review | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Repo Reality | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Execution Readiness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Skill Execution Stability | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+
 ## stop_conditions
 
 <Observable state that means "done". Concrete enough that exec can check without interpretation.>
 
 ## route
 
-<READY_FOR_EXECUTE | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED | NEEDS_HUMAN>
+- plan_route: READY_FOR_EXECUTE | READY_FOR_EXECUTE_WITH_ASSUMPTIONS | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 
-Justification: <one line explaining why this route is correct>
+- Justification: <one line explaining why this route is correct>
 
 ## Metadata
 
@@ -107,6 +138,7 @@ Justification: <one line explaining why this route is correct>
 - Eligible issues: <list>
 - AFK issues: <list>
 - HITL issues: <list>
+- Forbidden areas: <list>
 - Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
 - Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>
 - Upstream decisions to preserve: <decision IDs and short labels, or "none">

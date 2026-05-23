@@ -4,7 +4,7 @@ description: >
   Execute canonical .pge/tasks-<slug>/plan.md issues using concurrent Generator workers
   and concentrated or risk-triggered Evaluator review. pge-exec owns dispatch,
   scheduling, state, evidence alignment, bounded repair, and the final execution route.
-version: 1.0.0
+version: 1.0.1
 argument-hint: "<task-slug> [--run-id <run_id>] | .pge/tasks-<slug>/plan.md [--run-id <run_id>] | repair review findings for <task-slug>"
 allowed-tools:
   - TeamCreate
@@ -126,17 +126,20 @@ All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge reru
 
 Validate before lane creation:
 - `plan_route` is `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`.
+- `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`. If absent, failing, or ambiguous, route upstream to `pge-plan` for fast-adopt / contract upgrade; do not treat an engineering review alone as execution authorization.
 - If route is `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, assumptions are explicit in the canonical plan.
-- At least one issue under `## Slices` has `State: READY_FOR_EXECUTE`.
-- Stop Condition is present and checkable.
+- At least one issue under canonical `## issues` has `State: READY_FOR_EXECUTE`. Legacy `## Slices` is accepted only as a compatibility alias; do not require both headings.
+- `## stop_conditions` is present and checkable. Legacy `Stop Condition` wording is accepted as a compatibility alias.
 - Each ready issue has Action, Deliverable, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Test Expectation, Required Evidence, Dependencies, Risks, and Security.
+- Forbidden areas are present and specific enough for scope drift checks.
+- Terminal conditions are present. Any condition with `Exec Allowed: no` or an unresolved trigger blocks execution and routes upstream; do not waive it in `implementation-notes.md`.
 - Newly produced plans should include Verification Coupling. If a legacy or external canonical plan omits it, main must classify verification coupling before dispatch and treat the missing field as `unknown` until that check resolves it to `none`, `compile-coupled`, `shared verification`, `isolated worktree required`, or `serial verification required`.
 - Dependencies reference known issue IDs.
 - Target Areas are concrete enough for scope drift checks.
 
 Exec may consume assumptions already in the canonical plan. It must not invent new assumptions. If assumptions are missing, unclear, or plan-changing, route upstream.
 
-Extract issues from `## Slices`. Dispatch only issues with `State: READY_FOR_EXECUTE`, in issue-ID order. Issues with `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` are skipped and recorded in manifest. If all issues are non-ready, route `BLOCKED`.
+Extract issues from `## issues` (`## Slices` legacy alias accepted). Dispatch only issues with `State: READY_FOR_EXECUTE`, in issue-ID order. Issues with `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` are skipped and recorded in manifest. If all issues are non-ready, route `BLOCKED`.
 
 Rollback point: before execution starts, create a git tag `pge-exec-pre-<run_id>`. If exec routes `BLOCKED` or `PARTIAL` after modifying files, the user can roll back with `git reset --hard pge-exec-pre-<run_id>`. Record the tag in `state.json` and manifest.
 
