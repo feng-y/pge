@@ -20,7 +20,7 @@ Before non-trivial work, read in this order:
 6. `skills/pge-challenge/SKILL.md`
 7. `skills/pge-ai-native-refactor/SKILL.md`
 8. `skills/pge-handoff/SKILL.md`
-9. `skills/pge-knowledge/SKILL.md`
+9. `skills/pge-learn/SKILL.md`
 
 ## Truth hierarchy
 
@@ -32,7 +32,7 @@ Active skill surfaces (authoritative):
 - `skills/pge-challenge/SKILL.md`
 - `skills/pge-ai-native-refactor/SKILL.md`
 - `skills/pge-handoff/SKILL.md`
-- `skills/pge-knowledge/SKILL.md`
+- `skills/pge-learn/SKILL.md`
 
 Project map:
 - `README.md`
@@ -81,14 +81,14 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 ## Workflow authority
 
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
-- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-knowledge` are the active workflow surfaces.
+- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-learn` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback only after provenance validation against the referenced run, canonical plan identity, and reviewed diff.
 - `pge-research` owns confirmed problem: intent, scope, success shape, evidence, ambiguity resolution, and planning handoff.
 - `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in a provenance-bearing exec-facing repair format.
 - `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in a provenance-bearing exec-facing repair format. `pge-exec` may hand off directly to it only as the next legal prove-it step inside the Review stage, not as a bypass around review authority.
 - `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
-- `pge-handoff` owns temporary session handoff only; it must not extract durable knowledge.
-- `pge-knowledge` owns quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted.
+- `pge-handoff` owns temporary Matt-style task handoff only; it must not extract durable knowledge.
+- `pge-learn` owns learning and quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted. `learn` is a command/user shorthand inside `pge-learn`, not a separate PGE authority.
 - Planning outputs, run artifacts, and review/challenge feedback under `.pge/tasks-<slug>/` are the handoff seams.
 - Clear and complete plans from outside PGE may be adopted into repo management by `pge-plan` fast-adopt into `.pge/tasks-<slug>/plan.md`. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
 - Subagents/workers are bounded helpers, not workflow authorities.

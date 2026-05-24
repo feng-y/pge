@@ -58,7 +58,7 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 | Review | `pge-review` + optional `pge-challenge` | `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md`; feedback can feed bounded repair reruns via `pge-exec` only after provenance validation, upstream to `pge-plan` only for contract changes, and exec may hand off directly to challenge as the prove-it gate inside the Review stage |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
 
-`pge-ai-native-refactor`, `pge-handoff`, `pge-knowledge`, `pge-html`, `pge-complexity`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
+`pge-ai-native-refactor`, `pge-handoff`, `pge-learn`, `pge-html`, `pge-complexity`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.
 
 ## Skills
 
@@ -82,11 +82,11 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Superpowers brainstorming bundled locally without installing Superpowers. Starts from original goal A, asks one question at a time, compares 2-3 approaches, gets user approval, writes `.pge/tasks-<slug>/spark.md` in a research-comparable artifact format, and stops after the user-approved spec.
 
-- **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a compact, one-off handoff document for another agent or future session. Matt-style observer summary only: no pipeline control and no knowledge extraction.
+- **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a temporary, focused handoff for another agent or future session. Matt-style task slice only: no pipeline control and no knowledge extraction.
 
-- **[`/pge-knowledge`](./skills/pge-knowledge/SKILL.md)** — Evaluate context friction, agent memory, code summaries, and run artifact candidates before promoting high-quality candidates into repo knowledge.
+- **[`/pge-learn`](./skills/pge-learn/SKILL.md)** — Learn from context friction, agent memory, code summaries, and run artifacts. Uses `learn` as the default capture command, records raw workspace-local learning candidates when useful, and promotes only high-quality evidence-backed items into durable repo knowledge.
 
-- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Render canonical PGE artifacts into faithful single-file HTML pages and derived decision boards. Faithful pages preserve source structure; decision boards compress artifacts into issue, evidence, risk, gate, and human-attention views while keeping Markdown/JSON/evidence as the source of truth. Also supports non-PGE cognition, presentation, and local-editor HTML artifacts.
+- **[`/pge-html`](./skills/pge-html/SKILL.md)** — Render canonical PGE artifacts into faithful single-file HTML pages and derived decision boards. Faithful pages preserve source structure; decision boards compress artifacts into issue, evidence, risk, gate, and human-attention views while keeping Markdown/JSON/evidence as the source of truth. Also supports non-PGE cognition, design-to-HTML, presentation, and local-editor artifacts with semantic coverage checks.
 
 - **[`/pge-complexity`](./skills/pge-complexity/SKILL.md)** — Report-first complexity and performance-hotspot analysis. Finds likely algorithmic, nesting, function-size, and file-size hotspots; modifies code only when explicitly requested.
 

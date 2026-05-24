@@ -1,9 +1,9 @@
 ---
 name: pge-handoff
 description: >
-  Compact the current conversation into a one-off handoff document for another
-  agent or future session. Matt-style observer summary only: no pipeline control,
-  no knowledge extraction, no repo memory writes.
+  Create a temporary, focused handoff for another agent or future session.
+  Matt-style task slice only: no pipeline control, no knowledge extraction,
+  no repo memory writes.
 argument-hint: "<what the next session should focus on>"
 allowed-tools:
   - Read
@@ -16,69 +16,80 @@ allowed-tools:
 
 # PGE Handoff
 
-Write a compact handoff document so a fresh agent can continue from the current conversation.
+Create a temporary Markdown handoff so another fresh agent/session can handle one focused task without polluting the current session.
 
-This skill is intentionally temporary and observational. It does not extract durable knowledge, update repo docs, choose pipeline routes, or modify plans. For durable repo learning, use `pge-knowledge`.
+This is Matt-style handoff with PGE boundaries. The important skill is not writing a document; it is selecting the relevant task slice.
+
+Use it when a side quest, prototype, bug, review, issue draft, or return summary should move to a fresh session. Do not use it as `/compact`, durable memory, repo documentation, or a PGE route decision.
+
+For durable repo learning, use `pge-learn`.
 
 ## Process
 
-1. Treat `ARGUMENTS:` as the intended focus of the next session.
-2. Create a temporary handoff path with:
+1. Treat `ARGUMENTS:` as the next session's focus. If the focus is missing or too vague, ask for it.
+2. Create a temporary file:
 
 ```bash
 mktemp -t pge-handoff-XXXXXX.md
 ```
 
-3. Read the empty file before writing to confirm the path exists.
-4. Summarize only the state that a new agent cannot reliably recover from existing artifacts.
-5. Reference existing artifacts by path or URL instead of duplicating their contents.
-6. Write the handoff document to the temporary path.
+3. Extract only the context needed for that focused task.
+4. Reference existing files, issues, plans, PRDs, ADRs, diffs, or artifacts by path/URL instead of copying them.
+5. Redact secrets, API keys, passwords, tokens, private config, and unnecessary PII.
+6. Write the handoff.
 
 ## Include
 
-- Current goal and requested next focus
-- Relevant git state: branch, dirty files, recent commit if useful
-- Files or artifacts the next agent should read
-- Decisions made in conversation that are not already captured on disk
-- Current blockers or open questions
-- Suggested next command or skill invocation
-- What to ignore: stale hypotheses, superseded attempts, unrelated exploration
+- Why this is being handed off
+- Focus for the next agent
+- Relevant context from this conversation
+- Constraints and non-goals
+- Suggested skills / mode
+- Expected output
+- References to existing artifacts
+- Return handoff expectations, if the child session should report back
+- What to ignore or avoid retrying
 
 ## Do Not Include
 
-- Full copies of PRDs, plans, ADRs, diffs, logs, or command output already on disk
-- Knowledge extraction or recommendations to update permanent repo docs
-- Speculative ideas not accepted by the user
+- The whole conversation
+- Full copies of artifacts already on disk or online
+- Raw logs, raw diffs, or long command output
+- Durable knowledge extraction or repo doc updates
+- Pipeline authority claims such as marking research, plan, exec, or review complete
 - A new plan unless the user explicitly asked the next session to plan
-- Pipeline authority claims such as marking research, plan, or exec complete
 
 ## Template
 
 ```markdown
-# Handoff: <short title>
+# Handoff: <next session goal>
 
-## Next Session Focus
-<one paragraph>
+## Why This Is Being Handed Off
+<why this task should leave the current session>
 
-## Current State
-- Branch: <branch>
-- Working tree: <clean | dirty summary>
-- Current task: <one sentence>
+## Focus For The Next Agent
+<the exact bounded task>
 
-## Read First
-- <path or URL> — <why it matters>
+## Relevant Context
+- <only context needed for this task>
 
-## Conversation-Only Context
-- <decision, constraint, or user preference not captured elsewhere>
+## Constraints / Non-Goals
+- <what the next session must not expand into>
 
-## Blockers / Questions
-- <blocker or "none">
+## Suggested Skills / Mode
+- <prototype | diagnose | review | issue-writing | pge-* skill | none>
 
-## Suggested Next Step
-<command or skill invocation>
+## Expected Output
+<prototype, issue draft, decision memo, patch, review, diagnosis, return handoff, etc.>
 
-## Ignore
-- <stale context to avoid re-chasing>
+## References
+- <path, URL, issue, artifact, command> — <why it matters>
+
+## Return Handoff Expectations
+<what should be sent back to the parent session, or "none">
+
+## Ignore / Do Not Retry
+- <stale context or failed path to avoid>
 ```
 
 ## Final Response
@@ -86,7 +97,8 @@ mktemp -t pge-handoff-XXXXXX.md
 ```md
 ## PGE Handoff Result
 - artifact: <temporary handoff path>
-- focus: <next-session focus or "general continuation">
+- focus: <next-session focus>
+- suggested_mode: <mode or "none">
 - referenced_artifacts: <count>
 - next: <suggested next action>
 ```

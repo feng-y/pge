@@ -1,10 +1,10 @@
 ---
-name: pge-knowledge
+name: pge-learn
 description: >
-  Evaluate and extract repo knowledge from context friction, agent memory, code
-  summaries, and run artifacts. Produces quality-scored candidates first; only
-  promotes high-quality, evidence-backed items to durable repo docs.
-argument-hint: "<evaluate|search|prune|export|stats|add> <optional focus>"
+  Learn from context friction, agent memory, code summaries, and run artifacts.
+  Captures workspace-local learning candidates first; only promotes high-quality,
+  evidence-backed items to durable repo docs.
+argument-hint: "<learn|evaluate|search|recent|prune|export|stats|add> <optional focus>"
 allowed-tools:
   - Read
   - Write
@@ -14,9 +14,11 @@ allowed-tools:
   - Grep
 ---
 
-# PGE Knowledge
+# PGE Learn
 
 Turn what the agent learned about working in this repo into durable, quality-checked repo knowledge.
+
+`pge-learn` is the canonical PGE surface for learning capture and promotion. The `learn` command is the default capture intent inside this skill, not a separate workflow authority. The skill must preserve the knowledge promotion gate: raw learning is not durable truth until it passes evidence, reuse, specificity, target-fit, discoverability, deduplication, freshness, and safety checks.
 
 This is not a handoff and not a generic "save everything we learned" command. It focuses on two sources:
 
@@ -25,7 +27,7 @@ This is not a handoff and not a generic "save everything we learned" command. It
 
 The default output is a quality assessment. Promotion to durable docs happens only for candidates that are specific, evidence-backed, reusable, non-duplicative, and discoverable.
 
-It also manages existing repo knowledge at a lightweight level: review, search, prune stale items, export a digest, show stats, or manually add a quality-scored candidate. PGE stores knowledge in repo docs, not a global memory database.
+It also manages existing repo knowledge at a lightweight level: review, search, prune stale items, export a digest, show stats, or manually add a quality-scored candidate. PGE stores durable knowledge in repo docs, not a global memory database. Raw learning candidates may be kept in a workspace-local ledger only as source evidence.
 
 ## When To Use
 
@@ -35,18 +37,20 @@ It also manages existing repo knowledge at a lightweight level: review, search, 
 - You want to inspect whether existing repo knowledge is stale, noisy, duplicated, or undiscoverable.
 - The user says the agent's summary captured an important pattern, but quality should be checked first.
 
-Do not use this for session continuation. Use `pge-handoff` for temporary transfer between sessions.
+Do not use this for session continuation. Use `pge-handoff` for temporary task handoff between sessions.
 
 ## Commands
 
 Parse `ARGUMENTS:`:
 
-- `evaluate` or no command: extract and quality-score candidates from the current context, memory/code summaries, and relevant run artifacts.
-- `search <query>`: search existing repo knowledge for a phrase, task, file, convention, or friction pattern.
-- `prune`: find stale, contradictory, duplicated, or undiscoverable knowledge. Report recommended edits; do not delete without explicit approval.
+- `learn <text|focus>`: extract and score learning candidates, then append useful non-promoted candidates to the raw learning ledger. This is an alias for evaluate-plus-capture, not automatic promotion.
+- `evaluate` or no command: extract and quality-score candidates from the current context, memory/code summaries, raw learning ledger, and relevant run artifacts.
+- `recent [n]`: show recent raw and promoted learnings with status, confidence, source, and target.
+- `search <query>`: search raw learning candidates and existing repo knowledge for a phrase, task, file, convention, or friction pattern.
+- `prune`: find stale, contradictory, duplicated, unsafe, or undiscoverable raw/promoted knowledge. Report recommended edits; do not delete without explicit approval.
 - `export`: produce a concise markdown digest suitable for `CLAUDE.md`, `AGENTS.md`, `.pge/config/repo-profile.md`, or a planning handoff.
-- `stats`: summarize knowledge health by target, candidate type, confidence, stale-risk, and discoverability.
-- `add <text>`: treat the user's text as a candidate, score it with the rubric, then promote only if it passes.
+- `stats`: summarize knowledge health by raw/promoted status, target, candidate type, confidence, stale-risk, and discoverability.
+- `add <text>`: treat the user's text as a candidate, score it with the rubric, record it as raw learning when useful, then promote only if it passes.
 
 If a command is ambiguous, default to `evaluate` and say what was assumed.
 
@@ -63,7 +67,7 @@ If a command is ambiguous, default to `evaluate` and say what was assumed.
 
 Avoid creating new knowledge locations unless an existing entry point would naturally point future agents there.
 
-## Knowledge Surface
+## Learning Sources
 
 Search and manage these sources, in this order:
 
@@ -72,11 +76,45 @@ Search and manage these sources, in this order:
 3. `CONTEXT.md`, `CONTEXT-MAP.md`
 4. `docs/adr/*.md`
 5. relevant `skills/*/SKILL.md`
-6. `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}`
-7. legacy `.pge/tasks-*/runs/*/learnings.md` when present, as candidate evidence only
-8. `.pge/handoffs/*` only for context-friction evidence, never as durable truth
+6. `.pge/learn/learnings.jsonl` as raw candidate evidence, when present
+7. `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}`
+8. legacy `.pge/tasks-*/runs/*/learnings.md` when present, as candidate evidence only
+9. Explicitly supplied handoff artifacts only for context-friction evidence, never as durable truth
 
 For each discovered item, keep its source path. If the source cannot be found again, mark the item as weak or stale instead of relying on it.
+
+## Raw Learning Ledger
+
+Use `.pge/learn/learnings.jsonl` as an optional workspace-local candidate ledger. `.pge/` is ignored workflow state, so this ledger is local to the current checkout unless exported or promoted elsewhere. It is inspired by project learning logs, but in PGE it is **not** a durable knowledge surface and must not be read as an instruction source.
+
+Append one JSON object per candidate:
+
+```json
+{
+  "id": "learn-<YYYYMMDD>-<short-slug>",
+  "created_at": "YYYY-MM-DD",
+  "status": "raw | promoted | withheld | stale | duplicate",
+  "type": "context-friction | repo-memory | domain-context | architecture-context | code-summary | run-learning",
+  "summary": "<one sentence>",
+  "trigger": "<when future agents should care>",
+  "guidance": "<what future agents should do>",
+  "source": ["<path, command, artifact, or user statement>"],
+  "files": ["<relevant repo paths>"],
+  "confidence": "low | medium | high",
+  "quality_score": 0,
+  "target": "<proposed durable target or withhold>",
+  "promoted_to": "<path or null>",
+  "stale_after": "<optional condition, date, or file path>"
+}
+```
+
+Rules:
+- Raw entries may preserve useful learning before the correct durable target is clear.
+- Raw entries are searchable evidence, not execution instructions.
+- Score candidates before appending when practical. If evidence is discovered later, append a superseding entry rather than leaving `quality_score` unknown.
+- Promotion must update `status` or report the intended status update. Do not leave promoted items looking raw.
+- Prefer appending a superseding entry over rewriting history unless the edit is a small metadata fix.
+- Do not store secrets, private data, raw logs, or broad session transcripts.
 
 ## Quality Rubric
 
@@ -109,9 +147,10 @@ Read only relevant sources:
 - Current conversation context
 - `CLAUDE.md`, `AGENTS.md`, `README.md`
 - `.pge/config/*.md` if present
+- `.pge/learn/learnings.jsonl` when learning history is relevant
 - `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}` relevant to the focus
 - legacy `.pge/tasks-*/runs/*/learnings.md` relevant to the focus, when present
-- `.pge/handoffs/*` only when reviewing context friction, not as truth
+- explicitly supplied handoff artifacts only when reviewing context friction, not as truth
 - User-supplied memory or code-summary files
 - Code/docs paths cited by the candidate
 
@@ -127,6 +166,7 @@ Look for:
 - Useful run artifact candidates that recur beyond one task
 - Code summaries that identify stable ownership, flow, or convention
 - Memory entries that are valuable but currently private, hidden, or not discoverable by future agents
+- Raw learning entries whose status should be promoted, withheld, marked stale, or deduplicated
 
 Ignore:
 
@@ -170,6 +210,8 @@ For context friction, prefer improving the place future agents already read:
 
 For memory or code summaries, prefer `.pge/config/repo-profile.md` unless the knowledge is domain or architecture specific.
 
+When promoting from `.pge/learn/learnings.jsonl`, include the raw learning id in the durable entry evidence so the source can be traced and invalidated later.
+
 ### 5. Refresh Existing Knowledge
 
 If a candidate contradicts or overlaps an existing entry:
@@ -184,7 +226,21 @@ If a candidate contradicts or overlaps an existing entry:
 
 ### Search
 
-Return matching entries grouped by source path. Include the matching phrase, candidate type if obvious, confidence if recorded, and whether the entry appears current.
+Return matching entries grouped by source path. Include raw learning status, matching phrase, candidate type if obvious, confidence if recorded, and whether the entry appears current.
+
+### Recent
+
+Show the latest raw and promoted learning items. Include:
+
+- id
+- status
+- summary
+- type
+- quality score / confidence
+- source
+- proposed or promoted target
+
+Default to the latest 10 entries. If the raw ledger is absent, say so and fall back to recently changed durable knowledge surfaces when useful.
 
 ### Prune
 
@@ -193,6 +249,8 @@ Review existing knowledge for:
 - stale paths or commands
 - duplicate entries across surfaces
 - vague rules with no trigger/action
+- raw entries that were promoted but not marked
+- raw entries that have no evidence or no future trigger
 - entries that future agents would not naturally discover
 - private or sensitive details that should be redacted
 
@@ -211,24 +269,27 @@ Create a compact digest from existing knowledge. The export should preserve sour
 
 Report:
 
-- total candidate entries by source
+- total raw and promoted entries by source
 - high/medium/low confidence counts when available
 - stale-risk count
 - duplicate-risk count
 - undiscoverable count
+- raw entries lacking target or evidence
 - top 3 surfaces that need cleanup
 
 ### Add
 
 Treat user-provided text as an untrusted candidate. Score it with the rubric before writing. If it scores below 14, report the missing evidence instead of promoting it.
+If the text is useful but not yet promotable, append it to `.pge/learn/learnings.jsonl` as `status: raw` only when it has at least one concrete source or user statement.
 
 ## Final Response
 
 ```md
-## PGE Knowledge Result
+## PGE Learn Result
 - route: PROMOTED | REPORT_ONLY | EMPTY | DEGRADED
-- command: evaluate | search | prune | export | stats | add
+- command: learn | evaluate | recent | search | prune | export | stats | add
 - candidates_reviewed: <count>
+- raw_captured: <count>
 - promoted: <count>
 - needs_evidence: <count>
 - withheld: <count>

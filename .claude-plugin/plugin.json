@@ -1,6 +1,6 @@
 {
   "name": "pge",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Research, plan, and execute bounded repo-local work for Claude Code.",
   "author": {
     "name": "PGE contributors"
@@ -15,7 +15,7 @@
     "pge-plan",
     "pge-exec",
     "pge-handoff",
-    "pge-knowledge",
+    "pge-learn",
     "pge-ai-native-refactor",
     "pge-html",
     "pge-complexity",
@@ -29,7 +29,8 @@
   "legacy_cleanup": {
     "skills": [
       "pge-setup",
-      "pge-execute"
+      "pge-execute",
+      "pge-knowledge"
     ],
     "agents": [
       "pge-planner.md",
