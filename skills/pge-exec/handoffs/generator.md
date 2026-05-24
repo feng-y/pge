@@ -14,7 +14,7 @@ digraph generator {
   self_review [label="Self-Review\n(5 checks)"];
   verify_ok [label="Verify OK?", shape=diamond];
   local_repair [label="Local Repair\n(auto-fix-local/critical)"];
-  completion [label="Send generator_completion\n(READY)"];
+  completion [label="Send generator_completion\n(READY candidate)"];
   blocked [label="Send generator_completion\n(BLOCKED)"];
 
   receive -> implement -> write_tests -> verify -> verify_ok;
@@ -52,7 +52,7 @@ reason: <none or one sentence>
 
 Send to `generator` for each issue. Generator is a resident teammate — stays alive across issues until it acknowledges shutdown.
 
-Generator owns implementation, verification, self-review, and evidence production for its assigned issue. It should start work when dispatched and must not wait for a fixed per-issue Evaluator hop before doing implementation work.
+Generator owns implementation, local verification, self-review, and evidence production for its assigned issue candidate. It should start work when dispatched and must not wait for a fixed per-issue Evaluator hop before doing implementation work.
 
 Idle or startup notifications are allowed before work is dispatched and between issues. They are not a response to an issue. After receiving an issue pack, you must eventually send exactly one structured `generator_completion` packet with `READY` or `BLOCKED`; do not rely on idle state, prose summaries, partial updates, or preflight messages as completion.
 
@@ -90,7 +90,7 @@ Assumptions: <from plan's Assumptions section>
 3. Run Verification Hint. Record output as evidence.
 4. Produce Required Evidence.
 5. Self-review the code: correctness, scope drift, maintainability, test adequacy, and obvious regressions.
-6. Do NOT self-approve or mark the issue complete. `READY` means candidate-ready for main-controlled review, including concentrated or risk-triggered Evaluator review when scheduled. Evaluator decides PASS/RETRY/BLOCK whenever that review runs.
+6. Do NOT self-approve or mark the issue complete. `READY` means the candidate implementation and evidence are ready for main to integrate into the run. Final acceptance happens only after run-level Evaluator verification.
 7. Report execution-time implementation notes for decisions, tradeoffs, deviations, blockers, follow-ups, learned constraints, or verification gaps that the plan did not spell out. Use `implementation_notes: none` only when no such notes exist.
 
 ## Execution Rules (read references/generator-rules.md for full detail)
@@ -143,20 +143,23 @@ digraph repair_loop {
   rankdir=LR;
   node [shape=box, style=rounded];
 
-  eval [label="Evaluator"];
+  eval [label="Evaluator\n(targeted or final)"];
   main [label="Main\n(orchestrator)"];
   gen [label="Generator"];
+  gate [label="Candidate Gate"];
 
+  gate -> main [label="gate_failure\n{required_fixes}"];
   eval -> main [label="evaluator_verdict\n{RETRY, required_fixes}"];
   main -> gen [label="repair_request\n{required_fixes, attempt}"];
   gen -> main [label="generator_completion\n{READY|BLOCKED}"];
-  main -> eval [label="re-evaluate\n{criteria + new evidence}"];
+  main -> gate [label="re-check candidate"];
+  main -> eval [label="re-evaluate only for targeted/final checks"];
 }
 ```
 
 ### Repair Dispatch Protocol
 
-Main sends to `generator` when Evaluator returns RETRY:
+Main sends to `generator` when Candidate Gate fails with a locally repairable contract failure, or when a targeted/final Evaluator check returns a bounded RETRY:
 
 ```text
 ---BEGIN REPAIR DATA---
@@ -164,12 +167,13 @@ run_id: <run_id>
 issue_id: <N>
 attempt: <2|3>
 
-## Evaluator Feedback
+## Repair Feedback
 
+source: candidate_gate | targeted_evaluator | final_evaluator
 verdict: RETRY
-reason: <evaluator's one-sentence reason>
-required_fixes: <specific fix from evaluator — actionable, bounded>
-evidence_checked: <what evaluator independently verified>
+reason: <one-sentence reason>
+required_fixes: <specific fix — actionable, bounded>
+evidence_checked: <what main/evaluator checked>
 
 ## Original Context (unchanged)
 
@@ -203,5 +207,8 @@ Verification Coupling: <original issue Verification Coupling>
 
 - Deliverable file exists
 - Required Evidence is present in the completion message
+- Changed files are inside Target Areas, or every extra file is recorded as a justified deviation
+- Self-review explicitly covers scope drift and test adequacy
 - status is READY or BLOCKED (not missing)
+- If Candidate Gate fails, main sends bounded Generator repair or classifies the blocker; main does not dispatch Evaluator to compensate for a malformed candidate
 - If BLOCKED: main skips Evaluator, classifies the blocker, and routes through implementation-blocked repair/takeover or contract-blocked issue state. Generator BLOCKED is not automatically terminal.

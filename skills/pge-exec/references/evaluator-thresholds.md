@@ -1,15 +1,17 @@
 # Evaluator Hard Thresholds
 
+Evaluator default scope is final run-level verification. It validates the composed diff against the canonical plan, including goal, non-goals, issue acceptance, evidence coverage, verification, and implementation logic. Targeted checks may focus on one issue or risk, but they are explicit exceptions and must not become a mandatory per-issue serial gate.
+
 ## Automatic Verdicts
 
 These conditions produce automatic verdicts without judgment:
 
 | Condition | Verdict | Reason |
 |-----------|---------|--------|
-| Deliverable file doesn't exist | BLOCK | "deliverable not produced" |
+| Any generated deliverable file doesn't exist | BLOCK | "deliverable not produced: <issue_id/path>" |
 | Required Evidence missing entirely | RETRY | "required evidence not provided: <which>" |
-| Verification Hint command fails (non-zero exit) | RETRY | "verification failed: <command> → <output>" |
-| Files modified outside Target Areas (unjustified) | BLOCK | "scope drift: <files> not in target areas" |
+| Verification Hint, stop condition, integration, or regression command fails (non-zero exit) | RETRY | "verification failed: <command> → <output>" |
+| Files modified outside all approved Target Areas (unjustified) | BLOCK | "scope drift: <files> not in target areas" |
 | Generator self-reported BLOCKED | — | Do not evaluate. Main handles. |
 
 When a Verification Hint fails, attribute the failure before writing the verdict:
@@ -18,11 +20,22 @@ When a Verification Hint fails, attribute the failure before writing the verdict
 - `newly_added_run_file`: failure stack points to files added elsewhere in the same run.
 - `environment_or_manual`: command/tooling/manual prerequisite is unavailable.
 
-For `sibling_issue` or `newly_added_run_file`, return RETRY with the attribution and implicated files. Main must route shared-tree contamination, hold the reviewed issue, repair the source first, and retry verification after the tree is buildable.
+For `sibling_issue` or `newly_added_run_file`, return RETRY with the attribution and implicated files. Main must route shared-tree contamination, hold affected issues, repair the source first, and retry verification after the tree is buildable.
+
+## Plan Alignment Check
+
+For final run-level verification:
+- Check that the composed diff still satisfies the plan goal.
+- Check that non-goals remain untouched.
+- Check every generated issue against its Action and Acceptance Criteria.
+- Check that cross-issue behavior composes cleanly instead of merely passing isolated checks.
+- Check that the implementation logic matches the plan's intended behavior, not only that files changed.
+
+Any plan-changing deviation in goal, scope, target areas, acceptance, verification, or non-goals is BLOCK unless the canonical plan already authorizes it.
 
 ## Acceptance Criteria Check
 
-For each criterion in the issue's Acceptance Criteria:
+For each criterion in each generated issue's Acceptance Criteria:
 - Check independently (read files, run commands, inspect state)
 - If ANY single criterion is unmet → RETRY with the specific unmet criterion
 
@@ -39,7 +52,7 @@ If evidence is present but weak (e.g., "I ran the tests" without output): RETRY 
 
 ## Scope Drift Detection
 
-Compare `changed_files` from Generator against `Target Areas` from the plan issue:
+Compare composed `changed_files` from all Generator candidates against all generated issues' `Target Areas`:
 - Files in Target Areas (Create or Modify): expected ✓
 - Files NOT in Target Areas but changed: scope drift
 - **Justified drift**: Generator recorded it in deviations AND it's clearly necessary for the Action → verdict is RETRY (ask Generator to add the file to a deviation justification or confirm necessity), NOT BLOCK
@@ -63,7 +76,7 @@ When issuing RETRY, the `required_fixes` field must be:
 
 One specific fix per RETRY. If multiple issues exist, report the most critical one — Generator will re-submit and you'll catch the next one.
 
-Exception: when `failure_attribution` is `sibling_issue` or `newly_added_run_file`, `required_fixes` is a main-orchestrator routing instruction, not a current-issue Generator patch request. Name the implicated source files and the buildability condition to restore.
+Exception: when `failure_attribution` is `sibling_issue` or `newly_added_run_file`, `required_fixes` is a main-orchestrator routing instruction, not necessarily a current-issue Generator patch request. Name the implicated source files and the buildability condition to restore.
 
 ## Calibration Notes
 
@@ -75,7 +88,7 @@ Counter this by:
 - If a criterion says "returns 200" — run the command, don't trust Generator's claim
 - When in doubt between PASS and RETRY: choose RETRY. False positives are cheaper than false negatives.
 
-## Minimum Quality Bar (all issues, all depths)
+## Minimum Quality Bar (whole run)
 
 Regardless of depth classification, these are auto-RETRY:
 - Unhandled promise rejections or empty catch blocks in new code
@@ -88,7 +101,7 @@ These are code-smell signals that the implementation is incomplete, not just imp
 
 ## Simplification Pressure
 
-Check whether the implementation is disproportionately complex for what it does. Only flag patterns in NEW code from this issue — pre-existing complexity is out of scope (Chesterton's Fence).
+Check whether the implementation is disproportionately complex for what it does. Only flag patterns in NEW code from this run — pre-existing complexity is out of scope (Chesterton's Fence).
 
 ### Overcomplexity (existing rules)
 
@@ -138,8 +151,8 @@ Check whether the implementation is disproportionately complex for what it does.
 
 ## Diff-Based Verification
 
-After checking acceptance criteria, review the actual diff (changed_files) against the issue's Action:
-- Every changed line should trace to the Action or a justified deviation
+After checking acceptance criteria, review the actual composed diff against the plan issues' Actions:
+- Every changed line should trace to an issue Action or a justified deviation
 - If the diff includes changes that don't serve the Action (reformatting, comment edits, unrelated "improvements") → RETRY with "diff includes changes unrelated to Action: <specific lines>"
 - If the diff is surprisingly large for a small Action, investigate whether the approach is overcomplicated
 
@@ -152,7 +165,7 @@ During repair re-evaluation (after RETRY → Generator fix → re-dispatch Evalu
 
 ## Review Severity Model
 
-Use this severity model for issue-level quality findings and for final review reports:
+Use this severity model for run-level Evaluator findings and final review reports:
 
 | Severity | Meaning | Route effect |
 |----------|---------|--------------|
@@ -162,22 +175,22 @@ Use this severity model for issue-level quality findings and for final review re
 
 Do not inflate Advisory findings into Important findings. Review cost is justified only when it prevents real regressions, not when it enforces taste.
 
-## Evaluation Depth (scales with plan depth)
+## Evaluation Depth (scales with plan/run depth)
 
-For **LIGHT** plan issues (1-2 files): single-pass evaluation covering all criteria.
+For **LIGHT** runs (1-2 changed files): single-pass evaluation covering all plan criteria.
 
-For **DEEP** plan issues (8+ files, cross-module): two-pass evaluation:
+For **DEEP** runs (8+ changed files, cross-module, or shared behavior): two-pass evaluation:
 1. **Spec compliance pass**: Does the deliverable satisfy the Action, Acceptance Criteria, and Required Evidence? (functional correctness)
 2. **Code quality pass**: Is the implementation clean? Proper error handling? Consistent with repo patterns? No obvious tech debt introduced?
 
 If spec compliance fails → RETRY immediately (don't waste time on quality review).
 If spec passes but quality fails → RETRY with quality-specific required_fixes.
 
-Depth is inferred from the issue's Target Areas count: ≤3 files = single-pass, >3 files = two-pass.
+Depth is inferred from composed changed files and plan risk: ≤3 files = single-pass unless risk triggers apply; >3 files, cross-module work, or shared behavior = two-pass.
 
 ## Security-Sensitive Issues
 
-When issue has `Security: yes`:
+When any generated issue has `Security: yes`:
 - **Mandatory checks** (in addition to normal thresholds):
   - No secrets/credentials in committed code (grep for API keys, tokens, passwords)
   - Auth/permission checks present for new endpoints or data access paths
@@ -188,7 +201,7 @@ When issue has `Security: yes`:
 
 ## Adversarial Mode (Security + DEEP issues)
 
-Triggered for: `Security: yes` issues OR DEEP issues (>3 files, cross-module).
+Triggered for: `Security: yes` issues OR DEEP runs (>3 files, cross-module, or shared behavior).
 
 Instead of only checking "does it meet criteria?", actively construct scenarios that break the implementation. Think like a chaos engineer, not a checklist auditor.
 
@@ -231,9 +244,9 @@ Explicit exclusions (these belong to other pipeline stages or future reviewers):
 
 ## Evaluator vs Final Review Gate
 
-Evaluator is the per-issue acceptance gate: it checks the issue Action, Target Areas, Acceptance Criteria, Required Evidence, Verification Hint, and obvious issue-local quality defects.
+Evaluator is the final run-level verification gate: it checks plan goal/non-goal alignment, generated issue Actions, Target Areas, Acceptance Criteria, Required Evidence, Verification Hints, composed implementation logic, and obvious quality defects that affect the plan outcome. Targeted checks are allowed only when main explicitly dispatches a bounded risk question.
 
-The Final Review Gate is the whole-run review: it checks whether all passing issues compose cleanly, whether the final diff is reviewable, whether tests cover the changed behavior, and whether any security/test specialist pass is needed. Final review should be triggered by risk, not by habit.
+The Final Review Gate is a separate read-only whole-diff review surface: it checks reviewability, blocking code-review findings, simplification opportunities, and whether any security/test specialist pass is needed after Evaluator verification. It does not replace Evaluator's plan-alignment authority.
 
 ## Structured Verdict Output
 
@@ -241,7 +254,8 @@ Evaluator verdict must be parseable. Use this exact format in the `evaluator_ver
 
 ```
 type: evaluator_verdict
-issue_id: <N>
+evaluation_scope: final_run | targeted_check
+issue_ids: <list>
 verdict: PASS | RETRY | BLOCK
 confidence: <50-100>
 reason: <one sentence>
@@ -252,6 +266,7 @@ evidence_checked:
 scope_check: clean | drift_detected | drift_justified
 failure_attribution: issue_under_review | sibling_issue | newly_added_run_file | environment_or_manual | not_applicable
 implicated_files: <files involved in failed verification, or "none">
+plan_alignment: passed | <which goal/non-goal/acceptance/evidence check failed>
 adversarial_findings: <count or "not_applicable">
 quality_bar: passed | <which check failed>
 ```
@@ -269,22 +284,25 @@ This structured format enables orchestrator to machine-parse verdicts without in
 
 Apply to both acceptance criteria checks and adversarial findings. A verdict of PASS requires all checked criteria at confidence ≥75.
 
-### Example 1: RETRY — evidence exists but is incomplete
+### Example 1: RETRY — final run behavior does not satisfy plan
 
 ```
-Issue: "Add rate limiter middleware"
-Acceptance Criteria: "Rate limiter returns 429 after 50 requests"
-Generator Evidence: "Created rate-limit.ts, tests pass"
+Evaluation Scope: final_run
+Plan Issue 1: "Add rate limiter middleware"
+Plan Issue 2: "Wire middleware to /api/users"
+Acceptance Criteria: "GET /api/users returns 429 after 50 requests"
+Generator Evidence: "Issue 1 created rate-limit.ts; Issue 2 updated routes; tests pass"
 Evaluator Action: Run `curl -s -o /dev/null -w "%{http_code}" localhost:3000/api/users` 51 times
 Result: Always returns 200 (rate limiter not wired to route)
 Verdict: RETRY
 Required Fixes: "Rate limiter created but not applied to /api/users route — wire middleware in src/routes/users.ts"
 ```
 
-### Example 2: PASS — all criteria independently verified
+### Example 2: PASS — composed run independently verified
 
 ```
-Issue: "Add --verbose flag to build command"
+Evaluation Scope: final_run
+Plan Issue 1: "Add --verbose flag to build command"
 Acceptance Criteria: "build --verbose produces detailed output"
 Generator Evidence: "Flag added to flags.ts, build.ts reads it, test output attached"
 Evaluator Action: Run `node cli.js build --verbose`
@@ -292,23 +310,25 @@ Result: Output includes "[verbose] Loading config..." lines not present without 
 Verdict: PASS
 ```
 
-### Example 3: BLOCK — scope drift with no justification
+### Example 3: BLOCK — final run scope drift with no justification
 
 ```
-Issue: "Fix login validation"
+Evaluation Scope: final_run
+Plan Issue 1: "Fix login validation"
 Target Areas: "Modify: src/auth/login.ts"
-Generator Changed Files: "src/auth/login.ts, src/auth/session.ts, src/db/users.ts"
-Generator Deviations: "none"
-Evaluator Action: Compare changed_files vs Target Areas
+Composed Changed Files: "src/auth/login.ts, src/auth/session.ts, src/db/users.ts"
+Candidate Deviations: "none"
+Evaluator Action: Compare composed changed_files vs all generated issue Target Areas
 Result: 2 files modified outside Target Areas with no recorded deviation
 Verdict: BLOCK
 Reason: "Scope drift — src/auth/session.ts and src/db/users.ts modified without justification or deviation record"
 ```
 
-### Example 4: RETRY — verification command fails
+### Example 4: RETRY — final verification command fails
 
 ```
-Issue: "Add user search endpoint"
+Evaluation Scope: final_run
+Plan Issue 1: "Add user search endpoint"
 Verification Hint: "npm test -- --grep 'user search'"
 Generator Evidence: "Endpoint created, tests written"
 Evaluator Action: Run `npm test -- --grep 'user search'`
@@ -322,13 +342,15 @@ Implicated Files: search.test.ts
 ### Example 5: RETRY — shared-tree contamination
 
 ```
-Issue: "Add user search endpoint"
+Evaluation Scope: final_run
+Plan Issue 1: "Add user search endpoint"
+Plan Issue 2: "Add admin report"
 Verification Hint: "npm test -- --grep 'user search'"
 Generator Evidence: "Endpoint created, tests written"
 Evaluator Action: Run `npm test -- --grep 'user search'`
 Result: Exit code 1 — compile error in src/admin-report.ts added by issue 2
 Verdict: RETRY
-Required Fixes: "Shared-tree contamination: issue 1 verification is blocked by src/admin-report.ts from issue 2; restore buildability there before retrying issue 1"
+Required Fixes: "Shared-tree contamination: user search verification is blocked by src/admin-report.ts from issue 2; restore buildability there before rerunning final verification"
 Failure Attribution: sibling_issue
 Implicated Files: src/admin-report.ts
 ```
