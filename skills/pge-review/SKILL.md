@@ -221,6 +221,14 @@ Every finding must carry a severity label:
 
 Use these labels consistently across all three axes. Avoid unlabeled findings.
 
+Correctness findings must also carry a concrete failure scenario whenever they assert runtime impact. Use a three-state verification discipline before surfacing them:
+
+- `CONFIRMED` — the review can name the input/state and wrong output, crash, lost behavior, or broken call path.
+- `PLAUSIBLE` — the mechanism is real but depends on realistic runtime state, configuration, timing, or environment.
+- `REFUTED` — the candidate is factually wrong, provably impossible, or already guarded by the changed code.
+
+Only `CONFIRMED` and `PLAUSIBLE` correctness findings should be reported. Do not mark realistic boundary, concurrency, nil/undefined, falsy-zero, retry/partial-failure, regex, validation, or removed-guard bugs as speculative merely because they need a rare but reachable state. Do not report REFUTED candidates.
+
 ### 5.5 Review Gate
 
 The review must end with one route:
@@ -286,6 +294,9 @@ Skip this step entirely for FAST depth. For STANDARD, spawn only the axes trigge
 
 **Simplicity agent brief:**
 > Read the diff. For NEW code only (not pre-existing), flag: deep nesting (3+), long functions (50+ lines), generic names, dead code, unnecessary abstractions (single call site), over-engineered patterns (factory-for-factory, strategy-with-one-strategy), speculative flexibility (config for one value, abstract base with one impl). For each finding: file:line, signal, concrete "do this instead". Skip if simpler version would be harder to understand. Label every finding: Required / Important / Advisory / FYI. Under 400 words.
+
+**Correctness finder discipline for implementation diffs:**
+> For each non-test hunk, read the changed hunk and the enclosing function. Ask what input, state, timing, or platform makes this code wrong. Audit deleted/replaced lines by naming the invariant or behavior they previously enforced, then check whether the new code re-establishes it. Trace changed functions to callers and relevant callees for new preconditions, return-shape changes, exceptions, or timing/order changes. Every candidate must include `verification_status: CONFIRMED | PLAUSIBLE | REFUTED` and a concrete failure scenario for CONFIRMED/PLAUSIBLE. Drop REFUTED candidates.
 
 ### 7. Verification Story
 
