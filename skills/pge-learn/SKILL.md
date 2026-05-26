@@ -3,8 +3,10 @@ name: pge-learn
 description: >
   Learn from context friction, agent memory, code summaries, and run artifacts.
   Captures workspace-local learning candidates first; only promotes high-quality,
-  evidence-backed items to durable repo docs.
-argument-hint: "<learn|evaluate|search|recent|prune|export|stats|add> <optional focus>"
+  evidence-backed items to durable repo docs. Use when reviewing recent work for
+  repeated workflow, recurring manual work, skill hygiene, automation opportunity,
+  asset duplication, or evidence-backed learning promotion.
+argument-hint: "<learn|evaluate|workflow-mining|search|recent|prune|export|stats|add> <optional focus>"
 allowed-tools:
   - Read
   - Write
@@ -27,6 +29,8 @@ This is not a handoff and not a generic "save everything we learned" command. It
 
 The default output is a quality assessment. Promotion to durable docs happens only for candidates that are specific, evidence-backed, reusable, non-duplicative, and discoverable.
 
+It also supports **workflow-mining**: review recent local workspace evidence to find repeated manual workflows and recommend the smallest reusable asset. Mine evidence first, package the smallest useful form, and default to no writes.
+
 It also manages existing repo knowledge at a lightweight level: review, search, prune stale items, export a digest, show stats, or manually add a quality-scored candidate. PGE stores durable knowledge in repo docs, not a global memory database. Raw learning candidates may be kept in a workspace-local ledger only as source evidence.
 
 ## When To Use
@@ -36,8 +40,11 @@ It also manages existing repo knowledge at a lightweight level: review, search, 
 - A memory or code summary exists and needs review before becoming repo knowledge.
 - You want to inspect whether existing repo knowledge is stale, noisy, duplicated, or undiscoverable.
 - The user says the agent's summary captured an important pattern, but quality should be checked first.
+- Recent work suggests repeated manual workflow, skill/agent/command duplication, skill hygiene issues, or small automation opportunities.
+- Before creating a new skill, agent, command, hook, script, CI check, or scheduled automation proposal.
 
 Do not use this for session continuation. Use `pge-handoff` for temporary task handoff between sessions.
+Do not use workflow-mining for one-off summaries, generic brainstorming, or deterministic checks that should go directly to a script, hook, or CI check.
 
 ## Commands
 
@@ -45,6 +52,7 @@ Parse `ARGUMENTS:`:
 
 - `learn <text|focus>`: extract and score learning candidates, then append useful non-promoted candidates to the raw learning ledger. This is an alias for evaluate-plus-capture, not automatic promotion.
 - `evaluate` or no command: extract and quality-score candidates from the current context, memory/code summaries, raw learning ledger, and relevant run artifacts.
+- `workflow-mining <focus>`: inventory existing reusable assets, mine recent local evidence for repeated manual workflows, then report the smallest recommended form. Default is review-only.
 - `recent [n]`: show recent raw and promoted learnings with status, confidence, source, and target.
 - `search <query>`: search raw learning candidates and existing repo knowledge for a phrase, task, file, convention, or friction pattern.
 - `prune`: find stale, contradictory, duplicated, unsafe, or undiscoverable raw/promoted knowledge. Report recommended edits; do not delete without explicit approval.
@@ -64,6 +72,7 @@ If a command is ambiguous, default to `evaluate` and say what was assumed.
 | `architecture-context` | Stable architecture decision or trade-off | `docs/adr/<YYYYMMDD>-<slug>.md` |
 | `code-summary` | A compact map of code structure, ownership, or recurring patterns | nearest relevant doc, `.pge/config/repo-profile.md`, or withheld if too broad |
 | `run-learning` | A reusable learning from `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}` or legacy `learnings.md` | usually `.pge/config/repo-profile.md`, sometimes a skill rule |
+| `workflow-candidate` | Repeated manual procedure or asset duplication opportunity | extend existing, doc/checklist, skill, subagent, command, script/hook/CI, scheduled automation proposal, or skip |
 
 Avoid creating new knowledge locations unless an existing entry point would naturally point future agents there.
 
@@ -94,7 +103,7 @@ Append one JSON object per candidate:
   "id": "learn-<YYYYMMDD>-<short-slug>",
   "created_at": "YYYY-MM-DD",
   "status": "raw | promoted | withheld | stale | duplicate",
-  "type": "context-friction | repo-memory | domain-context | architecture-context | code-summary | run-learning",
+  "type": "context-friction | repo-memory | domain-context | architecture-context | code-summary | run-learning | workflow-candidate",
   "summary": "<one sentence>",
   "trigger": "<when future agents should care>",
   "guidance": "<what future agents should do>",
@@ -156,6 +165,12 @@ Read only relevant sources:
 
 Do not bulk-ingest broad research notes unless the candidate explicitly depends on them.
 
+For `workflow-mining`, gather in this order:
+
+1. Existing reusable assets: `skills/`, `.claude/skills/`, `agents/`, `.claude/agents/`, `commands/`, `.claude/commands/`, `scripts/`, hooks, CI, Makefile/package scripts, process docs, and relevant checklists.
+2. Recent local evidence: current diff, recent commits, `.pge/tasks-*/`, run manifests/state/review/challenge artifacts, raw learning ledger, and recent progress/status docs.
+3. Only the nearest files needed to confirm recurrence, overlap, and validation. Do not turn mining into broad repo archaeology.
+
 ### 2. Extract Candidates
 
 Look for:
@@ -176,13 +191,15 @@ Ignore:
 - Preferences that apply only to one chat
 - Implementation details already obvious from nearby code
 
+For workflow-mining, distinguish repeated topics from repeated workflows. A topic recurring in reports is not enough; there must be a repeatable procedure, recurring manual correction, recurring asset choice, or deterministic check opportunity.
+
 ### 3. Evaluate Quality
 
 For each candidate, produce:
 
 ```markdown
 ### <candidate title>
-- type: context-friction | repo-memory | domain-context | architecture-context | code-summary | run-learning
+- type: context-friction | repo-memory | domain-context | architecture-context | code-summary | run-learning | workflow-candidate
 - proposed_target: <path or "withhold">
 - quality_score: <0-16>
 - verdict: promote | needs_evidence | withhold | refresh_existing
@@ -190,6 +207,57 @@ For each candidate, produce:
 - reason: <why this helps future agents>
 - risk: <duplication/staleness/privacy/over-broad summary risk>
 ```
+
+For workflow candidates, apply these gates before recommending a new asset:
+
+| Gate | Pass condition |
+|---|---|
+| Recurrence | happened at least twice, or clearly costly and likely to recur |
+| Shape | stable inputs, repeatable procedure, clear output and stop condition |
+| Value | improves speed, quality, consistency, reliability, or reviewability |
+| Coverage | not already adequately covered by an existing asset |
+| Scope | narrow, non-overlapping, and testable |
+
+Recommend the smallest form in this order:
+
+1. extend existing
+2. doc/checklist
+3. skill
+4. subagent
+5. command
+6. script/hook/CI
+7. scheduled automation proposal
+8. skip
+
+Use scripts, hooks, or CI for deterministic checks. Use skills for reusable judgment-heavy techniques. Use subagents only when independent review or a distinct role is valuable. Use scheduled automation only as a proposal unless the user explicitly asks to create it.
+
+Workflow-mining output must be a compact shortlist:
+
+```markdown
+### <workflow>
+- evidence: <paths/artifacts/commands>
+- frequency_confidence: <low|medium|high>
+- recommended_form: <extend existing|doc/checklist|skill|subagent|command|script/hook/CI|scheduled automation proposal|skip>
+- why: <smallest-form rationale>
+- trigger: <when future agents should use it>
+- output_stop_condition: <expected output and when to stop>
+- validation: <test, review, checklist, smoke, or proof path>
+- overlap_risk: <existing asset overlap or "low">
+```
+
+Default workflow-mining is review-only: do not write files. Write only when the user explicitly asks for the durable change and the candidate is high confidence. Never implement discovered assets in the same pass unless the user explicitly requests it.
+
+Common workflow-mining mistakes:
+
+| Mistake | Correction |
+|---|---|
+| repeated topic treated as workflow | require a repeatable procedure and stop condition |
+| duplicated existing skill | inventory assets first and prefer extension |
+| project-specific convention promoted globally | keep repo conventions in repo docs or the owning PGE skill |
+| broad catch-all skill created | narrow to one trigger, input shape, and output |
+| deterministic check assigned to agent/skill | route to script, hook, or CI |
+| files changed during review-only mode | report recommendations only |
+| no validation path | withhold or mark needs evidence |
 
 ### 4. Promote Carefully
 
