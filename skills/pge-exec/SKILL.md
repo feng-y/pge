@@ -25,7 +25,7 @@ allowed-tools:
 
 Execute a canonical .pge/tasks-<slug>/plan.md produced by `pge-plan`. `pge-exec` is the execution control plane: it consumes only canonical `.pge/tasks-<slug>/plan.md` artifacts and owns concurrent scheduling, runtime state, evidence alignment, bounded repair, and the final execution route.
 
-This is an orchestration skill. Generator owns implementation, local verification, self-review, and evidence production for assigned issue candidates. Evaluator owns final run-level verification: plan alignment, acceptance/evidence coverage, composed implementation logic, regression/integration risk, and any targeted risk checks main explicitly dispatches before final verification. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
+This is an orchestration skill. Generator owns implementation, TDD or proportional local verification, issue-contract self-review, and evidence production for assigned issue candidates. Evaluator owns final run-level verification: plan alignment, acceptance/evidence coverage, composed implementation logic, regression/integration risk, and any targeted risk checks main explicitly dispatches before final verification. Evaluator is the independent QA / alignment lane for the composed run, not the serial checker for every Generator issue. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
 Exec is responsible for **evidence alignment**:
 
@@ -48,15 +48,17 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 7. Create Generator worker lanes for ready independent work.
 8. Require each active lane to emit `lane_ready`.
 9. Dispatch independent issues concurrently when dependencies and Target Areas allow it.
-10. Require `generator_completion` with self-review and evidence.
-11. Keep Generator work moving until all dispatchable candidates are produced or blocked.
-12. Dispatch Evaluator only for explicit targeted risk checks before final verification; do not require an Evaluator verdict after every issue.
-13. Persist state and implementation notes after every transition that creates a decision, deviation, tradeoff, blocker, or verification gap.
-14. Run final Evaluator verification over the composed run before route decisions.
-15. Apply final Evaluator `PASS | RETRY | BLOCK` to bounded repair, blocked state, run route, or lane recovery.
-16. Check stop condition, semantic alignment, regression, and integration.
-17. Run Final Review Gate for every completed execution before `SUCCESS`.
-18. Teardown using runtime truth, then write artifacts before the final response.
+10. Start Progress Watchdog for every dispatched lane: record expected next packet, last meaningful progress, and recovery budget.
+11. Require `generator_completion` with self-review and evidence.
+12. Keep Generator work moving until all dispatchable candidates are produced or blocked.
+13. Dispatch Evaluator only for explicit targeted risk checks before final verification; do not require an Evaluator verdict after every issue.
+14. Persist state and implementation notes after every transition that creates a decision, deviation, tradeoff, blocker, verification gap, or stalled-lane recovery.
+15. Run final Evaluator verification over the composed run before route decisions.
+16. Apply final Evaluator `PASS | RETRY | BLOCK` to bounded repair, blocked state, run route, or lane recovery.
+17. Check stop condition, semantic alignment, regression, and integration.
+18. Activate Diagnostic Recovery when a development error has unclear root cause, repeats after repair, is flaky, or produces a symptom that does not match the issue contract.
+19. Run Final Review Gate for every completed execution before `SUCCESS`.
+20. Teardown using runtime truth, then write artifacts before the final response.
 
 ## Must Not
 
@@ -65,6 +67,7 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not read stale normalization references from exec.
 - Do not modify the plan.
 - Do not bottleneck all issues through a fixed Generator -> Evaluator serial pair.
+- Do not use Evaluator as Generator's serial reviewer, per-issue approver, or replacement for Generator's own verification and self-review.
 - Do not require every Generator candidate to receive an issue-level Evaluator `PASS`.
 - Do not claim run success from Generator completions alone; final Evaluator verification must validate composed plan alignment and implementation logic.
 - Do not skip targeted Evaluator review when a risk trigger requires review before more generation can safely continue.
@@ -74,12 +77,14 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not run compile-coupled issues in the same working tree with immediate verification.
 - Do not retry more than 3 attempts per issue.
 - Do not retry a repair with no code or artifact changes.
+- Do not trial-and-error unclear development failures. If the cause is not locally obvious, enter Diagnostic Recovery before another repair attempt.
 - Do not allow destructive git.
 - Do not auto-retry failed package installs.
 - Do not promote durable knowledge, append `.pge/config/repo-profile.md`, create ADRs, or require `learnings.md`.
 - Do not use `implementation-notes.md` to change scope, rewrite acceptance, waive verification, or approve plan-changing deviations.
 - Do not output `PASS`, `MERGED`, `SHIPPED`, or `READY_TO_SHIP` as the exec route.
 - Do not advance state from idle notifications, startup prose, or partial summaries.
+- Do not wait indefinitely for a lane. If no meaningful progress is visible, run Progress Watchdog recovery.
 - Do not leave any runtime exception in an unknown or unowned state.
 
 ## Source Routing
@@ -211,6 +216,17 @@ Recovery:
 - A replacement lane is not usable until it sends valid `lane_ready`.
 - Non-Team fallback is not a valid `pge-exec` execution mode. If native Team lanes cannot run, route `BLOCKED` or use a separately documented execution path outside this skill.
 
+Progress Watchdog:
+- On every dispatch, record `lane`, `issue_id` or evaluation scope, `expected_next_packet`, `last_meaningful_progress`, `status_requests_sent`, and `recovery_attempts` in `state.json`.
+- Meaningful progress is one of: a valid terminal packet, a valid `progress_update` that names concrete files/commands/artifacts touched since the last update, a state transition, an artifact write, or a verification command result.
+- Idle text, startup prose, "still working", repeated reasoning, or a packet that names no new evidence is not meaningful progress.
+- Reset `status_requests_sent` to 0 whenever meaningful progress occurs; keep `recovery_attempts` for the current dispatch until the expected terminal packet arrives.
+- If the lane produces no meaningful progress when main next checks the run, send exactly one `status_request` with the expected packet and current issue/scope.
+- A valid response to `status_request` must be either the expected terminal packet, a `progress_update` with concrete new evidence and next action, or a terminal blocked packet with a blocking reason.
+- If the response is missing, malformed, idle-only, or repeats the same no-evidence progress, recover the lane once: rebuild/replace the lane if possible, set any in-flight issue to `PENDING`, and re-dispatch from the last persisted state.
+- If recovery also stalls, route the issue or run `BLOCKED` with `failure_surface: progress_watchdog_stall`, record evidence in `implementation-notes.md`, and do not leave the run `IN_PROGRESS`.
+- A recovered lane must send fresh `lane_ready` before receiving work. A replaced lane must not reuse unpersisted assumptions from the stalled lane.
+
 Adaptive scaling:
 - Add `generator-2` when READY issue count is at least 6 and independent issues exist.
 - At 12+ independent issues, add `generator-3`.
@@ -228,9 +244,9 @@ Read these authoritative handoff contracts:
 
 ## Issue Loop
 
-Default execution is generator-first with concurrent scheduling. Generator produces issue candidates with local verification and evidence. Evaluator is an independent final verification lane over the composed run, with optional targeted risk checks before final verification only when main explicitly dispatches them. Do not force a fixed Generator -> Evaluator serial hop after every issue.
+Default execution is generator-first with concurrent scheduling. Generator produces issue candidates with TDD or proportional local verification, issue-contract self-review, and evidence. Evaluator is an independent final verification lane over the composed run, with optional targeted risk checks before final verification only when main explicitly dispatches them. Do not force a fixed Generator -> Evaluator serial hop after every issue, and do not treat Evaluator as Generator's reviewer.
 
-Targeted Evaluator checks are exceptional. Main may dispatch one only when a bounded, run-blocking risk question cannot be answered by Generator self-review or main's Candidate Gate, for example a shared interface/protocol change whose correctness affects multiple pending issues, security/destructive work that must be independently checked before more generation continues, or an explicit user request for independent mid-run review.
+Targeted Evaluator checks are exceptional. Main may dispatch one only when a bounded, run-blocking risk question cannot be answered by Generator self-review or main's Candidate Gate, for example a shared interface/protocol change whose correctness affects multiple pending issues, security/destructive work that must be independently checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. A targeted check must include a concrete `targeted_question`; "verify this candidate" is not a valid targeted question.
 
 Candidate malformed states are not targeted Evaluator triggers. Missing evidence, weak evidence, failed local verification, Target Area drift, absent deviation records, or incomplete self-review are Generator contract failures. Main must reject the candidate and send a bounded repair request, classify the issue blocker, or route upstream; it must not hand the failed self-review to Evaluator as a per-issue approval gate.
 
@@ -247,7 +263,8 @@ For each ready issue:
    - changed files are listed
    - every changed file is inside Target Areas or explicitly recorded as a justified deviation
    - deviations and implementation notes are recorded
-   - self-review covers correctness, scope drift, maintainability, test adequacy, and obvious regressions
+   - contract self-review covers Action, Deliverable, Acceptance Criteria, Test Expectation, Required Evidence, Target Areas, scope drift, maintainability, and obvious regressions
+   - TDD / verification evidence is proportional to the issue: meaningful behavior RED/GREEN where applicable, or the strongest plan-authorized contract-level verification when a RED test would be artificial
    - any `BLOCKED` packet includes blocker classification, source files, and repairability
 6. If Generator reports `BLOCKED`, skip Evaluator and classify the blocker before changing the issue route:
    - `implementation-blocked`: compile errors, include-surface mismatch, forward-declaration or type-surface problems, sibling issue contamination, local interface assembly errors, or other code-level failures that do not require user decisions or plan contract changes.
@@ -294,10 +311,36 @@ Main-thread takeover is mandatory when a blocker is locally repairable, code-lev
 
 Code that can be locally repaired is not terminally blocked. Only plan changes, user decisions, true scope escape, unrecoverable environment/tooling failure, or exhausted bounded repair may end the run as `BLOCKED`.
 
+### Diagnostic Recovery
+
+Use Diagnostic Recovery for development errors where ordinary bounded repair would be guesswork.
+
+Triggers:
+- the same verification failure appears after one bounded repair
+- the failing symptom does not clearly map to the issue being executed
+- compile/runtime/test failure crosses issue boundaries or newly added run files
+- a flaky or timing-sensitive failure appears
+- Generator reports `implementation-blocked` with `blocker_repairability: needs_main_takeover`
+- main cannot name the likely root cause in one concrete sentence from code, logs, or verification output
+
+Diagnostic Recovery is still inside `pge-exec`; it is not permission to expand scope. It may use the `pge-diagnose` discipline, but the output belongs in the current run artifacts.
+
+Required steps:
+1. Build or identify a feedback loop that reproduces the exact user/plan-relevant failure: failing test, verification command, CLI fixture, browser script, replayed trace, or minimal harness.
+2. Record the exact symptom, command, input, and affected files in `implementation-notes.md` with `type: blocker`.
+3. Inspect the recent changed surface before proposing fixes: issue changes, sibling run files, generated artifacts, and directly relevant callers/callees.
+4. Produce 3-5 ranked falsifiable hypotheses unless the root cause is already proven by the failure output.
+5. Test one hypothesis at a time with a targeted probe or local patch.
+6. When the root cause is confirmed, apply the smallest in-contract fix and rerun both the diagnostic loop and the original issue verification.
+7. If no correct regression seam exists, record `type: verification_gap` with the reason and route according to repairability.
+
+Do not mark Diagnostic Recovery complete from a passing unrelated check. Completion requires evidence that the original failure no longer reproduces, or a documented `BLOCKED` / `NEEDS_HUMAN` route explaining why the loop cannot be built.
+
 Communication consistency:
 - Idle/startup messages, partial reasoning, and prose summaries are non-terminal.
 - If a lane cannot proceed because dispatch is unclear or setup is invalid, it returns the terminal packet with a blocking reason.
 - Main sends at most one clarification/nudge for missing or malformed packets, then rebuilds/replaces the lane or routes `BLOCKED`.
+- Main sends at most one `status_request` for no-progress stalls before lane recovery. Repeated "still working" responses without concrete new evidence are stalls, not progress.
 - Evaluator failures feed back to main. Evaluator does not patch. Main schedules Generator repair using `required_fixes` for targeted or final-verification failures; sibling/new-run-file attribution routes through shared-tree contamination first.
 - Communication failures are orchestration failures, recorded separately from implementation failures.
 
@@ -389,6 +432,22 @@ State file shape:
   "plan_id": "<plan_id>",
   "run_selection": "new | resume",
   "generators": ["generator"],
+  "lane_health": {
+    "generator": {
+      "issue_id": "3",
+      "expected_next_packet": "generator_completion",
+      "last_meaningful_progress": "<timestamp or state transition id>",
+      "status_requests_sent": 0,
+      "recovery_attempts": 0
+    },
+    "evaluator": {
+      "evaluation_scope": "final_run",
+      "expected_next_packet": "evaluator_verdict",
+      "last_meaningful_progress": "<timestamp or state transition id>",
+      "status_requests_sent": 0,
+      "recovery_attempts": 0
+    }
+  },
   "issues": {
     "1": {"status": "GENERATED", "attempts": 1, "generator": "generator"},
     "2": {"status": "HELD", "attempts": 1, "generator": "generator", "reason": "waiting for shared-tree repair"},
@@ -433,7 +492,9 @@ Minimum exception routing:
 | generator `BLOCKED` from sibling issue or newly added file breaking verification | route `shared_tree_contamination`; issue under verification becomes `HELD`; contaminating source becomes priority repair; rerun held verification after recovery |
 | generator `BLOCKED` from plan/scope/user-decision dependency | classify as contract-blocked; record issue `BLOCKED`; continue only with independent issues |
 | missing or malformed `generator_completion` | nudge once, then lane recovery or issue `BLOCKED` |
-| Candidate Gate failure from missing evidence, weak evidence, failed local verification, unrecorded Target Area drift, missing self-review, or malformed `READY` packet | do not dispatch Evaluator; send bounded Generator repair if locally repairable, otherwise classify blocker |
+| no meaningful lane progress after dispatch | send one `status_request`; if no concrete progress or terminal packet follows, recover lane once; if recovery stalls, route `BLOCKED` with `progress_watchdog_stall` |
+| Candidate Gate failure from missing evidence, weak evidence, failed local verification, unrecorded Target Area drift, missing contract self-review, artificial/implementation-restating tests, or malformed `READY` packet | do not dispatch Evaluator; send bounded Generator repair if locally repairable, otherwise classify blocker |
+| repeated or unclear development error | enter Diagnostic Recovery; do not spend another repair attempt until a reproducible loop, symptom record, and root-cause hypothesis exist |
 | targeted/final evaluator `RETRY` with `failure_attribution: sibling_issue | newly_added_run_file` | route `shared_tree_contamination`; hold affected issues; repair implicated source first; rerun affected verification after recovery |
 | other targeted/final evaluator `RETRY` | send bounded `repair_request` through main |
 | evaluator `BLOCK` with `manual verification pending` | route `NEEDS_HUMAN`; do not downgrade missing human verification into issue `BLOCKED` |

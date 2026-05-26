@@ -16,12 +16,70 @@ If the verification is broken/flaky/wrong:
 
 A good feedback loop makes the bug 90% fixed. A bad feedback loop makes repair impossible.
 
+## TDD Evidence Quality
+
+Use TDD as a behavior feedback loop, not as ceremony for producing red-green-refactor evidence.
+
+- TDD depth must be proportional to the issue contract. Complex behavior changes need a real red-green loop; schema/config/docs/mechanical contract changes may use the plan's explicit verification command or contract-level check instead.
+- Tests must verify issue behavior through the public or plan-relevant interface.
+- Do not add tests that simply restate the implementation, assert private structure, mirror the code path, or check only that a mocked collaborator was called. These provide zero confidence.
+- If a test would keep passing after the intended behavior is broken, it is not valid evidence for the issue.
+- Prefer one focused behavior test, or the plan's explicit verification command for schema/config/doc tasks, over a pile of shallow tests.
+- If no meaningful RED test is possible for the issue type, record why and use the strongest contract-level verification available instead of inventing a low-value test.
+- Do not expand scope to make something testable. If meaningful verification needs a broader interface, harness, fixture, or dependency than the plan allows, report the verification gap or blocker instead of adding infrastructure.
+
+## Issue-Contract Self-Review
+
+Before `generator_completion`, review the candidate against the exact issue contract, not a generic checklist:
+
+1. Action: did the implementation do the issue's requested action and nothing broader?
+2. Deliverable: does the named deliverable exist at the expected path?
+3. Acceptance Criteria: does each criterion have concrete evidence?
+4. Test Expectation: are happy path, edge case, and error path covered as requested, or is a proportional substitute recorded?
+5. Required Evidence: is the actual command output, artifact, or inspection result present?
+6. Target Areas: are all changed files allowed by the issue or recorded as justified deviations?
+7. Scope: did the work avoid speculative features, unrelated cleanup, and implementation-only tests?
+8. Uncertainty: what remains unverified, if anything?
+
+## Diagnostic Loop For Unclear Failures
+
+Do not patch unclear or repeated development failures by trial and error.
+
+Enter a diagnostic loop when:
+- the same failure appears after one bounded repair
+- the failure is flaky or timing-sensitive
+- the symptom does not clearly belong to the current issue
+- verification fails in sibling issue files or newly added run files
+- you cannot name the likely root cause in one concrete sentence from evidence
+
+Before another repair:
+1. Reproduce the exact failure with the shortest available loop: failing test, Verification Hint, CLI fixture, browser script, replayed trace, or minimal harness.
+2. Capture the exact symptom, command/input, and implicated files.
+3. Inspect the recent changed surface first: current issue changes, sibling run files, generated artifacts, and relevant callers/callees.
+4. Name 3-5 falsifiable hypotheses unless the root cause is already proven by the failure output.
+5. Test one hypothesis at a time.
+6. Apply the smallest in-contract fix only after the root cause is confirmed.
+7. Rerun both the diagnostic loop and the original Verification Hint.
+
+If you cannot build a loop, report `BLOCKED` with what you tried and what artifact or access would unblock diagnosis. Include the result in `diagnostic_record`.
+
 ## Analysis Paralysis Guard
 
 If Generator performs 5+ consecutive Read/Grep/Glob operations without an Edit/Write/Bash that modifies a file:
 - STOP immediately
 - Either write code OR report BLOCKED with what's preventing progress
 - Open-ended investigation without action is Generator drift
+
+## Progress Watchdog Responses
+
+If main sends `status_request`, do not answer with a vague status.
+
+Respond with exactly one of:
+- `generator_completion` with `READY`
+- `generator_completion` with `BLOCKED`
+- `progress_update` that names concrete files, commands, artifacts, or hypotheses changed since the last update
+
+If no new concrete progress exists, report `BLOCKED` with the reason. Repeating "still working" without evidence is a stall and main will recover or replace the lane.
 
 ## Context Quarantine
 
@@ -160,15 +218,14 @@ Before writing the first line of implementation for an issue:
 
 Record assumptions in the `evidence` field of generator_completion. This prevents the #1 LLM failure mode: making wrong assumptions and running along without checking.
 
-## Atomic Commits
+## Persistence Boundary
 
-After each issue is verified locally (before sending generator_completion):
-- Commit the changes with message: `feat(<slug>): <issue title> [pge-exec issue <N>]`
-- Include only files in the issue's Target Areas + justified deviations
-- Do NOT commit unrelated changes found during execution
-- If verification fails and repair is needed, commit the repair separately: `fix(<slug>): <what was fixed> [pge-exec issue <N> repair <attempt>]`
+Generator does not own git history. Do not commit, stage, reset, clean, or otherwise manage version-control state unless main explicitly dispatches that as the issue Action.
 
-This enables:
-- Per-issue rollback if Evaluator BLOCKs
-- Clear git history showing which issue produced which changes
-- Resume from last committed issue if context overflows
+Before `generator_completion`, Generator must instead provide enough persistence evidence for main to manage the run safely:
+- exact `changed_files`
+- Target Area compliance or justified deviations
+- verification output and Required Evidence
+- implementation notes, deferred items, and uncertainty
+
+Main owns run artifacts, rollback tags, state transitions, and any version-control policy outside the issue contract.

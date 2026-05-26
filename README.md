@@ -20,7 +20,7 @@ PGE uses fixed interfaces with flexible expression.
 
 - Research must expose `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `upstream_contract`, `evidence`, `ambiguities`, `planning_handoff`, and `route`.
 - Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
-- Exec must expose which issue each change implements, whether acceptance passed, what verification ran, and any plan deviations.
+- Exec must expose which issue each change implements, whether acceptance passed, what verification ran, any plan deviations, any stalled-lane recovery, and any Diagnostic Recovery record for unclear or repeated development failures.
 - Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.
 - Every stage must consume its explicit input plus relevant current context. When context changes intent, scope, or the fix target, the stage must clarify before producing the next contract.
 - Research and plan own discovery and clarification. Exec should not be where major intent or acceptance ambiguity is resolved; that means the upstream contract was not ready.
@@ -70,7 +70,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, evidence requirements, forbidden areas, depth-scaled engineering review, repo reality checks, and a Final Plan Gate that must pass before `pge-exec`. Also supports fast-adopt for explicit external plans that are already clear and complete.
 
-- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue execution, validates with an independent Evaluator, records evidence, and reports any plan deviation.
+- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue Generator work with local verification and contract self-review, then uses an independent Evaluator for composed-run plan alignment rather than per-issue approval. Records evidence, reports plan deviations, recovers stalled lanes with Progress Watchdog, and escalates unclear development failures into Diagnostic Recovery instead of trial-and-error repair.
 
 - **[`/pge-review`](./skills/pge-review/SKILL.md)** — Review-stage gate for changes since a fixed point. Checks standards, semantic alignment with the plan/original intent, simplicity, and verification story before routing to fix, challenge, or ship.
 
@@ -94,7 +94,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 Independent skills for everyday development. Not part of the pipeline — use anytime.
 
-- **[`/pge-diagnose`](./skills/pge-diagnose/SKILL.md)** — Structured 6-phase bug diagnosis: build feedback loop → reproduce → hypothesise → instrument → fix → cleanup.
+- **[`/pge-diagnose`](./skills/pge-diagnose/SKILL.md)** — Structured 6-phase bug diagnosis: build feedback loop → reproduce → hypothesise → instrument → fix → cleanup. Use directly for bugs, and indirectly through `pge-exec` Diagnostic Recovery when execution hits an unclear or repeated development failure.
 
 - **[`/pge-grill-me`](./skills/pge-grill-me/SKILL.md)** — Stress-test a plan or design via relentless interrogation. Walks each branch of the decision tree.
 
