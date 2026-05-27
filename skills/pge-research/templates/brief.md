@@ -84,6 +84,17 @@ Findings that support the contract. Each must have basis and source.
 
 - <finding> — basis: direct | external | reasoned — source: <file:line | docs | user | named reference>
 
+## reality_alignment_proof
+
+Check human/RD claims about current code reality that could affect planning. Use one `not_applicable` row with a reason when no such claim exists.
+
+| ID | Claim | Source | Check | Result | Planning impact | Handoff refs |
+|----|-------|--------|-------|--------|-----------------|--------------|
+| RAP-1 | <human/RD claim about existing code, behavior, artifacts, schema, affected area, or constraint> | <user/upstream/RD source> | <repo evidence checked, e.g. file:line or command> | checked | <why planning can rely on it, or why it is non-blocking> | <planning_handoff section refs> |
+
+- ready_for_plan_basis: <RAP row IDs that are checked, or not_applicable with reason>
+- plan_blocking_gaps: <none, or RAP row IDs with contradicted/unverified planning impact>
+
 ## ambiguities
 
 - <ambiguity> — type: requirement_gap | design_choice | implementation_detail — status: resolved | open — resolution: <how resolved, or "blocks plan">
@@ -103,25 +114,25 @@ Findings that support the contract. Each must have basis and source.
 What planning must know because research ran.
 
 ### facts_plan_must_preserve
-- <fact from evidence or confirmed intent that plan must not contradict>
+- <fact from evidence, confirmed intent, or RAP-# that plan must not contradict>
 
 ### constraints_plan_must_not_violate
-- <hard constraint from user, upstream, or repo reality>
+- <hard constraint from user, upstream, repo reality, or RAP-#>
 
 ### known_invalid_directions
-- <direction, scope, or constraint violation that evidence shows is wrong>
+- <direction, scope, or constraint violation that evidence or RAP-# shows is wrong>
 
 ### likely_affected_areas
-- <file or module> — reason: <why it may be touched>
+- <file or module> — reason: <why it may be touched; cite RAP-# when based on a checked code-reality claim>
 
 ### verification_risks
-- <what could silently pass review but be wrong>
+- <what could silently pass review but be wrong; cite RAP-# when based on a checked or contradicted claim>
 
 ### design_experience_constraints
 - <required when experience_scope is not none; otherwise "none">
 
 ### unresolved_blockers
-- <blocking question or "none"> — type: NEEDS_CLARIFICATION | NEEDS_INFO | BLOCKED
+- <blocking question or "none"> — type: NEEDS_CLARIFICATION | NEEDS_INFO | BLOCKED; cite RAP-# when blocker status depends on a checked, contradicted, or unverified code-reality claim
 
 ## route
 

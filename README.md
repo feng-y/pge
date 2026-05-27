@@ -18,7 +18,7 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 
 PGE uses fixed interfaces with flexible expression.
 
-- Research must expose `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `upstream_contract`, `evidence`, `ambiguities`, `planning_handoff`, and `route`.
+- Research must expose `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, and `route`.
 - Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, any plan deviations, any stalled-lane recovery, and any Diagnostic Recovery record for unclear or repeated development failures.
 - Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.

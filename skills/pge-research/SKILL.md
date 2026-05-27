@@ -42,6 +42,7 @@ experience_scope
 design_surface_context (conditional)
 upstream_contract
 evidence
+reality_alignment_proof
 ambiguities
 interactive_alignment
 planning_handoff
@@ -63,6 +64,8 @@ planning_handoff:
 
 Do not use `planning_handoff` as a hidden approach recommendation. It is a boundary-preserving handoff, not a design plan.
 
+`reality_alignment_proof` is a required `research.md` section for plan-relevant human/RD code-reality claims. It extends the research artifact contract without changing `schema_version: research.v2` or downstream route vocabulary. Use the dedicated proof section below for row/status rules, route impact, and handoff citation requirements.
+
 Do not pad the brief to satisfy a template. A short brief is valid when it preserves the user's intent, names what is out of scope, exposes plan-changing ambiguity, and gives planning enough evidence to avoid guessing.
 
 `pge-research` is PGE-enhanced Superpowers-style brainstorming for engineering work. It is not a weakened or abbreviated version of brainstorming. It must preserve the core brainstorming behaviors — start from the desired outcome, understand context, ask clarifying questions when user authority is needed, compare a few possible framings, validate the selected framing, write an artifact, then stop — and strengthen them with repo evidence, authority classification, upstream contract preservation, planning handoff, and PGE route gates.
@@ -79,7 +82,8 @@ When context pressure, ambiguity, or competing instructions appear, preserve thi
 4. User-authority gaps that require one-question-at-a-time interaction.
 5. Required `research.v2` artifact semantics.
 6. Design-surface contract when `experience_scope` is not `none`.
-7. Research value proof and optional supporting sections.
+7. Reality alignment proof before planning handoff and route selection.
+8. Research value proof and optional supporting sections.
 
 ## Long-Form Skill Stability Rule
 
@@ -163,6 +167,7 @@ digraph pge_research {
     grill_user [label="Grill With User\nchallenge ambiguity + ask\nsmallest plan-changing question"];
     interaction_gate [label="Interactive Alignment Gate\nask one question or record\nno-question rationale"];
     experience_gate [label="Experience/Design Surface Gate\nclassify scope + apply reference\nwhen human-facing"];
+    reality_proof [label="Reality Alignment Proof\ncheck human/RD code claims\nagainst repo reality"];
     intent_brainstorm -> explore_context -> zoom_out -> scope_check -> clarify_gate;
   }
 
@@ -197,7 +202,7 @@ digraph pge_research {
 
   preserve_spec -> intent_brainstorm;
   clarify_gate -> interaction_gate [label="resolved / non-blocking"];
-  interaction_gate -> experience_gate -> synthesize;
+  interaction_gate -> experience_gate -> reality_proof -> synthesize;
   needs_info -> write_artifact [label="close stage", style=dashed];
   planning_handoff -> preservation;
   readiness -> write_artifact -> route;
@@ -310,10 +315,11 @@ You MUST complete these gates in order:
 3. **Evidence Grounding** — explore project context (files, docs, recent commits). Zoom out only as far as needed: map relevant modules, flows, boundaries, callers/callees, ownership, and terminology. Stop before it becomes a generic architecture survey.
 4. **Ambiguity + Clarify** — scan for ambiguity across scope, affected areas, constraints, existing patterns, terminology, and acceptance. Separate stated/inferred/out. Self-resolve from code, docs, defaults, and prior learnings before asking. Clarify gate: ask when user authority is needed for goal, scope, success shape, compatibility, or safety; one question at a time, grounded in evidence, limited to three blocking questions. If no question is asked, record the no-question rationale in `interactive_alignment`.
 5. **Experience/Design Surface Gate** — decide `experience_scope`. If not `none`, complete Design Surface Research: product/audience, design system, category baseline, safe/risk, experience framings, design dimension gaps, rendered evidence limits, anti-slop risks, and design stop boundary. If `none`, record skip reason.
-6. **Problem Brief Synthesis** — produce confirmed intent (problem, goal, scope, success shape, non-goals, "plan would be wrong if..."). Challenge the confirmed intent against user words, repo evidence, upstream constraints, rejected interpretations, and design-surface risks when present. Record decisions (Decision / Rationale / Alternatives). Prove research value: what direct auto-plan would miss.
-7. **Planning Handoff** — record what planning must preserve, must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers, and design/experience constraints when present. This is boundary-preserving handoff data, not implementation design.
-8. **Quality Gates** — run upstream preservation review. Check spec coverage (compare brief against original intent/upstream spec; READY_FOR_PLAN is forbidden if material requirements disappeared without explicit scope decision). Grill the brief (adversarial self-challenge: terminology cross-check, evidence pressure, assumption stress-test, scope drift detection, spec coverage check, missing perspective, and design-surface completeness when applicable). Final readiness review.
-9. **Artifact + Route** — write `research.md` to the task directory. Report route (READY_FOR_PLAN / NEEDS_INFO / BLOCKED) and point to `pge-plan`.
+6. **Reality Alignment Proof** — complete a compact proof for plan-relevant human/RD code-reality claims, or a reasoned `not_applicable` row when none exist.
+7. **Problem Brief Synthesis** — produce confirmed intent (problem, goal, scope, success shape, non-goals, "plan would be wrong if..."). Challenge the confirmed intent against user words, repo evidence, upstream constraints, rejected interpretations, reality proof rows, and design-surface risks when present. Record decisions (Decision / Rationale / Alternatives). Prove research value: what direct auto-plan would miss.
+8. **Planning Handoff** — record what planning must preserve, must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers, and design/experience constraints when present. Cite RAP row IDs when handoff items depend on code-reality claims. This is boundary-preserving handoff data, not implementation design.
+9. **Quality Gates** — run upstream preservation review. Check spec coverage (compare brief against original intent/upstream spec; READY_FOR_PLAN is forbidden if material requirements disappeared without explicit scope decision). Grill the brief (adversarial self-challenge: terminology cross-check, evidence pressure, assumption stress-test, scope drift detection, spec coverage check, missing perspective, and design-surface completeness when applicable). Final readiness review.
+10. **Artifact + Route** — write `research.md` to the task directory. Report route (READY_FOR_PLAN / NEEDS_INFO / BLOCKED) and point to `pge-plan`.
 
 ### Required References
 
@@ -339,6 +345,8 @@ Stop and repair or route away from `READY_FOR_PLAN` when any of these are true:
 - `experience_scope` is not `none` but the design-surface contract is missing or too thin to guide planning.
 - Required `research.v2` semantics are absent, renamed, or only implied by prose.
 - The brief selects implementation approach, creates vertical slices, defines final acceptance, or defines the verification path.
+- A human/RD claim about code reality could change planning, but the claim is absent from `reality_alignment_proof`, unchecked, unverified, materially contradicted, or hidden as a finding/assumption.
+- `READY_FOR_PLAN` is selected while `ready_for_plan_basis` does not cite checked or `not_applicable` proof rows, or while `plan_blocking_gaps` is non-empty.
 - The artifact has not been written to `.pge/tasks-<slug>/research.md`.
 
 ## The Process
@@ -516,6 +524,26 @@ Every finding and framing must carry a basis:
 
 Prefer `direct`. Do not let `reasoned` basis masquerade as user intent.
 
+**Reality alignment proof:**
+
+Before synthesis and route selection, check human/RD claims about current code reality that planning might rely on. A claim is plan-relevant when it names existing code, behavior, artifacts, schema fields, affected areas, workflow state, or constraints that would change the likely plan, scope, risk, or blocker status if false.
+
+Record each plan-relevant claim as a compact row:
+
+```text
+RAP-<N> | claim | source | check | result: checked | contradicted | unverified | not_applicable | planning_impact | handoff_refs
+```
+
+Rules:
+- `checked` means goal-relevant repo evidence supports the claim.
+- `contradicted` means repo evidence conflicts with the claim; if planning impact is material, route away from `READY_FOR_PLAN` unless the brief explicitly preserves the contradiction as a blocker or invalid direction.
+- `unverified` means the claim could not be checked with available evidence; if planning impact is material, route away from `READY_FOR_PLAN`.
+- `not_applicable` is allowed only when there are no human/RD code-reality claims to check; include the reason.
+- `planning_handoff` entries derived from these claims must cite the RAP row IDs.
+- `READY_FOR_PLAN` requires `ready_for_plan_basis` to cite the checked/non-applicable proof rows and `plan_blocking_gaps` to be `none`.
+
+Do not use the proof to select an implementation approach. It only prevents planning from inheriting unchecked or false code-reality claims.
+
 For assumptions, include a validation strategy. If the assumption would materially change the plan and cannot be validated cheaply, ask the user or route `NEEDS_INFO`.
 
 **Decision log:**
@@ -568,9 +596,10 @@ The brief may use tables, bullets, prose, or a compact key/value block. The requ
 - `design_surface_context`: required when `experience_scope` is not `none`; product/audience context, design system sources, category baseline, safe/risk tradeoffs, experience framings, design dimension gaps, visual evidence limits, and anti-slop risks
 - `upstream_contract`: source, decisions, constraints, non-goals from upstream artifacts when present
 - `evidence`: repo/user/upstream facts that support the above, with basis and source when available
+- `reality_alignment_proof`: checked human/RD code-reality claims, `not_applicable` reason when none exist, `ready_for_plan_basis`, and `plan_blocking_gaps`
 - `ambiguities`: unresolved questions with why they change planning and current status
 - `interactive_alignment`: questions asked, answers incorporated, user-confirmed fields, inferred fields left for planning, or no-question rationale with authority basis
-- `planning_handoff`: facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, design/experience constraints when applicable, unresolved blockers
+- `planning_handoff`: facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, design/experience constraints when applicable, unresolved blockers; cite RAP rows when handoff items depend on code-reality claims
 - `route`: READY_FOR_PLAN / NEEDS_INFO / BLOCKED with reason
 
 Optional sections such as Brainstorm Log, Clarify Log, Zoom-Out Map, Decision Log, Research Value Proof, and Quality Gates should appear only when they reduce uncertainty or preserve a material decision. They may be compressed into the required fields for simple tasks. `interactive_alignment` is not optional; if no interaction happened, it records why that was acceptable.
@@ -715,6 +744,8 @@ Before writing `research.md`, verify:
 - [ ] `Synthesis Summary` separates Stated, Inferred, and Out
 - [ ] Every finding has a basis: `direct`, `external`, or `reasoned`
 - [ ] `reasoned` items are not presented as user intent or repo fact
+- [ ] `reality_alignment_proof` covers all plan-relevant human/RD code-reality claims, or gives a reasoned `not_applicable` row
+- [ ] `READY_FOR_PLAN`, `ready_for_plan_basis`, `plan_blocking_gaps`, and RAP-cited `planning_handoff` items agree with the proof rows
 - [ ] Every assumption has a validation strategy
 - [ ] Material decisions are captured as Decision / Rationale / Alternatives considered
 - [ ] Research Value Proof identifies what direct auto-planning would likely miss or states a justified trivial early-exit

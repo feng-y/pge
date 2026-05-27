@@ -68,7 +68,7 @@ Stable execution rules:
 
 6. **Write design doc**
    - Must do: write `.pge/tasks-<slug>/research.md` before claiming the stage is complete.
-   - Evidence to write: all required `research.v2` semantic fields: `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `ambiguities`, `interactive_alignment`, `planning_handoff`, and `route`.
+   - Evidence to write: all required `research.v2` semantic fields: `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, and `route`.
    - Enhanced check: planning should be able to produce a plan from the brief without redoing research or rereading the original upstream source for missing intent.
    - Boundary: this artifact is a research brief for planning, not a design spec or executable plan.
 

@@ -336,11 +336,11 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 
 **pge-research v2 adaptation:**
 
-When the selected source is a `pge-research` brief with v2 contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `upstream_contract`, `evidence`, `ambiguities`, `planning_handoff`, `route`), consume those semantics explicitly:
+When the selected source is a `pge-research` brief with v2 contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, `route`), consume those semantics explicitly:
 
-1. **Source Contract Check.** Before planning, verify: intent confirmed? scope explicit? success shape usable? If not → route `RETURN_TO_RESEARCH` or `NEEDS_INFO`. Do not silently do full intent research when the source is not plan-ready.
+1. **Source Contract Check.** Before planning, verify: intent confirmed? scope explicit? success shape usable? `reality_alignment_proof` supports planning? If not → route `RETURN_TO_RESEARCH` or `NEEDS_INFO`. Do not silently do full intent research when the source is not plan-ready.
 2. **Confirmed intent becomes the plan's goal baseline.** Carry problem, goal, scope, non-goals, success shape, and "plan would be wrong if..." forward. Do not weaken them into a generic summary.
-3. **Planning handoff is boundary-preserving input.** Consume `planning_handoff` (facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers) as constraints on plan design. Do not treat it as a hidden approach recommendation.
+3. **Planning handoff is boundary-preserving input.** Consume `planning_handoff` (facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers, and RAP citations) as constraints on plan design. Do not treat it as a hidden approach recommendation.
 4. **Research Value Proof must have a concrete delta.** If missing or empty, treat the research as a weak derived summary and run a stronger coverage/intent audit before trusting its framing. Do not blindly adopt an unproven research brief.
 5. **Zoom-Out Map limits re-exploration.** Use it as the system map when present. Re-read only the files needed to validate stale, low-confidence, or plan-changing claims.
 6. **Plan owns approach selection.** Research may provide intent framings, evidence, constraints, and known invalid directions as approach inputs. Plan selects the implementation approach through engineering review. Research recommendation of problem framing is informational, not a selected approach.
