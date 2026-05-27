@@ -142,8 +142,7 @@ Check whether the implementation is disproportionately complex for what it does.
 
 | Signal | Threshold | RETRY message |
 |--------|-----------|---------------|
-| Generic names in new code | `data`, `result`, `temp`, `item`, `val` as variable names | "Use descriptive name for <var> at <file:line> — what does it contain?" |
-| Misleading names | Function named `get*` that mutates state | "Rename <function> — name implies read-only but it mutates" |
+| Misleading names that affect reviewability or behavior understanding | Function named `get*` that mutates state, or generic names where the value's role is needed to verify behavior | "Rename <symbol> at <file:line> — current name hides behavior or mutation" |
 
 ### Dead Code Signals
 
@@ -226,7 +225,7 @@ When any generated issue has `Security: yes`:
   - Auth/permission checks present for new endpoints or data access paths
   - Input validation on user-facing parameters
   - No permission downgrade without explicit justification in deviations
-- **Stricter threshold**: any security check failure → BLOCK (not RETRY). Security issues don't get repair attempts — they need plan-level rethinking.
+- **Stricter threshold**: in-contract security omissions such as missing validation or missing auth wiring → RETRY with the smallest bounded repair. Plan-changing security model gaps, permission downgrades, secrets/credential exposure, or unclear trust-boundary changes → BLOCK and route upstream through main.
 - **Adversarial pass** (mandatory for Security: yes): after spec compliance, actively construct failure scenarios (see Adversarial Mode below).
 
 ## Adversarial Mode (Security + DEEP issues)
@@ -265,7 +264,7 @@ Instead of only checking "does it meet criteria?", actively construct scenarios 
 
 Explicit exclusions (these belong to other pipeline stages or future reviewers):
 
-- **Style/naming** — not Evaluator's job. If code works and meets criteria, naming is irrelevant.
+- **Style/naming** — not Evaluator's job unless a misleading new name hides mutation, trust-boundary behavior, or a plan-relevant data role needed for verification.
 - **Architecture decisions** — plan already made these. Evaluator checks execution, not design.
 - **Performance optimization** — unless Acceptance Criteria explicitly mentions performance.
 - **Test coverage completeness** — Evaluator checks Test Expectation is met, not that coverage is 100%.

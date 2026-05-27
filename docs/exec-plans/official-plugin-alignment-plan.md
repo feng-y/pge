@@ -29,6 +29,28 @@ pge-research -> pge-plan -> pge-exec -> pge-review -> pge-challenge -> pge-learn
 
 The improvement path is to learn from official plugin ergonomics, then make the smallest PGE-native change.
 
+## Current Status
+
+This plan has already produced one bounded implementation round in commit `ec1712c`:
+
+| Item | Status | Result |
+|---|---|---|
+| Issue 1: user mental model | Done | README maps official-style phases to PGE surfaces without adding a `/feature-dev` equivalent. |
+| Issue 2: `pge-learn` discipline | Done | Broad learning inputs are capped to top 1-2 candidates and must recommend the smallest asset. |
+| Issue 3: high-frequency review inside `pge-exec` | Done | Generator/Evaluator gates now cover issue/goal alignment, repo constraints, changed-hunk audit, performance, code quality, and bounded repair before final review. |
+| Issue 4: security layering | Minimal done | `pge-review` records the layer split; no script/hook/CI is created without repeated deterministic evidence. |
+| Issue 5: automation recommendation discipline | Covered by Issue 2 | No separate change needed. |
+
+No additional asset should be created from this plan unless `pge-learn` later finds fresh local evidence.
+
+## Clarified Decisions
+
+- `implementation-notes.md` remains the source artifact owned by `pge-exec`.
+- Do not add `implementation-notes.html` as a second execution artifact. If HTML is useful later, it should be derived by `pge-html` from the Markdown source.
+- `pge-exec` success means the Execute stage is complete; normal next step is `pge-review`.
+- `pge-review` owns the route to `pge-challenge` through `READY_FOR_CHALLENGE`.
+- `pge-review` stays a final independent audit; repeated routine defects found there are learning evidence that `pge-exec` gates need improvement.
+
 ## Reference Mapping
 
 | Official plugin | PGE surface | What to learn | What not to copy |
@@ -75,7 +97,7 @@ The improvement path is to learn from official plugin ergonomics, then make the 
 **Work:**
 - Preserve `learn` as one capability: recent work, memory, code summaries, context friction, and repeated workflow learning.
 - Add or refine output guidance so learning reports recommend only the top 1-2 high-signal improvements when the input is broad.
-- Ensure artifact-shape friction is captured, such as user expecting `implementation-notes.html` while `pge-exec` currently owns `implementation-notes.md`.
+- Capture artifact-shape friction when naming or format expectations create confusion. For the current implementation-notes case, align on `implementation-notes.md` as source truth and do not add a parallel HTML artifact.
 - Keep recommendations read-only unless the user explicitly asks for promotion.
 
 **Acceptance:**
@@ -159,13 +181,16 @@ The improvement path is to learn from official plugin ergonomics, then make the 
 **Validation:**
 - Use the official plugin links as a test input and confirm the output is a shortlist, not a taxonomy dump.
 
-## Suggested Execution Order
+## Remaining Execution Plan
 
-1. Issue 2: tighten `pge-learn` first so future official-plugin comparisons are captured correctly.
-2. Issue 1: clarify the user-facing PGE mental model in README.
-3. Issue 3: calibrate review gates.
-4. Issue 4: document security layering or propose deterministic checks.
-5. Issue 5: refine recommendation discipline if Issue 2 did not fully cover it.
+No immediate implementation remains from the official-plugin comparison.
+
+Future work should reopen only through `pge-learn` evidence:
+
+1. If users still misunderstand which PGE phase to invoke, update README or the owning skill description only.
+2. If `pge-review` repeatedly finds routine in-contract bugs, strengthen the specific `pge-exec` Generator/Evaluator gate that missed them.
+3. If the same deterministic security issue recurs, propose a script/hook/CI candidate instead of adding more prose to a skill.
+4. If learning outputs become noisy again, refine `pge-learn` output constraints rather than adding a new skill or agent.
 
 ## Success Criteria
 
@@ -173,6 +198,7 @@ The improvement path is to learn from official plugin ergonomics, then make the 
 - `pge-learn` can process official plugin references and local friction into small, evidence-backed improvement candidates.
 - Research/plan/exec/review remain separate PGE surfaces.
 - Any deterministic future work is routed to script/hook/CI proposals instead of prose-only agent instructions.
+- Completed items do not remain as phantom TODOs.
 
 ## Risks
 

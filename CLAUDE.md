@@ -64,6 +64,23 @@ Review agents (active, spawned by pge-exec Final Review Gate):
 - Do not add resident agents unless current mainline explicitly requires it.
 - Every meaningful change should improve either task delivery or future AI-operability.
 
+## Workflow contract change review
+
+This is a resident repo-maintenance rule, separate from the PGE Review stage.
+
+When modifying PGE workflow contracts — skills, agents, handoffs, references, templates, route/state/verdict vocabulary, artifact schemas, final response formats, or workflow docs — run a protocol consistency review before finalizing the change. Do not wait for the user to ask.
+
+The review must identify and compare:
+- producer: what writes or defines the contract
+- consumer: what reads or executes it
+- validator: what accepts or rejects it
+- state/artifact writer: what persists it
+- final response or repair route: what exposes the result downstream
+
+Verify that required fields, enum values, route/status/verdict vocabulary, stage ownership, artifact paths, and repair semantics agree across `CLAUDE.md`, `README.md`, active skills, handoffs, references, templates, examples/evals, and agents touched by the change.
+
+Fix in-scope protocol mismatches in the same change. If the mismatch would require a broader workflow redesign, stop and surface it as a blocker or follow-up instead of silently leaving drift.
+
 ## Core invariant
 
 Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.

@@ -50,6 +50,13 @@ Validate the upstream research/input before planning proceeds.
 - Scope: <what this issue covers>
 - Action: <imperative — what to DO>
 - Deliverable: <what must exist when done>
+- Behavior Contract:
+  - Current Behavior: <current behavior or current repo state this issue changes>
+  - Desired Behavior: <behavior or contract that must be true after this issue>
+  - Behavior Delta: <the smallest behavior/contract change to deliver>
+  - Key Interfaces: <types, functions, commands, config shapes, or artifact contracts to inspect; avoid stale line numbers>
+  - Out Of Scope Confirmed: <adjacent work, non-goals, and forbidden changes not to touch>
+  - What Not To Infer: <assumptions Generator must not invent from surrounding context>
 - Target Areas: <exact file paths — Create: path | Modify: path>
 - Acceptance Criteria: <checkable conditions>
 - Verification Hint: <command or check>

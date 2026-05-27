@@ -42,6 +42,7 @@ Required fields:
 - target_areas
 - forbidden_areas
 - vertical slices
+- behavior contracts
 - acceptance criteria
 - verification path
 - evidence requirements
@@ -51,7 +52,8 @@ Required fields:
 
 Checks:
 
-- Every issue has a bounded action, deliverable, target areas, acceptance criteria, verification hint, verification type, test expectation, required evidence, dependencies, risks, security classification, and execution state.
+- Every issue has a bounded action, deliverable, behavior contract, target areas, acceptance criteria, verification hint, verification type, test expectation, required evidence, dependencies, risks, security classification, and execution state.
+- Every behavior contract names current behavior or current repo state, desired behavior, the behavior delta, key interfaces, out-of-scope items, and assumptions Generator must not infer.
 - Every major acceptance criterion traces to user intent, research success shape, upstream constraint, current prompt, or necessary technical support.
 - Each acceptance criterion has verification or required evidence. "Run tests" alone is insufficient unless the specific test scope proves the criterion.
 - Non-goals and forbidden areas define what exec must not touch.
@@ -89,7 +91,7 @@ Checks:
 - Each ready slice can be independently verified, or the plan explicitly records verification coupling and safe strategy.
 - Retry/block/escalate routing is clear for likely mismatch types.
 - HITL work is explicit: `HITL:verify`, `HITL:decision`, or `HITL:action`.
-- Exec context pack is sufficient: issue order, eligible issues, target areas, acceptance, required evidence, assumptions, upstream decisions, risks, and forbidden areas.
+- Exec context pack is sufficient: issue order, eligible issues, behavior contracts, target areas, acceptance, required evidence, assumptions, upstream decisions, risks, and forbidden areas.
 - Parallel safety is explicit: same working tree allowed, isolated worktrees required, or serial verification required.
 
 ## Layer 5: Skill Execution Stability Gate
@@ -98,7 +100,7 @@ Checks:
 
 - The plan uses canonical headings and fields: `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with `plan_route:`.
 - The plan uses only fixed route/status/verdict vocabulary defined by `pge-plan`, `plan_gate`, and `pge-exec`.
-- Downstream consumer expectations are satisfied: `pge-exec` can locate ready issues, blocked issues, target areas, forbidden areas, acceptance, verification, evidence, assumptions, and handoff fields without interpreting prose.
+- Downstream consumer expectations are satisfied: `pge-exec` can locate ready issues, blocked issues, behavior contracts, target areas, forbidden areas, acceptance, verification, evidence, assumptions, and handoff fields without interpreting prose.
 - Repair loops are bounded: retry, revise, block, escalate, and human-decision paths are explicit where likely.
 - Legacy compatibility is explicit when adopting older artifacts: aliases are read only during adoption, and new output is rewritten to canonical shape.
 - Clarification and stop paths are stable for missing evidence, ambiguous selectors, stale artifacts, plan-changing context, terminal conditions, and unavailable checks.

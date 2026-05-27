@@ -689,6 +689,7 @@ Each issue includes:
 - `ID`, `Title`, `Scope`, `Action` (imperative: what to DO)
 - `upstream_decision_refs` (decision IDs or "none"; referenced decisions must not be changed by exec)
 - `Deliverable` (what must exist when done)
+- `Behavior Contract` with `Current Behavior`, `Desired Behavior`, `Behavior Delta`, `Key Interfaces`, `Out Of Scope Confirmed`, and `What Not To Infer`. This is the Matt-style execution brief core that `pge-exec` hands to Generator; it must be behavioral, not procedural. Target Areas can name paths, but the behavior contract should name interfaces, types, commands, config shapes, artifact contracts, and scope boundaries without relying on line numbers.
 - `Target Areas` (exact paths: Create/Modify)
 - `Acceptance Criteria`, `Verification Hint`
 - `Verification Coupling`: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required

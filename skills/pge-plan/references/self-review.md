@@ -67,6 +67,7 @@ Run all 8, record pass/fail per check:
 8. **Downstream simulation** — for each issue, imagine Generator receiving it:
    - Can Generator start working immediately, or does it need to guess something?
    - Is the Action imperative and unambiguous? Could two different engineers interpret it differently?
+   - Does the Behavior Contract identify current behavior/state, desired behavior, behavior delta, key interfaces, out-of-scope items, and assumptions not to infer?
    - Are Target Areas specific enough (exact file paths, not "relevant modules")?
    - Does Test Expectation tell Generator what to test, or just "write appropriate tests"?
    

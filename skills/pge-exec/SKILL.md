@@ -564,7 +564,7 @@ Minimum exception routing:
 | HITL confirmation, decision, or action required | route `NEEDS_HUMAN`; do not auto-approve or choose defaults in headless mode |
 | verification command fails from compile/include/type/local interface error | implementation-blocked; repair or takeover before terminal routing |
 | verification command fails in sibling issue or newly added file | route `shared_tree_contamination`; hold affected issue and repair source first |
-| verification command unavailable or requires external/manual input | Evaluator returns `RETRY`, `BLOCK`, or `NEEDS_HUMAN` with evidence according to subtype |
+| verification command unavailable or requires external/manual input | Evaluator returns `RETRY` or `BLOCK` with evidence according to subtype; main routes `NEEDS_HUMAN` when human input is required |
 | state write failure | stop execution and route run `BLOCKED`; do not continue without recoverable state |
 | artifact write failure | route `BLOCKED`; do not claim completion |
 | final review `REPAIR_REQUIRED` | repair if bounded, otherwise `PARTIAL` |
