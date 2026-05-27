@@ -28,18 +28,56 @@ Use TDD as a behavior feedback loop, not as ceremony for producing red-green-ref
 - If no meaningful RED test is possible for the issue type, record why and use the strongest contract-level verification available instead of inventing a low-value test.
 - Do not expand scope to make something testable. If meaningful verification needs a broader interface, harness, fixture, or dependency than the plan allows, report the verification gap or blocker instead of adding infrastructure.
 
-## Issue-Contract Self-Review
+## Candidate Quality Gate
 
-Before `generator_completion`, review the candidate against the exact issue contract, not a generic checklist:
+Before `generator_completion`, run a concrete gate against the exact issue contract, plan goal/non-goals, repo constraints, and changed diff. This is not a generic self-review and not self-approval. Do not output an internal questionnaire. Produce only evidence, fixed findings, or blockers.
 
-1. Action: did the implementation do the issue's requested action and nothing broader?
-2. Deliverable: does the named deliverable exist at the expected path?
-3. Acceptance Criteria: does each criterion have concrete evidence?
-4. Test Expectation: are happy path, edge case, and error path covered as requested, or is a proportional substitute recorded?
-5. Required Evidence: is the actual command output, artifact, or inspection result present?
-6. Target Areas: are all changed files allowed by the issue or recorded as justified deviations?
-7. Scope: did the work avoid speculative features, unrelated cleanup, and implementation-only tests?
-8. Uncertainty: what remains unverified, if anything?
+Contract evidence check:
+1. Action: implementation does the issue's requested action and nothing broader.
+2. Deliverable: named deliverable exists at the expected path.
+3. Behavior Delta: candidate changes the intended behavior/contract and only that behavior/contract.
+4. Acceptance Criteria: each criterion has concrete evidence.
+5. Test Expectation: happy path, edge case, and error path are covered as requested, or a proportional substitute is recorded.
+6. Required Evidence: actual command output, artifact, or inspection result is present.
+7. Target Areas: all changed files are allowed by the issue or recorded as justified deviations.
+8. Scope: no speculative features, unrelated cleanup, or implementation-only tests.
+9. Goal Alignment: changed behavior supports the plan goal and does not erode non-goals.
+10. Repo Constraints: follows local patterns, resident rules, artifact contracts, route/state vocabulary, and owning skill/agent boundaries.
+
+Changed-hunk audit:
+1. Read every changed hunk and its enclosing function/section.
+2. For every deleted or replaced line, name the invariant, guard, validation, error path, or artifact contract it used to enforce and confirm the new code preserves it.
+3. Trace each changed exported function, command, artifact, or contract to immediate callers/consumers that can break.
+4. Check one realistic edge/error path for every behavior change, even if the happy path passed.
+5. Check that local fixes did not introduce unrelated edits outside the Action.
+
+Performance and code-quality audit:
+1. Performance: check changed loops, repeated scans, I/O boundaries, network calls, parsing, rendering, or artifact generation for obvious regressions introduced by the issue.
+2. Optimization boundary: improve only what is required to preserve the issue behavior, performance acceptance, or obvious correctness; record unrelated optimization ideas in `deferred_items`.
+3. Code quality: remove dead code, debug prints, unused imports, implementation-restating tests, unnecessary abstractions, and speculative flexibility introduced by the issue.
+4. Simplicity: if a simpler in-contract implementation is clearly sufficient, simplify before completion.
+
+Outcomes:
+- `pass`: no in-contract issue found, with evidence.
+- `fixed`: local in-contract bug/gap found and fixed before completion, with evidence.
+- `blocked`: issue found but fixing it would require contract change, broader scope, unavailable environment, or exhausted repair budget.
+
+Generator must not send `READY` with a known in-contract bug, issue/goal mismatch, repo-constraint violation, missing required evidence, unresolved scope drift, obvious performance regression, avoidable code-quality defect, or unrun required verification. Fix it, or report `BLOCKED`.
+
+## Behavior Contract Before First Edit
+
+Before editing, restate the execution brief in working memory:
+
+```text
+current_behavior:
+desired_behavior:
+behavior_delta:
+key_interfaces_checked:
+verification_points:
+out_of_scope_confirmed:
+```
+
+Map each acceptance criterion to one concrete verification point. If the current code reality contradicts the brief in a way that would change goal, scope, Target Areas, Acceptance Criteria, Verification Hint, non-goals, or user decisions, report `contract-blocked` instead of choosing a new contract. If the contradiction is only a moved or renamed interface with an obvious equivalent, record the corrected interface as a deviation and proceed.
 
 ## Diagnostic Loop For Unclear Failures
 
@@ -196,7 +234,7 @@ Introducing a second pattern is worse than either pattern alone. If you genuinel
 - If the Action requires touching a file not in Target Areas: record as deviation, proceed only if clearly necessary for the Action
 - **Plan references wrong path:** If plan references a file that doesn't exist but an obvious equivalent exists (renamed, moved), record as deviation with the correct path and proceed. Evaluator will check if the deviation is justified.
 
-## Self-Review (before completion)
+## Final Completion Check
 
 Before sending `generator_completion`:
 1. Does the Deliverable exist at the expected path?
@@ -205,9 +243,13 @@ Before sending `generator_completion`:
 4. Did I satisfy the Test Expectation?
 5. Any deviations from the plan? Recorded?
 6. **Assumption check**: what did I assume that isn't explicitly in the plan? Record in evidence.
-7. **Simplicity check**: could this be done in significantly fewer lines without losing correctness? If yes, simplify before completing.
+7. Did changed-hunk audit inspect changed logic, deleted invariants, and immediate callers/consumers?
+8. Did the candidate preserve repo constraints and local conventions?
+9. Did the candidate avoid obvious performance regression and unnecessary optimization?
+10. Did I fix every local in-contract finding before completion?
+11. **Simplicity check**: could this be done in significantly fewer lines without losing correctness? If yes, simplify before completing.
 
-Self-review is NOT self-approval. Evaluator makes the final call.
+This check is NOT self-approval. Evaluator makes the final call, and main rejects malformed candidates before Evaluator.
 
 ## Assumption Surfacing
 

@@ -46,7 +46,7 @@ Send structured review report to main via message. Format is defined in your age
 - If `BLOCKED`: reason explains why execution cannot route SUCCESS
 - If `ADVISORY_ONLY`: record findings in the synthesized `review.md`, do not block
 
-These are `pge-exec` internal final-review verdicts, not `pge-review` stage routes. Main preserves this mapping when deciding the next stage:
+These are `pge-exec` internal final-review verdicts, not `pge-review` stage routes. The mapping below is semantic correspondence only; normal `pge-exec` success still recommends `pge-review` as the next stage.
 
 | Exec final review verdict | Closest review-stage route |
 |---|---|

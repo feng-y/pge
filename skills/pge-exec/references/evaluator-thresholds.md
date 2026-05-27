@@ -33,6 +33,18 @@ For final run-level verification:
 
 Any plan-changing deviation in goal, scope, target areas, acceptance, verification, or non-goals is BLOCK unless the canonical plan already authorizes it.
 
+## Repo Constraint Check
+
+Evaluator must verify generated changes against the repo constraints that future reviewers would otherwise catch late:
+
+- resident rules from `CLAUDE.md` / `AGENTS.md`
+- local code patterns in touched Target Areas
+- owning skill / agent boundaries
+- artifact names, schemas, route/state/verdict vocabulary, and handoff contracts
+- "do not promote durable knowledge" / "do not create docs" boundaries when execution did not ask for that
+
+If a generated change violates a current repo constraint but can be repaired inside the plan contract, return RETRY with the smallest repair. If repairing it would change the plan contract, return BLOCK or route upstream through main.
+
 ## Acceptance Criteria Check
 
 For each criterion in each generated issue's Acceptance Criteria:
@@ -77,6 +89,14 @@ When issuing RETRY, the `required_fixes` field must be:
 One specific fix per RETRY. If multiple issues exist, report the most critical one — Generator will re-submit and you'll catch the next one.
 
 Exception: when `failure_attribution` is `sibling_issue` or `newly_added_run_file`, `required_fixes` is a main-orchestrator routing instruction, not necessarily a current-issue Generator patch request. Name the implicated source files and the buildability condition to restore.
+
+Every RETRY must also include:
+- `finding_id`: stable within the evaluation attempt, such as `eval-final-001`
+- `recheck_scope`: the exact criterion, command, behavior delta, or adversarial scenario to re-check after repair
+- `implicated_files`: concrete files when the finding depends on code or artifacts
+- `retry_contract_hint`: the narrowest suggested repair owner/scope, or `none` if main must infer ownership
+
+Main uses these fields to materialize an Evaluator Repair Contract and re-enter the exec loop. Evaluator must not assume Generator sees the whole review narrative. Evaluator does not grant a fresh retry budget; main consumes the owning issue's remaining attempt budget.
 
 ## Calibration Notes
 
@@ -156,12 +176,22 @@ After checking acceptance criteria, review the actual composed diff against the 
 - If the diff includes changes that don't serve the Action (reformatting, comment edits, unrelated "improvements") → RETRY with "diff includes changes unrelated to Action: <specific lines>"
 - If the diff is surprisingly large for a small Action, investigate whether the approach is overcomplicated
 
+## Performance And Optimization Boundary
+
+Evaluator checks performance only where the run changed a relevant surface or the plan mentions performance. Look for new unbounded loops, repeated scans, unnecessary I/O, network calls in loops, repeated parsing/rendering/artifact generation, or loss of caching/batching introduced by the run.
+
+- If performance behavior regresses in a way visible from code or verification, RETRY with a bounded repair.
+- If the issue merely exposes an unrelated optimization idea, record it as risk/deferred context and do not change verdict.
+- Do not ask Generator to optimize beyond the issue contract unless performance is part of acceptance or the generated code introduced the regression.
+
 ## Repair Re-evaluation
 
 During repair re-evaluation (after RETRY → Generator fix → re-dispatch Evaluator):
 - Diff only the repair-relevant changes against the prior submission
 - If Generator's repair diff includes changes unrelated to `required_fixes`, flag as "scope expansion in repair" → RETRY with "repair introduced unrelated changes, revert non-fix modifications"
 - Repair should be surgical: fix exactly what was asked, nothing more
+- First re-check the prior `finding_id` and `recheck_scope`. For final-run verification, continue the full final verification after the prior finding passes, because the repair may have introduced a new regression.
+- If the same finding fails again and the repair owner has no retry budget remaining, return BLOCK with the exhausted finding id instead of issuing another RETRY.
 
 ## Review Severity Model
 
@@ -257,6 +287,7 @@ type: evaluator_verdict
 evaluation_scope: final_run | targeted_check
 issue_ids: <list>
 verdict: PASS | RETRY | BLOCK
+finding_id: <stable id for RETRY/BLOCK, "none" for PASS>
 confidence: <50-100>
 reason: <one sentence>
 required_fixes: <specific fix if RETRY, "none" if PASS>
@@ -266,6 +297,8 @@ evidence_checked:
 scope_check: clean | drift_detected | drift_justified
 failure_attribution: issue_under_review | sibling_issue | newly_added_run_file | environment_or_manual | not_applicable
 implicated_files: <files involved in failed verification, or "none">
+recheck_scope: <exact criterion/command/scenario to re-check after repair, or "none">
+retry_contract_hint: <suggested bounded repair owner/scope if RETRY, or "none">
 plan_alignment: passed | <which goal/non-goal/acceptance/evidence check failed>
 adversarial_findings: <count or "not_applicable">
 quality_bar: passed | <which check failed>
@@ -287,70 +320,115 @@ Apply to both acceptance criteria checks and adversarial findings. A verdict of 
 ### Example 1: RETRY — final run behavior does not satisfy plan
 
 ```
-Evaluation Scope: final_run
-Plan Issue 1: "Add rate limiter middleware"
-Plan Issue 2: "Wire middleware to /api/users"
-Acceptance Criteria: "GET /api/users returns 429 after 50 requests"
-Generator Evidence: "Issue 1 created rate-limit.ts; Issue 2 updated routes; tests pass"
-Evaluator Action: Run `curl -s -o /dev/null -w "%{http_code}" localhost:3000/api/users` 51 times
-Result: Always returns 200 (rate limiter not wired to route)
-Verdict: RETRY
-Required Fixes: "Rate limiter created but not applied to /api/users route — wire middleware in src/routes/users.ts"
+type: evaluator_verdict
+evaluation_scope: final_run
+issue_ids: ["1", "2"]
+verdict: RETRY
+finding_id: eval-final-001
+confidence: 100
+reason: GET /api/users still returns 200 after 51 requests
+required_fixes: Rate limiter created but not applied to /api/users route — wire middleware in src/routes/users.ts
+evidence_checked:
+  - ran curl 51 times; observed 200 every time
+scope_check: clean
+failure_attribution: issue_under_review
+implicated_files: src/routes/users.ts
+recheck_scope: GET /api/users returns 429 after 50 requests
+retry_contract_hint: repair issue 2 route wiring only
+plan_alignment: acceptance failed: GET /api/users returns 429 after 50 requests
+adversarial_findings: not_applicable
+quality_bar: passed
 ```
 
 ### Example 2: PASS — composed run independently verified
 
 ```
-Evaluation Scope: final_run
-Plan Issue 1: "Add --verbose flag to build command"
-Acceptance Criteria: "build --verbose produces detailed output"
-Generator Evidence: "Flag added to flags.ts, build.ts reads it, test output attached"
-Evaluator Action: Run `node cli.js build --verbose`
-Result: Output includes "[verbose] Loading config..." lines not present without flag
-Verdict: PASS
+type: evaluator_verdict
+evaluation_scope: final_run
+issue_ids: ["1"]
+verdict: PASS
+finding_id: none
+confidence: 100
+reason: build --verbose produces detailed output and non-verbose output is unchanged
+required_fixes: none
+evidence_checked:
+  - ran node cli.js build --verbose; output includes verbose loading lines
+  - ran node cli.js build; verbose lines absent
+scope_check: clean
+failure_attribution: not_applicable
+implicated_files: none
+recheck_scope: none
+retry_contract_hint: none
+plan_alignment: passed
+adversarial_findings: not_applicable
+quality_bar: passed
 ```
 
 ### Example 3: BLOCK — final run scope drift with no justification
 
 ```
-Evaluation Scope: final_run
-Plan Issue 1: "Fix login validation"
-Target Areas: "Modify: src/auth/login.ts"
-Composed Changed Files: "src/auth/login.ts, src/auth/session.ts, src/db/users.ts"
-Candidate Deviations: "none"
-Evaluator Action: Compare composed changed_files vs all generated issue Target Areas
-Result: 2 files modified outside Target Areas with no recorded deviation
-Verdict: BLOCK
-Reason: "Scope drift — src/auth/session.ts and src/db/users.ts modified without justification or deviation record"
+type: evaluator_verdict
+evaluation_scope: final_run
+issue_ids: ["1"]
+verdict: BLOCK
+finding_id: eval-final-002
+confidence: 100
+reason: scope drift: src/auth/session.ts and src/db/users.ts modified without justification
+required_fixes: none
+evidence_checked:
+  - compared composed changed_files against issue Target Areas
+scope_check: drift_detected
+failure_attribution: not_applicable
+implicated_files: src/auth/session.ts, src/db/users.ts
+recheck_scope: none
+retry_contract_hint: none
+plan_alignment: scope drift outside Target Areas
+adversarial_findings: not_applicable
+quality_bar: not_applicable
 ```
 
 ### Example 4: RETRY — final verification command fails
 
 ```
-Evaluation Scope: final_run
-Plan Issue 1: "Add user search endpoint"
-Verification Hint: "npm test -- --grep 'user search'"
-Generator Evidence: "Endpoint created, tests written"
-Evaluator Action: Run `npm test -- --grep 'user search'`
-Result: Exit code 1 — "TypeError: Cannot read property 'query' of undefined at line 42"
-Verdict: RETRY
-Required Fixes: "Test fails with TypeError at search.test.ts:42 — req.query is undefined in test setup, add mock request object"
-Failure Attribution: issue_under_review
-Implicated Files: search.test.ts
+type: evaluator_verdict
+evaluation_scope: final_run
+issue_ids: ["1"]
+verdict: RETRY
+finding_id: eval-final-003
+confidence: 100
+reason: user search verification command fails in search.test.ts
+required_fixes: Test fails with TypeError at search.test.ts:42 — req.query is undefined in test setup, add mock request object
+evidence_checked:
+  - npm test -- --grep 'user search' exits 1 with TypeError at search.test.ts:42
+scope_check: clean
+failure_attribution: issue_under_review
+implicated_files: search.test.ts
+recheck_scope: npm test -- --grep 'user search'
+retry_contract_hint: repair issue 1 test setup only
+plan_alignment: required verification failed
+adversarial_findings: not_applicable
+quality_bar: not_applicable
 ```
 
 ### Example 5: RETRY — shared-tree contamination
 
 ```
-Evaluation Scope: final_run
-Plan Issue 1: "Add user search endpoint"
-Plan Issue 2: "Add admin report"
-Verification Hint: "npm test -- --grep 'user search'"
-Generator Evidence: "Endpoint created, tests written"
-Evaluator Action: Run `npm test -- --grep 'user search'`
-Result: Exit code 1 — compile error in src/admin-report.ts added by issue 2
-Verdict: RETRY
-Required Fixes: "Shared-tree contamination: user search verification is blocked by src/admin-report.ts from issue 2; restore buildability there before rerunning final verification"
-Failure Attribution: sibling_issue
-Implicated Files: src/admin-report.ts
+type: evaluator_verdict
+evaluation_scope: final_run
+issue_ids: ["1", "2"]
+verdict: RETRY
+finding_id: eval-final-004
+confidence: 100
+reason: user search verification is blocked by sibling compile error
+required_fixes: Shared-tree contamination: user search verification is blocked by src/admin-report.ts from issue 2; restore buildability there before rerunning final verification
+evidence_checked:
+  - npm test -- --grep 'user search' exits 1 with compile error in src/admin-report.ts
+scope_check: clean
+failure_attribution: sibling_issue
+implicated_files: src/admin-report.ts
+recheck_scope: restore buildability, then rerun npm test -- --grep 'user search'
+retry_contract_hint: repair issue 2 buildability before rechecking issue 1 verification
+plan_alignment: required verification blocked by sibling issue
+adversarial_findings: not_applicable
+quality_bar: not_applicable
 ```

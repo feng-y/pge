@@ -45,6 +45,18 @@ pge-research → pge-plan → pge-exec → pge-review → pge-challenge → ship
 
 Each skill produces an artifact or gate result that the next step consumes. You can enter at any point — skip research if you already know the landscape, skip planning if you already have a plan file, or run review/challenge on ordinary diffs outside the PGE pipeline.
 
+If you are used to all-in-one feature development workflows, map the PGE stages like this:
+
+| Plain phase | PGE surface | Role |
+|---|---|---|
+| Discovery / exploration | `pge-research` | Understand intent, scope, success shape, and repo evidence. |
+| Design / architecture | `pge-plan` | Choose the approach and produce executable issue contracts. |
+| Implementation | `pge-exec` | Execute ready issues with evidence and run artifacts. |
+| Quality review | `pge-review` / `pge-challenge` | Check alignment, verification, simplicity, and prove-it concerns. |
+| Learning | `pge-learn` | Turn repeated friction and useful recent-work evidence into durable candidates. |
+
+PGE keeps these as separate surfaces rather than one command so each stage has a clear authority boundary and durable artifact.
+
 PGE can also adopt plans produced by other workflows. If a Claude plan mode output, `docs/exec-plan/` document, or foreign workflow plan is clear and complete — goal, scope, semantic ownership, non-goals, target areas or ownership boundaries, implementation direction, and verification/evidence checkpoints are all present — `pge-plan` fast-adopt converts it into `.pge/tasks-<slug>/plan.md` and runs the Final Plan Gate before execution is allowed. After adoption, `pge-exec` consumes only that canonical artifact when `plan_gate` passes. Run artifacts and execution evidence live under `.pge/tasks-<slug>/runs/<run_id>/`. Review and challenge feedback that may trigger bounded repair reruns lives under `.pge/tasks-<slug>/`, but `pge-exec` must validate artifact provenance against the referenced run, canonical plan identity, and reviewed diff before consuming those task artifacts as repair input.
 
 ### Workflow Map
@@ -55,7 +67,7 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 | Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` with executable issue contract and Final Plan Gate |
 | Plan (external) | `pge-plan` fast-adopt | canonical `.pge/tasks-<slug>/plan.md` adopted from a complete external plan after Final Plan Gate |
 | Execute | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
-| Review | `pge-review` + optional `pge-challenge` | `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md`; feedback can feed bounded repair reruns via `pge-exec` only after provenance validation, upstream to `pge-plan` only for contract changes, and exec may hand off directly to challenge as the prove-it gate inside the Review stage |
+| Review | `pge-review` + optional `pge-challenge` | `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md`; feedback can feed bounded repair reruns via `pge-exec` only after provenance validation, upstream to `pge-plan` only for contract changes, and `pge-challenge` is reached from a review-stage `READY_FOR_CHALLENGE` route |
 | Ship | external git/PR/deploy workflow | commit, PR, merge, deploy, or handoff |
 
 `pge-ai-native-refactor`, `pge-handoff`, `pge-learn`, `pge-html`, `pge-complexity`, `pge-diagnose`, `pge-grill-me`, `pge-redo`, and `pge-zoom-out` are support surfaces. They are useful around the arc, but they do not replace the main stage contract.

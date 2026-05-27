@@ -32,6 +32,8 @@ The default output is a quality assessment. Promotion to durable docs happens on
 
 It also manages existing repo knowledge at a lightweight level: review, search, prune stale items, export a digest, show stats, or manually add a quality-scored candidate. PGE stores durable knowledge in repo docs, not a global memory database. Raw learning candidates may be kept in a workspace-local ledger only as source evidence.
 
+When the input is broad, such as several external reference links or a large recent-work sweep, shortlist only the top 1-2 highest-signal candidates by default. Mention lower-priority themes only as parked context, not as a backlog.
+
 ## When To Use
 
 - The agent repeatedly reread files, forgot constraints, chose the wrong source, or needed user correction because context was unclear.
@@ -202,6 +204,8 @@ For each candidate, produce:
 - reason: <why this helps future agents>
 - risk: <duplication/staleness/privacy/over-broad summary risk>
 ```
+
+If more than two plausible candidates appear, rank by evidence, reuse, target fit, and urgency. Report the top 1-2 in full and summarize the rest as `parked_candidates` with one line each.
 
 For `workflow-learning`, also include:
 

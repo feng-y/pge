@@ -154,6 +154,11 @@ Skipped axes must be recorded with a short reason.
 
 FAST has no sub-agent axes. If review needs a sub-agent axis, the selected depth is at least STANDARD.
 
+Security review is layered:
+- deterministic patterns that can be checked mechanically belong in script/hook/CI candidates, not long prose rules
+- changed trust boundaries, secrets, auth, permissions, data access, external input, or destructive behavior trigger `pge-review` security scrutiny
+- broad threat modeling or recurring security workflow gaps should be reported as `pge-learn` candidates before adding new agents or checks
+
 **Output** (recorded as the first section of review output, before Standards/Semantic Alignment/Simplicity/Verification Story):
 
 ```md
@@ -221,6 +226,8 @@ Every finding must carry a severity label:
 
 Use these labels consistently across all three axes. Avoid unlabeled findings.
 
+Every finding must also carry `confidence: high | medium | low`. Confidence is about evidence strength, not severity. Low-confidence observations may be reported as FYI or parked context, but must not drive `BLOCK_SHIP` or `NEEDS_FIX` unless additional evidence raises confidence.
+
 Correctness findings must also carry a concrete failure scenario whenever they assert runtime impact. Use a three-state verification discipline before surfacing them:
 
 - `CONFIRMED` — the review can name the input/state and wrong output, crash, lost behavior, or broken call path.
@@ -228,6 +235,14 @@ Correctness findings must also carry a concrete failure scenario whenever they a
 - `REFUTED` — the candidate is factually wrong, provably impossible, or already guarded by the changed code.
 
 Only `CONFIRMED` and `PLAUSIBLE` correctness findings should be reported. Do not mark realistic boundary, concurrency, nil/undefined, falsy-zero, retry/partial-failure, regex, validation, or removed-guard bugs as speculative merely because they need a rare but reachable state. Do not report REFUTED candidates.
+
+For implementation diffs, run a high-signal bug lane before routing. This is the final independent audit, not a substitute for `pge-exec` Generator/Evaluator quality gates. When routine in-contract defects reach this lane repeatedly, report that as execution-stage friction rather than broadening review scope.
+
+1. **Independent bug discovery** — inspect changed code for compile/parse failures, clear logic errors, broken edge cases, security issues in changed trust-boundary code, and subtle regressions introduced by the diff.
+2. **Candidate validation** — for every discovered bug candidate, re-check the claim against the diff, enclosing code, relevant callers/callees, and selected contract. Drop candidates that are pre-existing, linter-only, style-only, speculative, subjective, already guarded, or not reproducible from the changed code and reachable context.
+3. **Repair shaping** — every surviving bug finding must include the smallest direct repair path. If the fix is small and self-contained, include a committable suggestion or precise replacement. If the fix is larger, describe the bounded repair without pretending it is a one-line patch.
+
+This lane is stricter than ordinary advisory review. False positives erode trust; do not surface a bug unless it survives validation.
 
 ### 5.5 Review Gate
 
@@ -269,8 +284,10 @@ A task artifact is consumable for bounded repair only when that provenance block
 Required per-finding fields:
 - `source`: `standards | semantic_alignment | simplicity | verification`
 - `severity`: `Required | Important | Advisory | FYI`
+- `confidence`: `high | medium | low`
 - `scope`: `in-contract | contract-change`
 - `bounded_fix`: the smallest concrete bounded repair needed, or `none`
+- `repair_suggestion`: direct repair guidance, committable suggestion when safely self-contained, or `none`
 - `evidence`: exact spec/diff/verification citation supporting the finding
 - `next_repair_path`: `pge-exec repair review findings for <task-slug>` when `scope: in-contract`; `route upstream to pge-plan` when `scope: contract-change`
 
@@ -297,6 +314,9 @@ Skip this step entirely for FAST depth. For STANDARD, spawn only the axes trigge
 
 **Correctness finder discipline for implementation diffs:**
 > For each non-test hunk, read the changed hunk and the enclosing function. Ask what input, state, timing, or platform makes this code wrong. Audit deleted/replaced lines by naming the invariant or behavior they previously enforced, then check whether the new code re-establishes it. Trace changed functions to callers and relevant callees for new preconditions, return-shape changes, exceptions, or timing/order changes. Every candidate must include `verification_status: CONFIRMED | PLAUSIBLE | REFUTED` and a concrete failure scenario for CONFIRMED/PLAUSIBLE. Drop REFUTED candidates.
+
+**Bug validation brief:**
+> Validate each candidate from the correctness finder before it can become a blocking finding. Confirm the bug is introduced or exposed by this diff, reachable under a concrete input/state, not already handled elsewhere, not a lint-only/style issue, and not merely a general test coverage concern. Return `validated: yes | no`, `confidence: high | medium | low`, `failure_scenario`, `evidence`, and `smallest_repair`. Drop `validated: no` candidates from the final findings.
 
 ### 7. Verification Story
 
@@ -386,9 +406,9 @@ End with:
 - reviewed_diff_fingerprint: <stable identity for the reviewed diff>
 
 ## Exec Repair Contract
-| Finding ID | Source | Severity | Scope | Bounded Fix | Evidence | Next Repair Path |
-|---|---|---|---|---|---|---|
-| <id> | <standards / semantic_alignment / simplicity / verification> | <Required / Important / Advisory / FYI> | <in-contract / contract-change> | <smallest concrete bounded repair or none> | <file:line / diff / verification citation> | <pge-exec repair review findings for <task-slug> / route upstream to `pge-plan`> |
+| Finding ID | Source | Severity | Confidence | Scope | Bounded Fix | Repair Suggestion | Evidence | Next Repair Path |
+|---|---|---|---|---|---|---|---|---|
+| <id> | <standards / semantic_alignment / simplicity / verification> | <Required / Important / Advisory / FYI> | <high / medium / low> | <in-contract / contract-change> | <smallest concrete bounded repair or none> | <direct repair guidance or committable suggestion when safe> | <file:line / diff / verification citation> | <pge-exec repair review findings for <task-slug> / route upstream to `pge-plan`> |
 
 ## Review Gate
 - route: BLOCK_SHIP | NEEDS_FIX | READY_FOR_CHALLENGE | READY_TO_SHIP
