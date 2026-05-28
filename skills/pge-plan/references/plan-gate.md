@@ -2,7 +2,7 @@
 
 Plan-owned execution-contract gate. Runs after the draft plan, issue contracts, acceptance, verification, evidence requirements, and self-review are written.
 
-The Engineering Review Gate is a mandatory gstack-style engineering pressure layer inside `pge-plan`. It catches architecture, data-flow, edge-case, test-coverage, performance, and implementation-task weaknesses before the plan is frozen. The Final Plan Gate is stronger: it decides whether the plan is executable, verifiable, repo-grounded, and safe to hand to `pge-exec`.
+Plan Engineering Review is a gstack-style decision-hardening layer inside `pge-plan`. It catches selected-approach, issue-slicing, architecture, data-flow, edge-case, test-coverage, performance, and implementation-friction weaknesses before the plan is frozen. The Final Plan Gate is the hard authorization validator: it decides whether the plan is executable, verifiable, repo-grounded, and safe to hand to `pge-exec`.
 
 No `PASS`, no `pge-exec`.
 
@@ -11,7 +11,7 @@ No `PASS`, no `pge-exec`.
 Run this gate deterministically:
 
 1. Read the current draft `plan.md` once from top to bottom.
-2. Check layers in order: Contract Completeness, Engineering Review, Repo Reality, Execution Readiness, Skill Execution Stability.
+2. Check layers in order: Contract Completeness, Plan Engineering Review, Repo Reality, Execution Readiness, Skill Execution Stability.
 3. Stop at the first failing layer unless later evidence is already present in the plan and directly repairs that failure.
 4. Apply at most one inline repair pass per failed layer, then rerun only the failed layer and any downstream layer it affects.
 5. If the same layer fails twice, stop with `REVISE`, `ESCALATE`, or `REJECT`; do not loop.
@@ -60,15 +60,16 @@ Checks:
 - Stop condition is observable enough that exec can check it without interpretation.
 - Terminal conditions identify known cases where planning or execution must stop, revise, escalate, or route upstream.
 
-## Layer 2: Engineering Review Gate
+## Layer 2: Plan Engineering Review
 
 Checks:
 
-- `### Engineering Review Gate` exists.
-- Engineering Review Gate verdict is `PASS`.
-- Any `REWORK_PLAN` finding has been repaired and rerun.
-- Architecture, data flow, edge cases, test coverage, performance, and failure-mode checks were applied according to depth.
-- If an external gstack `/plan-eng-review` or equivalent review was provided in current context, its findings are consumed as pressure input, but PGE still owns the final verdict.
+- `### Plan Engineering Review` exists when the plan risk/depth needs an explicit record; LIGHT plans may use a compact review paragraph or short bullet list.
+- Plan Engineering Review result is `PASS`, or all `REWORK_PLAN` findings have been repaired and rerun before Final Plan Gate.
+- The selected approach, rejected approaches, issue slicing strategy, acceptance refinements, verification/evidence refinements, and risk handling reflect the review.
+- Architecture, data flow, edge cases, test coverage, performance, failure modes, and protocol coherence were applied according to depth and relevance.
+- If an external gstack `/plan-eng-review` or equivalent review was provided in current context, its findings are consumed as pressure input, but PGE still owns the final authorization verdict.
+- Legacy `### Engineering Review Gate` may be read as an alias for older artifacts; new plan output should use `### Plan Engineering Review`.
 
 ## Layer 3: Repo Reality Gate
 
@@ -144,7 +145,7 @@ Record under `## plan_gate` in `.pge/tasks-<slug>/plan.md`:
 
 - Verdict: PASS | REVISE | ESCALATE | REJECT
 - Exec Allowed: yes | no
-- Failed Gate: Contract Completeness | Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
+- Failed Gate: Contract Completeness | Plan Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
 - Failed Criterion: <criterion or "none">
 - Evidence: <file:line / artifact / command / user statement / "none">
 - Required Repair: <specific repair or "none">
@@ -155,7 +156,7 @@ Record under `## plan_gate` in `.pge/tasks-<slug>/plan.md`:
 | Gate | Status | Evidence | Required Repair |
 |---|---|---|---|
 | Contract Completeness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
-| Engineering Review | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Plan Engineering Review | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Repo Reality | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Execution Readiness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Skill Execution Stability | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |

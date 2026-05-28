@@ -1,6 +1,6 @@
-# Engineering Review Reference
+# Plan Engineering Review Reference
 
-Loaded by pge-plan Phase 2. Scale to depth: LIGHT = scope check only, MEDIUM = scope + architecture + test coverage, DEEP = full assessment with outside voice.
+Loaded by pge-plan Phase 2. Scale to depth: LIGHT = compact scope/reuse/verification sanity, MEDIUM = approach tradeoffs + slicing + architecture + test coverage, DEEP = full execution-topology/protocol/migration assessment with optional outside voice.
 
 ## Fix-First Principle
 
@@ -11,19 +11,13 @@ This review is not a report. Every finding must be resolved before proceeding:
 
 ## Confidence Calibration
 
-Every finding includes a confidence score (1-10):
+Findings should separate evidence strength from decision authority. Use `confidence: high | medium | low` only when the distinction helps decide whether to repair, verify, or route upstream.
 
-| Score | Meaning | Display rule |
-|-------|---------|-------------|
-| 9-10 | Verified by reading specific code/file | Show normally |
-| 7-8 | High confidence pattern match | Show normally |
-| 5-6 | Moderate, could be false positive | Show with caveat |
-| 3-4 | Low confidence, suspicious but may be fine | Suppress from main review |
-| 1-2 | Speculation | Only report if severity is blocking |
+- `high`: verified by specific code, config, artifact, command, or user/source statement
+- `medium`: supported by pattern or nearby evidence but still needs bounded verification
+- `low`: plausible but not enough to drive a blocking decision without more evidence
 
-Format: `[finding] (confidence: N/10) — source: file:line`
-
-LOW-confidence findings (≤4) that affect correctness must include a verification path.
+Low-confidence findings that affect correctness must include a verification path or become a recorded assumption/risk. Do not add numeric ratings by default.
 
 ## Scope Challenge
 
@@ -74,18 +68,11 @@ If 8+ files touched OR 2+ new classes/services/abstractions:
 - Record the challenge and resolution explicitly.
 - Not a hard block — complex tasks legitimately need complex changes.
 
-## Completeness Score
+## Completeness Check
 
-Rate each proposed approach:
+For each viable approach, ask whether it covers the inherited success shape, non-goals, execution boundary, failure modes, and verification evidence. Prefer the approach that satisfies the contract with the smallest blast radius and clearest proof.
 
-| Score | Meaning |
-|-------|---------|
-| 9-10 | All boundary cases, full error handling, complete verification |
-| 7-8 | Covers happy path + major edge cases, some boundaries deferred |
-| 5-6 | Happy path only, significant gaps |
-| 3-4 | Shortcut that defers substantial work |
-
-Prefer the approach with highest completeness unless cost is disproportionate. If selected approach scores <7, record why the trade-off is acceptable.
+If the selected approach knowingly defers part of the requested success shape, the plan must route upstream or mark the deferred part as an explicit non-goal authorized by the source. Do not hide incompleteness behind numeric scores.
 
 ## Outside Voice (MEDIUM + DEEP)
 

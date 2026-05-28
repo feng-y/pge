@@ -4,31 +4,31 @@
     {
       "id": 1,
       "prompt": "Create a plan for adding a dark mode toggle. Research brief exists at .pge/tasks-dark-mode/research.md with schema_version: research.v3, route: READY_FOR_PLAN, goal, success_shape, scope/non_goals, constraints to use existing CSS custom properties, relevant repo context naming 3 affected files, and no blocking questions.",
-      "expected_output": "Runs Source Contract Check (CONTINUE_TO_PLAN), maps v3 goal/success_shape/scope/constraints into the plan, treats simplest_direction as an approach candidate only, and selects approach through engineering review. Engineering review is present but lightweight. Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
-      "dimensions": ["input_adaptation", "research_v3_adapter", "engineering_review_scaling", "issue_decomposition"]
+      "expected_output": "Runs Source Contract Check (CONTINUE_TO_PLAN), maps v3 goal/success_shape/scope/constraints into the plan, treats simplest_direction as an approach candidate only, and selects approach through Plan Engineering Review. Plan Engineering Review is present but lightweight. Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
+      "dimensions": ["input_adaptation", "research_v3_adapter", "plan_engineering_review_scaling", "issue_decomposition"]
     },
     {
       "id": 2,
       "prompt": "Create a plan for migrating the database layer from raw SQL to an ORM. Research.v3 brief has route: READY_FOR_PLAN, simplest_direction: evaluate Prisma/Drizzle/query-builder, rejected_directions: big-bang rewrite without compatibility layer, no selected approach, affected context spans 12 files across 4 modules, and one non-blocking open question about test fixtures.",
-      "expected_output": "Source Contract Check → CONTINUE_TO_PLAN. Plan treats simplest_direction as candidate input, not selected approach. Engineering review selects the approach. Engineering review is substantive: scope challenge asks whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers. Existing solutions check looks for prior art. Non-blocking question is carried to risks/open questions.",
-      "dimensions": ["research_v3_adapter", "engineering_review_depth", "complexity_gate", "scope_challenge"]
+      "expected_output": "Source Contract Check → CONTINUE_TO_PLAN. Plan treats simplest_direction as candidate input, not selected approach. Plan Engineering Review selects the approach. Plan Engineering Review is substantive: scope challenge asks whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers. Existing solutions check looks for prior art. Non-blocking question is carried to risks/open questions.",
+      "dimensions": ["research_v3_adapter", "plan_engineering_review_depth", "complexity_gate", "scope_challenge"]
     },
     {
       "id": 3,
       "prompt": "Create a plan for adding user authentication, session management, role-based access control, audit logging, and SSO integration to a simple CRUD app that currently has no auth.",
-      "expected_output": "Engineering review scope challenge flags this as over-scoped for a single plan. Should either decompose into multiple plans or propose a phased approach where only core auth ships first. Should NOT produce 15+ issues covering everything. Complexity gate definitely triggers. Plan may route to NEEDS_HUMAN if scope decision is needed.",
+      "expected_output": "Plan Engineering Review scope challenge flags this as over-scoped for a single plan. Should either decompose into multiple plans or propose a phased approach where only core auth ships first. Should NOT produce 15+ issues covering everything. Complexity gate definitely triggers. Plan may route to NEEDS_HUMAN if scope decision is needed.",
       "dimensions": ["scope_challenge", "anti_pattern_detection", "complexity_gate"]
     },
     {
       "id": 4,
-      "prompt": "Create a plan from a research.v3 brief with Conditional: Implementation Friction. Research expected planning_handoff to be removable, but repo reality shows pge-plan still consumes legacy planning_handoff. required_plan_adjustment says preserve v2 compatibility while adding v3 adapter.",
-      "expected_output": "Plan continues only if route is READY_FOR_PLAN, consumes required_plan_adjustment, and reflects it in constraints/issues/rejected approaches. It does not plan hard deletion of legacy fields. It preserves v2 compatibility while planning the v3 adapter.",
-      "dimensions": ["research_v3_adapter", "implementation_friction_consumption", "compatibility_boundary"]
+      "prompt": "Create a plan from a research.v3 brief with Conditional: Implementation Friction. Research says older planning_handoff references exist in a foreign note, but current pge-plan should consume research.v3 as authoritative and required_plan_adjustment says obsolete fields must not be preserved as active Research adapters unless the current source explicitly authorizes cleanup.",
+      "expected_output": "Plan continues only if route is READY_FOR_PLAN, consumes required_plan_adjustment, and reflects it in constraints/issues/rejected approaches. It treats planning_handoff as obsolete or foreign evidence with downgraded authority, does not make it selected approach or current Research truth, and does not add legacy compatibility or cleanup scope unless explicitly authorized.",
+      "dimensions": ["research_v3_adapter", "implementation_friction_consumption", "obsolete_field_boundary"]
     },
     {
       "id": 5,
-      "prompt": "Create a plan from a research.v3 brief with Conditional: Progressive Feasibility. direct_goal is full Research/Plan/Exec/Review redesign; first_plannable_objective is make research.v3 authoritative in pge-research and add minimal pge-plan compatibility; deferred_goal_parts include Exec redesign and broad historical cleanup.",
-      "expected_output": "Plan scopes to first_plannable_objective, records direct_goal/deferred_goal_parts as context and non-goals, and does not plan the full redesign. Issues target the minimal structural objective and compatibility adapter only.",
+      "prompt": "Create a plan from a research.v3 brief with Conditional: Progressive Feasibility. direct_goal is full Research/Plan/Exec/Review redesign; first_plannable_objective is optimize pge-plan responsibility boundaries around executable solution design; deferred_goal_parts include Exec redesign and broad historical cleanup.",
+      "expected_output": "Plan scopes to first_plannable_objective, records direct_goal/deferred_goal_parts as context and non-goals, and does not plan the full redesign. Issues target pge-plan responsibility boundaries, Plan Engineering Review, canonical plan output, and protocol consistency only.",
       "dimensions": ["research_v3_adapter", "progressive_feasibility_consumption", "scope_control"]
     },
     {
@@ -36,6 +36,12 @@
       "prompt": "Create a plan from a research.v3 brief with route: NEEDS_USER and one blocking question about whether the goal is API compatibility or UI simplification.",
       "expected_output": "Plan does not produce a ready execution plan. It stops with NEEDS_INFO and directs the user to answer the research blocking question, then rerun pge-research. It does not ask and consume the research blocker itself, invent the goal, or plan around both possibilities.",
       "dimensions": ["research_v3_route_gate", "clarification_boundary"]
+    },
+    {
+      "id": 7,
+      "prompt": "Fast-adopt a Claude plan mode output that has no goal/non_goals/target_areas headings, but prose and issue bullets clearly define the target outcome, stop condition, current phase boundary, fixed implementation decisions, excluded areas, verification expectations, and ordered work.",
+      "expected_output": "Treats adoption readiness as a semantic contract check, not a fixed-heading check. It fast-adopts only if it can derive executable issues without inventing scope or re-deciding architecture, then materializes the source semantics into canonical plan.v2 fields including forbidden_areas and plan_gate.",
+      "dimensions": ["fast_adopt", "semantic_source_check", "canonical_output_materialization"]
     }
   ]
 }

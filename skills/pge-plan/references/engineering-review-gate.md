@@ -1,20 +1,20 @@
-# Engineering Review Gate
+# Plan Engineering Review
 
-Plan-owned quality gate. Runs after Engineering Review dimensions (see `engineering-review.md`) and before approach selection. Produces a single verdict that controls plan routing.
+Plan-owned decision-hardening mechanism. Runs during solution design after candidate approaches and bounded repo/runtime evidence exist. It improves selected approach, issue slicing, acceptance, verification, evidence, and risk handling before the Final Plan Gate.
 
 ## Purpose
 
-Verify the proposed plan is ready for `READY_FOR_EXECUTE` by checking scope discipline, architecture fit, test coverage, failure preparedness, and verification story quality. The gate is plan-owned and does not route through research unless intent/scope/success shape is genuinely unclear.
+Reduce `pge-exec` friction by checking scope discipline, existing-code reuse, selected-approach rationale, issue slicing, architecture fit when applicable, test/verification topology, failure preparedness, and execution ergonomics. It is not an independent execution authorization gate; the Final Plan Gate remains the hard validator for `READY_FOR_EXECUTE`.
 
-## Gate Depth Scaling
+## Depth Scaling
 
 | Depth | Dimensions Applied |
 |-------|-------------------|
-| LIGHT | Step 0: Scope Challenge + Verification Story Review |
-| MEDIUM | Step 0 + Architecture Review + Test Coverage Review + Verification Story Review |
-| DEEP | Step 0 + Architecture Review + Code Quality Review + Test Coverage Review + Verification Story Review + Performance Review |
+| LIGHT | Compact scope/reuse check + selected approach rationale + verification sanity |
+| MEDIUM | LIGHT dimensions + issue slicing, boundaries, failure modes, rollout shape, verification topology |
+| DEEP | MEDIUM dimensions + protocol coherence, migration safety, parallel execution safety, data-flow constraints, performance risk when relevant |
 
-LIGHT tasks must not pay DEEP ceremony. Scale the gate to the classified depth.
+LIGHT tasks must not pay DEEP ceremony. Scale the review to implementation risk.
 
 ## Step 0: Scope Challenge (all depths)
 
@@ -27,7 +27,7 @@ Four mandatory checks before any other dimension:
 
 Each check produces: `check_name | finding | evidence | resolution`.
 
-For LIGHT depth, Step 0 plus Verification Story Review is the entire gate. If all checks pass, output `PASS`.
+For LIGHT depth, Step 0 plus selected-approach rationale and Verification Story Review is the entire review. A short paragraph or compact bullet list is enough when it removes execution ambiguity.
 
 ## Architecture Review (MEDIUM + DEEP)
 
@@ -70,7 +70,7 @@ Check:
 - acceptance criteria point to concrete verification or required evidence
 - verification commands, review checks, or manual proof are specific enough for `pge-exec`
 - grep/manual checks include semantic evidence rows instead of bare command output
-- weak verification routes `REWORK_PLAN`, not `READY_FOR_EXECUTE`
+- weak verification repairs the plan via `REWORK_PLAN`; `READY_FOR_EXECUTE` still depends on Final Plan Gate `PASS`
 
 For LIGHT plans, a short verification story is enough when the prompt and acceptance criteria are obvious. The gate still must record why the verification is sufficient.
 
@@ -112,42 +112,43 @@ This requirement applies whenever:
 
 Do not claim "grep confirms X" without showing the evidence row.
 
-## Gate Output
+## Review Output
 
-The Engineering Review Gate produces exactly one overall verdict:
+Plan Engineering Review records exactly one overall result:
 
-| Verdict | Meaning | Next Action |
+| Result | Meaning | Next Action |
 |---------|---------|-------------|
-| `PASS` | Plan meets quality bar for its depth | Proceed to approach selection and synthesis |
-| `REWORK_PLAN` | Fixable issues found in approach, scope, or coverage | Fix findings inline, re-run affected checks |
-| `RETURN_TO_RESEARCH` | Intent, scope, or success shape is genuinely unclear; plan cannot resolve | Route back to `pge-research` |
-| `NEEDS_INFO` | Specific blocking question the user can answer | Ask one question, then re-run gate |
+| `PASS` | Selected approach, slicing, verification, and risk handling are strong enough for synthesis | Proceed to synthesis and Final Plan Gate |
+| `REWORK_PLAN` | Fixable issues found in approach, scope, slicing, acceptance, verification, or coverage | Fix findings inline, re-run affected checks |
+| `RETURN_TO_RESEARCH` | The inherited problem contract must change or cannot be operationalized safely | Route back to `pge-research` |
+| `NEEDS_INFO` | Specific user-authority decision blocks fair planning | Ask one question, then re-run affected checks |
 
 **When to use each:**
 
-- `PASS`: All applicable dimensions for the classified depth produce no blocking findings.
-- `REWORK_PLAN`: Scope Challenge finds unnecessary complexity, missing reuse opportunity, or incomplete coverage that plan can fix without new information. Architecture review finds unclear boundaries. Test coverage or verification-story review has gaps that can be filled.
-- `RETURN_TO_RESEARCH`: The goal itself is ambiguous, multiple valid interpretations exist that change the plan shape, or success criteria cannot be derived from available information. This is rare — most issues are `REWORK_PLAN` or `NEEDS_INFO`.
-- `NEEDS_INFO`: A specific factual question blocks the gate (e.g., "Does module X support concurrent writes?" and neither code nor docs answer it). The user can resolve it directly.
+- `PASS`: Applicable dimensions for the classified depth produce no unresolved execution-risk findings.
+- `REWORK_PLAN`: Scope Challenge finds unnecessary complexity, missing reuse opportunity, unclear boundaries, weak issue slicing, missing coverage, or weak verification that Plan can fix without changing the problem contract.
+- `RETURN_TO_RESEARCH`: The goal, scope, success shape, `required_plan_adjustment`, or `first_plannable_objective` is wrong, stale, unsafe, or not executable without changing Research/user intent.
+- `NEEDS_INFO`: A specific user-authority question blocks the review and cannot be resolved from repo evidence or current source text.
 
-`SKIP_NOT_APPLICABLE` is not an overall Engineering Review Gate verdict. Use it only inside normalized quality-gate records for individual dimensions or non-engineering gates. The Engineering Review Gate always runs Step 0 and Verification Story Review.
+`SKIP_NOT_APPLICABLE` is not an overall Plan Engineering Review result. Use it only inside optional per-dimension records. Findings normally repair the plan inline; they do not authorize execution.
 
-## Gate Record Format
+## Record Format
 
-Record the gate result in the plan artifact:
+Record the review in the plan artifact when it helps execution or review detect drift. LIGHT plans may use a compact paragraph or short bullet list.
 
 ```markdown
-### Engineering Review Gate
+### Plan Engineering Review
 
 - Depth: LIGHT | MEDIUM | DEEP
-- Verdict: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
-- Step 0 (Scope Challenge): <summary>
-- Architecture: <summary or "N/A — LIGHT depth">
-- Code Quality: <summary or "N/A — not DEEP">
-- Test Coverage: <summary or "N/A — LIGHT depth">
-- Verification Story: <summary>
-- Performance: <summary or "N/A — not DEEP">
-- Failure Modes: <count identified, count mitigated>
-- Semantic Evidence: <count rows recorded>
-- ASCII Diagrams: <count or "none required">
+- Result: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
+- Selected Approach: <approach and why it satisfies the inherited problem contract>
+- Rejected Approaches: <approaches rejected and why>
+- Complexity / Risk Reduction: <how the plan reduces implementation friction and blast radius>
+- Scope Drift Check: <why goal/scope/non-goals/constraints are preserved>
+- Verification Strategy: <first trustworthy verification point and final evidence>
+- Issue Slicing / Coupling: <execution order, dependencies, coupling, or "N/A — LIGHT">
+- Protocol Coherence: <producer/consumer/validator/evidence check when relevant, or "N/A">
+- Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
 ```
+
+For compatibility, `### Engineering Review Gate` may be read from older artifacts as the same review surface, but new `plan.v2` artifacts should use `### Plan Engineering Review`.

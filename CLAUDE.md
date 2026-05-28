@@ -86,12 +86,12 @@ Fix in-scope protocol mismatches in the same change. If the mismatch would requi
 Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.
 
 PGE requires contract discipline, not template bureaucracy:
-- Research must expose lightweight `research.v3` spec discovery: goal, success shape, scope, non-goals, constraints, task-relevant context, direction, open questions, and route.
+- Research must produce a bounded `research.v3` problem-discovery contract: goal, success shape, scope, non-goals, constraints, task-relevant context, direction, open questions, and route.
 - Plan must translate that intent into executable issue contracts without scope drift.
 - Exec must prove code changes satisfy the plan contract.
 - Review must judge whether the diff still aligns with the original intent through the plan.
 - Every stage must consume its explicit invocation input plus relevant current context, including recent user corrections, observed failures, and fresh artifacts. If context changes the goal, scope, or fix target, confirm the interpretation before producing the next contract.
-- Research owns lightweight problem discovery: goal, success shape, scope, constraints, task-relevant context, ambiguity resolution, and route. Implementation Friction and Progressive Feasibility are conditional only. Plan owns executable solution: approach selection, engineering review, acceptance, verification, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
+- Research owns bounded problem discovery: goal, success shape, scope, constraints, task-relevant context, ambiguity resolution, and route. Implementation Friction and Progressive Feasibility are conditional only. Plan owns executable solution design: approach selection, Plan Engineering Review, acceptance, verification topology, evidence requirements, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
 
 Templates are scaffolds. Required field semantics are binding; prose shape and optional sections should scale with task complexity.
 
@@ -100,14 +100,14 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
 - `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-learn` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback only after provenance validation against the referenced run, canonical plan identity, and reviewed diff.
-- `pge-research` owns lightweight `research.v3` spec discovery: goal, success shape, scope, constraints, task-relevant context, optional problem-side experience notes, conditional Implementation Friction / Progressive Feasibility, and route.
+- `pge-research` owns bounded `research.v3` problem discovery: goal, success shape, scope, constraints, task-relevant context, optional problem-side experience notes, conditional Implementation Friction / Progressive Feasibility, and route.
 - `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in a provenance-bearing exec-facing repair format.
 - `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in a provenance-bearing exec-facing repair format. It is normally reached from `pge-review` route `READY_FOR_CHALLENGE`, not directly from `pge-exec`.
 - `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
 - `pge-handoff` owns temporary Matt-style task handoff only; it must not extract durable knowledge.
 - `pge-learn` owns learning and quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted. `learn` is a command/user shorthand inside `pge-learn`, not a separate PGE authority.
 - Planning outputs, run artifacts, and review/challenge feedback under `.pge/tasks-<slug>/` are the handoff seams.
-- Clear and complete plans from outside PGE may be adopted into repo management by `pge-plan` fast-adopt into `.pge/tasks-<slug>/plan.md`. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
+- Semantically sufficient plans from outside PGE may be adopted into repo management by `pge-plan` fast-adopt into `.pge/tasks-<slug>/plan.md`; the source does not need canonical headings. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Final Review Gate.

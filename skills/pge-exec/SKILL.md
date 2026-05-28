@@ -139,7 +139,7 @@ All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge reru
 
 Validate before lane creation:
 - `plan_route` is `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`.
-- `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`. If absent, failing, or ambiguous, route upstream to `pge-plan` for fast-adopt / contract upgrade; do not treat an engineering review alone as execution authorization.
+- `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`. If absent, failing, or ambiguous, route upstream to `pge-plan` for fast-adopt / contract upgrade; do not treat Plan Engineering Review alone as execution authorization.
 - If route is `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, assumptions are explicit in the canonical plan.
 - At least one issue under canonical `## issues` has `State: READY_FOR_EXECUTE`. Legacy `## Slices` is accepted only as a compatibility alias; do not require both headings.
 - `## stop_conditions` is present and checkable. Legacy `Stop Condition` wording is accepted as a compatibility alias.

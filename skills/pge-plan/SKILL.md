@@ -1,11 +1,12 @@
 ---
 name: pge-plan
 description: >
-  Produce a bounded, engineering-reviewed PGE plan under `.pge/tasks-<slug>/plan.md`.
-  Supports fast-adopt for explicit external plans that are already clear and complete.
-  Researches and challenges approaches with engineering review, synthesizes intent,
-  and decomposes into executable issues.
-version: 0.5.2
+  Produce an executable solution-design contract under `.pge/tasks-<slug>/plan.md`.
+  Supports fast-adopt for explicit external plans whose semantics are sufficient
+  to materialize a canonical execution contract.
+  Selects implementation approach, issue slicing, ordering, verification topology,
+  and evidence requirements inside the inherited problem contract.
+version: 0.6.0
 argument-hint: "<task intent or planning notes>"
 disable-model-invocation: true
 allowed-tools:
@@ -26,11 +27,13 @@ Run `pge-plan` in the current main reasoning context. Do not hand core planning,
 
 This is a planning skill. It does not execute code, edit implementation files, produce implementation pseudocode, publish GitHub issues, or invoke `pge-exec`.
 
-Plan is responsible for **contract alignment**:
+Plan is responsible for **executable solution design**:
 
 ```text
-my issues = executable translation of research/user intent and success criteria
+my issues = executable implementation path for the inherited problem contract
 ```
+
+Plan owns approach selection, architecture-friction reduction, issue slicing as an execution graph, execution ordering, verification topology, migration/rollout sequencing when relevant, blast-radius minimization, protocol coherence strategy, and execution ergonomics. It must not reopen Research problem discovery, redefine the inherited goal/scope/success shape/non-goals/constraints, or pre-write implementation code.
 
 The artifact shape is flexible, but these semantic fields are mandatory:
 
@@ -50,9 +53,13 @@ evidence_required
 risks
 terminal_conditions
 plan_gate
+stop_conditions
+route
 ```
 
 Do not write a long plan to satisfy a template. Write the smallest plan that lets `pge-exec` implement without guessing, while preserving the same semantic target from the user/research input.
+
+Plan specifies implementation path at the contract level, not the coding level. Make direction, scope, ordering, verification coupling, and proof requirements explicit; do not specify exact code edits, helper functions, abstractions, flags, or test internals unless a public/protocol contract requires named symbols, fields, files, or commands.
 
 `schema_version` is always `plan.v2` for plans produced under this contract.
 
@@ -100,11 +107,17 @@ Plan inherits authority classification from research and adds its own:
 
 Plan must not upgrade `inferred` research findings to `user_confirmed` plan decisions. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
 
-**Compatibility adapter rule:** Legacy `plan_delta` maps to compatibility constraints/risks with downgraded authority. Legacy `Options` and `Recommendation` become approach candidates only. Neither may become selected approach without current plan engineering review.
+**Research Contract Override Rule:** When Research has `route: READY_FOR_PLAN`, Plan inherits the Research problem contract as authoritative. Plan may challenge and change `simplest_direction`, selected implementation approach, issue slicing, migration shape, rollout safety, execution topology, and verification strategy. Plan may operationalize Research conclusions into executable acceptance, target areas, issue boundaries, and verification as long as it does not change their semantic meaning.
+
+Plan must not silently override `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, `Implementation Friction.required_plan_adjustment`, or `Progressive Feasibility.first_plannable_objective`. If evidence shows a Research conclusion is wrong, stale, unsafe, or not executable, record the conflict and route to `NEEDS_INFO`, `NEEDS_HUMAN`, or `RETURN_TO_RESEARCH`; do not produce `READY_FOR_EXECUTE` until the problem-contract change is confirmed. Research blocking questions must not become Plan assumptions.
+
+**Reality extraction boundary:** Do not create a separate persisted Reality Extraction artifact. Fold bounded repo/runtime truth extraction into Plan exploration only as needed to design execution path: runtime paths, producer/consumer/validator surfaces, coupling hotspots, verification constraints, migration blockers, rollout/rollback constraints, ownership boundaries, and execution-risk shape.
+
+**Legacy research rule:** Current Plan consumes `research.v3`. Older Research terms such as `research.v2`, `planning_handoff`, `plan_delta`, `confirmed_intent`, and `scope_contract` are obsolete historical or foreign-plan compatibility inputs only. Do not maintain them as active Research adapters, and do not let them become selected approach or current authority without Plan Engineering Review and current-source validation.
 
 ## Execution Flow
 
-Follow this flow exactly. Do not skip nodes. Do not reorder phases.
+This flow is the default planning path, not a fixed state-machine ceremony. Preserve the stage ownership and hard route/authorization points, but scale intermediate checks to task risk.
 
 ```dot
 digraph pge_plan {
@@ -126,25 +139,21 @@ digraph pge_plan {
   gate_check -> gate_stop [label="incomplete/complex"];
 
   subgraph cluster_phase2 {
-    label="Phase 2: Approach Design + Engineering Review";
+    label="Phase 2: Solution Design + Plan Engineering Review";
     style=dashed;
-    coverage_audit [label="Coverage Audit\n(requirements + decisions + phases)"];
-    explore [label="Explore gaps\n+flow analysis\n+multi-agent (DEEP)"];
-    propose [label="Propose Approaches"];
-    eng_review [label="Engineering Review\n(see references/)"];
-    eng_gate [label="Engineering Review Gate\n(see references/\nengineering-review-gate.md)", shape=diamond];
-    grill_gate [label="Inconsistency Grill Gate\n(source vs scope vs issues)"];
-    select_approach [label="Select Approach"];
-    coverage_audit -> explore -> propose -> eng_review -> eng_gate;
-    eng_gate -> grill_gate [label="PASS"];
-    eng_gate -> propose [label="REWORK_PLAN", style=dashed];
-    grill_gate -> select_approach;
+    coverage_audit [label="Coverage Audit\n(input constraints + phase/scope)"];
+    explore [label="Bounded Repo/Runtime Truth\n(execution-path evidence)"];
+    propose [label="Approach Candidates"];
+    plan_eng_review [label="Plan Engineering Review\n(see references/)"];
+    select_approach [label="Select Approach\n+Repair Findings Inline"];
+    coverage_audit -> explore -> propose -> plan_eng_review -> select_approach;
+    plan_eng_review -> propose [label="REWORK_PLAN", style=dashed];
   }
 
   eng_gate_research [label="RETURN_TO_RESEARCH", shape=doubleoctagon];
   eng_gate_info [label="NEEDS_INFO\n(ask 1 question)", shape=doubleoctagon];
-  eng_gate -> eng_gate_research [label="unclear intent/scope"];
-  eng_gate -> eng_gate_info [label="blocking question"];
+  plan_eng_review -> eng_gate_research [label="problem contract must change"];
+  plan_eng_review -> eng_gate_info [label="user-authority blocker"];
 
   gate_check -> coverage_audit [label="ready"];
 
@@ -169,7 +178,7 @@ digraph pge_plan {
     style=dashed;
     create_issues [label="Create Issues\n+decision refs\n(vertical slices)"];
     write_artifact [label="Write Artifact"];
-    self_review [label="Self-Review Loop\n(8 checks)\n(see references/)", shape=box3d];
+    self_review [label="Final Sanity Pass\n(goal + coverage + verification + exec readiness)\n(see references/)", shape=box3d];
     plan_gate_final [label="Final Plan Gate\n(contract + repo reality\n+ exec readiness\n+ skill stability)", shape=diamond];
     route [label="Route", shape=note];
     create_issues -> write_artifact -> self_review -> plan_gate_final -> route;
@@ -190,7 +199,7 @@ digraph pge_plan {
 - **"Let Me Re-Decide The Spec"** — Authoritative upstream decisions are constraints, not fresh options. Plan decides implementation details; it does not re-litigate product behavior, rollout strategy, architecture direction, or scope already settled upstream.
 - **"Selector Means Ignore The Rest"** — If arguments contain a selector plus extra text, the selector locates an artifact and the remaining text is current user constraint. Consume both.
 - **"Issues Should Be Granular"** — Prefer few vertical slices over long micro-task checklists.
-- **"Skip The Engineering Review"** — Even simple tasks get a quick scope check.
+- **"Skip Plan Engineering Review"** — Even simple tasks get a compact scope/reuse/verification sanity check.
 
 ---
 
@@ -240,7 +249,7 @@ Then:
 - Keep the issue surface proportional: do not turn a verification carrier into a new feature, framework, flag, helper layer, or broad validation system unless the current constraints explicitly ask for it
 - Expected plan time: under 2 minutes
 
-Fast Lane is the smallest direct prompt path, not the only direct prompt path. MEDIUM and DEEP prompts may also be planned directly when the user gives enough intent, boundaries, and success criteria for Phase 2 research and engineering review to close the remaining implementation-level gaps.
+Fast Lane is the smallest direct prompt path, not the only direct prompt path. MEDIUM and DEEP prompts may also be planned directly when the user gives enough intent, boundaries, and success criteria for Phase 2 exploration and Plan Engineering Review to close the remaining implementation-level gaps.
 
 ### Fast Adopt (explicit external plan → PGE contract)
 
@@ -248,27 +257,33 @@ Use this path when the selected source is already an explicit plan — including
 
 Fast Adopt is allowed for LIGHT, MEDIUM, or DEEP inputs. Depth controls issue count and verification strictness, not whether adoption is available.
 
-The selected source is adoption-ready only when it already contains:
+The selected source is adoption-ready when its semantics are sufficient to derive the execution contract without inventing scope. The source does not need literal headings or fields; the relevant information may appear in prose, tables, issue lists, review comments, plan-mode output, or other structured notes.
+
+Adoption readiness asks whether Plan can confirm:
 - goal and observable success or stop condition
 - bounded phase/scope
 - implementation decisions and semantic ownership boundaries
 - non-goals or exclusions when scope is narrowed
-- target modules/files or unambiguous ownership areas
+- allowed and forbidden target areas or unambiguous ownership areas
 - verification expectations or evidence requirements
-- enough ordered work structure to derive executable issues without inventing scope
+- enough ordered work structure to derive executable issues without adding new semantics
+
+These are semantic requirements for input adoption, not required source headings or literal source fields.
 
 When adoption-ready:
 - Skip broad option generation and outside-voice approach selection.
 - Do not re-decide architecture, rollout strategy, phase boundaries, target ownership, or semantic model.
 - Preserve source goal, scope, approach, and reviewed decisions.
-- Convert the source into the canonical plan template, including `forbidden_areas` and `plan_gate`.
+- Materialize the source semantics into the canonical plan template, including `forbidden_areas` and `plan_gate`.
 - Use `plan_route: READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` only after the Final Plan Gate passes. Use `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` only when assumptions are explicit, mechanical, and non-scope-changing.
 - Materialize PGE execution contract fields: issue slices, target areas, acceptance, verification, dependencies, execution type, evidence required, and stop condition.
 - Split into the smallest number of execution issues needed for `pge-exec`; issue slicing may decide order and grouping but must not add scope.
 - Mark `fast_adopt: true` and record the source path or `claude_plan_mode` source in Metadata.
-- Run Coverage Audit, Inconsistency Grill Gate, Engineering Review Gate, and Final Plan Gate against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
+- Run Coverage Audit, Plan Engineering Review, and Final Plan Gate against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
 
-If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving semantic ownership, or changing phase boundaries, Fast Adopt must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn adoption into replanning.
+If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving undecided semantic ownership, or changing phase boundaries, Fast Adopt must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn adoption into replanning.
+
+Input and output have different requirements: input only needs adoption-ready semantics; output must materialize those semantics into `.pge/tasks-<slug>/plan.md` as the canonical `plan.v2` execution contract.
 
 ### Read Setup Config
 
@@ -326,8 +341,8 @@ When consuming a research brief or structured upstream input, verify before proc
 
 | Check | Condition | Route |
 |---|---|---|
-| Intent confirmed | research.v3 `goal` or legacy `confirmed_intent` is present and specific | CONTINUE_TO_PLAN |
-| Scope explicit | research.v3 `scope`/`non_goals` or legacy `scope_contract` names boundaries | CONTINUE_TO_PLAN |
+| Intent confirmed | research.v3 `goal` is present and specific, or a non-Research external source has an equivalent current goal | CONTINUE_TO_PLAN |
+| Scope explicit | research.v3 `scope`/`non_goals` names boundaries, or a non-Research external source has equivalent current boundaries | CONTINUE_TO_PLAN |
 | Success shape usable | `success_shape` or equivalent is observable and plan-convertible | CONTINUE_TO_PLAN |
 | Intent not confirmed | goal is still fuzzy, multiple unresolved framings | RETURN_TO_RESEARCH |
 | Success shape missing or vague | cannot derive acceptance criteria from it | RETURN_TO_RESEARCH |
@@ -352,7 +367,7 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 | Clarify / Grill-With-Me Log | Coverage Audit + Risks / Open Questions | confirms plan-changing ambiguity was resolved or remains blocking |
 | Zoom-Out Map | Repo Context + Target Areas + Architecture Assessment | preferred compressed system map; do not redo unless insufficient or contradicted |
 | Research Value Proof | Gate Check + Coverage Audit | consume when present; legacy/calibration input, not required for research.v3 |
-| Plan Delta / planning_handoff | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals | compatibility adapter only; legacy `plan_delta` maps to compatibility constraints/risks with downgraded authority — must not become selected approach without engineering review |
+| Obsolete research compatibility fields (`Plan Delta`, `planning_handoff`, `plan_delta`) | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals only when present in a legacy/foreign source | obsolete compatibility input with downgraded authority — not an active Research contract and never selected approach without Plan Engineering Review |
 | Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
 | Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
 | Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
@@ -376,24 +391,18 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 3. **Field mapping.** Consume v3 fields as follows: `Spec Discovery.goal` → plan goal; `success_shape` → acceptance baseline; `scope` and `non_goals` → plan scope/non-goals; `constraints` → Plan Constraints/forbidden areas; `Context.assumptions` → assumptions; `relevant_repo_or_architecture_context` → repo context; `Direction.simplest_direction` → approach candidate only; `Direction.rejected_directions` → rejected approach inputs; open questions → risks or blockers.
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective`, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice.
-6. **Plan owns approach selection.** `simplest_direction` is not a selected approach. Plan selects the implementation approach through engineering review.
+6. **Plan owns approach selection.** `simplest_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
 
-**research.v2 (legacy):**
+**obsolete / foreign structured inputs:**
 
-When the brief has v2 contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, `route`), consume those semantics explicitly:
+Current PGE Research truth is `research.v3`; do not preserve `research.v2`, `planning_handoff`, `plan_delta`, `confirmed_intent`, or `scope_contract` as active Research compatibility behavior. If an explicitly selected legacy/foreign document contains those fields, treat them as non-authoritative source evidence only after the current prompt or selected source authorizes using that document.
 
-1. **Source Contract Check.** Before planning, verify: intent confirmed? scope explicit? success shape usable? `reality_alignment_proof` supports planning? If not → route `RETURN_TO_RESEARCH` or `NEEDS_INFO`. Do not silently do full intent research when the source is not plan-ready.
-2. **Confirmed intent becomes the plan's goal baseline.** Carry problem, goal, scope, non-goals, success shape, and "plan would be wrong if..." forward. Do not weaken them into a generic summary.
-3. **Planning handoff is boundary-preserving input.** Consume `planning_handoff` (facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers, and RAP citations) as constraints on plan design. Do not treat it as a hidden approach recommendation.
-4. **Research Value Proof is legacy/calibration input.** When present, use its concrete delta in coverage/intent audit. When absent, do not penalize a valid research.v3 brief solely for omitting it.
-5. **Zoom-Out Map limits re-exploration.** Use it as the system map when present. Re-read only the files needed to validate stale, low-confidence, or plan-changing claims.
-6. **Plan owns approach selection.** Research may provide intent framings, evidence, constraints, and known invalid directions as approach inputs. Plan selects the implementation approach through engineering review. Research recommendation of problem framing is informational, not a selected approach.
+When consuming obsolete fields from a non-current source:
 
-Legacy compatibility: if an older research brief uses `plan_delta`, `Options`, and `Recommendation` instead of v2 or v3 fields, consume them as compatibility input only:
-- `plan_delta` maps to constraints/risks with downgraded authority
-- `Options` and `Recommendation` become approach candidates, not selected approach
-- Neither may become the selected approach without current plan engineering review
-- Fall back to legacy fields (`Intent`, `Findings`, `Affected Areas`) and record that current research contract fields were unavailable
+1. **Source Contract Check.** Verify the source still provides a usable goal, scope/non-goals, success shape, constraints, and evidence. If it does not, route `RETURN_TO_RESEARCH` or `NEEDS_INFO`; do not silently upgrade obsolete fields into current Research truth.
+2. **Downgraded authority.** Map obsolete goal/scope fields into candidate Plan Constraints only when consistent with current user constraints, current `research.v3` artifacts, and repo evidence.
+3. **Compatibility fields are not approach decisions.** `planning_handoff`, `plan_delta`, `Options`, and `Recommendation` can supply constraints, risks, invalid directions, or approach candidates, but none may become selected approach without Plan Engineering Review.
+4. **No legacy cleanup scope.** Do not add work just to preserve or remove obsolete Research adapters unless the selected plan/source explicitly authorizes it.
 
 **Current constraint extraction:**
 
@@ -412,7 +421,7 @@ For each hard constraint, map it to at least one of: `Plan Constraints`, `Non-go
 
 ---
 
-## Phase 2: Approach Design + Engineering Review
+## Phase 2: Solution Design + Plan Engineering Review
 
 ### Coverage Audit
 
@@ -423,14 +432,14 @@ Coverage Audit must include:
 - `docs/exec-plan/` phase/scope decisions when that document is selected or referenced
 - original source-of-truth requirements and boundaries when available
 - research-derived requirements and assumptions
-- `Intent Spec`, `Research Value Proof`, and `Plan Delta` items when present
+- current-source decisions and any explicitly selected obsolete/foreign evidence items when present
 - repo evidence that confirms, contradicts, or narrows the above
 
 If `docs/exec-plan/` is the canonical input, audit proposed issues against the source document before writing them. Any issue that introduces unrequested helpers, flags, cleanup, validation expansion, broad refactors, or abstraction work must either cite explicit authorization from the exec plan/current user or be removed.
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
-Planning handoff coverage is mandatory when upstream contains a `planning_handoff` section (or legacy `Plan Delta` / `plan_delta` field). Every facts/constraints/invalid-directions/risks/blockers item must be covered, rejected with rationale, or escalated. Legacy `plan_delta` is consumed as compatibility input with downgraded authority.
+Obsolete or foreign-field coverage is mandatory only when the current user selected that source and its fields affect scope, target areas, acceptance, verification, or risks. Every consumed facts/constraints/invalid-directions/risks/blockers item must be covered, rejected with rationale, or escalated. Obsolete Research compatibility fields are consumed as downgraded source evidence, not as active Research contract surfaces.
 
 ### Explore (fill gaps)
 
@@ -442,64 +451,58 @@ Only explore gaps not covered by upstream. Use repo/docs/code before asking user
 
 ### Propose Approaches
 
-Upstream recommended + no contradicting evidence → adopt directly. Otherwise propose 2-3 with tradeoffs.
+Treat upstream `simplest_direction`, recommendations, and foreign-plan options as candidates, not selected implementation. If one candidate clearly satisfies the inherited problem contract with lowest risk and no contradicting repo evidence, select it through Plan Engineering Review and record why. Otherwise compare 2-3 implementation-level approaches with tradeoffs.
 
-Do not propose alternatives for authoritative spec-level decisions. Only propose alternatives for implementation-level choices or for upstream decisions contradicted by repo evidence.
+Do not propose alternatives for authoritative problem-contract fields or spec-level decisions. Only propose alternatives for implementation-level choices or for upstream decisions contradicted by repo evidence.
 
-### Engineering Review
+### Plan Engineering Review
 
-Read `references/engineering-review.md` for full review dimensions. Summary:
-- Fix-First principle (repair, don't report)
-- Confidence calibration (1-10 score + display rules)
-- Scope Challenge (4 questions)
-- Architecture Assessment (boundaries, data flow, failure mode registry)
-- Test Coverage Pressure (trace happy/edge/error per issue)
-- Existing Solutions Check
-- Complexity Gate (8+ files → challenge)
-- Completeness Score (X/10 per approach)
-- Outside Voice (MEDIUM + DEEP — independent challenge Agent)
-- Scope Reduction Prohibition (prohibited phrases + 3 valid reasons)
+Read `references/engineering-review.md` and `references/engineering-review-gate.md` for full dimensions. Plan Engineering Review is Plan's decision-hardening mechanism for reducing Exec friction after the problem contract is aligned; it is not a separate hard authorization gate.
 
-### Engineering Review Gate
+Inputs:
+- inherited Research/current-source problem contract
+- candidate approaches
+- repo/runtime evidence
+- implementation friction or progressive feasibility notes
+- current user constraints
 
-Read `references/engineering-review-gate.md` for the authoritative gate contract. This section is only the entry summary; do not duplicate or override the detailed gate rules here.
+Outputs:
+- selected approach and rejected approaches
+- required plan adjustments
+- issue slicing strategy
+- acceptance, verification, evidence, rollout, rollback, migration, or stop-condition refinements
 
-The gate runs after engineering review dimensions and before approach selection. It is plan-owned and does not route through research unless intent/scope/success shape is genuinely unclear.
+The review checks, scaled by depth:
+- scope discipline, existing-code reuse, and minimum change set
+- selected-approach rationale and rejected alternatives
+- issue slicing, ordering, boundaries, and failure modes
+- verification topology, first trustworthy verification point, and required evidence
+- protocol coherence for contract-surface changes
+- performance and migration risk only when applicable
 
-Minimum invariant: the Engineering Review Gate always runs Step 0 Scope Challenge. LIGHT tasks get the minimal Step 0 engineering check; they do not skip the whole gate.
+Findings normally repair the plan inline. Route upstream only when the inherited problem contract must change or user authority is required.
 
-The gate checks, scaled by depth:
-- scope discipline and existing-code reuse
-- architecture fit when applicable
-- code quality for DEEP work
-- test coverage and failure modes when applicable
-- verification-story quality at all depths
-- performance risk for DEEP work
-- semantic evidence rows when grep/manual checks verify claims
+**Plan Engineering Review result:** `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`
 
-**Engineering Review Gate verdict:** `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`
+- `PASS` → selected approach, issue slicing, acceptance, verification, and risks are hard enough to synthesize.
+- `REWORK_PLAN` → fix approach, scope, coverage, or verification findings inline, then re-run affected checks.
+- `RETURN_TO_RESEARCH` → goal/scope/success shape or a Research-required adjustment is genuinely not executable without changing the problem contract.
+- `NEEDS_INFO` → ask one user-authority blocking question, then re-run affected checks.
 
-- `PASS` → proceed to approach selection and synthesis.
-- `REWORK_PLAN` → fix findings inline, re-run affected checks before proceeding.
-- `RETURN_TO_RESEARCH` → intent/scope/success shape genuinely unclear; route back to `pge-research`.
-- `NEEDS_INFO` → ask one blocking question, then re-run gate.
-
-`SKIP_NOT_APPLICABLE` remains valid in the normalized quality-gate result shape, but only for individual gate dimensions or non-engineering gates. The engineering review gate itself always runs Step 0 and therefore does not use `SKIP_NOT_APPLICABLE` as its overall verdict.
-
-The gate verdict is recorded in the plan artifact under `### Engineering Review Gate`.
+`SKIP_NOT_APPLICABLE` is valid only inside optional per-dimension records, not as the overall Plan Engineering Review result. Record the review under `### Plan Engineering Review`; for compatibility with old artifacts, `### Engineering Review Gate` may be read as an alias but new plan artifacts must use `### Plan Engineering Review`.
 
 ### Final Plan Gate
 
 Read `references/plan-gate.md` for the authoritative final gate contract. This is the hard execution-contract gate for the whole plan after issues, acceptance, verification, and evidence are written.
 
-The Final Plan Gate is stronger than the Engineering Review Gate. The Engineering Review Gate is a mandatory gstack-style engineering pressure layer inside `pge-plan`, reflecting that gstack has no separate plan-construction skill and relies on plan engineering review to harden plans before coding. The Final Plan Gate owns the veto: it decides whether the hardened plan may enter `pge-exec`.
+The Final Plan Gate is the only execution authorization validator. Plan Engineering Review hardens the selected approach and repairs planning weaknesses, but Final Plan Gate owns the veto: it decides whether the hardened plan may enter `pge-exec`.
 
 Stability rule: run the Final Plan Gate exactly in the order defined by `references/plan-gate.md`. Use the exact verdict and field vocabulary. Apply at most one inline repair pass per failed layer, rerun only the affected layer plus downstream layers, and stop instead of looping if the same layer fails twice.
 
 The gate has five layers:
 
 1. **Contract Completeness Gate** — goal, non-goals, repo facts, target areas, forbidden areas, vertical slices, acceptance criteria, verification path, evidence requirements, stop condition, and risks/unknowns are present and usable.
-2. **Engineering Review Gate** — consumes the existing engineering review verdict and confirms engineering findings were repaired or explicitly routed.
+2. **Plan Engineering Review** — confirms selected-approach hardening findings were consumed into the approach, issue slicing, acceptance, verification, evidence, and risks.
 3. **Repo Reality Gate** — target files/modules, entry paths, existing semantics, dynamic/config-driven paths, hidden runtime behavior, and forbidden areas are grounded in repo evidence.
 4. **Execution Readiness Gate** — slices are bounded, independently verifiable where claimed, retry/block/escalate routing is clear, exec context is sufficient, and human decisions are explicit.
 5. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, explicit legacy compatibility, clear clarification/terminal routes, and complete handoff fields.
@@ -515,34 +518,29 @@ No `PASS`, no `pge-exec`. A plan with Final Plan Gate `REVISE`, `ESCALATE`, or `
 
 Record the result in the plan artifact under `## plan_gate`. Each failed verdict must name `failed_gate`, `failed_criterion`, `required_repair`, and `exec_allowed: no`.
 
-### Quality Gate Result Shape
+### Quality Check Result Shape
 
-All plan quality gates use the same compact result shape. Fill only fields that carry useful evidence for the current gate; do not turn this into template bureaucracy.
+Plan checks may use this compact shape when it helps downstream execution or review. Fill only fields that carry useful evidence for the current check; do not turn this into template bureaucracy.
 
 ```
-gate: <gate name>
+check: <check name>
 status: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO | SKIP_NOT_APPLICABLE
-reason: <one sentence explaining the verdict>
+reason: <one sentence explaining the result>
 evidence: <file:line citations or semantic evidence rows>
 required_plan_changes: <specific changes needed if REWORK_PLAN, or "none">
 skip_reason: <required when status is SKIP_NOT_APPLICABLE>
-audit_note: <required for automatic decisions — what was decided and why>
-rating_before: <1-10 quality rating before gate ran>
-rating_after: <1-10 quality rating after gate fixes applied>
-ten_out_of_ten_bar: <what would make this a 10/10 — aspirational target>
+audit_note: <optional; what was decided automatically and why>
 ```
 
 **Field rules:**
-- `status` may be `SKIP_NOT_APPLICABLE` for an individual dimension or a non-engineering gate. The overall Engineering Review Gate verdict still uses `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`.
+- `status` may be `SKIP_NOT_APPLICABLE` for an individual dimension or non-engineering check. The overall Plan Engineering Review result still uses `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`.
 - `skip_reason` is mandatory when `status` is `SKIP_NOT_APPLICABLE`. Omit otherwise.
-- `audit_note` is mandatory for any automatic decision (gate self-resolved without user input). Omit when user explicitly chose the outcome.
 - `required_plan_changes` lists concrete fixes when `status` is `REWORK_PLAN`. Set to "none" for other statuses.
-- `rating_before` / `rating_after` are 1-10 integers. `rating_after` may equal `rating_before` when no fixes were applied.
-- `ten_out_of_ten_bar` is a single sentence describing the aspirational quality ceiling for this gate's dimension.
+- Numeric quality ratings and `10/10` bars are not default plan output. Use them only in failure/debug notes when they reduce ambiguity.
 
 ### Experience Context Gate
 
-`pge-plan` must explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets; legacy `experience_scope` / `design_surface_context` remain compatibility input only.
+`pge-plan` must explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets; legacy `experience_scope` / `design_surface_context` are obsolete or foreign-source evidence only.
 
 **Inputs when present:**
 - surface or artifact being shaped
@@ -572,9 +570,9 @@ Which gates run depends on the classified depth:
 
 | Depth | Gates Applied | Skip Policy |
 |-------|--------------|-------------|
-| LIGHT | Engineering Review Gate (Step 0 + verification-story check) + Experience Context Gate when applicable | Experience Context Gate may `SKIP_NOT_APPLICABLE` for clearly internal tasks. |
-| MEDIUM | Engineering Review Gate (MEDIUM dimensions) + Experience Context Gate when applicable | Skipped non-engineering gates require `skip_reason`. |
-| DEEP | Engineering Review Gate plus all applicable non-engineering gates | Non-engineering gates may `SKIP_NOT_APPLICABLE` only with explicit reason. |
+| LIGHT | Plan Engineering Review (compact scope/reuse/verification sanity) + Experience Context Gate when applicable | Experience Context Gate may `SKIP_NOT_APPLICABLE` for clearly internal tasks. |
+| MEDIUM | Plan Engineering Review (approach tradeoffs, slicing, boundaries, failure modes, verification topology) + Experience Context Gate when applicable | Skipped non-engineering gates require `skip_reason`. |
+| DEEP | Plan Engineering Review plus all applicable non-engineering checks | Non-engineering gates may `SKIP_NOT_APPLICABLE` only with explicit reason. |
 
 LIGHT tasks must not pay DEEP ceremony. DEEP tasks must not skip gates without evidence that the dimension is irrelevant.
 
@@ -592,9 +590,9 @@ Gate verdicts map to plan routing. No gate may invent route vocabulary outside t
 
 **Boundary rule:** `RETURN_TO_RESEARCH` is reserved for unclear problem contracts. If the problem is clear but the solution/verification/acceptance is weak, the correct verdict is `REWORK_PLAN`. Gates must not conflate "hard to solve" with "unclear intent."
 
-### Inconsistency Grill Gate
+### Inconsistency Grill
 
-Before selecting the approach and writing issues, actively grill the plan input against the emerging plan. This is not generic brainstorming and not permission to re-decide upstream scope. Its job is to find contradictions early.
+As part of Plan Engineering Review or final sanity, actively grill the plan input against the emerging plan. This is not a separate route authority, generic brainstorming, or permission to re-decide upstream scope. Its job is to find contradictions early and repair the plan before Final Plan Gate.
 
 Ask these checks in order:
 - Does the proposed approach preserve every authoritative phase/scope decision, especially from `docs/exec-plan/`?
@@ -648,7 +646,7 @@ Do not rely on non-overlapping Target Areas alone as proof of parallel safety. I
 
 ### Select Approach
 
-Commit to one. Record selected/rejected/scope reductions as Decision / Rationale / Alternatives considered. Override upstream only if engineering review finds contradicting evidence or an explicit requirement conflict.
+Commit to one. Record selected/rejected/scope reductions as Decision / Rationale / Alternatives considered. Override upstream only if Plan Engineering Review finds contradicting evidence or an explicit requirement conflict.
 
 ---
 
@@ -676,9 +674,7 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 If the upstream source has current `research.v3` fields, carry `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant context, assumptions, open questions, and any conditional gate outputs through as the plan's intent baseline instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations.
 
-If the upstream source has legacy `pge-research` v2 fields or older `Intent Spec` / `intent_spec` fields, carry them through as compatibility input. Use `Intent Lock`, `clarify_status`, and the `Clarify / Grill-With-Me Log` only when those legacy fields are present.
-
-If the upstream source only has legacy `Intent` fields, carry them through as before.
+Current `research.v3` is the only active PGE Research baseline. If the explicitly selected source has legacy `pge-research` v2 fields, older `Intent Spec` / `intent_spec` fields, `confirmed_intent`, `scope_contract`, `planning_handoff`, or `plan_delta`, treat them only as downgraded legacy/foreign-source evidence. Consume them only when authorized by the current source selection and consistent with current user constraints, current `research.v3` artifacts, and repo evidence. Do not preserve old clarify logs or compatibility fields as active plan authority.
 
 Produce: structured intent, plan constraints, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
 
@@ -760,13 +756,15 @@ Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Require
 mkdir -p .pge/tasks-<slug>/
 ```
 
-### Self-Review Loop
+### Final Sanity Pass
 
-Read `references/self-review.md` for full protocol (includes `references/multi-round-eval.md` principles). Summary:
-- 8 checks: goal-backward, upstream coverage, traceability, spec decision coverage, placeholder + rationalization scan, consistency, confidence, downstream simulation
-- Pressure test: construct one failure scenario per issue after checks pass
-- Retry: fix → re-check failed only → max 2 attempts → downgrade to NEEDS_INFO
-- Confidence gate: LOW affecting correctness → re-enter Phase 2 Explore (max 1 re-entry)
+Read `references/self-review.md` for the focused sanity pass. Summary:
+- Confirm goal-backward fit: the issues, acceptance, and stop condition still satisfy the inherited problem contract.
+- Confirm coverage: current prompt constraints, upstream decisions, non-goals, target areas, and forbidden areas are not silently dropped.
+- Confirm verification and evidence: every acceptance criterion has a proving check or required evidence, and weak proof is repaired before Final Plan Gate.
+- Confirm exec readiness: issue contracts are concrete enough for `pge-exec` to start without guessing.
+
+Fix failures inline once and rerun only the failed sanity area. If a failure would change goal, scope, success shape, or user authority, route `NEEDS_INFO` or `RETURN_TO_RESEARCH` instead of turning the sanity pass into another planning loop.
 
 ### Route
 
@@ -791,13 +789,13 @@ New plan artifacts use `## issues`, `## forbidden_areas`, `## plan_gate`, `## st
 
 Plans must also include `## terminal_conditions` for known clarification or stop cases: missing evidence, ambiguous selector, stale artifact, plan-changing context, unsafe scope expansion, unverified repo reality, unavailable required checks, and human-only decisions. These are not runtime exceptions. Each condition must either be self-resolved from evidence, confirmed through the normal one-question ask path, or mapped to one gate verdict plus one plan route. If no terminal conditions exist, write the canonical `none | PASS | READY_FOR_EXECUTE | yes` row.
 
-Engineering Review Gate verdicts (Phase 2 internal, control flow before approach selection):
+Plan Engineering Review results (Phase 2 internal decision-hardening):
 
-- `PASS`: gate cleared, proceed to approach selection.
-- `REWORK_PLAN`: fixable issues found; fix inline and re-run affected checks.
-- `RETURN_TO_RESEARCH`: intent/scope/success shape genuinely unclear; escalates to plan-level `RETURN_TO_RESEARCH`.
-- `NEEDS_INFO`: specific blocking question; escalates to plan-level `NEEDS_INFO` if user input required.
-- `SKIP_NOT_APPLICABLE`: available only inside per-dimension or non-engineering quality-gate records; it is not the overall Engineering Review Gate verdict.
+- `PASS`: selected approach, slicing, verification, and risk handling are hard enough for synthesis.
+- `REWORK_PLAN`: fixable solution, scope, coverage, or verification weakness found; fix inline and re-run affected checks.
+- `RETURN_TO_RESEARCH`: goal/scope/success shape or a Research-required adjustment is genuinely not executable without changing the problem contract; escalates to plan-level `RETURN_TO_RESEARCH`.
+- `NEEDS_INFO`: specific user-authority blocking question; escalates to plan-level `NEEDS_INFO` if user input is required.
+- `SKIP_NOT_APPLICABLE`: available only inside per-dimension or non-engineering check records; it is not the overall Plan Engineering Review result.
 
 ### Completion gate
 
@@ -828,7 +826,7 @@ Do not: write business code, write implementation pseudocode or function bodies,
 - blocked_issues: <ids or None>
 - asked_user: yes | no
 - assumptions_recorded: yes | no
-- engineering_review: completed (gate: PASS|REWORK_PLAN|RETURN_TO_RESEARCH|NEEDS_INFO) | skipped — reason
+- plan_engineering_review: completed (result: PASS|REWORK_PLAN|RETURN_TO_RESEARCH|NEEDS_INFO) | compact | not_applicable — reason
 - plan_gate: PASS | REVISE | ESCALATE | REJECT
 - exec_allowed: yes | no
 - next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-research <task-slug> (if RETURN_TO_RESEARCH) | pge-plan (after clarification)

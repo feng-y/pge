@@ -7,12 +7,12 @@
       "scenario": "Simple task, clean v3 handoff",
       "research_input": "User wants to add a dark mode toggle. Repo has CSS custom properties already.",
       "research_expected": "research.v3 brief with route: READY_FOR_PLAN, goal and success_shape, scope/non_goals, constraints to use existing CSS custom properties, relevant repo context naming the affected CSS/settings/preference files, simplest_direction as a candidate, no conditional sections, no blocking questions.",
-      "plan_expected": "Consumes v3 brief. Source Contract Check → CONTINUE_TO_PLAN. Maps goal/success_shape/scope/constraints into the plan. Engineering Review is lightweight. Selects approach through engineering review. Produces 2-3 issues. No questions asked.",
+      "plan_expected": "Consumes v3 brief. Source Contract Check → CONTINUE_TO_PLAN. Maps goal/success_shape/scope/constraints into the plan. Plan Engineering Review is lightweight. Selects approach through Plan Engineering Review. Produces 2-3 issues. No questions asked.",
       "joint_check": [
         "Plan goal matches research goal",
         "Plan Target Areas reflect research relevant repo context when still current",
-        "Plan does not treat simplest_direction as selected_approach before engineering review",
-        "Engineering Review adds value beyond research without duplicating findings"
+        "Plan does not treat simplest_direction as selected_approach before Plan Engineering Review",
+        "Plan Engineering Review adds value beyond research without duplicating findings"
       ]
     },
     {
@@ -20,9 +20,9 @@
       "scenario": "Complex task, research provides candidate direction, plan must review",
       "research_input": "User wants to migrate state management. Research found 3 candidate directions (Redux Toolkit, Zustand, Jotai) and rejected keeping prop drilling. No selected approach. Relevant context spans 12 files. One non-blocking question about test mocking strategy.",
       "research_expected": "research.v3 brief with route: READY_FOR_PLAN, goal/success_shape/scope, simplest_direction listing candidate direction space, rejected_directions, non_blocking_questions. No final selected approach.",
-      "plan_expected": "Consumes v3 brief. Source Contract Check → CONTINUE_TO_PLAN. Engineering review evaluates candidates and selects approach. Engineering Review is substantive: scope challenge (12 files → can we migrate incrementally?), architecture (state boundaries, data flow during partial migration), existing solutions. Complexity gate triggers. Non-blocking question carried to Risks.",
+      "plan_expected": "Consumes v3 brief. Source Contract Check → CONTINUE_TO_PLAN. Plan Engineering Review evaluates candidates and selects approach. Plan Engineering Review is substantive: scope challenge (12 files → can we migrate incrementally?), architecture (state boundaries, data flow during partial migration), existing solutions. Complexity gate triggers. Non-blocking question carried to Risks.",
       "joint_check": [
-        "Plan selects approach through engineering review, not by blindly adopting simplest_direction",
+        "Plan selects approach through Plan Engineering Review, not by blindly adopting simplest_direction",
         "Plan Engineering Review challenges implementation approach after consuming research context",
         "Research non-blocking question appears in Plan Risks / Open Questions",
         "Plan adds engineering depth that research did not cover"
@@ -43,20 +43,20 @@
     },
     {
       "id": "joint-4",
-      "scenario": "Implementation Friction is carried into Plan",
-      "research_input": "Research.v3 says direct deletion of planning_handoff conflicts with actual pge-plan v2 consumption; required_plan_adjustment says add v3 adapter while preserving legacy v2 compatibility.",
+      "scenario": "Implementation Friction is carried into Plan without reviving obsolete fields",
+      "research_input": "Research.v3 says obsolete planning_handoff references appear in a foreign artifact; required_plan_adjustment says current Plan must not preserve them as active Research compatibility behavior and should consume them only as downgraded source evidence if explicitly selected.",
       "research_expected": "research.v3 brief with Conditional: Implementation Friction and required_plan_adjustment.",
-      "plan_expected": "Consumes required_plan_adjustment, rejects hard deletion, scopes issues to v3 adapter plus compatibility, and records legacy cleanup as non-goal/deferred work.",
+      "plan_expected": "Consumes required_plan_adjustment, rejects restoring planning_handoff as current authority, scopes issues to current pge-plan responsibility boundaries, and records obsolete compatibility cleanup as non-goal unless explicitly authorized.",
       "joint_check": [
         "Plan covers required_plan_adjustment explicitly",
-        "Plan does not ignore repo reality conflict",
-        "Plan keeps compatibility boundary visible in issues or constraints"
+        "Plan does not ignore repo reality or current-source conflict",
+        "Plan keeps obsolete field authority downgraded and visible in constraints or non-goals"
       ]
     },
     {
       "id": "joint-5",
       "scenario": "Progressive Feasibility limits Plan scope",
-      "research_input": "User asks to fully redesign Research/Plan/Exec/Review. Research.v3 says the direct goal is valid but unsafe as one increment, with first_plannable_objective: make research.v3 authoritative and add minimal Plan adapter; deferred_goal_parts: Exec redesign, broad historical cleanup, deeper Plan optimization.",
+      "research_input": "User asks to fully redesign Research/Plan/Exec/Review. Research.v3 says the direct goal is valid but unsafe as one increment, with first_plannable_objective: optimize pge-plan responsibility boundaries around executable solution design; deferred_goal_parts: Exec redesign, broad historical cleanup, deeper Review optimization.",
       "research_expected": "research.v3 brief with Conditional: Progressive Feasibility, first_plannable_objective, deferred_goal_parts, and plan_instruction.",
       "plan_expected": "Plans the first_plannable_objective only. The direct goal and deferred parts appear as context/non-goals. No Exec redesign or broad cleanup is included.",
       "joint_check": [

@@ -9,7 +9,7 @@ This is a minimum contract scaffold, not a fixed prose template. Keep simple pla
 Validate the upstream research/input before planning proceeds.
 
 - Source: <path to research brief, upstream doc, or description>
-- Intent confirmed: <yes — quote or reference research goal / confirmed_intent / no — gap>
+- Intent confirmed: <yes — quote or reference research.v3 goal / current source semantics / no — gap>
 - Scope explicit: <yes — in/out boundaries clear / no — gap>
 - Success shape usable: <yes — observable and verifiable / no — gap>
 - Decision: CONTINUE_TO_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED
@@ -27,7 +27,7 @@ Validate the upstream research/input before planning proceeds.
 
 ## goal
 
-<Target outcome translated from research goal / confirmed intent>
+<Target outcome translated from research.v3 goal / current source goal semantics / authorized downgraded foreign-source evidence>
 
 ## non_goals
 
@@ -106,7 +106,7 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 
 - Verdict: PASS | REVISE | ESCALATE | REJECT
 - Exec Allowed: yes | no
-- Failed Gate: Contract Completeness | Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
+- Failed Gate: Contract Completeness | Plan Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
 - Failed Criterion: <criterion or "none">
 - Evidence: <file:line / artifact / command / user statement / "none">
 - Required Repair: <specific repair or "none">
@@ -117,7 +117,7 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 | Gate | Status | Evidence | Required Repair |
 |------|--------|----------|-----------------|
 | Contract Completeness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
-| Engineering Review | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Plan Engineering Review | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Repo Reality | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Execution Readiness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Skill Execution Stability | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
@@ -168,59 +168,56 @@ Authoritative upstream decisions that planning must inherit.
 | U1 | <requirement from upstream> | Issue N | covered |
 | U2 | <requirement from upstream> | — | gap (reason) |
 
-### Engineering Review Gate
+### Plan Engineering Review
 
 - Depth: LIGHT | MEDIUM | DEEP
-- Verdict: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
-- Step 0 (Scope Challenge): <summary>
-- Architecture: <summary or "N/A — LIGHT depth">
-- Code Quality: <summary or "N/A — not DEEP">
-- Test Coverage: <summary or "N/A — LIGHT depth">
-- Verification Story: <how acceptance is proven by verification/evidence>
-- Performance: <summary or "N/A — not DEEP">
-- Failure Modes: <count identified, count mitigated>
-- Semantic Evidence: <count rows recorded>
-- ASCII Diagrams: <count or "none required">
+- Result: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
+- Selected Approach: <approach and why it satisfies the inherited problem contract>
+- Rejected Approaches: <approaches rejected and why>
+- Complexity / Risk Reduction: <how the plan reduces implementation friction and blast radius>
+- Scope Drift Check: <why goal/scope/non-goals/constraints are preserved>
+- Verification Strategy: <first trustworthy verification point and final evidence>
+- Issue Slicing / Coupling: <execution order, dependencies, coupling, or "N/A — LIGHT">
+- Protocol Coherence: <producer/consumer/validator/evidence check when relevant, or "N/A">
+- Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
 
-### Engineering Review
+### Approach Review Details
 
 #### Scope Challenge
 - Minimum change set: <smallest set of changes that achieves the goal>
 - Existing code that helps: <what already exists that can be reused>
-- Complexity: <N files touched, N new abstractions introduced>
+- Complexity: <why the issue count/file count is necessary, or how it was reduced>
 
-#### Architecture Assessment
+#### Architecture / Verification Assessment
 - Boundaries: <component boundaries and coupling>
 - Data flow: <key data flows, potential bottlenecks>
-- Failure modes: <one realistic production failure per new codepath>
+- Failure modes: <one realistic failure scenario per risky new/changed path>
+- Verification topology: <independent vs coupled checks and first trustworthy verification point>
 
 ### Assumptions
 
 - <assumption> — confidence: HIGH|MEDIUM|LOW — reason: <why reasonable> — verification: <how to confirm>
 
-### Quality Gate Results
+### Quality Check Results
 
-Use one compact record per gate or gate dimension when it helps downstream execution or review:
+Use one compact record per check or review dimension only when it helps downstream execution or review:
 
 ```text
-gate: <gate name>
+check: <check name>
 status: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO | SKIP_NOT_APPLICABLE
-reason: <one sentence explaining the verdict>
+reason: <one sentence explaining the result>
 evidence: <file:line citations or semantic evidence rows>
 required_plan_changes: <specific changes needed if REWORK_PLAN, or "none">
 skip_reason: <required when status is SKIP_NOT_APPLICABLE>
-audit_note: <required for automatic decisions — what was decided and why>
-rating_before: <1-10 quality rating before the gate ran>
-rating_after: <1-10 quality rating after fixes applied>
-ten_out_of_ten_bar: <what would make this a 10/10>
+audit_note: <optional; what was decided automatically and why>
 ```
 
 Optional summary table when it helps:
 
-| Gate | Status | Rating | Skip Reason | Audit Note |
-|------|--------|--------|-------------|------------|
-| Engineering Review | <status> | <before>→<after> | — | <note> |
-| Experience Context | <status> | <before>→<after> | <reason if skipped> | <note> |
+| Check | Status | Skip Reason | Audit Note |
+|------|--------|-------------|------------|
+| Plan Engineering Review | <status> | — | <note> |
+| Experience Context | <status> | <reason if skipped> | <note> |
 
 ### Self-Evaluation
 
