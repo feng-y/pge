@@ -56,6 +56,37 @@ Do not write a long plan to satisfy a template. Write the smallest plan that let
 
 `schema_version` is always `plan.v2` for plans produced under this contract.
 
+## Architecture Delta Contract
+
+For MEDIUM/DEEP work, workflow-contract changes, architecture changes, or any plan where a wrong assumption could be executed correctly but wrongly, `pge-plan` must treat the plan as an **Architecture Delta Contract**, not a TODO list.
+
+The contract answers:
+
+```text
+current reality -> bounded delta -> target direction
+```
+
+Record the contract inside the canonical `.pge/tasks-<slug>/plan.md` using existing plan fields. Do not create a second canonical artifact for this first-class plan model.
+
+The plan must make these dimensions explicit, scaled to task risk:
+
+- **Current reality** — repo/code/runtime/config/artifact facts that the plan relies on, with evidence or source references.
+- **Target direction** — the desired architecture, workflow, behavior, or artifact state the current slice moves toward.
+- **This delta moves** — the bounded change this plan authorizes.
+- **This delta does not move** — adjacent architecture, behavior, workflow, tooling, or validation surfaces deliberately left unchanged.
+- **Allowed changes** — target areas and contract surfaces exec may modify.
+- **Forbidden zones** — paths, behaviors, route/state/verdict vocabulary, artifact layouts, or responsibilities exec must not touch.
+- **Claim/evidence expectations** — plan-relevant claims that need evidence, and what evidence is required for review to trust them.
+- **Validation reality** — which checks are cheap execution feedback and which checks are final trust gates such as compile, replay, or equivalent evidence.
+- **Stop conditions** — observable conditions that force revise, escalate, reject, or route upstream before execution continues.
+
+Plan owns this synthesis. Research supplies intent, discrepancy, evidence, and constraints; plan selects the approach and turns them into an executable Architecture Delta Contract; exec consumes only the passed canonical plan. Do not move this synthesis into research or execution.
+
+Depth scaling:
+- LIGHT tasks may collapse this into short statements in `goal`, `non_goals`, `forbidden_areas`, `verification`, and issue behavior contracts.
+- MEDIUM/DEEP and workflow-contract plans must expose the dimensions clearly enough that `pge-exec`, `pge-review`, and Final Plan Gate can detect scope drift, unsupported claims, and validation-reality confusion.
+- If the current slice is only the lightweight Phase 1 of a larger gate/tooling direction, say what later registry/script/schema work is deliberately not moved by this delta.
+
 **Field authority classification:**
 
 Plan inherits authority classification from research and adds its own:
