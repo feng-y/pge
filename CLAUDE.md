@@ -86,12 +86,12 @@ Fix in-scope protocol mismatches in the same change. If the mismatch would requi
 Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.
 
 PGE requires contract discipline, not template bureaucracy:
-- Research must expose confirmed intent, scope, success shape, evidence, and planning handoff for planning.
+- Research must expose lightweight `research.v3` spec discovery: goal, success shape, scope, non-goals, constraints, task-relevant context, direction, open questions, and route.
 - Plan must translate that intent into executable issue contracts without scope drift.
 - Exec must prove code changes satisfy the plan contract.
 - Review must judge whether the diff still aligns with the original intent through the plan.
 - Every stage must consume its explicit invocation input plus relevant current context, including recent user corrections, observed failures, and fresh artifacts. If context changes the goal, scope, or fix target, confirm the interpretation before producing the next contract.
-- Research owns confirmed problem: intent discovery, scope, evidence, ambiguity resolution, and when relevant the problem-side experience/design context for human-facing or artifact-facing work. Plan owns executable solution: approach selection, engineering review, and plan-changing clarification. Plan must consume that experience context in acceptance, verification, and evidence without moving solution ownership back into research. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
+- Research owns lightweight problem discovery: goal, success shape, scope, constraints, task-relevant context, ambiguity resolution, and route. Implementation Friction and Progressive Feasibility are conditional only. Plan owns executable solution: approach selection, engineering review, acceptance, verification, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
 
 Templates are scaffolds. Required field semantics are binding; prose shape and optional sections should scale with task complexity.
 
@@ -100,7 +100,7 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 - PGE follows the common arc: Research → Plan → Execute → Review → Ship.
 - `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-learn` are the active workflow surfaces.
 - `pge-exec` owns route, state, gates, and execution-window decisions, including bounded reruns from task-artifact review/challenge feedback only after provenance validation against the referenced run, canonical plan identity, and reviewed diff.
-- `pge-research` owns confirmed problem: intent, scope, success shape, evidence, ambiguity resolution, and planning handoff.
+- `pge-research` owns lightweight `research.v3` spec discovery: goal, success shape, scope, constraints, task-relevant context, optional problem-side experience notes, conditional Implementation Friction / Progressive Feasibility, and route.
 - `pge-review` owns the review-stage gate. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in a provenance-bearing exec-facing repair format.
 - `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in a provenance-bearing exec-facing repair format. It is normally reached from `pge-review` route `READY_FOR_CHALLENGE`, not directly from `pge-exec`.
 - `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
@@ -136,7 +136,7 @@ Only ask the user for true requirement gaps that block a fair contract.
 ## Validation commands
 
 ```bash
-./bin/pge-progress-report.sh        # Generate progress report
+./bin/pge-progress-report.sh <progress.jsonl-or-task-dir>  # Generate progress report
 ./bin/pge-local-install.sh          # Install plugin to ~/.claude
 ```
 

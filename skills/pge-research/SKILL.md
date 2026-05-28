@@ -1,14 +1,12 @@
 ---
 name: pge-research
 description: >
-  You MUST use this before pge-plan when the user's intent is still fuzzy,
-  multiple interpretations seem viable, the task touches unfamiliar code, or you
-  are tempted to ask clarifying questions before reading the repo. Internalize
-  brainstorm, clarify, and zoom-out: discover the real intent, challenge soft
-  language with one-question-at-a-time interaction when user authority is needed,
-  map enough system context, and write a research brief for planning. Use this
-  whenever intent needs to become evidence-backed understanding before planning.
-version: 0.1.0
+  Use before pge-plan when the user's goal, success shape, scope, constraints,
+  or repo reality is not clear enough for fair planning. Produces a lightweight
+  research.v3 spec-discovery brief that preserves original intent, captures only
+  task-relevant context, identifies open questions, and routes to Plan or a
+  blocking clarification/evidence state.
+version: 0.2.0
 argument-hint: "<topic or intent>"
 allowed-tools:
   - Read
@@ -22,7 +20,7 @@ allowed-tools:
 
 # PGE Research
 
-Turn a vague or ambiguous intent into a structured research brief through evidence-driven exploration. Start by understanding the user's intent, then use repo evidence to resolve ambiguity, zoom out to the relevant system shape, and write the brief for planning.
+Turn unclear or under-evidenced intent into a lightweight spec-discovery brief for `pge-plan`.
 
 Research is responsible for **intent alignment**:
 
@@ -30,796 +28,315 @@ Research is responsible for **intent alignment**:
 my understanding of the goal = the user's real goal
 ```
 
-The artifact shape is flexible, but these semantic fields are mandatory:
+Research produces `schema_version: research.v3`. It clarifies the problem-side contract before planning; it does not design the executable solution.
 
-```text
-schema_version
-intent_framings
-confirmed_intent
-scope_contract
-success_shape
-experience_scope
-design_surface_context (conditional)
-upstream_contract
-evidence
-reality_alignment_proof
-ambiguities
-interactive_alignment
-planning_handoff
-route
-```
+## Output contract
 
-`planning_handoff` contains boundary-preserving constraints for planning:
-
-```text
-planning_handoff:
-  facts_plan_must_preserve
-  constraints_plan_must_not_violate
-  known_invalid_directions
-  likely_affected_areas
-  verification_risks
-  design_experience_constraints (when applicable)
-  unresolved_blockers
-```
-
-Do not use `planning_handoff` as a hidden approach recommendation. It is a boundary-preserving handoff, not a design plan.
-
-`reality_alignment_proof` is a required `research.md` section for plan-relevant human/RD code-reality claims. It extends the research artifact contract without changing `schema_version: research.v2` or downstream route vocabulary. Use the dedicated proof section below for row/status rules, route impact, and handoff citation requirements.
-
-Do not pad the brief to satisfy a template. A short brief is valid when it preserves the user's intent, names what is out of scope, exposes plan-changing ambiguity, and gives planning enough evidence to avoid guessing.
-
-`pge-research` is PGE-enhanced Superpowers-style brainstorming for engineering work. It is not a weakened or abbreviated version of brainstorming. It must preserve the core brainstorming behaviors — start from the desired outcome, understand context, ask clarifying questions when user authority is needed, compare a few possible framings, validate the selected framing, write an artifact, then stop — and strengthen them with repo evidence, authority classification, upstream contract preservation, planning handoff, and PGE route gates.
-
-Read `references/superpowers-brainstorming.md` when the prompt is fuzzy, broad, value-laden, has multiple plausible framings, or any goal/scope/success field still needs user authority. Treat it as a stable executable sub-contract for the run, not optional background.
-
-## Runtime Priority Hierarchy
-
-When context pressure, ambiguity, or competing instructions appear, preserve this order:
-
-1. User intent alignment and explicit user corrections.
-2. Hard route boundaries and STOP gates.
-3. Upstream contract preservation.
-4. User-authority gaps that require one-question-at-a-time interaction.
-5. Required `research.v2` artifact semantics.
-6. Design-surface contract when `experience_scope` is not `none`.
-7. Reality alignment proof before planning handoff and route selection.
-8. Research value proof and optional supporting sections.
-
-## Long-Form Skill Stability Rule
-
-Long skill documents are valid when they are executable. Do not shorten a contract merely for length. Stability comes from:
-
-- a clear entry point such as Step 0
-- ordered gates with explicit runtime consequences
-- STOP points that halt the workflow instead of becoming advice
-- one-question-at-a-time interaction when user authority is required
-- required output fields that prove each gate ran or was skipped for a stated reason
-- boundaries that prevent the stage from sliding into planning or implementation
-
-Treat triggered reference files the same way: if a reference is named as mandatory, run it as an executable sub-contract and preserve its evidence in `research.md`.
-
-`pge-research` has three built-in capabilities:
-
-- **brainstorm** — native research behavior that generates plausible interpretations, success shapes, known invalid directions, and failure modes before locking onto one reading of the prompt.
-- **clarify / grill-with-me** — when intent is unclear or key goal/scope/success fields remain inferred, challenge the user's wording with evidence-backed, one-question-at-a-time interaction until the goal, scope, and success criteria are clear enough to specify.
-- **zoom-out** — map the relevant modules, flows, boundaries, and ownership at the smallest abstraction level that lets planning proceed without re-exploring.
-
-These are not separate stages or commands to invoke. They are the minimum behavior required for research to produce a better plan input than direct auto-planning from the prompt.
-
-Do not open with implementation. The first user-facing research move should frame the original goal, pain, desired outcome, or success shape. Mention implementation hypothesis B only after original goal A is explicit, or when naming B is necessary to explain that it is only a hypothesis being separated from A.
-
-If intent is unclear, do not quietly continue. Enter a lightweight grill-with-me loop: state your current interpretation, challenge the ambiguity, ask the smallest plan-changing question, incorporate the answer, and repeat until the intent can be specified or the route is `NEEDS_INFO`.
-
-Brainstorming-style interaction is mandatory when user authority is the missing evidence. Research should not become a silent summarizer that replaces the user's intent with the agent's best guess. If the brief routes `READY_FOR_PLAN` without asking anything, it must record why no user-facing alignment question was needed.
-
-<HARD-GATE>
-Do NOT produce plans, numbered issues, implementation code, function bodies, pseudocode, field rewiring, fallback behavior decisions, or invoke `pge-plan`. This applies even when the task feels simple. Your only output artifact is a research brief written to the task directory.
-
-Research must NOT:
-- Select implementation approach
-- Create vertical slices
-- Define final acceptance criteria
-- Define verification path
-
-Research may recommend problem framing (which interpretation of the user's intent is correct) but must not recommend implementation approach (how to build the solution).
-</HARD-GATE>
-
-## Step 0: Research Mode Classification
-
-Before deep exploration, classify the run and record the classification in the brief:
-
-| Mode | Trigger | Runtime consequence |
-|---|---|---|
-| `early_exit` | single obvious file/config change, no upstream spec, no competing intent, pattern clear from evidence | write a minimal brief, but still record `experience_scope` and `interactive_alignment` rationale |
-| `superpowers_brainstorming` | fuzzy, broad, value-laden, multiple plausible framings, or goal/scope/success depends on user authority | read `references/superpowers-brainstorming.md`; compare framings and ask when authority is missing |
-| `upstream_preservation` | handoff, design doc, issue, prior research, exec plan, or spec-like artifact is present | preserve the upstream contract before exploring local implementation reality |
-| `design_surface` | `experience_scope` is anything except `none` | read `references/design-surface-research.md`; capture problem-side experience context |
-| `standard` | intent is clear but still needs repo evidence before planning | run the normal evidence, ambiguity, synthesis, and handoff gates |
-
-Modes may combine. For example, a design doc for a fuzzy user-facing workflow is both `upstream_preservation`, `superpowers_brainstorming`, and `design_surface`.
-
-## Execution Flow
-
-Follow this flow exactly. Do not skip gates. Repair the brief before routing `READY_FOR_PLAN`.
-
-```dot
-digraph pge_research {
-  rankdir=TB;
-  node [shape=box, style=rounded];
-
-  subgraph cluster_phase1 {
-    label="Phase 1: Input + Upstream Contract";
-    style=dashed;
-    load_knowledge [label="Load Accumulated Knowledge"];
-    consume_upstream [label="Consume Upstream Contract\n(Intent + Ledger + Decisions)"];
-    preserve_spec [label="Preserve Spec Level\n+Mark Current Scope"];
-    load_knowledge -> consume_upstream -> preserve_spec;
-  }
-
-  subgraph cluster_phase2 {
-    label="Phase 2: Evidence + Ambiguity";
-    style=dashed;
-    intent_brainstorm [label="Brainstorm\nintent framings + success shapes\n+ ways plan could be wrong"];
-    explore_context [label="Explore Project Context"];
-    zoom_out [label="Zoom-Out Map\nmodules + flows + boundaries"];
-    scope_check [label="Scope Check\n(no silent narrowing)"];
-    clarify_gate [label="Clarify Gate\nCan plan proceed without\ninventing intent?", shape=diamond];
-    grill_user [label="Grill With User\nchallenge ambiguity + ask\nsmallest plan-changing question"];
-    interaction_gate [label="Interactive Alignment Gate\nask one question or record\nno-question rationale"];
-    experience_gate [label="Experience/Design Surface Gate\nclassify scope + apply reference\nwhen human-facing"];
-    reality_proof [label="Reality Alignment Proof\ncheck human/RD code claims\nagainst repo reality"];
-    intent_brainstorm -> explore_context -> zoom_out -> scope_check -> clarify_gate;
-  }
-
-  needs_info [label="NEEDS_INFO / BLOCKED\n(write best available brief)", shape=doubleoctagon];
-  clarify_gate -> grill_user [label="unclear intent"];
-  grill_user -> clarify_gate [label="answer incorporated"];
-  clarify_gate -> needs_info [label="still blocking / no answer"];
-
-  subgraph cluster_phase3 {
-    label="Phase 3: Synthesis";
-    style=dashed;
-    synthesize [label="Synthesize\nStated / Inferred / Out"];
-    confirmed_intent [label="Confirmed Intent\nproblem + goal + scope\n+ success shape"];
-    value_proof [label="Research Value Proof\nwhat direct auto-plan\nwould miss"];
-    decisions [label="Decision Log\nDecision / Rationale / Alternatives"];
-    planning_handoff [label="Planning Handoff\nfacts + constraints +\ninvalid directions + risks"];
-    synthesize -> confirmed_intent -> value_proof -> decisions -> planning_handoff;
-  }
-
-  subgraph cluster_phase4 {
-    label="Phase 4: Quality Gates";
-    style=dashed;
-    preservation [label="Upstream Preservation Review"];
-    coverage [label="Spec Coverage Gate\n(Ledger + Decisions + Phases)"];
-    grill [label="Grill Brief\n(adversarial repair)"];
-    readiness [label="Final Readiness Review"];
-    preservation -> coverage -> grill -> readiness;
-  }
-
-  write_artifact [label="Write Artifact\n.pge/tasks-<slug>/research.md"];
-  route [label="Route\nREADY_FOR_PLAN | NEEDS_INFO | BLOCKED", shape=note];
-
-  preserve_spec -> intent_brainstorm;
-  clarify_gate -> interaction_gate [label="resolved / non-blocking"];
-  interaction_gate -> experience_gate -> reality_proof -> synthesize;
-  needs_info -> write_artifact [label="close stage", style=dashed];
-  planning_handoff -> preservation;
-  readiness -> write_artifact -> route;
-  readiness -> explore_context [label="gap found\n(repair)", style=dashed];
-}
-```
-
-## Anti-Pattern: "This Is Too Simple To Need Research"
-
-Simple tasks are where hidden assumptions waste the most time. A small request often looks obvious until you read the code and discover naming mismatches, local conventions, or nearby constraints. The research can be short, but you still need to ground it in the repo before handing anything to planning.
-
-## Anti-Pattern: "Let Me Just Ask The User"
-
-Asking the user is the most expensive operation in this system. Every question interrupts flow and adds latency. Before you ask anything, you should have already read the relevant code, checked docs and config, considered reasonable defaults, and decided whether one more file would answer it. If you can answer it yourself by reading one more file, do that instead.
-
-The opposite failure is also invalid: do not avoid asking when only the user can choose the goal, scope, success shape, or tradeoff. Repo evidence can answer repo questions; it cannot turn an agent inference into user intent. In those cases, ask one small question with a recommended default instead of silently proceeding.
-
-## Anti-Pattern: "Research Without Intent Alignment"
-
-Do not let repo exploration replace understanding the user's goal. Research that lists files and findings but cannot state the user's real desired change, success criteria, non-goals, and what would make the plan wrong is not ready. Planning directly from the user prompt should not outperform research. If research does not change or sharpen what planning should do, the research has failed.
-
-Research must include a value proof in whatever form is shortest: what would a direct auto-plan likely miss, and what did research add that changes planning? If the answer is "nothing," skip the performance theater and route `NEEDS_INFO` or produce a minimal brief that says research added no delta.
-
-If the user's intent is unclear, research must challenge and clarify it with the user before claiming `READY_FOR_PLAN`. Do not present inferred intent as a spec.
-
-## Anti-Pattern: "A Became B"
-
-Users often start from an original goal **A**, while an engineer or agent quickly forms an implementation hypothesis **B** from their understanding of the system. The dangerous failure is not having B; B is useful. The failure is when communication quietly switches to B, the original goal A disappears, and later stages optimize for a path instead of the user's desired outcome.
-
-Research must preserve the distinction:
-
-- **A: original goal** — what the user is trying to accomplish, why it matters, and what success would look like.
-- **B: implementation hypothesis** — a possible path, system area, or technical framing that may satisfy A.
-
-Do not let B become the confirmed intent unless the user explicitly changed the goal. If the brief mentions an implementation hypothesis, it must also state which original goal it serves and what would make that hypothesis wrong. If the conversation has already drifted to B, recover A before routing `READY_FOR_PLAN`: restate the original goal, mark B as a hypothesis or scope decision, and ask the user if the goal itself changed when that is unclear.
-
-## Anti-Pattern: "Let Me Map The Entire Codebase"
-
-You are not writing documentation. Explore only what is relevant to the intent. Stop when your findings stabilize — when reading one more file would not change your recommendation. A focused 10-file exploration that produces clear findings beats a 50-file survey that produces vague ones.
-
-## Anti-Pattern: "Keep Every Dead End In Main Context"
-
-Exploration has context cost. Before loading broad evidence, ask: "Will downstream planning need this raw output, or only the conclusion?" If only the conclusion matters and the search is broad enough that delegation will reduce main-context noise, use a bounded Agent to quarantine the search. The Agent may read many files and discard dead ends; the research brief should receive only the conclusion, source paths, confidence, and caveats.
-
-## Anti-Pattern: "Let Me Quietly Turn This Into A Plan"
-
-Research is not planning with softer nouns. Do not start decomposing implementation work into slices, drafting numbered issues, or mentally committing to an execution order. Your job is to leave the next stage with sharper understanding, not to smuggle planning decisions into the brief.
-
-## Capability: Upstream Contract Preservation
-
-Research can start from a fresh prompt or from an existing handoff, exec plan, design doc, issue, prior research, or spec-like artifact. When upstream input exists, research must preserve that contract before adding new findings. The goal is capability, not case-specific patching: PGE research should be able to consume prior work without information loss.
-
-## Capability: Experience/Design Context Capture
-
-When the task shapes a human-facing workflow, artifact, interface, prompt, CLI, report, generated HTML, documentation, or decision surface, research must capture experience/design context alongside intent. This context informs planning without prescribing solutions.
-
-When `experience_scope` is not `none`, read and apply `references/design-surface-research.md`. Its contract is mandatory for design/experience-facing research, not optional background.
-
-**When to capture:** Any task where experience quality is part of success — where a technically correct but poorly shaped result would disappoint the user.
-
-**Experience-scope decision:** Every research brief must record one of:
-
-```text
-experience_scope: none | user-facing | artifact-facing | visual | interaction | workflow | documentation | cli_or_prompt
-```
-
-When `experience_scope` is `none`, record a `skip_reason` (e.g., "purely internal refactor, no human-facing surface").
-
-**What to capture** (scale to task complexity — not all fields apply to every task):
-
-- **audience** — who encounters this surface and in what context
-- **artifact_purpose** — what the artifact is for, what job it does for the audience
-- **usage_context** — where, when, and how the audience uses it
-- **experience_success_shape** — what "good" feels like from the audience perspective
-- **what_would_disappoint** — concrete ways the result could be technically correct but experientially wrong
-- **design_system_sources** — existing component, layout, prompt, report, doc, or CLI conventions
-- **category_baseline** — expected conventions and generic risks when category fit matters
-- **safe_tradeoffs / risky_tradeoffs** — experience tradeoffs planning may consider or must treat carefully
-- **experience_framings** — competing experience directions when more than one would change planning
-- **design_dimension_gaps** — missing hierarchy, density, flow, state, tone, or evidence dimensions
-- **visual_evidence_sources / rendered_evidence_limits** — what rendered evidence was inspected or unavailable
-- **anti_slop_risks** — generic, overdesigned, under-specified, or misleading patterns to avoid
-
-**Boundary:** Research captures problem-side experience context. Research must not choose final implementation approach, final layout, final component design, or final acceptance criteria — those belong to planning and execution.
-
-**Skip rule:** Purely internal technical tasks (refactors with no user-facing change, internal data migrations, build tooling, test infrastructure) skip this context with a recorded reason.
-
-## Anti-Pattern: "Let Me Shrink The Spec Into My Favorite Subproblem"
-
-When the user provides an upstream handoff, exec plan, design doc, issue, or existing spec, that document is part of the input contract. Do not reduce a broad upstream design into a small local code question unless the user explicitly asked for that narrowing. Research must preserve the upstream intent, value, larger-plan position, requirements, phases, constraints, and success criteria, then explain any proposed narrowing as a scope decision.
-
-## Anti-Pattern: "Summarize The Spec Into A Fragment"
-
-Do not read a long upstream spec and keep only the parts that look immediately implementable. First preserve its decisions, phases, constraints, acceptance criteria, and explicit non-goals. Planning should be able to produce executable issues from the brief without re-reading the original spec. If that is not true, the brief is not ready.
-
-## Anti-Pattern: "Intent = What To Do"
-
-Intent is not just the task label. A usable intent explains the problem with the current state, the value of the target state, why this step/scope is the right next move, where it fits in the larger plan, what observable success looks like, and what is out of scope. If those fields are unknown, record that explicitly instead of pretending the task is clear.
-
-## Anti-Pattern: "Let Me Be Helpful And Draft The Code"
-
-Do not output implementation-shaped research. No function bodies, no method-level pseudocode, no exact field rewiring, no fallback logic, no "just sketching" the final code. If a detail has not been confirmed from the repo, record it as an assumption or open question. If a detail belongs to planning, record it as a planning note, not as code.
-
-## Checklist
-
-You MUST complete these gates in order:
-
-1. **Input + Context Intake** — consume the explicit research prompt plus relevant current conversation, recent user corrections, observed failures, pasted logs, selected artifacts, and fresh outputs from prior stages. Load accumulated knowledge from `.pge/config/repo-profile.md` and relevant `.pge/tasks-*/runs/*/{manifest.md,state.json,evidence/,deliverables/,review.md}`. Consume upstream specs if provided (handoff, exec plan, design doc, issue, or spec-like artifact): read fully, extract decisions, preserve spec level, mark current scope.
-2. **Intent Exploration** — check scope first (narrow or decompose over-scoped work before researching details, but never silently shrink an upstream spec). Brainstorm intent: list plausible interpretations, success shapes, non-goals, and what would make a plan wrong. Do not choose until repo evidence supports it.
-3. **Evidence Grounding** — explore project context (files, docs, recent commits). Zoom out only as far as needed: map relevant modules, flows, boundaries, callers/callees, ownership, and terminology. Stop before it becomes a generic architecture survey.
-4. **Ambiguity + Clarify** — scan for ambiguity across scope, affected areas, constraints, existing patterns, terminology, and acceptance. Separate stated/inferred/out. Self-resolve from code, docs, defaults, and prior learnings before asking. Clarify gate: ask when user authority is needed for goal, scope, success shape, compatibility, or safety; one question at a time, grounded in evidence, limited to three blocking questions. If no question is asked, record the no-question rationale in `interactive_alignment`.
-5. **Experience/Design Surface Gate** — decide `experience_scope`. If not `none`, complete Design Surface Research: product/audience, design system, category baseline, safe/risk, experience framings, design dimension gaps, rendered evidence limits, anti-slop risks, and design stop boundary. If `none`, record skip reason.
-6. **Reality Alignment Proof** — complete a compact proof for plan-relevant human/RD code-reality claims, or a reasoned `not_applicable` row when none exist.
-7. **Problem Brief Synthesis** — produce confirmed intent (problem, goal, scope, success shape, non-goals, "plan would be wrong if..."). Challenge the confirmed intent against user words, repo evidence, upstream constraints, rejected interpretations, reality proof rows, and design-surface risks when present. Record decisions (Decision / Rationale / Alternatives). Prove research value: what direct auto-plan would miss.
-8. **Planning Handoff** — record what planning must preserve, must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers, and design/experience constraints when present. Cite RAP row IDs when handoff items depend on code-reality claims. This is boundary-preserving handoff data, not implementation design.
-9. **Quality Gates** — run upstream preservation review. Check spec coverage (compare brief against original intent/upstream spec; READY_FOR_PLAN is forbidden if material requirements disappeared without explicit scope decision). Grill the brief (adversarial self-challenge: terminology cross-check, evidence pressure, assumption stress-test, scope drift detection, spec coverage check, missing perspective, and design-surface completeness when applicable). Final readiness review.
-10. **Artifact + Route** — write `research.md` to the task directory. Report route (READY_FOR_PLAN / NEEDS_INFO / BLOCKED) and point to `pge-plan`.
-
-### Required References
-
-- Read `references/superpowers-brainstorming.md` when the prompt is fuzzy, broad, value-laden, has multiple plausible framings, or any goal/scope/success field still needs user authority.
-- Read `references/design-surface-research.md` whenever `experience_scope` is not `none`.
-- These references are mandatory under their triggers. Treat them as executable sub-contracts: follow their gates, respect their boundaries, and leave evidence in `research.md`.
-
-| Trigger | Required action | Evidence that must appear in `research.md` |
-|---|---|---|
-| fuzzy / broad / value-laden prompt | apply Superpowers brainstorming contract | compared framings, chosen/rejected readings, user-authority gaps |
-| goal, scope, or success shape still inferred | ask one focused question or route `NEEDS_INFO` | `interactive_alignment` with question/no-question rationale and authority basis |
-| upstream spec-like source exists | preserve before narrowing | upstream ledger, decisions, constraints, non-goals, coverage status |
-| human-facing surface exists | apply design-surface contract | `experience_scope`, `design_surface_context`, design/experience handoff constraints |
-| trivial unambiguous task | early-exit brief allowed | evidence path, `experience_scope`, `interactive_alignment` no-question rationale |
-
-### STOP Gates
-
-Stop and repair or route away from `READY_FOR_PLAN` when any of these are true:
-
-- User authority is required for goal, scope, success shape, compatibility, safety, or a material design/experience tradeoff.
-- The brief has replaced the user's original goal A with an implementation hypothesis B without explicit user confirmation.
-- A material upstream requirement, phase, constraint, acceptance criterion, named component, or non-goal disappeared without an explicit scope decision.
-- `experience_scope` is not `none` but the design-surface contract is missing or too thin to guide planning.
-- Required `research.v2` semantics are absent, renamed, or only implied by prose.
-- The brief selects implementation approach, creates vertical slices, defines final acceptance, or defines the verification path.
-- A human/RD claim about code reality could change planning, but the claim is absent from `reality_alignment_proof`, unchecked, unverified, materially contradicted, or hidden as a finding/assumption.
-- `READY_FOR_PLAN` is selected while `ready_for_plan_basis` does not cite checked or `not_applicable` proof rows, or while `plan_blocking_gaps` is non-empty.
-- The artifact has not been written to `.pge/tasks-<slug>/research.md`.
-
-## The Process
-
-**Stage input + context intake:**
-
-Research does not only consume the explicit command arguments. It must also consume relevant current context: the latest user wording, user corrections, interrupted prior attempts, challenge/review findings, logs, pasted plans, and any artifact the user is clearly referring to. This context may define the real intent even when no formal research artifact exists.
-
-If that context already contains a candidate problem or fix target, restate it internally before exploring. If the target could mean multiple plans, ask one clarifying question after checking the repo evidence that can resolve it.
-
-**Early-exit for trivial tasks:**
-
-If after context intake, accumulated knowledge, upstream-spec consumption, and initial repo exploration, the intent maps to a single obvious file change with no ambiguity, no competing approaches, no upstream spec to preserve, and existing patterns clearly show how to do it — write a minimal brief immediately and skip the full exploration. A 2-line config change doesn't need 6-lens ambiguity scanning. Record: "Early exit — trivial task, single file, pattern clear from <file:line>."
-
-**Consume upstream specs:**
-
-Before exploring implementation details, identify whether the user supplied a structured upstream source. Examples: handoff, exec plan, design doc, PRD, issue, architecture note, prior research, or pasted plan.
-
-If an upstream source exists:
-
-1. **Read the full upstream source** — do not skim only headings or the first actionable paragraph. Record its path or conversation source in the brief.
-2. **Extract decisions and contract shape** — classify authority and capture the problem, goal, larger-plan position, why this step/why now, success condition, boundaries, decisions already made, phases, requirements, constraints, acceptance criteria, named components, and explicit non-goals.
-3. **Verify against the repo** — check enough code/docs to confirm whether the upstream source still matches reality. Mark stale or contradicted items instead of silently dropping them.
-4. **Preserve spec level** — keep broad specs broad, phased specs phased, and behavior requirements as behavior requirements. Do not downgrade a system-level migration into one local replacement unless the user explicitly asked for that scope.
-5. **Mark current scope** — for each upstream item, map it to covered, narrowed, deferred, contradicted, or missing. If narrowing is recommended, explain why this scope is the right next step and what remains outside it.
-
-Do not convert the upstream source into a loose set of "options" until the contract is preserved. Options compare ways to satisfy the spec; they must not replace the spec.
-
-Planning should be able to produce executable issues from the brief without re-reading the original upstream spec. If the original is still required to understand scope, value, or acceptance, the brief is incomplete.
-
-**Does not re-litigate:** decisions already made by an authoritative upstream source flow through unchanged unless repo evidence contradicts them or the user reopens them. Research may flag risks and stale assumptions, but it must not re-argue product behavior or scope that the upstream source already settled.
-
-**Upstream preservation review checklist:**
-
-- [ ] Every authoritative upstream source is listed in `Upstream Input`
-- [ ] Every material requirement, phase, constraint, acceptance criterion, named component, and non-goal has an ID in `Upstream Requirement Ledger`
-- [ ] Each upstream item is mapped to covered, narrowed, deferred, contradicted, or missing
-- [ ] Any narrowed/deferred item includes why and whether user confirmation is required
-- [ ] Authoritative upstream decisions are not re-litigated as fresh options
-- [ ] The brief preserves spec level: system-level remains system-level, phased remains phased, behavior requirement remains behavior requirement
-
-**Understanding the intent:**
-
-Check out the current project state first. Read `.pge/config/*` if it exists, especially `repo-profile.md` and `docs-policy.md`. Then look at `CLAUDE.md`, `README.md`, and the code directly related to the intent. Recent commits touching relevant areas often reveal constraints that docs miss.
-
-Research starts with intent, not files. Before the code pulls you into local details, write a working intent alignment note:
-
-- what the user explicitly asked for
-- the likely real goal or pain behind it
-- the observable success shape
-- what should stay out of scope
-- which interpretation would lead to a different plan
-
-Then use code and docs to confirm, reject, or sharpen that note.
-
-**Brainstorming is research:**
-
-Use brainstorming to expand before narrowing. This is not an optional ceremony and not a separate command. It is how research avoids silently choosing the first interpretation of the user's words. Generate 2-4 plausible readings, scope interpretations, or success shapes when the prompt is fuzzy, broad, value-laden, or likely to map to multiple code paths. For each one, note:
-
-- what user intent it assumes
-- what code reality would make it viable
-- what would make it the wrong plan
-- what evidence would distinguish it from the other readings
-
-Do not pass all brainstormed possibilities downstream as equal options. By the time research routes `READY_FOR_PLAN`, the brief should recommend a problem framing or route `NEEDS_INFO` if user authority is required.
-
-For simple tasks, brainstorm can be compact: one chosen reading and one rejected reading is enough if it proves you checked the plan-changing ambiguity.
-
-**Zooming out inside research:**
-
-Use zoom-out to understand the relevant system, not the whole repo. Planning needs the smallest map that explains:
-
-- entrypoints and consumers
-- modules and boundaries likely affected
-- data/control flow through the current behavior
-- terminology the code uses for the user's words
-- risky seams and verification hotspots
-
-If a zoom-out map does not change the plan, shrink it. If pge-plan would need to reread files to understand where work belongs, expand it.
-
-Before asking detailed questions, assess scope. If the intent actually describes multiple independent subsystems, or work that clearly wants decomposition before planning, flag that immediately. Narrow it or decompose it before you spend effort researching details.
-
-If the user explicitly signals uncertainty about the goal or scope — for example "not sure", "messy", "rethink", or "full replacement or refinement" — treat that as intent ambiguity. In that case, prefer one goal-sharpening question before you spend time comparing implementation directions.
-
-For appropriately-scoped work, keep exploring until you can explain what the user's words map to in this codebase, what areas are likely affected, and what constraints are already visible.
-
-If the task spans multiple independent modules, use `Agent` to explore them in parallel. For single-module work, explore directly.
-
-**Context quarantine rule:** Consider an Agent only when exploration is broad, cross-cutting, or likely to produce many dead ends whose raw output will not be needed again. For coherent single-module work, explore directly even if it takes a few reads. Agent reports must be compact: conclusion, evidence paths, confidence, and dead ends that should not be retried. Do not paste bulk tool output into the research brief.
-
-**Resolving ambiguity from the repo:**
-
-Use six lenses while you explore:
-
-- **Scope** — what to do, what not to do, where the boundaries are
-- **Affected areas** — which modules, files, or interfaces will be touched
-- **Constraints** — technical limits, compatibility requirements, performance needs
-- **Existing patterns** — how similar things are already done here
-- **Terminology** — what the user's words actually map to in the code
-- **Acceptance** — how you would know the work is done correctly
-
-Reframe ambiguous instructions as success criteria. If the user says "make it robust," translate that into observable checks such as "handles missing config without crashing" or "preserves existing API response shape." If you cannot make a success condition testable, record it as an open question.
-
-Most ambiguity resolves itself once you read the code. If the code or docs answer a question, record it as a finding with a `file:line` source. If a reasonable default exists, use it and record it as an assumption with rationale. If something is uncertain but won't change the plan, note it as a non-blocking open question. Only carry a question forward when the answer would materially change planning.
-
-**Clarify gate:**
-
-Before routing `READY_FOR_PLAN`, ask:
-
-```text
-Can pge-plan fairly create executable issues without inventing user intent?
-```
-
-If no, ask the smallest blocking question set or route `NEEDS_INFO`. Blocking questions are limited to three and must affect goal, scope, acceptance, compatibility, or safety. Do not ask questions about details planning can choose by repo convention.
-
-Do not start clarification by presenting implementation choices. Early questions should be about the outcome, pain, user, success shape, and non-goals. Implementation choices are allowed only after A is stable enough that B can be evaluated as a path serving A.
-
-Grill questions prioritize recovering original goal A. If the current conversation is centered on implementation hypothesis B, ask what A is before asking the user to choose between B variants. A good first grill question separates outcome from path: "Is the original goal A to achieve <outcome>, and B is only our current guess at how, or has the goal changed to B itself?"
-
-Run an Interactive Alignment Gate before `READY_FOR_PLAN`:
-
-```text
-Did research ask the user to validate the current framing, or is there a concrete reason no question was needed?
-```
-
-Ask one user-facing alignment question when any of these remain true after repo exploration:
-- two or more plausible problem framings or scope interpretations remain viable
-- `confirmed_intent.goal`, `scope_contract`, or `success_shape` depends on `inferred` authority
-- user wording contains soft intent such as "better", "cleaner", "aligned", "valuable", "roughly", "maybe", or "not sure"
-- research narrowed, deferred, or reinterpreted any material upstream/user item
-- the plan would be meaningfully different depending on a product, UX, compatibility, migration, or risk tolerance choice
-
-Skip the question only when all plan-shaping fields are explicit from the user/upstream source or directly resolved by repo evidence, or when the task qualifies for trivial early-exit. When skipped, record the no-question rationale and the authority basis.
-
-When intent is unclear, use a grill-with-me style:
-
-1. State the current interpretation in one sentence.
-2. Name whether the ambiguity is about original goal A or implementation hypothesis B.
-3. Ask about A before asking about B when A is not explicit.
-4. Give the smallest useful choice set, with a recommended default when evidence supports one.
-5. Ask exactly one question.
-6. After the answer, update the confirmed intent and reassess whether more clarification is still plan-changing.
-
-Do not bundle a questionnaire. Do not ask implementation trivia. Do not continue to `READY_FOR_PLAN` until the confirmed intent can survive the challenge below.
-
-Question shape should follow the smallest useful choice set:
-
-```text
-What I found: <one sentence from repo/upstream evidence>
-Why it matters: <how this changes planning>
-Recommendation: <default and why>
-Question: <one question, preferably A/B/C with concise tradeoffs>
-```
-
-Prefer two choices. Use three only when three paths are genuinely viable. Open-ended is allowed for pure semantic clarification, but avoid broad "what do you want?" questions when a sharper choice set is available.
-
-**Confirmed intent challenge:**
-
-Before `READY_FOR_PLAN`, challenge the confirmed intent:
-
-- Does it preserve the user's explicit words and not replace them with repo-shaped convenience?
-- Does it explain the problem, target goal, scope, non-goals, and observable success?
-- Does it identify what would make a plan wrong?
-- Are inferred parts marked as inferred or confirmed by the user/repo?
-- Would the user recognize this as the thing they meant?
-
-If any answer is no and the repo cannot resolve it, ask the user or route `NEEDS_INFO`.
-
-Keep findings, assumptions, and open questions separate. Findings are what is true in the repo. Assumptions are what is probably safe. Open questions are what planning still cannot fairly decide alone.
-
-Every finding and framing must carry a basis:
-- `direct`: source from code, docs, upstream artifact, command output, or explicit user statement
-- `external`: named outside precedent or reference
-- `reasoned`: first-principles inference from known constraints
-
-Prefer `direct`. Do not let `reasoned` basis masquerade as user intent.
-
-**Reality alignment proof:**
-
-Before synthesis and route selection, check human/RD claims about current code reality that planning might rely on. A claim is plan-relevant when it names existing code, behavior, artifacts, schema fields, affected areas, workflow state, or constraints that would change the likely plan, scope, risk, or blocker status if false.
-
-Record each plan-relevant claim as a compact row:
-
-```text
-RAP-<N> | claim | source | check | result: checked | contradicted | unverified | not_applicable | planning_impact | handoff_refs
-```
-
-Rules:
-- `checked` means goal-relevant repo evidence supports the claim.
-- `contradicted` means repo evidence conflicts with the claim; if planning impact is material, route away from `READY_FOR_PLAN` unless the brief explicitly preserves the contradiction as a blocker or invalid direction.
-- `unverified` means the claim could not be checked with available evidence; if planning impact is material, route away from `READY_FOR_PLAN`.
-- `not_applicable` is allowed only when there are no human/RD code-reality claims to check; include the reason.
-- `planning_handoff` entries derived from these claims must cite the RAP row IDs.
-- `READY_FOR_PLAN` requires `ready_for_plan_basis` to cite the checked/non-applicable proof rows and `plan_blocking_gaps` to be `none`.
-
-Do not use the proof to select an implementation approach. It only prevents planning from inheriting unchecked or false code-reality claims.
-
-For assumptions, include a validation strategy. If the assumption would materially change the plan and cannot be validated cheaply, ask the user or route `NEEDS_INFO`.
-
-**Decision log:**
-
-When research resolves an unknown, narrows scope, chooses a recommended direction, or preserves an upstream design decision, record it as:
-
-- **Decision** — what is now settled for planning
-- **Rationale** — why this decision follows from user intent, upstream contract, repo evidence, or constraints
-- **Alternatives considered** — what else was considered and why it was not chosen
-
-Use this for decisions, not every factual finding. Research may make bounded decisions when repo evidence and upstream intent are strong enough. Do not make product or requirement decisions that still require user authority; those stay as `NEEDS_INFO`.
-
-**Planning handoff:**
-
-Research must prove it was useful. Record what planning needs to preserve and avoid:
-
-- facts planning must preserve
-- constraints planning must not violate
-- known invalid directions
-- likely affected areas
-- verification risks
-- unresolved blockers
-
-If the planning handoff is empty, the brief is not ready. Fix the intent alignment note, zoom-out map, findings, or confirmed intent.
-
-Do not use `planning_handoff` as a hidden approach recommendation. It records boundary-preserving constraints, not implementation design. Research may say "plan must not break X" or "plan should know Y is fragile," but must not say "plan should implement Z approach."
-
-**Research value proof:**
-
-Before READY_FOR_PLAN, prove the research earned its place in the workflow. Compare against a direct auto-plan from the initial prompt:
-
-- What would direct planning likely assume?
-- Which assumption did research confirm, reject, or refine?
-- Which code reality changes the plan?
-- Which success shape or non-goal is now clearer?
-- Which question did research avoid by self-resolving from evidence?
-
-This is not a long essay. It is a short proof that research reduced downstream wrongness. If it cannot be filled with concrete deltas, the route should not be `READY_FOR_PLAN` unless the task is explicitly marked as trivial early-exit.
-
-**Minimum contract, flexible shape:**
-
-The brief may use tables, bullets, prose, or a compact key/value block. The required semantics are:
-
-- `schema_version`: always `research.v2`
-- `intent_framings`: plausible interpretations explored, original goal A, any implementation hypothesis B, evidence, and risk if wrong
-- `confirmed_intent`: user words, original goal A, confirmed goal, scope, success shape, non-goals, and "plan would be wrong if..."
-- `scope_contract`: in scope, out of scope, deferred, must not silently narrow
-- `success_shape`: observable success, what would disappoint the user, what plan must preserve
-- `experience_scope`: one of `none | user-facing | artifact-facing | visual | interaction | workflow | documentation | cli_or_prompt`; include skip reason when `none`
-- `design_surface_context`: required when `experience_scope` is not `none`; product/audience context, design system sources, category baseline, safe/risk tradeoffs, experience framings, design dimension gaps, visual evidence limits, and anti-slop risks
-- `upstream_contract`: source, decisions, constraints, non-goals from upstream artifacts when present
-- `evidence`: repo/user/upstream facts that support the above, with basis and source when available
-- `reality_alignment_proof`: checked human/RD code-reality claims, `not_applicable` reason when none exist, `ready_for_plan_basis`, and `plan_blocking_gaps`
-- `ambiguities`: unresolved questions with why they change planning and current status
-- `interactive_alignment`: questions asked, answers incorporated, user-confirmed fields, inferred fields left for planning, or no-question rationale with authority basis
-- `planning_handoff`: facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, design/experience constraints when applicable, unresolved blockers; cite RAP rows when handoff items depend on code-reality claims
-- `route`: READY_FOR_PLAN / NEEDS_INFO / BLOCKED with reason
-
-Optional sections such as Brainstorm Log, Clarify Log, Zoom-Out Map, Decision Log, Research Value Proof, and Quality Gates should appear only when they reduce uncertainty or preserve a material decision. They may be compressed into the required fields for simple tasks. `interactive_alignment` is not optional; if no interaction happened, it records why that was acceptable.
-
-Legacy compatibility: old `plan_delta` field may be mapped to `planning_handoff` for backward compatibility but carries no authoritative decision weight.
-
-**Field authority classification:**
-
-Each field in the research output carries an authority level:
-
-| Authority | Meaning | How plan should treat |
-|---|---|---|
-| `user_confirmed` | User explicitly stated or confirmed this | Authoritative; do not weaken or reinterpret |
-| `upstream_authoritative` | From an authoritative upstream source (spec, design doc, prior decision) | Inherit unless repo evidence contradicts |
-| `repo_evidence` | Derived from code, docs, config, or command output | High confidence; cite source |
-| `inferred` | Agent inference connecting gaps | Auditable; must not be presented as user intent or repo fact |
-
-Research must classify key findings and confirmed intent fields by authority. Planning inherits authority classification and must not upgrade `inferred` to `user_confirmed`.
-
-**Compatibility adapter rule:** Legacy `plan_delta` may populate `planning_handoff`; legacy `Options` and `Recommendation` may populate approach candidates in planning; neither may become selected approach without current plan engineering review.
-
-**Exploring problem framings:**
-
-Once you understand the landscape, compare possible problem framings and scope interpretations. Present framings conversationally, anchored in evidence. Lead with your recommended framing and explain why.
-
-Research may recommend which interpretation of the user's intent is correct. Research must not recommend which implementation approach to use — that decision belongs to `pge-plan`.
-
-Simple tasks can have one framing and "proceed." Don't manufacture extra framings just to satisfy a pattern.
-
-**Asking questions:**
-
-The workflow shape here follows brainstorming: ask one question at a time, keep the conversation moving, and use questions to refine understanding before handing off to planning. The questioning style itself should feel closer to grill-with-docs: challenge vague language, press on unclear intent, and do not let soft words stand in for real decisions.
-
-Correctness matters more than clarification volume, but unnecessary clarification is still waste. Ask only when a question materially improves the correctness of what planning will inherit, and only after the repo has given you everything it can.
-
-Do not ask repo questions the code can answer for you. Do not ask implementation-detail questions that planning can decide later. Do not ask preference questions just because uncertainty exists — uncertainty alone is not enough.
-
-Ask one question at a time. Prefer multiple choice when possible. If a topic needs more exploration, break it into multiple questions rather than bundling them into one big prompt.
-
-Limit `NEEDS CLARIFICATION` to at most three blocking questions. If more than three uncertainties appear, group them into the smallest decision set, resolve non-blocking items through assumptions with validation, and ask only the questions that change planning correctness.
-
-Focus questions on understanding intent, constraints, and success criteria. If the user's goal is still fuzzy, ask one goal-sharpening question before you ask direction or tradeoff questions.
-
-Treat explicit user uncertainty as a trigger, not as a footnote. When the user says they are unsure whether the problem calls for replacement, refinement, expansion, or narrowing, do not silently choose one and move on.
-
-Every useful question should come with what you found, why it matters, the smallest useful choice set, and your recommendation. Sometimes that is a yes/no on your recommendation. Sometimes it is 2 options. Only show 3 when 3 paths are genuinely viable. If the repo already makes the direction clear, do not ask a question just to confirm what you already know.
-
-A strong early answer often resolves several related questions. Reassess after each answer: some follow-ups will disappear, some will shrink, and some will turn into repo questions you can answer yourself.
-
-Stop asking when the intent is clear enough to plan fairly, or when further questions are no longer improving correctness in a meaningful way.
-
-If critical ambiguity remains and neither the repo nor the user can resolve it fairly, return `NEEDS_INFO` or `BLOCKED` rather than passing the ambiguity downstream.
-
-Pure semantic clarification — "what do you mean by X?" — can be asked directly without research backing.
-
-**Working in existing codebases:**
-
-Explore the current structure before drawing conclusions. Follow existing patterns unless there is strong evidence they are the problem.
-
-Where existing code has issues that materially affect the work — unclear ownership, tangled responsibilities, naming drift, duplicated flows — call them out in the research. But do not turn research into a wishlist of unrelated cleanup. Stay focused on what serves the current intent.
-
-If a local inconsistency looks ugly but doesn't change the research outcome, leave it alone. If it changes the likely approach, the risk, or the affected areas, it belongs in the brief.
-
-**Spec coverage gate:**
-
-Before the brief can route `READY_FOR_PLAN`, compare the written brief against the original request and any upstream requirement ledger.
-
-The brief is coverage-complete only when every material upstream item is represented in at least one of:
-
-- Confirmed Intent
-- Findings
-- Synthesis Summary
-- Affected Areas
-- Constraints
-- Decision Log
-- Planning Handoff
-- Open Questions
-- Explicit Scope Decision
-
-If a material upstream item is missing, the route is not `READY_FOR_PLAN`. Fix the brief or route `NEEDS_INFO`.
-
-If research recommends narrowing the upstream scope, the narrowed scope must be explicit:
-
-- what is being narrowed
-- why narrowing is justified by repo evidence
-- what remains deferred
-- whether user confirmation is required before planning
-
-If narrowing changes the value proposition or position in the larger plan, ask the user or route `NEEDS_INFO`. Do not quietly pass a smaller problem to planning.
-
-**Spec coverage checklist:**
-
-- [ ] Each `Upstream Requirement Ledger` row appears in the `Spec Coverage` table
-- [ ] `coverage: complete` is used only when no material upstream item is missing
-- [ ] Missing items route `NEEDS_INFO` or appear as explicit Open Questions
-- [ ] Deferred items have a reason and downstream handling
-- [ ] Contradicted items cite repo evidence
-- [ ] `READY_FOR_PLAN` is not used when the brief covers only a fragment of the upstream spec
-
-If no upstream source exists, run the same checklist against the original user request.
-
-Before writing the artifact, prepare a synthesis summary:
-- **Stated**: explicit user/upstream decisions and constraints
-- **Inferred**: agent inferences needed to connect gaps
-- **Out**: rejected, deferred, or explicitly excluded scope, with why
-
-This summary is the last honesty check before planning. If important content sits in `Inferred`, do not present it as fact.
-
-**Grill the brief (adversarial self-challenge):**
-
-Before writing the artifact, switch to adversarial mode. You are no longer the researcher — you are the skeptic trying to break the research. This is the matt-skill grill-with-docs pattern adapted for research output.
-
-Challenge each finding:
-
-1. **Terminology cross-check** — for every domain term in your findings, verify it matches what the code actually calls it. If you wrote "the auth middleware handles sessions" — go read the middleware file and confirm it's actually called that, does that, and nothing else. Mismatched terminology between brief and code is the #1 source of downstream plan failures.
-
-2. **Evidence pressure** — for each finding marked as fact, can you point to a specific `file:line`? If not, downgrade to assumption. Findings without source references are opinions, not evidence.
-
-3. **Assumption stress-test** — for each assumption, construct one scenario where it's wrong. If that scenario is plausible and would change the planning handoff, the assumption needs verification or the brief needs a conditional.
-
-4. **Scope drift detection** — compare your findings against the original intent. Did you quietly expand or narrow the scope during exploration? If the brief answers a different question than what was asked, fix it.
-
-5. **Spec coverage check** — if an upstream spec, handoff, or exec plan existed, walk its requirement ledger line by line. Did the brief preserve the phases, constraints, acceptance criteria, and larger-plan position? If any item disappeared, restore it or mark it as an explicit scope decision.
-
-6. **Missing perspective** — what would someone who maintains this code daily say about your findings? Is there an obvious constraint you missed because you only read the happy path?
-
-Fix every issue you find. If the grill reveals a finding was wrong, remove or correct it — don't leave it with a caveat. If it reveals a gap, go read one more file to fill it. The grill is a repair pass, not a findings report. One round is enough — don't loop.
-
-**Final readiness review checklist:**
-
-Before writing `research.md`, verify:
-
-- [ ] Confirmed intent answers problem, goal, larger-plan position, why-now/scope fit, observable success, and out-of-scope items
-- [ ] Original goal A is preserved separately from any implementation hypothesis B
-- [ ] Any implementation hypothesis B says which goal A it serves and what evidence would invalidate it
-- [ ] Intent framings distinguish explicit ask, interpreted goal, success shape, non-goals, and plan-changing ambiguity
-- [ ] Brainstorm records the chosen framing and any plausible rejected framing that would change the plan; omit only when the task is trivial and ambiguity-free
-- [ ] Ambiguities section says whether planning can proceed without inventing intent
-- [ ] Unclear intent triggered grill-with-me clarification rather than silent assumptions
-- [ ] Confirmed intent is challenged and survives against user words, repo evidence, and rejected framings
-- [ ] Zoom-out information covers relevant modules, flows, boundaries, terminology, and verification hotspots when planning needs it
-- [ ] `Synthesis Summary` separates Stated, Inferred, and Out
-- [ ] Every finding has a basis: `direct`, `external`, or `reasoned`
-- [ ] `reasoned` items are not presented as user intent or repo fact
-- [ ] `reality_alignment_proof` covers all plan-relevant human/RD code-reality claims, or gives a reasoned `not_applicable` row
-- [ ] `READY_FOR_PLAN`, `ready_for_plan_basis`, `plan_blocking_gaps`, and RAP-cited `planning_handoff` items agree with the proof rows
-- [ ] Every assumption has a validation strategy
-- [ ] Material decisions are captured as Decision / Rationale / Alternatives considered
-- [ ] Research Value Proof identifies what direct auto-planning would likely miss or states a justified trivial early-exit
-- [ ] Planning Handoff is non-empty and provides boundary-preserving constraints for planning
-- [ ] Blocking `NEEDS CLARIFICATION` questions are limited to three or fewer
-- [ ] Open questions are marked `blocks_plan: yes | no`
-- [ ] pge-plan can create executable issues without rereading upstream docs
-- [ ] Research does not select implementation approach, create vertical slices, define final acceptance, or define verification path
-
-If any item fails, repair the brief first. If repair requires user input, route `NEEDS_INFO`.
-
-## After the Research
-
-**Documentation:**
-
-The research artifact MUST be written only to `.pge/tasks-<slug>/research.md`. This `.pge/` path is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifact.
-
-Create the task directory before writing:
-
-```bash
-mkdir -p .pge/tasks-<slug>/
-```
-
-Write the research artifact to:
+Write the artifact to:
 
 ```text
 .pge/tasks-<slug>/research.md
 ```
 
-Use `templates/brief.md` as a scaffold, not a fixed form. The required semantic fields must be present, but optional sections may be omitted or compressed when they do not add planning value.
+The default brief must expose these v3 semantics:
 
-**Failure paths:**
+```text
+schema_version: research.v3
+route: READY_FOR_PLAN | NEEDS_USER | NEEDS_REPO_EVIDENCE | BLOCKED
 
-Not every research run succeeds.
+Spec Discovery:
+  user_request
+  goal
+  success_shape
+  scope
+  non_goals
+  constraints
 
-- If critical ambiguity remains and you still cannot plan fairly after repo exploration and intent clarification, set `route: BLOCKED`
-- If the task appears infeasible from repo evidence, set `route: BLOCKED` and explain why in the brief
-- If the user says "stop" or redirects to implementation/planning mid-run, write the best brief you can to `.pge/tasks-<slug>/research.md` and set `route: NEEDS_INFO` or `BLOCKED` instead of silently exiting
+Context:
+  relevant_user_context
+  relevant_repo_or_architecture_context
+  assumptions
 
-**Completion gate:**
+Direction:
+  simplest_direction
+  rejected_directions
+  why_this_is_enough_for_plan
 
-Do NOT declare the research complete, summarize completion, or change routes until BOTH are true:
+Open Questions:
+  blocking_questions
+  non_blocking_questions
 
-1. `.pge/tasks-<slug>/research.md` exists and satisfies the required research contract semantics from `templates/brief.md`
-2. You are about to output the Final Response block exactly once
+Route:
+  route
+  route_reason
+```
 
-If you are interrupted or the user changes direction, close the stage first by writing the best available brief. Research may end in `READY_FOR_PLAN`, `NEEDS_INFO`, or `BLOCKED`, but it must not end without a written artifact.
+Optional sections are allowed only when triggered:
 
-**Transition to planning:**
+```text
+Conditional: Implementation Friction
+Conditional: Progressive Feasibility
+Optional: Four-Way Gap
+Optional: Design / Experience Note
+Optional: Evidence Notes
+```
 
-After writing the brief, output the Final Response block and explicitly tell the user to invoke `pge-plan <task-slug>` or `pge-plan .pge/tasks-<slug>/research.md` next. Do NOT auto-invoke `pge-plan`. Do NOT produce a plan yourself, and do NOT start decomposing the work "just to be helpful." Each pipeline stage is a separate skill invocation and the user decides when to advance.
+Do not pad the brief to satisfy a template. A short brief is valid when it preserves intent, names scope and non-goals, marks assumptions, exposes plan-changing uncertainty, and gives Plan enough context to proceed without guessing.
 
-## Key Principles
+## Hard boundary
 
-- **One question at a time** — don't overwhelm the user with bundles
-- **Multiple choice preferred** — easier to answer than open-ended when possible
-- **Code is truth** — prefer observed repo evidence over assumptions
-- **Correctness beats clarification** — ask when it materially improves correctness
-- **Defaults beat interruptions** — a reasonable assumption is often better than a question
-- **Explore alternatives** — propose options when multiple real paths exist
-- **Stay focused** — depth on what matters, not breadth on everything
+Research may recommend the simplest **direction** for planning, but Plan selects the implementation approach and writes executable contracts.
 
-## Research Brief Template
+Research must not:
 
-Use the contract scaffold at `templates/brief.md`. Preserve required field semantics; scale the prose shape to the task.
+- select the final implementation approach
+- create numbered issues or vertical slices
+- define final acceptance criteria
+- define the final verification path
+- write implementation code, pseudocode, function bodies, or field rewiring
+- invoke `pge-plan`, `pge-exec`, or implementation agents
+
+`Direction.simplest_direction` is a candidate framing for Plan, not selected architecture.
+
+## Core distinction: A vs B
+
+Always protect the original goal from being replaced by the first plausible solution.
+
+- **A: original goal** — the user's pain, desired outcome, or observable success.
+- **B: implementation hypothesis** — a possible path, system area, or proposed solution that might satisfy A.
+
+If B is present in the prompt, record it as a hypothesis unless the user explicitly made B the goal. If conversation has already drifted to B and A is unclear, ask one goal-recovery question before researching solution details.
+
+A good question shape:
+
+```text
+I can treat <B> as the goal itself, or as one possible way to achieve <A>.
+Which is correct?
+```
+
+## Evidence rule
+
+Keep evidence authority explicit:
+
+- User evidence proves user intent.
+- Repo evidence proves code reality.
+- Architecture docs and structure may support architecture intent.
+- Inferences and assumptions must be labeled.
+
+Do not use repo evidence to invent user intent. Do not use user belief to prove code reality when the repo can be checked.
+
+## Triggers
+
+Research has three triggered capabilities. Do not add more default gates.
+
+### 1. Intent Discovery Trigger
+
+Trigger when Plan would need to invent user intent.
+
+Signals:
+
+- the prompt gives a solution without the underlying goal
+- multiple plausible goals or scopes remain viable
+- success shape is not observable enough for Plan
+- scope boundary changes what Plan would include
+- a tradeoff needs user authority
+- workflow, architecture, design, or product direction is requested but the desired outcome is unclear
+
+Behavior:
+
+1. Read only the context that can resolve the ambiguity cheaply.
+2. If repo/docs cannot resolve it, ask one focused question.
+3. Prefer a small choice set with a recommended default when evidence supports one.
+4. Route `NEEDS_USER` when the answer is required and not available.
+
+Do not bundle questionnaires. One question at a time.
+
+### 2. Implementation Friction Gate
+
+Trigger when expected understanding conflicts with actual implementation reality in a way that changes Plan.
+
+Use when:
+
+```text
+expected system model != observed repo reality
+```
+
+Do not trigger for cosmetic mismatch or details Plan can handle locally.
+
+When triggered, add:
+
+```md
+## Conditional: Implementation Friction
+
+- expected_understanding:
+- actual_implementation_reality:
+- conflict:
+- why_it_matters_for_plan:
+- required_plan_adjustment:
+```
+
+Route impact:
+
+- `READY_FOR_PLAN` is allowed only when `required_plan_adjustment` gives Plan a safe boundary.
+- `NEEDS_REPO_EVIDENCE` when the conflict is suspected but not checked enough to plan.
+- `BLOCKED` when the conflict makes the requested goal unsafe or impossible in current constraints.
+
+### 3. Progressive Feasibility Gate
+
+Trigger when the user goal is valid, but the repo cannot safely support direct incremental planning for that goal.
+
+Use when:
+
+```text
+valid user goal != current repo's safe incremental execution condition
+```
+
+Signals:
+
+- the goal requires cross-stage or multi-module protocol/interface changes
+- final success needs end-to-end verification that does not currently exist
+- direct implementation would structurally break downstream consumers
+- repo boundaries are not ready to support the target change safely
+- the target needs large synchronized edits across producers and consumers
+- the request mixes multiple change types that should be staged
+
+Do not trigger when a normal vertical slice can be planned and verified.
+
+When triggered, add:
+
+```md
+## Conditional: Progressive Feasibility
+
+- direct_goal:
+- direct_planning_risk:
+- structural_blocker:
+- first_plannable_objective:
+- deferred_goal_parts:
+- plan_instruction:
+```
+
+The most important field is `first_plannable_objective`. It tells Plan to plan the first safe structural objective, not the entire final goal.
+
+### Optional: Four-Way Gap
+
+Use only as a diagnostic lens when Implementation Friction is hard to explain directly.
+
+```md
+## Optional: Four-Way Gap
+
+- user_intent:
+- ai_understanding:
+- code_reality:
+- architecture_intent:
+- gap_that_matters_for_plan:
+```
+
+Do not make this a default section.
+
+## Process
+
+### 1. Intake the request and current context
+
+Consume the explicit prompt plus relevant current conversation, user corrections, selected artifacts, failures, or prior stage outputs. Identify:
+
+- explicit user request
+- likely original goal A
+- implementation hypothesis B, if any
+- observable success shape
+- candidate scope and non-goals
+- constraints and hard “do not” instructions
+
+If a structured upstream source is supplied, preserve its goal, scope, decisions, constraints, and non-goals at the same level of abstraction before narrowing.
+
+### 2. Check whether intent discovery is needed
+
+Ask:
+
+```text
+Can Plan fairly create executable issues without inventing user intent?
+```
+
+If no, use the Intent Discovery Trigger. Ask only when user authority is needed; otherwise record the resolved assumption and basis.
+
+### 3. Collect only task-relevant context
+
+Explore just enough repo, docs, config, prior artifacts, or architecture structure to determine whether the goal and scope are plan-ready.
+
+Prefer direct reading for narrow work. Use an Agent only when exploration is broad, cross-cutting, or likely to produce dead-end noise whose raw output Plan will not need.
+
+Stop exploring when another file would not change goal, scope, constraints, route, or Plan's first move.
+
+### 4. Check for implementation friction
+
+Compare expected understanding against observed implementation reality. Trigger the gate only when the mismatch changes Plan.
+
+Examples:
+
+- user or upstream source says a field is unused, but Plan still consumes it
+- a proposed deletion has downstream consumers
+- route vocabulary differs from what downstream skills validate
+
+### 5. Check progressive feasibility
+
+Ask whether the direct goal can be planned as a safe, bounded, incrementally verifiable change. If not, trigger the gate and name the first plannable objective.
+
+Research does not write the staged plan. It only tells Plan which first objective is safe and which parts are deferred.
+
+### 6. Synthesize the brief
+
+Use `templates/brief.md`. Keep findings, assumptions, and open questions separate.
+
+For `READY_FOR_PLAN`, the brief must make these true:
+
+- goal and success shape are clear enough for Plan
+- scope and non-goals are explicit enough to prevent silent expansion
+- constraints are visible
+- assumptions are labeled
+- blocking questions are empty
+- any conditional gate includes the field Plan must consume
+- route reason explains why Plan can proceed
+
+### 7. Self-review before routing
+
+Before writing or finalizing the artifact, check:
+
+- Does the brief preserve original goal A separately from B?
+- Would the user recognize the goal and success shape?
+- Are repo facts supported by repo evidence or clearly marked as assumptions?
+- Are user-intent claims supported by user/upstream evidence?
+- Did Research accidentally select the final approach, issue slices, acceptance, or verification?
+- If Implementation Friction exists, is `required_plan_adjustment` present?
+- If Progressive Feasibility exists, is `first_plannable_objective` present?
+- Is the route vocabulary one of the v3 routes?
+
+Repair the brief before routing `READY_FOR_PLAN`.
+
+## Route semantics
+
+- `READY_FOR_PLAN` — Plan can proceed without inventing goal, scope, or success shape.
+- `NEEDS_USER` — a user-authority answer is required before fair planning.
+- `NEEDS_REPO_EVIDENCE` — repo reality is too uncertain and more evidence is required before planning.
+- `BLOCKED` — current constraints make the requested goal unsafe, impossible, or outside this workflow.
+
+Do not use `NEEDS_INFO` as a Research v3 route.
+
+## References
+
+- Read `references/superpowers-brainstorming.md` when the prompt is fuzzy, broad, value-laden, or dominated by implementation hypothesis B.
+- Read `references/design-surface-research.md` only when the task has a human-visible surface and experience context would change planning.
+
+Reference files calibrate behavior. They do not add default required v3 fields unless this skill explicitly says so.
 
 ## Final Response
+
+After writing the artifact, output exactly one concise result block:
 
 ```md
 ## PGE Research Result
 - task_dir: .pge/tasks-<slug>/
 - research_path: .pge/tasks-<slug>/research.md
-- schema_version: research.v2
-- route: READY_FOR_PLAN | NEEDS_INFO | BLOCKED
+- schema_version: research.v3
+- route: READY_FOR_PLAN | NEEDS_USER | NEEDS_REPO_EVIDENCE | BLOCKED
 - questions_asked: <0-3>
-- next_skill: pge-plan <task-slug> | pge-plan .pge/tasks-<slug>/research.md
+- next_action: <READY_FOR_PLAN: pge-plan <task-slug> | NEEDS_USER: answer blocking question then rerun pge-research | NEEDS_REPO_EVIDENCE: gather repo evidence then rerun pge-research | BLOCKED: resolve blocker before continuing>
 ```

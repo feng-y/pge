@@ -139,6 +139,7 @@ When encountering issues during execution:
 |----------|----------|--------|
 | **auto-fix-local** | Broken test, wrong import, typo, missing null check, format error | Fix silently, no permission needed |
 | **auto-fix-critical** | Missing error handling, validation gap, auth check, missing index | Fix + record in deviations |
+| **startup/channel failure** | `lane_ready` timeout, invalid lane registration, `Not logged in`, token missing, `/login` requested, Team channel unavailable before dispatch | Report `lane_ready status: BLOCKED` with the concrete startup reason; main records lane health and decides fallback |
 | **implementation-blocked** | Compile error, include mismatch, forward declaration/type-surface mismatch, local interface assembly failure, sibling issue change breaking verification | Report BLOCKED with exact failing command, source files, and local repairability |
 | **contract-blocked** | New service needed, schema change, library swap, scope expansion, public API change, user decision required, plan ambiguity | Report BLOCKED with the contract blocker |
 

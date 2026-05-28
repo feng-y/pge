@@ -4,19 +4,37 @@
     {
       "id": 1,
       "prompt": "Please research adding a dark mode toggle to this repo. I don't want code yet — I want to understand the current theming pattern, likely affected areas, and the safest direction for planning.",
-      "expected_output": "Produces a repo-grounded research brief with concrete findings, affected areas, assumptions, confirmed intent, planning handoff, and a READY_FOR_PLAN route. Should not ask unnecessary questions if the repo already makes the direction clear.",
+      "expected_output": "Produces a short research.v3 brief with route: READY_FOR_PLAN, goal, success_shape, scope/non_goals, constraints, relevant repo context, assumptions, simplest_direction, rejected_directions, and no blocking questions. Should not ask unnecessary questions if the repo already makes the direction clear. Should not include default Implementation Friction, Progressive Feasibility, or Four-Way Gap sections.",
       "files": []
     },
     {
       "id": 2,
       "prompt": "I want to rethink how state is handled here. Right now it feels messy, but I'm not sure if I want a full replacement or just something more maintainable. Research it first.",
-      "expected_output": "Starts by grounding in the repo, then asks intent-sharpening questions only if needed. Questions should focus on intent, constraints, and success criteria rather than implementation details. The output should narrow the space and produce evidence-backed intent framings and scope readings rather than jump straight into planning.",
+      "expected_output": "Uses Intent Discovery Trigger when repo evidence cannot resolve the user's goal/scope. Questions focus on original goal, constraints, and success shape rather than implementation details. The output separates goal A from implementation hypotheses B, records plausible/rejected directions in v3 fields, and routes NEEDS_USER if a blocking answer is unavailable.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "Research a full redesign of auth, billing, analytics, notifications, and admin tools so we can modernize the whole product in one pass.",
-      "expected_output": "Flags that the request is over-scoped, pushes toward decomposition or narrowing, and avoids pretending one research brief can fairly cover the whole thing. Should not silently turn this into a giant plan. Should either narrow the task or return a route that makes the blocker explicit.",
+      "expected_output": "Flags that the request is too broad for direct safe planning. Should either route NEEDS_USER for scope narrowing or use Progressive Feasibility to identify the first_plannable_objective and deferred_goal_parts. Should not silently turn this into a giant plan or create issues.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Research deleting planning_handoff from the workflow because Research should be lighter.",
+      "expected_output": "If repo evidence shows downstream Plan still consumes planning_handoff, includes Conditional: Implementation Friction with expected_understanding, actual_implementation_reality, conflict, why_it_matters_for_plan, and required_plan_adjustment. Should not recommend hard deletion as the simplest direction without compatibility.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Research fully refactoring Research, Plan, Exec, Review, docs, evals, and historical references to a new universal protocol in one round.",
+      "expected_output": "Uses Conditional: Progressive Feasibility when the final goal is valid but unsafe as one increment. Identifies direct_goal, direct_planning_risk, structural_blocker, first_plannable_objective, deferred_goal_parts, and plan_instruction. Does not produce a staged implementation plan.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Research the best way to make this better.",
+      "expected_output": "Does not start with repo-wide exploration. Triggers Intent Discovery because goal and success shape are absent. Asks one focused user question or routes NEEDS_USER.",
       "files": []
     }
   ]

@@ -9,10 +9,10 @@ This is a minimum contract scaffold, not a fixed prose template. Keep simple pla
 Validate the upstream research/input before planning proceeds.
 
 - Source: <path to research brief, upstream doc, or description>
-- Intent confirmed: <yes — quote or reference the confirmed_intent / no — gap>
+- Intent confirmed: <yes — quote or reference research goal / confirmed_intent / no — gap>
 - Scope explicit: <yes — in/out boundaries clear / no — gap>
 - Success shape usable: <yes — observable and verifiable / no — gap>
-- Decision: CONTINUE_TO_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
+- Decision: CONTINUE_TO_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED
 - Rationale: <one line explaining the decision>
 
 ## selected_approach
@@ -27,7 +27,7 @@ Validate the upstream research/input before planning proceeds.
 
 ## goal
 
-<Target outcome translated from confirmed research intent>
+<Target outcome translated from research goal / confirmed intent>
 
 ## non_goals
 

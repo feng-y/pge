@@ -4,54 +4,65 @@
   "evals": [
     {
       "id": "joint-1",
-      "scenario": "Simple task, clean handoff",
+      "scenario": "Simple task, clean v3 handoff",
       "research_input": "User wants to add a dark mode toggle. Repo has CSS custom properties already.",
-      "research_expected": "Brief with route: READY_FOR_PLAN, confirmed intent, planning_handoff (facts: existing custom properties work; constraints: must use existing system; invalid directions: full theme redesign), 0 questions, likely_affected_areas: 3 CSS files + 1 toggle component.",
-      "plan_expected": "Consumes brief. Source Contract Check → CONTINUE_TO_PLAN. Engineering Review is lightweight (scope check: 4 files, no complexity gate). Selects approach through engineering review. Produces 2-3 issues. No questions asked.",
+      "research_expected": "research.v3 brief with route: READY_FOR_PLAN, goal and success_shape, scope/non_goals, constraints to use existing CSS custom properties, relevant repo context naming the affected CSS/settings/preference files, simplest_direction as a candidate, no conditional sections, no blocking questions.",
+      "plan_expected": "Consumes v3 brief. Source Contract Check → CONTINUE_TO_PLAN. Maps goal/success_shape/scope/constraints into the plan. Engineering Review is lightweight. Selects approach through engineering review. Produces 2-3 issues. No questions asked.",
       "joint_check": [
-        "Plan goal matches research confirmed_intent verbatim or near-verbatim",
-        "Plan Target Areas matches research likely_affected_areas",
-        "Plan does NOT re-explore files research already cited with file:line",
-        "Engineering Review adds value beyond research (scope challenge, architecture check) without duplicating findings"
+        "Plan goal matches research goal",
+        "Plan Target Areas reflect research relevant repo context when still current",
+        "Plan does not treat simplest_direction as selected_approach before engineering review",
+        "Engineering Review adds value beyond research without duplicating findings"
       ]
     },
     {
       "id": "joint-2",
-      "scenario": "Complex task, research provides approach candidates, plan must review",
-      "research_input": "User wants to migrate state management. Research found 3 approach candidates (Redux Toolkit, Zustand, Jotai) with tradeoffs in planning_handoff. No selected approach. 12 files in likely_affected_areas. 1 non-blocking open question about test mocking strategy.",
-      "research_expected": "Brief with route: READY_FOR_PLAN, confirmed intent, 3 approach candidates in planning_handoff (not as selected approach), open question (blocks_plan: no).",
-      "plan_expected": "Consumes brief. Source Contract Check → CONTINUE_TO_PLAN. Engineering review evaluates candidates and selects approach. Engineering Review is substantive: scope challenge (12 files → can we migrate incrementally?), architecture (state boundaries, data flow during partial migration), existing solutions (any existing state patterns to preserve?). Complexity gate triggers. Plan may propose phased migration. Open question carried to Risks.",
+      "scenario": "Complex task, research provides candidate direction, plan must review",
+      "research_input": "User wants to migrate state management. Research found 3 candidate directions (Redux Toolkit, Zustand, Jotai) and rejected keeping prop drilling. No selected approach. Relevant context spans 12 files. One non-blocking question about test mocking strategy.",
+      "research_expected": "research.v3 brief with route: READY_FOR_PLAN, goal/success_shape/scope, simplest_direction listing candidate direction space, rejected_directions, non_blocking_questions. No final selected approach.",
+      "plan_expected": "Consumes v3 brief. Source Contract Check → CONTINUE_TO_PLAN. Engineering review evaluates candidates and selects approach. Engineering Review is substantive: scope challenge (12 files → can we migrate incrementally?), architecture (state boundaries, data flow during partial migration), existing solutions. Complexity gate triggers. Non-blocking question carried to Risks.",
       "joint_check": [
-        "Plan selects approach through engineering review, does not treat research candidates as pre-selected",
-        "Plan Engineering Review challenges implementation approach (incremental vs big-bang) after selecting from candidates",
-        "Research open question appears in Plan Risks / Open Questions",
-        "Plan adds engineering depth that research did not cover (failure modes, migration strategy, phasing)"
+        "Plan selects approach through engineering review, not by blindly adopting simplest_direction",
+        "Plan Engineering Review challenges implementation approach after consuming research context",
+        "Research non-blocking question appears in Plan Risks / Open Questions",
+        "Plan adds engineering depth that research did not cover"
       ]
     },
     {
       "id": "joint-3",
-      "scenario": "Research signals blocker, plan must stop",
+      "scenario": "Research signals user blocker, plan must stop",
       "research_input": "User wants to add real-time notifications. Research found the intent is ambiguous (push notifications? in-app? email?) and asked a goal-sharpening question. User did not answer.",
-      "research_expected": "Brief with NEEDS_INFO, 1 blocking open question (blocks_plan: yes).",
-      "plan_expected": "Gate check detects route: NEEDS_INFO. Stops immediately. Does NOT produce a plan. Tells user to resolve the research blocker first.",
+      "research_expected": "research.v3 brief with route: NEEDS_USER and one blocking question.",
+      "plan_expected": "Gate check detects non-ready route. Stops with NEEDS_INFO and directs the user to answer the research blocking question, then rerun pge-research. Does NOT produce a ready execution plan.",
       "joint_check": [
         "Plan does NOT attempt to plan around the ambiguity",
-        "Plan does NOT ask its own version of the same question",
+        "Plan does NOT invent its own broader goal",
         "Plan clearly references the research brief and its incomplete state",
-        "No plan artifact is written"
+        "No ready execution plan is written"
       ]
     },
     {
       "id": "joint-4",
-      "scenario": "Research candidate contradicted by plan exploration",
-      "research_input": "Research listed 'add new service' as an approach candidate in planning_handoff. Plan exploration discovers that the codebase already has a similar service that could be extended instead.",
-      "research_expected": "Brief with route: READY_FOR_PLAN, approach candidate: new service (in planning_handoff, not selected).",
-      "plan_expected": "Consumes brief. Source Contract Check → CONTINUE_TO_PLAN. During Phase 2 Explore, discovers existing service. Engineering Review Scope Challenge Q1 ('What existing code already solves this?') flags the existing service. Existing Solutions Check confirms prior art. Plan selects 'extend existing service' over research candidate with rationale. Records why candidate was rejected.",
+      "scenario": "Implementation Friction is carried into Plan",
+      "research_input": "Research.v3 says direct deletion of planning_handoff conflicts with actual pge-plan v2 consumption; required_plan_adjustment says add v3 adapter while preserving legacy v2 compatibility.",
+      "research_expected": "research.v3 brief with Conditional: Implementation Friction and required_plan_adjustment.",
+      "plan_expected": "Consumes required_plan_adjustment, rejects hard deletion, scopes issues to v3 adapter plus compatibility, and records legacy cleanup as non-goal/deferred work.",
       "joint_check": [
-        "Plan does NOT blindly adopt research candidate when evidence contradicts it",
-        "Plan records the selection with clear rationale in selected_approach / rejected_approaches",
-        "Plan credits research for surfacing the candidate but explains what engineering review found",
-        "Engineering Review is the mechanism that caught the issue (not ad-hoc exploration)"
+        "Plan covers required_plan_adjustment explicitly",
+        "Plan does not ignore repo reality conflict",
+        "Plan keeps compatibility boundary visible in issues or constraints"
+      ]
+    },
+    {
+      "id": "joint-5",
+      "scenario": "Progressive Feasibility limits Plan scope",
+      "research_input": "User asks to fully redesign Research/Plan/Exec/Review. Research.v3 says the direct goal is valid but unsafe as one increment, with first_plannable_objective: make research.v3 authoritative and add minimal Plan adapter; deferred_goal_parts: Exec redesign, broad historical cleanup, deeper Plan optimization.",
+      "research_expected": "research.v3 brief with Conditional: Progressive Feasibility, first_plannable_objective, deferred_goal_parts, and plan_instruction.",
+      "plan_expected": "Plans the first_plannable_objective only. The direct goal and deferred parts appear as context/non-goals. No Exec redesign or broad cleanup is included.",
+      "joint_check": [
+        "Plan goal is the first plannable objective, not the direct final goal",
+        "Deferred goal parts are protected as non-goals or phase boundary",
+        "Plan remains executable and bounded"
       ]
     }
   ]

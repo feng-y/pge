@@ -100,7 +100,7 @@ Plan inherits authority classification from research and adds its own:
 
 Plan must not upgrade `inferred` research findings to `user_confirmed` plan decisions. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
 
-**Compatibility adapter rule:** Legacy `plan_delta` maps to `planning_handoff` with downgraded authority. Legacy `Options` and `Recommendation` become approach candidates only. Neither may become selected approach without current plan engineering review.
+**Compatibility adapter rule:** Legacy `plan_delta` maps to compatibility constraints/risks with downgraded authority. Legacy `Options` and `Recommendation` become approach candidates only. Neither may become selected approach without current plan engineering review.
 
 ## Execution Flow
 
@@ -326,9 +326,9 @@ When consuming a research brief or structured upstream input, verify before proc
 
 | Check | Condition | Route |
 |---|---|---|
-| Intent confirmed | confirmed_intent or equivalent is present and specific | CONTINUE_TO_PLAN |
-| Scope explicit | scope_contract or equivalent names in/out/deferred | CONTINUE_TO_PLAN |
-| Success shape usable | success_shape or equivalent is observable and plan-convertible | CONTINUE_TO_PLAN |
+| Intent confirmed | research.v3 `goal` or legacy `confirmed_intent` is present and specific | CONTINUE_TO_PLAN |
+| Scope explicit | research.v3 `scope`/`non_goals` or legacy `scope_contract` names boundaries | CONTINUE_TO_PLAN |
+| Success shape usable | `success_shape` or equivalent is observable and plan-convertible | CONTINUE_TO_PLAN |
 | Intent not confirmed | goal is still fuzzy, multiple unresolved framings | RETURN_TO_RESEARCH |
 | Success shape missing or vague | cannot derive acceptance criteria from it | RETURN_TO_RESEARCH |
 | Blocking ambiguity unresolved | ambiguities with `blocks_plan: yes` remain open | NEEDS_INFO |
@@ -348,11 +348,11 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 | Affected areas | Target Areas | as-is |
 | Constraints / non-goals | Non-goals | as-is |
 | Structured Intent fields | Intent | authoritative unless contradicted |
-| Intent Lock / Intent Spec | Intent + Stop Condition + Acceptance Criteria | authoritative when challenge passed |
+| Intent Lock / Intent Spec | Intent + Stop Condition + Acceptance Criteria | legacy/structured input; authoritative when challenge passed |
 | Clarify / Grill-With-Me Log | Coverage Audit + Risks / Open Questions | confirms plan-changing ambiguity was resolved or remains blocking |
 | Zoom-Out Map | Repo Context + Target Areas + Architecture Assessment | preferred compressed system map; do not redo unless insufficient or contradicted |
-| Research Value Proof | Gate Check + Coverage Audit | required evidence that research adds planning value; weak/missing proof triggers extra scrutiny |
-| Plan Delta / planning_handoff | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals | compatibility adapter only; legacy `plan_delta` maps to `planning_handoff` with downgraded authority — must not become selected approach without engineering review |
+| Research Value Proof | Gate Check + Coverage Audit | consume when present; legacy/calibration input, not required for research.v3 |
+| Plan Delta / planning_handoff | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals | compatibility adapter only; legacy `plan_delta` maps to compatibility constraints/risks with downgraded authority — must not become selected approach without engineering review |
 | Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
 | Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
 | Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
@@ -365,22 +365,35 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 | Open questions (non-blocking) | Risks / Open Questions | pass-through |
 | Open questions (blocking) | BLOCK_PLAN | blocker |
 
-**pge-research v2 adaptation:**
+**pge-research adaptation:**
 
-When the selected source is a `pge-research` brief with v2 contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, `route`), consume those semantics explicitly:
+When the selected source is a `pge-research` brief, identify `schema_version` and consume it through the matching adapter.
+
+**research.v3 (current):**
+
+1. **Route gate.** Continue only when `route: READY_FOR_PLAN`. If route is `NEEDS_USER`, stop with `NEEDS_INFO` and direct the user to answer the research blocking question, then rerun `pge-research`; do not produce a ready plan from a non-ready research artifact. If route is `NEEDS_REPO_EVIDENCE`, route `RETURN_TO_RESEARCH` unless the current user prompt explicitly overrides the selected research artifact and authorizes direct planning from current context. If route is `BLOCKED`, stop and do not produce a plan artifact.
+2. **Source Contract Check.** Verify required v3 fields are present and usable, or explicitly `none` / `not_applicable`: `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant user/repo/architecture context, assumptions, `simplest_direction`, `rejected_directions`, blocking and non-blocking questions, route, and route reason. `blocking_questions` must be empty for `READY_FOR_PLAN`, and any conditional gate must have the field Plan must consume. Missing required v3 fields or a non-ready route must not be silently guessed.
+3. **Field mapping.** Consume v3 fields as follows: `Spec Discovery.goal` → plan goal; `success_shape` → acceptance baseline; `scope` and `non_goals` → plan scope/non-goals; `constraints` → Plan Constraints/forbidden areas; `Context.assumptions` → assumptions; `relevant_repo_or_architecture_context` → repo context; `Direction.simplest_direction` → approach candidate only; `Direction.rejected_directions` → rejected approach inputs; open questions → risks or blockers.
+4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
+5. **Progressive Feasibility.** If present, plan around `first_plannable_objective`, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice.
+6. **Plan owns approach selection.** `simplest_direction` is not a selected approach. Plan selects the implementation approach through engineering review.
+
+**research.v2 (legacy):**
+
+When the brief has v2 contract fields (`schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, `route`), consume those semantics explicitly:
 
 1. **Source Contract Check.** Before planning, verify: intent confirmed? scope explicit? success shape usable? `reality_alignment_proof` supports planning? If not → route `RETURN_TO_RESEARCH` or `NEEDS_INFO`. Do not silently do full intent research when the source is not plan-ready.
 2. **Confirmed intent becomes the plan's goal baseline.** Carry problem, goal, scope, non-goals, success shape, and "plan would be wrong if..." forward. Do not weaken them into a generic summary.
 3. **Planning handoff is boundary-preserving input.** Consume `planning_handoff` (facts plan must preserve, constraints plan must not violate, known invalid directions, likely affected areas, verification risks, unresolved blockers, and RAP citations) as constraints on plan design. Do not treat it as a hidden approach recommendation.
-4. **Research Value Proof must have a concrete delta.** If missing or empty, treat the research as a weak derived summary and run a stronger coverage/intent audit before trusting its framing. Do not blindly adopt an unproven research brief.
+4. **Research Value Proof is legacy/calibration input.** When present, use its concrete delta in coverage/intent audit. When absent, do not penalize a valid research.v3 brief solely for omitting it.
 5. **Zoom-Out Map limits re-exploration.** Use it as the system map when present. Re-read only the files needed to validate stale, low-confidence, or plan-changing claims.
 6. **Plan owns approach selection.** Research may provide intent framings, evidence, constraints, and known invalid directions as approach inputs. Plan selects the implementation approach through engineering review. Research recommendation of problem framing is informational, not a selected approach.
 
-Legacy compatibility: if an older research brief uses `plan_delta`, `Options`, and `Recommendation` instead of v2 fields, consume them as compatibility input only:
-- `plan_delta` maps to `planning_handoff` with downgraded authority
+Legacy compatibility: if an older research brief uses `plan_delta`, `Options`, and `Recommendation` instead of v2 or v3 fields, consume them as compatibility input only:
+- `plan_delta` maps to constraints/risks with downgraded authority
 - `Options` and `Recommendation` become approach candidates, not selected approach
 - Neither may become the selected approach without current plan engineering review
-- Fall back to legacy fields (`Intent`, `Findings`, `Affected Areas`) and record that v2 contract was unavailable
+- Fall back to legacy fields (`Intent`, `Findings`, `Affected Areas`) and record that current research contract fields were unavailable
 
 **Current constraint extraction:**
 
@@ -529,16 +542,15 @@ ten_out_of_ten_bar: <what would make this a 10/10 — aspirational target>
 
 ### Experience Context Gate
 
-`pge-plan` must explicitly consume the research-side `experience_design_context` surface when the task is human-facing or artifact-facing.
+`pge-plan` must explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets; legacy `experience_scope` / `design_surface_context` remain compatibility input only.
 
-**Inputs:**
-- `experience_scope`
-- `skip_reason`
-- `audience`
-- `artifact_purpose`
-- `experience_success_shape`
-- `what_would_disappoint`
-- optional constraints/references such as tone, design-system conventions, screenshots/mockups, and relevant fallback states
+**Inputs when present:**
+- surface or artifact being shaped
+- audience
+- experience success shape
+- what would disappoint or mislead the audience
+- existing conventions, rendered evidence, tone, or design-system constraints
+- generic/slop risks or other experience constraints for Plan
 
 **What this gate checks:**
 - whether the plan recognized that experience quality is part of success
@@ -546,8 +558,8 @@ ten_out_of_ten_bar: <what would make this a 10/10 — aspirational target>
 - whether acceptance, verification, and evidence reflect that context instead of silently dropping it
 
 **Gate outcomes:**
-- `PASS` — experience context exists and the plan consumes it clearly in acceptance / verification / evidence
-- `SKIP_NOT_APPLICABLE` — the task is purely internal or research already recorded `experience_scope: none` with an adequate `skip_reason`
+- `PASS` — relevant experience context exists and the plan consumes it clearly in acceptance / verification / evidence
+- `SKIP_NOT_APPLICABLE` — the task is purely internal, or no human-visible experience context is relevant to planning
 - `RETURN_TO_RESEARCH` — audience, experience success shape, or disappointment risk is unclear enough that the problem contract itself is not settled
 - `REWORK_PLAN` — research context is clear, but the plan failed to consume it in acceptance / verification / evidence
 - `NEEDS_INFO` — one specific human answer is still required and neither repo evidence nor research can resolve it
@@ -662,7 +674,9 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 ### Synthesize Intent
 
-If the upstream source has structured `pge-research` v2 fields or the minimum research contract fields, carry `Intent Spec` / `intent_spec` through as the plan's intent baseline instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations. Use `Intent Lock`, `clarify_status`, and the `Clarify / Grill-With-Me Log` to preserve what was explicitly asked, what was inferred, and what was clarified.
+If the upstream source has current `research.v3` fields, carry `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant context, assumptions, open questions, and any conditional gate outputs through as the plan's intent baseline instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations.
+
+If the upstream source has legacy `pge-research` v2 fields or older `Intent Spec` / `intent_spec` fields, carry them through as compatibility input. Use `Intent Lock`, `clarify_status`, and the `Clarify / Grill-With-Me Log` only when those legacy fields are present.
 
 If the upstream source only has legacy `Intent` fields, carry them through as before.
 

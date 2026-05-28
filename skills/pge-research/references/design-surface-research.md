@@ -1,59 +1,38 @@
-# Design Surface Research Contract
+# Design / Experience Research Calibration
 
-For visual, UI, workflow, documentation, CLI/prompt, or artifact-facing work, `pge-research` must be stronger than generic "user-facing context." It should absorb the useful research-side capabilities from gstack's `design-consultation`, `design-shotgun`, `design-review`, and `plan-design-review` without taking over their implementation or review authority.
+Use this reference only when the task has a human-visible surface and experience context would change planning. Examples include UI, documentation, CLI/prompt output, generated reports, workflow artifacts, or reviewable HTML/markdown surfaces.
 
-Run this design-surface contract whenever `experience_scope` is not `none`:
+This file calibrates optional Research behavior. It must not make `experience_scope`, `design_surface_context`, or `planning_handoff` mandatory `research.v3` fields.
 
-1. **Product and audience context** (`design-consultation`)
-   - Must do: identify what the product/artifact is, who it is for, what space it lives in, and what job the surface does for that audience.
-   - Evidence to write: `design_surface_context.product_or_surface`, `audience`, `artifact_purpose`, and `usage_context`.
-   - Enhanced check: if README, office-hours notes, existing docs, or current prompt do not make the product/audience clear, ask one focused question before planning.
-   - Fail route: if the audience or product job is still unknown and would change the experience direction, route `NEEDS_INFO`.
+## Boundary
 
-2. **Existing design system and local conventions** (`design-consultation`, `design-review`)
-   - Must do: check for `DESIGN.md`, `design-system.md`, local UI docs, existing components, and rendered or documented conventions that planning must preserve.
-   - Evidence to write: `design_surface_context.design_system_sources`, `design_system_status: explicit | inferred | absent`, and conventions planning must preserve.
-   - Enhanced check: if no design system exists, record that absence as a planning risk; do not invent a full design system in research.
-   - Fail route: if existing design system sources conflict and the conflict changes planning, ask the user which source is authoritative or route `NEEDS_INFO`.
+Research captures problem-side design/experience context. It may describe what the surface must communicate, what would disappoint the audience, and which constraints Plan should preserve. It must not choose final layout, component design, visual system, copy package, implementation approach, acceptance criteria, or verification path.
 
-3. **Landscape and category baseline** (`design-consultation`)
-   - Must do: when category fit matters, identify what users likely expect in this product category and what would feel generic or surprising.
-   - Evidence to write: `category_baseline`, `expected_conventions`, `generic_risks`, and any external or repo evidence used.
-   - Enhanced check: distinguish table-stakes conventions from opportunities to differentiate.
-   - Boundary: external visual research is optional and depends on available tools, user consent, and task risk; if skipped, record why.
-   - Fail route: if category expectations are central to success and no evidence or informed assumption is available, ask one question or route `NEEDS_INFO`.
+## When to use
 
-4. **Safe/risk design tradeoffs** (`design-consultation`, `design-shotgun`)
-   - Must do: capture where planning should play safe for literacy and where a deliberate risk could make the surface memorable.
-   - Evidence to write: `safe_tradeoffs`, `risky_tradeoffs`, what each risk gains, what it costs, and whether user confirmation is needed.
-   - Enhanced check: if a risky differentiator would change product positioning, brand tone, or user trust, ask the user instead of treating it as repo evidence.
-   - Boundary: research may frame safe/risk tradeoffs; it must not choose a final aesthetic system, palette, typography, or motion package.
+Use when a technically correct change could still fail because the human-facing surface is confusing, misleading, generic, off-tone, or hard to operate.
 
-5. **Divergent experience framings** (`design-shotgun`)
-   - Must do: when the user has not seen what the surface could become, compare 2-3 experience directions before narrowing.
-   - Evidence to write: `experience_framings` with audience feeling, hierarchy emphasis, density, tone, and risk if wrong.
-   - Enhanced check: each framing must name what it optimizes for and what it would sacrifice.
-   - Boundary: these are experience directions, not mockups or final layouts. Research may recommend what the experience should communicate; `pge-plan` owns implementation shape.
+Do not use for purely internal refactors, build tooling, tests, migrations, or protocol edits with no human-visible behavior unless the artifact itself is the user-facing product.
 
-6. **Design completeness dimensions** (`plan-design-review`)
-   - Must do: for plan-shaping UI/UX work, assess whether research has enough context for information architecture, visual hierarchy, interaction states, edge cases, responsive behavior, accessibility, content/microcopy, and trust.
-   - Evidence to write: `design_dimension_gaps` with any missing dimensions that would make planning under-specified.
-   - Enhanced check: empty, loading, error, first-time, power-user, long-content, mobile, keyboard, screen-reader, and reduced-motion states are user experiences, not polish.
-   - Fail route: if a missing dimension would change acceptance or core scope, route `NEEDS_INFO`; otherwise hand it to planning as a required constraint or risk.
+## What to capture
 
-7. **Rendered-experience evidence when available** (`design-review`)
-   - Must do: if an existing live/rendered surface is relevant and accessible, use screenshots, snapshots, or extracted rendered facts as evidence; if not available, record the limitation.
-   - Evidence to write: `visual_evidence_sources`, first-impression observations, actual fonts/colors/hierarchy when observed, and `rendered_evidence_limits` when evidence is unavailable or partial.
-   - Enhanced check: first-impression observations must state what the surface communicates at a glance and whether that matches the user's goal.
-   - Boundary: research records problem-side evidence; it does not run a full visual QA fix loop.
+Add an optional `Design / Experience Note` or concise Context/Direction bullets with only the dimensions that matter:
 
-8. **AI-slop and generic-design risk** (`design-review`, `plan-design-review`)
-   - Must do: identify whether the requested direction risks generic AI-looking output, card soup, centered-everything, decorative blobs, purple gradients, vague hero copy, or cookie-cutter section rhythm.
-   - Evidence to write: `anti_slop_risks` and constraints planning must preserve to avoid them.
-   - Enhanced check: if avoiding slop requires a product/brand choice, ask the user; otherwise record it as a planning constraint.
-   - Boundary: research flags and constrains slop risk; it does not redesign the surface.
+- **surface** — what artifact, workflow, UI, prompt, report, or document is being shaped
+- **audience** — who uses or reads it and in what context
+- **experience_success_shape** — what “good” should feel like or communicate
+- **what_would_disappoint** — how the result could be technically correct but experientially wrong
+- **existing conventions** — local docs, components, artifacts, tone, structure, or rendered evidence Plan should preserve
+- **generic/slop risks** — patterns that would make the surface feel undifferentiated or misleading
+- **open experience questions** — only those that change Plan and require user authority
 
-9. **Research-stage stop boundary**
-   - Must do: stop after recording design context and design risks in the research brief.
-   - Evidence to write: `planning_handoff` entries for design facts, constraints, invalid directions, and verification risks.
-   - Boundary: do not create design variants, preview pages, DESIGN.md, screenshots for presentation, plan edits, or code changes inside `pge-research`.
+## Route impact
+
+- `READY_FOR_PLAN` is valid when experience context is sufficient for Plan to choose implementation details.
+- `NEEDS_USER` when a product, audience, tone, trust, or positioning choice is required and cannot be inferred.
+- `NEEDS_REPO_EVIDENCE` when existing surface conventions or rendered behavior must be inspected before planning.
+- `BLOCKED` when the requested surface cannot be evaluated or changed under current constraints.
+
+## Stop rule
+
+After recording the relevant design/experience context, return to the main `pge-research` flow and write the `research.v3` brief. Do not create mockups, screenshots for presentation, design variants, preview pages, or code changes inside Research.

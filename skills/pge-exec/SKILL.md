@@ -4,7 +4,7 @@ description: >
   Execute canonical .pge/tasks-<slug>/plan.md issues using concurrent Generator workers
   and final Evaluator verification over the composed run. pge-exec owns dispatch,
   scheduling, state, evidence alignment, bounded repair, and the final execution route.
-version: 1.0.3
+version: 1.0.4
 argument-hint: "<task-slug> [--run-id <run_id>] | .pge/tasks-<slug>/plan.md [--run-id <run_id>] | repair review findings for <task-slug>"
 allowed-tools:
   - TeamCreate
@@ -87,6 +87,8 @@ Exec does not normalize external plans, promote durable knowledge, mutate the pl
 - Do not use `implementation-notes.md` to change scope, rewrite acceptance, waive verification, or approve plan-changing deviations.
 - Do not output `PASS`, `MERGED`, `SHIPPED`, or `READY_TO_SHIP` as the exec route.
 - Do not advance state from idle notifications, startup prose, or partial summaries.
+- Do not proceed with agent dispatch if `lane_ready` indicates auth, startup, channel, or registration failure.
+- Do not silently ignore agent startup errors. Record them and use startup fallback when allowed.
 - Do not wait indefinitely for a lane. If no meaningful progress is visible, run Progress Watchdog recovery.
 - Do not leave any runtime exception in an unknown or unowned state.
 
@@ -165,12 +167,16 @@ team_name = "pge-<run_id>"
 
 TeamCreate(team_name=team_name)
 
-Agent(subagent_type="<generator_subagent_type>", team_name=team_name, name="generator")
-Agent(subagent_type="<evaluator_subagent_type>", team_name=team_name, name="evaluator")
+# Defaults. Project-specific/custom subagent types may replace these only when
+# explicitly available and they satisfy the same lane protocol below.
+Agent(subagent_type="general-purpose", team_name=team_name, name="generator")
+Agent(subagent_type="agent-skills:code-reviewer", team_name=team_name, name="evaluator")
 
 # Optional scaling only after dependency / Target Area checks:
-Agent(subagent_type="<generator_subagent_type>", team_name=team_name, name="generator-2")
+Agent(subagent_type="general-purpose", team_name=team_name, name="generator-2")
 
+# After spawn, verify runtime registration and lane_ready before any dispatch.
+# After terminal route, request shutdown from every active lane:
 SendMessage(message={"type": "shutdown_request"}, to="generator")
 SendMessage(message={"type": "shutdown_request"}, to="evaluator")
 # wait for protocol-level shutdown approval or teammate termination from active lanes,
@@ -185,7 +191,7 @@ Agent resolution:
 | `generator` | `general-purpose` | develop, run UT/verification, self-review, return candidate |
 | `evaluator` | `agent-skills:code-reviewer` | verify the composed run against the plan, plus targeted risk checks when explicitly dispatched |
 
-If project-specific `generator` or `evaluator` subagent types exist and are available in the current runtime, they may be used. Otherwise use the default `general-purpose` / `agent-skills:code-reviewer` lane types while preserving PGE lane names `generator` and `evaluator`. If neither default is available, route `BLOCKED` instead of silently substituting a main-thread fallback.
+If project-specific `generator` or `evaluator` subagent types exist and are explicitly available in the current runtime, they may be used. Otherwise use the default `general-purpose` / `agent-skills:code-reviewer` lane types while preserving PGE lane names `generator` and `evaluator`. Custom lanes must still register as native Team members, inherit the parent session's authentication/runtime state, expose non-null `agentType` matching the selected subagent type, use `backendType: in-process`, and implement the same `lane_ready`, dispatch, progress, terminal packet, and shutdown protocol. If neither default nor configured custom lane can pass startup verification, use the Fallback Protocol below for startup/channel failures only.
 
 Generator and Evaluator are complementary peer lanes under main coordination. Main owns routing, concurrent scheduling, state, health monitoring, bounded repair scheduling, completion transitions, and the final execution route. Generator owns implementation quality before handoff. Evaluator owns independent final verification and explicitly dispatched targeted risk checks. A `generator_completion READY` means candidate implementation is produced with evidence, not that the issue or run is finally verified.
 
@@ -198,26 +204,50 @@ status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
+Agent Startup Verification happens after `Agent(...)` spawn and before any execution or evaluation dispatch:
+- Wait up to 30 seconds for the lane's structured `lane_ready` packet.
+- Verify the lane is registered in the Team runtime with the expected lane name, non-null `agentType` matching the selected subagent type, `backendType: in-process`, and current task `cwd`.
+- Treat `Not logged in`, token missing, separate `/login` request, external initialization request, inability to receive `SendMessage`, or inability to reply through the Team channel as startup/auth failure, not as an implementation blocker.
+- Record startup verification in `state.json` `lane_health` before dispatch.
+
 Preflight checks:
 - `TeamCreate` succeeded and returned/registered a team name.
 - Required lanes exist by team name: `generator`, `evaluator`.
-- Each lane was created through `Agent(..., team_name=team_name, name=<lane>)`, not through a shell process.
-- Each lane's configured `subagent_type` is available in the current runtime.
-- Each lane sends valid `lane_ready`.
+- Each lane was created through `Agent(subagent_type=<selected_type>, team_name=team_name, name=<lane>)`, not through a shell process.
+- Each lane's selected `subagent_type` is available in the current runtime and appears as the lane's non-null `agentType`.
+- Each lane sends valid `lane_ready` within the startup timeout.
 
 Invalid lane states:
 - OS process exists but lane is not registered in the Team system.
-- Lane shows `Not logged in`, cannot receive `SendMessage`, or cannot reply through the Team channel.
+- Lane `agentType` is missing, null, or does not match the selected default/custom subagent type.
+- Lane `backendType` is not `in-process`.
+- Lane shows `Not logged in`, token missing, cannot receive `SendMessage`, or cannot reply through the Team channel.
 - Lane replies only with idle/startup text and no structured readiness after one nudge.
 - Lane requires a separate CLI login or external initialization.
 
 Recovery:
-- If `TeamCreate` or one lane spawn fails, cleanup the current team context and retry once with the same team name.
-- If retry still fails, route `BLOCKED`.
-- If `generator` remains unavailable, route `BLOCKED` with `team_runtime_unavailable: generator`.
-- If `evaluator` remains unavailable, route `BLOCKED` for final verification or any explicitly dispatched targeted check; do not silently downgrade final plan alignment to Generator-only review.
-- A replacement lane is not usable until it sends valid `lane_ready`.
-- Non-Team fallback is not a valid `pge-exec` execution mode. If native Team lanes cannot run, route `BLOCKED` or use a separately documented execution path outside this skill.
+- If `TeamCreate` fails before any lane exists, cleanup and retry once.
+- If lane spawn fails before registration, cleanup and retry once with the same selected default/custom `subagent_type`.
+- If a lane registers but fails Agent Startup Verification because of auth/startup/channel readiness, do not retry spawn; record the failure and use the Fallback Protocol for the affected issue or evaluation scope.
+- If retry still cannot create a usable team or startup fallback cannot produce required evidence, route `BLOCKED`.
+- If `generator` remains unavailable for normal lane execution, either use startup-only fallback for affected issues or route `BLOCKED` with `team_runtime_unavailable: generator` when fallback is not allowed.
+- If `evaluator` remains unavailable for final verification or targeted checks, use main-thread fallback verification only when startup/auth/channel failure is recorded; otherwise route `BLOCKED`.
+- A replacement lane is not usable until it sends valid `lane_ready` and passes Agent Startup Verification.
+
+### Fallback Protocol
+
+Fallback is a startup/channel recovery path, not a general execution mode.
+
+Use `main_thread_fallback` only when `TeamCreate`, lane spawn, runtime registration, `lane_ready`, or startup/auth/channel verification fails before execution work begins. Examples: spawn failure, invalid lane registration, `lane_ready` timeout, `Not logged in`, token missing, separate `/login` request, or inability to communicate through the Team channel.
+
+When startup fallback is activated:
+1. Record the failure in `state.json` `lane_health` with `startup_status: FAILED`, `startup_failure_surface: team_auth_failure | lane_ready_timeout | invalid_lane_registration | spawn_failure | channel_unavailable`, selected `agent_type`, observed `backend_type`, and `execution_mode: main_thread_fallback` for the affected issue or evaluation scope.
+2. Main thread executes the issue directly from the same execution brief and emits the same evidence shape required of `generator_completion`.
+3. Main thread performs evaluator-equivalent checks for final or targeted evaluation scopes when evaluator startup/channel readiness fails, using the same criteria as `evaluator_verdict`.
+4. Candidate Gate, evidence requirements, implementation notes, Diagnostic Recovery, final review, manifest writing, and route rules still apply.
+5. Do not use fallback for ordinary implementation, verification, Candidate Gate, Evaluator `RETRY`, or code-quality failures after a lane has passed startup verification. Those remain Generator repair, Evaluator repair, Diagnostic Recovery, `NEEDS_HUMAN`, `PARTIAL`, or `BLOCKED` according to the normal issue loop.
+
+Do not silently ignore startup errors. A fallback run must be visible in `state.json`, `manifest.md`, and `implementation-notes.md` when the fallback changes execution ownership.
 
 Progress Watchdog:
 - On every dispatch, record `lane`, `issue_id` or evaluation scope, `expected_next_packet`, `last_meaningful_progress`, `status_requests_sent`, and `recovery_attempts` in `state.json`.
@@ -264,8 +294,14 @@ For each ready issue:
    - `out_of_scope_confirmed`: adjacent work, non-goals, and forbidden changes that must not be touched
    - `what_not_to_infer`: assumptions Generator must not invent from surrounding context
    Target Areas remain scope boundaries, not procedural instructions to make arbitrary edits in those files.
-3. Dispatch Generator using `skills/pge-exec/handoffs/generator.md`.
-4. Require exactly one terminal `generator_completion` packet for that attempt.
+3. Dispatch Generator using `skills/pge-exec/handoffs/generator.md` only after the target lane has passed Agent Startup Verification. Send the execution brief through the Team channel:
+
+   ```text
+   SendMessage(to="generator", message="---BEGIN EXECUTION BRIEF DATA---\n...\n---END EXECUTION BRIEF DATA---")
+   ```
+
+   If Generator startup/channel readiness failed before dispatch and fallback is active, main consumes the same execution brief directly and records `execution_mode: main_thread_fallback`.
+4. Require exactly one terminal `generator_completion` packet for that attempt, or the same packet-shaped evidence from main when startup fallback owns the attempt.
 5. Candidate Gate: validate Generator's own completion contract before any integration:
    - deliverable exists for `READY`
    - evidence is present and matches Required Evidence
@@ -286,8 +322,14 @@ For each ready issue:
    - Contract-blocked may record issue `BLOCKED` and continue only with independent issues.
 7. If Candidate Gate fails, do not dispatch Evaluator. Send one bounded repair request to Generator when the failure is locally repairable; otherwise classify it as implementation-blocked or contract-blocked.
 8. If Candidate Gate passes, mark the issue `GENERATED`, record candidate evidence, and continue dispatching independent Generator work when dependencies and Target Areas allow it.
-9. If an exceptional targeted Evaluator check is required before safe continuation, dispatch Evaluator with the bounded question, affected issue criteria, affected changed files, and Generator evidence using `skills/pge-exec/handoffs/evaluator.md`.
-10. Require exactly one terminal `evaluator_verdict` for each targeted check sent to Evaluator.
+9. If an exceptional targeted Evaluator check is required before safe continuation, dispatch Evaluator with the bounded question, affected issue criteria, affected changed files, and Generator evidence using `skills/pge-exec/handoffs/evaluator.md` only after evaluator startup verification passes. Send evaluation data through the Team channel:
+
+   ```text
+   SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")
+   ```
+
+   If Evaluator startup/channel readiness failed before dispatch and fallback is active, main performs the same bounded check directly and records `execution_mode: main_thread_fallback` for the evaluation scope.
+10. Require exactly one terminal `evaluator_verdict` for each targeted check sent to Evaluator, or the same verdict-shaped evidence from main when startup fallback owns the check.
 11. Apply targeted verdict:
     - `PASS`: keep the candidate `GENERATED` and continue.
     - `RETRY` with `failure_attribution: sibling_issue | newly_added_run_file`: route `shared_tree_contamination`; set affected issues to `HELD`, promote the implicated source issue/file to priority repair or main-thread takeover, recover the tree, then rerun affected verification.
@@ -475,6 +517,11 @@ State file shape:
   "generators": ["generator"],
   "lane_health": {
     "generator": {
+      "agent_type": "general-purpose",
+      "backend_type": "in-process",
+      "startup_status": "READY | FAILED | NOT_STARTED",
+      "startup_failure_surface": "none | team_auth_failure | lane_ready_timeout | invalid_lane_registration | spawn_failure | channel_unavailable",
+      "execution_mode": "agent | main_thread_fallback",
       "issue_id": "3",
       "expected_next_packet": "generator_completion",
       "last_meaningful_progress": "<timestamp or state transition id>",
@@ -482,6 +529,11 @@ State file shape:
       "recovery_attempts": 0
     },
     "evaluator": {
+      "agent_type": "agent-skills:code-reviewer",
+      "backend_type": "in-process",
+      "startup_status": "READY | FAILED | NOT_STARTED",
+      "startup_failure_surface": "none | team_auth_failure | lane_ready_timeout | invalid_lane_registration | spawn_failure | channel_unavailable",
+      "execution_mode": "agent | main_thread_fallback",
       "evaluation_scope": "final_run",
       "expected_next_packet": "evaluator_verdict",
       "last_meaningful_progress": "<timestamp or state transition id>",
@@ -490,9 +542,9 @@ State file shape:
     }
   },
   "issues": {
-    "1": {"status": "GENERATED", "attempts": 1, "generator": "generator"},
-    "2": {"status": "HELD", "attempts": 1, "generator": "generator", "reason": "waiting for shared-tree repair"},
-    "3": {"status": "GENERATING", "attempts": 0, "generator": "generator"},
+    "1": {"status": "GENERATED", "attempts": 1, "generator": "generator", "execution_mode": "agent"},
+    "2": {"status": "HELD", "attempts": 1, "generator": "generator", "execution_mode": "agent", "reason": "waiting for shared-tree repair"},
+    "3": {"status": "GENERATING", "attempts": 0, "generator": "generator", "execution_mode": "agent | main_thread_fallback"},
     "4": {"status": "PENDING", "attempts": 0},
     "5": {"status": "BLOCKED", "reason": "...", "attempts": 2}
   },
@@ -521,6 +573,8 @@ Issue status values: `PENDING`, `GENERATING`, `GENERATED`, `BLOCKED`, `HELD`, `P
 
 Write `state.json` after every state transition, not batched at the end. On resume, skip issues already marked `PASS`. Treat in-flight issues (`GENERATING`, `HELD`) as `PENDING` and re-execute them from scratch unless a matching `active_repair_contract` explicitly owns their recovery. Treat `GENERATED` issues as reusable candidates only when the rollback tag, changed files, run artifacts, and plan identity still match; otherwise re-execute them from scratch. `PASS` is assigned after final Evaluator verification, not after Generator completion.
 
+`execution_mode: main_thread_fallback` is valid only when paired with a recorded pre-dispatch startup/channel failure in `lane_health`. It must not appear as a generic repair shortcut after a lane has passed Agent Startup Verification.
+
 Session hygiene:
 - Normal: keep active session below roughly 30-40% context when possible.
 - Warning: around 50%, finish the current issue, persist state, and avoid starting a new issue in the same context.
@@ -543,8 +597,12 @@ Minimum exception routing:
 | repair artifact run reference missing or unreadable | route run `BLOCKED`, reject the artifact, recommend rerunning the matching review/challenge, and do not reuse the artifact as repair truth |
 | repair artifact plan identity mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
 | repair artifact reviewed head / base / diff fingerprint mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
-| TeamCreate or lane spawn failure | cleanup, retry once, then `BLOCKED` |
-| missing `lane_ready` | retry/rebuild once, then `BLOCKED` |
+| TeamCreate failure before lane registration | cleanup, retry once; if still unavailable, record `startup_failure_surface: spawn_failure` and route `BLOCKED` unless startup fallback can produce required evidence for the affected scope |
+| lane spawn failure before dispatch | cleanup, retry once with the same selected default/custom `subagent_type`; if still unavailable, record `startup_failure_surface: spawn_failure` and use startup fallback for the affected issue or evaluation scope when allowed |
+| invalid lane registration (`agentType` missing/null/mismatch, wrong lane name, wrong backend, wrong cwd) | do not dispatch; record `startup_failure_surface: invalid_lane_registration`; use startup fallback when allowed, otherwise `BLOCKED` |
+| `lane_ready` timeout or malformed readiness after one nudge | do not dispatch; record `startup_failure_surface: lane_ready_timeout`; use startup fallback when allowed, otherwise `BLOCKED` |
+| `lane_ready` or startup text reports auth/channel failure (`Not logged in`, token missing, `/login`, cannot receive/reply) | do not dispatch and do not retry spawn; record `startup_failure_surface: team_auth_failure | channel_unavailable`; use startup fallback when allowed |
+| startup fallback selected but required generator/evaluator-shaped evidence is missing | route `BLOCKED`; do not claim fallback completion |
 | generator `BLOCKED` from compile/include/type/local interface failure | classify as implementation-blocked; hold dependent or contaminated issues; schedule bounded repair or main takeover; retry verification after the tree is buildable |
 | generator `BLOCKED` from sibling issue or newly added file breaking verification | route `shared_tree_contamination`; issue under verification becomes `HELD`; contaminating source becomes priority repair; rerun held verification after recovery |
 | generator `BLOCKED` from plan/scope/user-decision dependency | classify as contract-blocked; record issue `BLOCKED`; continue only with independent issues |
@@ -586,6 +644,8 @@ Headless mode must not turn missing human confirmation into approval, missing hu
 ## Final Review
 
 Evaluator validates the composed run against the canonical plan before route decisions. It checks plan alignment, acceptance/evidence coverage, implementation logic, stop condition, integration, and regression risk. Final Review Gate is the separate whole-diff / cross-issue code review after final Evaluator verification.
+
+Final Evaluator verification uses `skills/pge-exec/handoffs/evaluator.md` and must follow the same startup-gated dispatch path as targeted checks: evaluator passes Agent Startup Verification, main sends `SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")`, and main waits for exactly one terminal `evaluator_verdict`. If evaluator startup/channel readiness failed before dispatch and startup fallback is active, main performs evaluator-equivalent final verification directly and records `execution_mode: main_thread_fallback` for `evaluation_scope: final_run`.
 
 Run Final Review Gate for every completed execution before routing `SUCCESS`. There is no LIGHT skip. Small, low-risk runs use a compact review shape, but they still must produce a final-review verdict and write `.pge/tasks-<slug>/runs/<run_id>/review.md`. The simplification is review depth and report size, not whether review happens.
 
@@ -659,7 +719,7 @@ Write runtime facts only:
 └── review.md      # required for completed executions before SUCCESS
 ```
 
-Manifest should include run metadata, plan id, plan path, run selection, rollback tag, skipped issues, issue results, implementation-notes path plus note count by type, verification summary, final route, exception records, and reusable knowledge candidates with evidence references.
+Manifest should include run metadata, plan id, plan path, run selection, rollback tag, skipped issues, issue results, implementation-notes path plus note count by type, verification summary, lane startup summary, fallback count and affected issues/evaluation scopes, final route, exception records, and reusable knowledge candidates with evidence references.
 
 `implementation-notes.md` should stay concise and append-only within a run. It records decisions the plan did not spell out, in-scope deviations and their rationale, tradeoffs made to preserve scope or simplicity, blocked decisions that routed upstream, follow-ups intentionally parked outside the current run, and verification gaps or uncertainty that remain. If there are no notes, write a single line: `No execution-time decisions, deviations, tradeoffs, follow-ups, or verification gaps recorded.`
 

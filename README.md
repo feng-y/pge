@@ -18,7 +18,7 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 
 PGE uses fixed interfaces with flexible expression.
 
-- Research must expose `schema_version`, `intent_framings`, `confirmed_intent`, `scope_contract`, `success_shape`, `experience_scope`, conditional `design_surface_context`, `upstream_contract`, `evidence`, `reality_alignment_proof`, `ambiguities`, `interactive_alignment`, `planning_handoff`, and `route`.
+- Research must expose `schema_version: research.v3`, goal, success shape, scope, non-goals, constraints, task-relevant context, simplest direction, open questions, and route. Implementation Friction and Progressive Feasibility are conditional gates only.
 - Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `acceptance`, `verification`, `evidence_required`, and `risks`.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, any plan deviations, any stalled-lane recovery, and any Diagnostic Recovery record for unclear or repeated development failures.
 - Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.
@@ -49,7 +49,7 @@ If you are used to all-in-one feature development workflows, map the PGE stages 
 
 | Plain phase | PGE surface | Role |
 |---|---|---|
-| Discovery / exploration | `pge-research` | Understand intent, scope, success shape, and repo evidence. |
+| Discovery / exploration | `pge-research` | Clarify goal, success shape, scope, constraints, relevant context, and route. |
 | Design / architecture | `pge-plan` | Choose the approach and produce executable issue contracts. |
 | Implementation | `pge-exec` | Execute ready issues with evidence and run artifacts. |
 | Quality review | `pge-review` / `pge-challenge` | Check alignment, verification, simplicity, and prove-it concerns. |
@@ -63,7 +63,7 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 
 | Stage | PGE surface | Artifact / gate |
 |---|---|---|
-| Research | `pge-research` | `.pge/tasks-<slug>/research.md` with intent/evidence contract |
+| Research | `pge-research` | `.pge/tasks-<slug>/research.md` with lightweight `research.v3` spec-discovery contract |
 | Plan | `pge-plan` | `.pge/tasks-<slug>/plan.md` with executable issue contract and Final Plan Gate |
 | Plan (external) | `pge-plan` fast-adopt | canonical `.pge/tasks-<slug>/plan.md` adopted from a complete external plan after Final Plan Gate |
 | Execute | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
@@ -78,7 +78,7 @@ PGE can also adopt plans produced by other workflows. If a Claude plan mode outp
 
 Skills you use in sequence to go from fuzzy intent to verified code.
 
-- **[`/pge-research`](./skills/pge-research/SKILL.md)** — Align research understanding with the user's real intent before planning. Use when intent is still fuzzy, multiple interpretations seem viable, or the task touches unfamiliar code. Reads the repo, resolves ambiguity from code and docs, captures problem-side experience/design context when the task shapes a human-facing or artifact-facing surface, and writes the minimum intent/evidence contract that feeds planning.
+- **[`/pge-research`](./skills/pge-research/SKILL.md)** — Produce a lightweight `research.v3` spec-discovery brief before planning. Use when goal, success shape, scope, constraints, or repo reality is not clear enough for fair planning. Separates original goal A from implementation hypothesis B, records task-relevant context, triggers Implementation Friction or Progressive Feasibility only when needed, and stops with an explicit route.
 
 - **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded, engineering-reviewed plan under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, evidence requirements, forbidden areas, depth-scaled engineering review, repo reality checks, and a Final Plan Gate that must pass before `pge-exec`. Also supports fast-adopt for explicit external plans that are already clear and complete.
 
@@ -134,5 +134,5 @@ Local development:
 Check progress:
 
 ```bash
-./bin/pge-progress-report.sh
+./bin/pge-progress-report.sh <progress.jsonl-or-task-dir>
 ```

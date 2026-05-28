@@ -41,6 +41,8 @@ status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
+`lane_ready` is startup verification, not issue completion. If startup/auth/channel readiness fails before work is dispatched, send `status: BLOCKED` with a concrete reason such as `Not logged in`, token missing, `/login` requested, invalid lane registration, or Team channel unavailable. Do not ask the user to run `/login`, retry authentication, or start issue work after startup failure; main records the failure and owns any `main_thread_fallback` decision.
+
 On teardown, when main sends `shutdown_request`, `generator` must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
 
 Human-readable acknowledgement format:
@@ -54,7 +56,13 @@ reason: <none or one sentence>
 
 ## Dispatch Protocol
 
-Send to `generator` for each issue. Generator is a resident teammate — stays alive across issues until it acknowledges shutdown.
+Main sends each issue brief only after `generator` has passed Agent Startup Verification, using the Team channel:
+
+```text
+SendMessage(to="generator", message="---BEGIN EXECUTION BRIEF DATA---\n...\n---END EXECUTION BRIEF DATA---")
+```
+
+Generator is a resident teammate — stays alive across issues until it acknowledges shutdown.
 
 Generator owns implementation, local verification, self-review, and evidence production for its assigned issue candidate. It should start work when dispatched and must not wait for a fixed per-issue Evaluator hop before doing implementation work.
 

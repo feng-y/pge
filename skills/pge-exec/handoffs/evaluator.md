@@ -41,6 +41,8 @@ status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
+`lane_ready` is startup verification, not evaluation completion. If startup/auth/channel readiness fails before work is dispatched, send `status: BLOCKED` with a concrete reason such as `Not logged in`, token missing, `/login` requested, invalid lane registration, or Team channel unavailable. Do not ask the user to run `/login`, retry authentication, or start verification work after startup failure; main records the failure and owns any `main_thread_fallback` decision.
+
 On teardown, when main sends `shutdown_request`, `evaluator` must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
 
 Human-readable acknowledgement format:
@@ -79,6 +81,12 @@ reason: progress_watchdog_no_meaningful_progress
 Respond with the expected `evaluator_verdict`, a concrete `progress_update`, or `evaluator_verdict` with `verdict: BLOCK`. Repeated "still working" responses without concrete new evidence are treated as a stall.
 
 ## Dispatch Protocol
+
+Main sends evaluation data only after `evaluator` has passed Agent Startup Verification, using the Team channel:
+
+```text
+SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")
+```
 
 Send to `evaluator` for final run-level verification over the composed run after Generator candidates have been produced, or for an explicit targeted risk check when main needs independent review before generation can safely continue. This lane is not a mandatory serial hop after every issue, not Generator's serial reviewer, and not the checker for each Generator candidate.
 

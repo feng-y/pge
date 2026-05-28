@@ -1,105 +1,155 @@
 # Research Brief Examples
 
-Reference examples for pge-research output. Load only when needed for calibration.
+Reference examples for `pge-research` output. Load only when needed for calibration.
 
-## Example 1: Simple (single option, 0 questions)
+## Example 1: Simple v3 brief, 0 questions
 
 ```markdown
 # Research: add-dark-mode-toggle
 
+schema_version: research.v3
+route: READY_FOR_PLAN
+
+## 1. Spec Discovery
+
+- user_request: Add a dark mode toggle; no code yet, research current theming and safest direction.
+- goal: Let users switch themes from the existing settings/preferences flow.
+- success_shape: Planning can add a toggle that uses the existing theme mechanism without redesigning the theme system.
+- scope: Settings toggle, theme values, preference persistence.
+- non_goals: Full theme redesign; new theming library; unrelated settings cleanup.
+- constraints: Preserve existing CSS custom property pattern.
+
+## 2. Context
+
+- relevant_user_context: User wants research before code.
+- relevant_repo_or_architecture_context:
+  - Theme system uses CSS custom properties in `src/styles/theme.css`.
+  - Settings panel has an existing preferences section in `src/components/Settings.tsx`.
+  - Other preferences persist through `src/utils/preferences.ts`.
+- assumptions:
+  - Initial default can follow existing preference conventions unless Plan finds a stronger local pattern.
+
+## 3. Direction
+
+- simplest_direction: Add the toggle through the existing settings and preference path, using CSS custom properties.
+- rejected_directions:
+  - Full theme-system redesign — outside requested scope.
+  - New theming library — unnecessary given existing CSS variable pattern.
+- why_this_is_enough_for_plan: Goal, scope, constraints, and likely affected surfaces are clear enough for Plan to choose implementation details.
+
+## 4. Open Questions
+
+- blocking_questions: none
+- non_blocking_questions: none
+
+## 5. Route
+
+- route: READY_FOR_PLAN
+- route_reason: Plan can proceed without inventing user intent or repo reality.
+
 ## Metadata
+
 - research_id: 20260509-1430-dark-mode-toggle
 - date: 2026-05-09
-- route: READY_FOR_PLAN
-
-## Intent
-User wants a dark mode toggle in the settings panel so people can switch themes without leaving the existing preferences flow. Theming already exists, so the boundary is adding a user-facing toggle rather than redesigning the theme system.
-
-## Findings
-- Theme system uses CSS custom properties defined in `src/styles/theme.css:1-45` — source: src/styles/theme.css:1
-- Settings panel component at `src/components/Settings.tsx:22` has an existing preferences section — source: src/components/Settings.tsx:22
-- No existing dark mode implementation found — source: grep across src/
-- localStorage is used for other preferences (language, notifications) — source: src/utils/preferences.ts:8
-
-## Affected Areas
-- src/styles/theme.css — reason: add dark color values
-- src/components/Settings.tsx — reason: add toggle UI
-- src/utils/preferences.ts — reason: persist preference
-
-## Constraints
-- Must work with existing CSS custom property system
-
-## Assumptions
-- Toggle persists via localStorage (consistent with existing preference pattern) — reason: other preferences already use this
-- System preference detection (prefers-color-scheme) as initial default — reason: standard UX practice
-
-## Planning Handoff
-- facts_plan_must_preserve: existing CSS custom property system works, localStorage pattern established
-- constraints_plan_must_not_violate: must use existing custom property system, not introduce new theming library
-- known_invalid_directions: full theme system redesign (out of scope)
-- likely_affected_areas: src/styles/theme.css, src/components/Settings.tsx, src/utils/preferences.ts
-- verification_risks: none significant
-- unresolved_blockers: none
-
-## Open Questions
-- None
-
-## Next
-- next_skill: pge-plan
 - task_dir: .pge/tasks-dark-mode-toggle/
 ```
 
-## Example 2: Complex (multiple framings, 1 question asked)
+## Example 2: Implementation Friction
 
 ```markdown
-# Research: rethink-state-management
+# Research: lighten-research-contract
 
-## Metadata
-- research_id: 20260509-1500-state-management
-- date: 2026-05-09
+schema_version: research.v3
+route: READY_FOR_PLAN
+
+## 1. Spec Discovery
+
+- user_request: Remove heavy Research handoff fields so Research is lightweight.
+- goal: Make Research lighter without breaking downstream Plan consumption.
+- success_shape: Planning receives a safe migration target instead of deleting fields that are still consumed.
+- scope: Research output contract and Plan input compatibility.
+- non_goals: Exec redesign; broad historical cleanup.
+- constraints: Preserve downstream compatibility during the transition.
+
+## 2. Context
+
+- relevant_user_context: User wants Research to stop behaving like a heavy template.
+- relevant_repo_or_architecture_context:
+  - Plan currently consumes legacy `planning_handoff` semantics.
+- assumptions: Legacy v2 consumption can remain as compatibility while v3 becomes current.
+
+## 3. Direction
+
+- simplest_direction: Make `research.v3` current and add a minimal Plan adapter that still accepts v2.
+- rejected_directions:
+  - Hard-delete `planning_handoff` everywhere — breaks current Plan assumptions.
+- why_this_is_enough_for_plan: Plan has a clear compatibility boundary and can choose the execution slice.
+
+## 4. Open Questions
+
+- blocking_questions: none
+- non_blocking_questions: none
+
+## Conditional: Implementation Friction
+
+- expected_understanding: Research can remove the old handoff fields directly.
+- actual_implementation_reality: Plan still consumes legacy handoff semantics.
+- conflict: Direct deletion would break downstream planning assumptions.
+- why_it_matters_for_plan: Plan must authorize compatibility migration, not hard removal.
+- required_plan_adjustment: Add research.v3 consumption while preserving v2 compatibility.
+
+## 5. Route
+
 - route: READY_FOR_PLAN
+- route_reason: Friction is resolved into a safe required Plan adjustment.
+```
 
-## Intent
-User wants to replace the current ad-hoc state management because prop drilling is now hurting maintainability as the app grows. The likely boundary is client-side state structure, not server-state fetching, unless later answers expand the scope.
+## Example 3: Progressive Feasibility
 
-## Findings
-- 14 components use prop drilling deeper than 3 levels — source: grep -r "props\." src/components/ (manual count)
-- Current state lives in App.tsx with 8 useState hooks — source: src/App.tsx:15-42
-- Two existing context providers (AuthContext, ThemeContext) — source: src/contexts/
-- No existing state management library in package.json — source: package.json
-- Bundle size budget mentioned in CLAUDE.md: "keep bundle under 200KB" — source: CLAUDE.md:34
-- React 18 used, concurrent features not yet adopted — source: package.json:12
+```markdown
+# Research: full-workflow-protocol-redesign
 
-## Affected Areas
-- src/App.tsx — reason: state currently lives here
-- src/components/ (14 files) — reason: prop drilling removal
-- src/contexts/ — reason: may expand or replace
-- package.json — reason: potential new dependency
+schema_version: research.v3
+route: READY_FOR_PLAN
 
-## Constraints
-- Bundle size budget: under 200KB total
-- React 18 (no React 19 features)
+## 1. Spec Discovery
 
-## Assumptions
-- Server state (API calls) is separate concern, not in scope — reason: user said "state management" not "data fetching" (confirmed via question)
+- user_request: Redesign Research, Plan, Exec, Review, docs, evals, and historical references around a universal protocol.
+- goal: Move PGE toward a lighter, more general discovery-to-execution contract without breaking the active pipeline.
+- success_shape: The first plan moves one safe structural boundary and leaves later redesign explicit.
+- scope: Determine whether the direct goal can be planned safely.
+- non_goals: Full Exec redesign; Review/Challenge redesign; historical archive cleanup in the first slice.
+- constraints: Preserve Research → Plan → Exec → Review / Challenge → Ship.
 
-## Planning Handoff
-- facts_plan_must_preserve: 2 existing contexts work (AuthContext, ThemeContext), React 18 concurrent features available but not yet adopted
-- constraints_plan_must_not_violate: bundle budget under 200KB, must not break existing context consumers
-- known_invalid_directions: keeping current prop drilling (user explicitly wants change), adopting React 19 features (not available)
-- likely_affected_areas: src/App.tsx, src/components/ (14 files), src/contexts/, package.json
-- verification_risks: partial migration may leave inconsistent state access patterns
-- unresolved_blockers: none
+## 2. Context
 
-Approach candidates for plan engineering review:
-- Expand React Context + useReducer: proven in codebase (2 contexts exist), verbose with many contexts, no devtools
-- Zustand: 2.9KB gzipped (fits budget), minimal boilerplate, closest to existing useState mental model
-- Jotai: 3.4KB gzipped, granular re-renders, different mental model (atoms vs stores)
+- relevant_user_context: User wants the workflow improved but bounded.
+- relevant_repo_or_architecture_context: Multiple active skill/docs/evals consume current Research semantics.
+- assumptions: A first compatibility slice can be verified statically.
 
-## Open Questions
-- Should we migrate incrementally or all-at-once? — blocks_plan: no
+## 3. Direction
 
-## Next
-- next_skill: pge-plan
-- task_dir: .pge/tasks-state-management/
+- simplest_direction: First make `research.v3` authoritative in Research and add minimal Plan compatibility.
+- rejected_directions:
+  - One-shot redesign of all stages — too broad and unsafe for direct planning.
+- why_this_is_enough_for_plan: The first objective is bounded and protects downstream consumers.
+
+## 4. Open Questions
+
+- blocking_questions: none
+- non_blocking_questions: Later Plan optimization details remain deferred.
+
+## Conditional: Progressive Feasibility
+
+- direct_goal: Full workflow protocol redesign.
+- direct_planning_risk: Too many stage contracts and validation assumptions would change at once.
+- structural_blocker: Research producer, Plan consumer, docs, and eval calibration need an explicit compatibility boundary first.
+- first_plannable_objective: Make `research.v3` authoritative in `pge-research` and add minimal `pge-plan` compatibility.
+- deferred_goal_parts: Exec redesign, Review/Challenge redesign, universal protocol extraction, historical cleanup.
+- plan_instruction: Plan the first compatibility slice, not the full final goal.
+
+## 5. Route
+
+- route: READY_FOR_PLAN
+- route_reason: Progressive Feasibility narrows the valid goal to a safe first plannable objective.
 ```
