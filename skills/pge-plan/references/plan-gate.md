@@ -64,10 +64,11 @@ Checks:
 
 Checks:
 
-- `### Plan Engineering Review` exists when the plan risk/depth needs an explicit record; LIGHT plans may use a compact review paragraph or short bullet list.
+- `### Plan Engineering Review` exists when the plan risk/depth needs an explicit record; LIGHT plans may use a compact review paragraph, short bullet list, or omit it entirely if trivial.
 - Plan Engineering Review result is `PASS`, or all `REWORK_PLAN` findings have been repaired and rerun before Final Plan Gate.
-- The selected approach, rejected approaches, issue slicing strategy, acceptance refinements, verification/evidence refinements, and risk handling reflect the review.
+- When Plan Engineering Review was performed (mandatory for MEDIUM/DEEP, optional for LIGHT), the selected approach, rejected approaches, issue slicing strategy, acceptance refinements, verification/evidence refinements, and risk handling reflect the review findings.
 - Architecture, data flow, edge cases, test coverage, performance, failure modes, and protocol coherence were applied according to depth and relevance.
+- Plan Engineering Review findings have been consumed into the plan before Final Plan Gate validation. Plan Engineering Review does not produce routes directly; only Final Plan Gate has execution authorization.
 - If an external gstack `/plan-eng-review` or equivalent review was provided in current context, its findings are consumed as pressure input, but PGE still owns the final authorization verdict.
 - Legacy `### Engineering Review Gate` may be read as an alias for older artifacts; new plan output should use `### Plan Engineering Review`.
 

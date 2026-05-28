@@ -6,6 +6,17 @@ Plan-owned decision-hardening mechanism. Runs during solution design after candi
 
 Reduce `pge-exec` friction by checking scope discipline, existing-code reuse, selected-approach rationale, issue slicing, architecture fit when applicable, test/verification topology, failure preparedness, and execution ergonomics. It is not an independent execution authorization gate; the Final Plan Gate remains the hard validator for `READY_FOR_EXECUTE`.
 
+## Trigger Conditions
+
+Plan Engineering Review is:
+- **Mandatory** for MEDIUM/DEEP plans (multi-issue, architecture changes, protocol surfaces, migration, rollout sequencing)
+- **Optional** for LIGHT plans (single-issue, low-risk, existing patterns) — may be omitted entirely if the plan is trivial
+- **Findings must be consumed** into selected approach, issues, acceptance, verification, and risks before Final Plan Gate validation
+
+## Routing Authority
+
+Plan Engineering Review does not produce routes directly. It produces findings that Plan consumes. Only Source Contract Check and Final Plan Gate have routing authority. If Plan Engineering Review discovers that the Research contract is unexecutable, unsafe, or requires goal/scope changes, Plan must surface this as a Final Plan Gate rejection with route to `RETURN_TO_RESEARCH`, `NEEDS_INFO`, or `NEEDS_HUMAN`.
+
 ## Depth Scaling
 
 | Depth | Dimensions Applied |
@@ -27,7 +38,7 @@ Four mandatory checks before any other dimension:
 
 Each check produces: `check_name | finding | evidence | resolution`.
 
-For LIGHT depth, Step 0 plus selected-approach rationale and Verification Story Review is the entire review. A short paragraph or compact bullet list is enough when it removes execution ambiguity.
+For LIGHT depth, Step 0 plus selected-approach rationale and Verification Story Review is the entire review. A short paragraph or compact bullet list is enough when it removes execution ambiguity. For trivial LIGHT plans, the review may be omitted entirely.
 
 ## Architecture Review (MEDIUM + DEEP)
 
@@ -134,7 +145,9 @@ Plan Engineering Review records exactly one overall result:
 
 ## Record Format
 
-Record the review in the plan artifact when it helps execution or review detect drift. LIGHT plans may use a compact paragraph or short bullet list.
+Record the review in the plan artifact when it helps execution or review detect drift. LIGHT plans may use a compact paragraph or short bullet list, or omit the review entirely if trivial.
+
+Evidence gathered during Plan exploration (runtime paths, protocol surfaces, coupling hotspots, verification constraints, migration blockers) should be embedded in the Plan Engineering Review section or approach rationale. Evidence is ephemeral unless it directly informs a decision that must be traceable.
 
 ```markdown
 ### Plan Engineering Review

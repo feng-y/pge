@@ -60,7 +60,7 @@ Validate the upstream research/input before planning proceeds.
 - Target Areas: <exact file paths — Create: path | Modify: path>
 - Acceptance Criteria: <checkable conditions>
 - Verification Hint: <command or check>
-- Verification Coupling: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
+- Verification Coupling: none | independent | compile-coupled with <issue IDs> | shared verification with <issue IDs> | integration-only | isolated worktree required | serial verification required
 - Verification Type: AUTOMATED | MANUAL | MIXED
 - Execution Type: AFK | HITL:verify | HITL:decision | HITL:action
 - Test Expectation: <happy path + edge case to test, or "none — [reason]">
@@ -170,6 +170,8 @@ Authoritative upstream decisions that planning must inherit.
 
 ### Plan Engineering Review
 
+Record when the plan risk/depth needs an explicit record. LIGHT plans may use a compact paragraph, short bullet list, or omit entirely if trivial. MEDIUM/DEEP plans should include this section.
+
 - Depth: LIGHT | MEDIUM | DEEP
 - Result: PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO
 - Selected Approach: <approach and why it satisfies the inherited problem contract>
@@ -177,9 +179,11 @@ Authoritative upstream decisions that planning must inherit.
 - Complexity / Risk Reduction: <how the plan reduces implementation friction and blast radius>
 - Scope Drift Check: <why goal/scope/non-goals/constraints are preserved>
 - Verification Strategy: <first trustworthy verification point and final evidence>
-- Issue Slicing / Coupling: <execution order, dependencies, coupling, or "N/A — LIGHT">
+- Issue Slicing / Coupling: <execution order, dependencies, verification coupling classification, or "N/A — LIGHT">
 - Protocol Coherence: <producer/consumer/validator/evidence check when relevant, or "N/A">
 - Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
+
+Evidence gathered during Plan exploration (runtime paths, protocol surfaces, coupling hotspots, verification constraints, migration blockers) should be embedded here or in approach rationale when it informs traceable decisions.
 
 ### Approach Review Details
 
@@ -216,8 +220,8 @@ Optional summary table when it helps:
 
 | Check | Status | Skip Reason | Audit Note |
 |------|--------|-------------|------------|
-| Plan Engineering Review | <status> | — | <note> |
-| Experience Context | <status> | <reason if skipped> | <note> |
+| Plan Engineering Review | <status> | <reason if skipped for LIGHT> | <note> |
+| Experience Context Check | <status> | <reason if skipped> | <note> |
 
 ### Self-Evaluation
 

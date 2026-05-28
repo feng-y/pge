@@ -279,7 +279,11 @@ When adoption-ready:
 - Materialize PGE execution contract fields: issue slices, target areas, acceptance, verification, dependencies, execution type, evidence required, and stop condition.
 - Split into the smallest number of execution issues needed for `pge-exec`; issue slicing may decide order and grouping but must not add scope.
 - Mark `fast_adopt: true` and record the source path or `claude_plan_mode` source in Metadata.
-- Run Coverage Audit, Plan Engineering Review, and Final Plan Gate against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
+- Run Coverage Audit, Plan Engineering Review (mandatory for MEDIUM/DEEP plans), and Final Plan Gate against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
+
+**Fast Adopt validation:**
+
+Fast Adopt must validate that the external plan includes goal, scope, approach, issues with acceptance/verification, and evidence requirements. If the external plan lacks these, Fast Adopt should supplement them (not silently assume). Fast Adopt must not silently replan; it should preserve the external plan's approach and only add missing execution-required fields.
 
 If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving undecided semantic ownership, or changing phase boundaries, Fast Adopt must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn adoption into replanning.
 
@@ -459,10 +463,17 @@ Do not propose alternatives for authoritative problem-contract fields or spec-le
 
 Read `references/engineering-review.md` and `references/engineering-review-gate.md` for full dimensions. Plan Engineering Review is Plan's decision-hardening mechanism for reducing Exec friction after the problem contract is aligned; it is not a separate hard authorization gate.
 
+**Trigger conditions:**
+
+Plan Engineering Review is:
+- **Mandatory** for MEDIUM/DEEP plans (multi-issue, architecture changes, protocol surfaces, migration, rollout sequencing)
+- **Optional** for LIGHT plans (single-issue, low-risk, existing patterns)
+- **Findings must be consumed** into selected approach, issues, acceptance, verification, and risks before Final Plan Gate validation
+
 Inputs:
 - inherited Research/current-source problem contract
 - candidate approaches
-- repo/runtime evidence
+- repo/runtime evidence gathered during Plan exploration (runtime paths, protocol surfaces, coupling hotspots, verification constraints, migration blockers) — embedded in Plan Engineering Review section or approach rationale; evidence is ephemeral unless it directly informs a traceable decision
 - implementation friction or progressive feasibility notes
 - current user constraints
 
@@ -482,6 +493,10 @@ The review checks, scaled by depth:
 
 Findings normally repair the plan inline. Route upstream only when the inherited problem contract must change or user authority is required.
 
+**Routing authority:**
+
+Plan Engineering Review does not produce routes directly. It produces findings that Plan consumes. Only Source Contract Check and Final Plan Gate have routing authority. If Plan Engineering Review discovers that the Research contract is unexecutable, unsafe, or requires goal/scope changes, Plan must surface this as a Final Plan Gate rejection with route to `RETURN_TO_RESEARCH`, `NEEDS_INFO`, or `NEEDS_HUMAN`.
+
 **Plan Engineering Review result:** `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`
 
 - `PASS` → selected approach, issue slicing, acceptance, verification, and risks are hard enough to synthesize.
@@ -490,6 +505,8 @@ Findings normally repair the plan inline. Route upstream only when the inherited
 - `NEEDS_INFO` → ask one user-authority blocking question, then re-run affected checks.
 
 `SKIP_NOT_APPLICABLE` is valid only inside optional per-dimension records, not as the overall Plan Engineering Review result. Record the review under `### Plan Engineering Review`; for compatibility with old artifacts, `### Engineering Review Gate` may be read as an alias but new plan artifacts must use `### Plan Engineering Review`.
+
+For LIGHT plans, Plan Engineering Review may be a compact paragraph or short bullet list, or omitted entirely if the plan is trivial.
 
 ### Final Plan Gate
 
@@ -538,9 +555,11 @@ audit_note: <optional; what was decided automatically and why>
 - `required_plan_changes` lists concrete fixes when `status` is `REWORK_PLAN`. Set to "none" for other statuses.
 - Numeric quality ratings and `10/10` bars are not default plan output. Use them only in failure/debug notes when they reduce ambiguity.
 
-### Experience Context Gate
+### Experience Context Check (Optional)
 
-`pge-plan` must explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets; legacy `experience_scope` / `design_surface_context` are obsolete or foreign-source evidence only.
+This is an optional context check for human-facing or artifact-facing features, not a mandatory gate. Apply only when experience quality directly affects acceptance criteria.
+
+`pge-plan` should explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets; legacy `experience_scope` / `design_surface_context` are obsolete or foreign-source evidence only.
 
 **Inputs when present:**
 - surface or artifact being shaped
@@ -550,19 +569,21 @@ audit_note: <optional; what was decided automatically and why>
 - existing conventions, rendered evidence, tone, or design-system constraints
 - generic/slop risks or other experience constraints for Plan
 
-**What this gate checks:**
+**What this check validates:**
 - whether the plan recognized that experience quality is part of success
 - whether research supplied enough problem-side context for planning to preserve
 - whether acceptance, verification, and evidence reflect that context instead of silently dropping it
 
-**Gate outcomes:**
+**Check outcomes:**
 - `PASS` — relevant experience context exists and the plan consumes it clearly in acceptance / verification / evidence
-- `SKIP_NOT_APPLICABLE` — the task is purely internal, or no human-visible experience context is relevant to planning
+- `SKIP_NOT_APPLICABLE` — the task is purely internal/protocol work, or no human-visible experience context is relevant to planning
 - `RETURN_TO_RESEARCH` — audience, experience success shape, or disappointment risk is unclear enough that the problem contract itself is not settled
 - `REWORK_PLAN` — research context is clear, but the plan failed to consume it in acceptance / verification / evidence
 - `NEEDS_INFO` — one specific human answer is still required and neither repo evidence nor research can resolve it
 
 **Boundary rule:** unclear audience/success should route `RETURN_TO_RESEARCH` only when it changes the problem contract. If the problem contract is already clear and only the plan failed to reflect it, use `REWORK_PLAN`.
+
+This check should not block plans for internal or protocol work where experience quality is not part of the acceptance criteria.
 
 ### Depth-Scaled Gate Selection
 
@@ -570,9 +591,9 @@ Which gates run depends on the classified depth:
 
 | Depth | Gates Applied | Skip Policy |
 |-------|--------------|-------------|
-| LIGHT | Plan Engineering Review (compact scope/reuse/verification sanity) + Experience Context Gate when applicable | Experience Context Gate may `SKIP_NOT_APPLICABLE` for clearly internal tasks. |
-| MEDIUM | Plan Engineering Review (approach tradeoffs, slicing, boundaries, failure modes, verification topology) + Experience Context Gate when applicable | Skipped non-engineering gates require `skip_reason`. |
-| DEEP | Plan Engineering Review plus all applicable non-engineering checks | Non-engineering gates may `SKIP_NOT_APPLICABLE` only with explicit reason. |
+| LIGHT | Plan Engineering Review (optional; compact scope/reuse/verification sanity if applied) + Experience Context Check when applicable | Experience Context Check may `SKIP_NOT_APPLICABLE` for clearly internal/protocol tasks. |
+| MEDIUM | Plan Engineering Review (mandatory; approach tradeoffs, slicing, boundaries, failure modes, verification topology) + Experience Context Check when applicable | Skipped non-engineering checks require `skip_reason`. |
+| DEEP | Plan Engineering Review (mandatory) plus all applicable non-engineering checks | Non-engineering checks may `SKIP_NOT_APPLICABLE` only with explicit reason. |
 
 LIGHT tasks must not pay DEEP ceremony. DEEP tasks must not skip gates without evidence that the dimension is irrelevant.
 
@@ -632,7 +653,18 @@ This guidance does not require inspecting the entire repo. Scope the coherence c
 
 ### Verification Coupling And Parallel Safety
 
-Before writing issue dependencies, classify whether planned issues share a verification surface:
+Before writing issue dependencies, classify whether planned issues share a verification surface.
+
+**Verification coupling** classifies how issues can be verified:
+
+- **independent**: issue can be verified in isolation (tests pass, behavior observable)
+- **coupled**: multiple issues must complete before verification is trustworthy
+- **serial**: issues must be verified in order (later issues depend on earlier verification)
+- **integration-only**: no meaningful verification until final integration point
+
+For coupled or integration-only verification, Plan must identify the first trustworthy verification point.
+
+**Coupling detection:**
 
 - Same build graph, compile unit, generated artifact set, test suite, app startup, or integration command → compile-coupled / verification-coupled.
 - Pure docs/text edits or independent scripts outside a shared build graph → not coupled unless their verification command is shared.

@@ -4,14 +4,14 @@
     {
       "id": 1,
       "prompt": "Create a plan for adding a dark mode toggle. Research brief exists at .pge/tasks-dark-mode/research.md with schema_version: research.v3, route: READY_FOR_PLAN, goal, success_shape, scope/non_goals, constraints to use existing CSS custom properties, relevant repo context naming 3 affected files, and no blocking questions.",
-      "expected_output": "Runs Source Contract Check (CONTINUE_TO_PLAN), maps v3 goal/success_shape/scope/constraints into the plan, treats simplest_direction as an approach candidate only, and selects approach through Plan Engineering Review. Plan Engineering Review is present but lightweight. Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
-      "dimensions": ["input_adaptation", "research_v3_adapter", "plan_engineering_review_scaling", "issue_decomposition"]
+      "expected_output": "Runs Source Contract Check (CONTINUE_TO_PLAN), maps v3 goal/success_shape/scope/constraints into the plan, treats simplest_direction as an approach candidate only, and selects approach through Plan Engineering Review. Plan Engineering Review is optional for LIGHT but if present is compact. Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
+      "dimensions": ["input_adaptation", "research_v3_adapter", "plan_engineering_review_trigger_conditions", "issue_decomposition"]
     },
     {
       "id": 2,
       "prompt": "Create a plan for migrating the database layer from raw SQL to an ORM. Research.v3 brief has route: READY_FOR_PLAN, simplest_direction: evaluate Prisma/Drizzle/query-builder, rejected_directions: big-bang rewrite without compatibility layer, no selected approach, affected context spans 12 files across 4 modules, and one non-blocking open question about test fixtures.",
-      "expected_output": "Source Contract Check → CONTINUE_TO_PLAN. Plan treats simplest_direction as candidate input, not selected approach. Plan Engineering Review selects the approach. Plan Engineering Review is substantive: scope challenge asks whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers. Existing solutions check looks for prior art. Non-blocking question is carried to risks/open questions.",
-      "dimensions": ["research_v3_adapter", "plan_engineering_review_depth", "complexity_gate", "scope_challenge"]
+      "expected_output": "Source Contract Check → CONTINUE_TO_PLAN. Plan treats simplest_direction as candidate input, not selected approach. Plan Engineering Review is mandatory for MEDIUM/DEEP and selects the approach. Plan Engineering Review is substantive: scope challenge asks whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers. Existing solutions check looks for prior art. Non-blocking question is carried to risks/open questions. Plan Engineering Review findings are consumed into selected approach, issues, acceptance, verification before Final Plan Gate.",
+      "dimensions": ["research_v3_adapter", "plan_engineering_review_mandatory_for_medium_deep", "complexity_gate", "scope_challenge", "findings_consumption"]
     },
     {
       "id": 3,
@@ -40,8 +40,38 @@
     {
       "id": 7,
       "prompt": "Fast-adopt a Claude plan mode output that has no goal/non_goals/target_areas headings, but prose and issue bullets clearly define the target outcome, stop condition, current phase boundary, fixed implementation decisions, excluded areas, verification expectations, and ordered work.",
-      "expected_output": "Treats adoption readiness as a semantic contract check, not a fixed-heading check. It fast-adopts only if it can derive executable issues without inventing scope or re-deciding architecture, then materializes the source semantics into canonical plan.v2 fields including forbidden_areas and plan_gate.",
-      "dimensions": ["fast_adopt", "semantic_source_check", "canonical_output_materialization"]
+      "expected_output": "Treats adoption readiness as a semantic contract check, not a fixed-heading check. It fast-adopts only if it can derive executable issues without inventing scope or re-deciding architecture. Validates that external plan includes goal, scope, approach, issues with acceptance/verification, and evidence requirements. If lacking, supplements (not silently assumes). Runs Plan Engineering Review (mandatory for MEDIUM/DEEP plans). Materializes the source semantics into canonical plan.v2 fields including forbidden_areas and plan_gate. Does not silently replan.",
+      "dimensions": ["fast_adopt", "semantic_source_check", "fast_adopt_validation", "canonical_output_materialization"]
+    },
+    {
+      "id": 8,
+      "prompt": "Create a plan for a protocol surface change that modifies route vocabulary in pge-plan SKILL.md. Research.v3 brief has route: READY_FOR_PLAN, goal to add NEEDS_CLARIFICATION route, scope includes SKILL.md and plan-gate.md, constraints say pge-exec must also be checked for consistency.",
+      "expected_output": "Plan Engineering Review includes protocol coherence check. Issues include acceptance criteria or verification that checks producer (pge-plan writes routes), consumer (pge-exec reads routes), validator (plan-gate validates routes), and evidence (grep + semantic check that all three agree). Grep alone is not sufficient proof; plan must verify semantic contract consistency across producer/consumer/validator.",
+      "dimensions": ["protocol_coherence", "producer_consumer_validator_evidence"]
+    },
+    {
+      "id": 9,
+      "prompt": "Create a plan for adding a user profile page. Research.v3 brief has route: READY_FOR_PLAN, goal, success_shape, scope, and Optional: Design/Experience Note describing audience (end users), experience success shape (clear, accessible, matches design system), and what would disappoint (generic layout, missing accessibility).",
+      "expected_output": "Experience Context Check is applied (optional, not mandatory). Check validates that plan consumes experience context in acceptance/verification/evidence. If task were purely internal/protocol work, check would SKIP_NOT_APPLICABLE. Does not block plan for internal work where experience quality is not part of acceptance criteria.",
+      "dimensions": ["experience_context_check_optional", "human_facing_context_consumption"]
+    },
+    {
+      "id": 10,
+      "prompt": "Create a plan for refactoring internal module boundaries. No human-facing or artifact-facing experience context. Research.v3 brief has route: READY_FOR_PLAN, goal, success_shape, scope, constraints, but no Design/Experience Note.",
+      "expected_output": "Experience Context Check returns SKIP_NOT_APPLICABLE with reason that task is purely internal/protocol work. Check does not block the plan. Plan proceeds to synthesis and Final Plan Gate.",
+      "dimensions": ["experience_context_check_skip", "internal_work_no_experience_gate"]
+    },
+    {
+      "id": 11,
+      "prompt": "Create a plan for adding pagination to a list endpoint. Research.v3 brief has route: READY_FOR_PLAN. Plan creates 3 issues that share the same test suite and compile unit.",
+      "expected_output": "Plan classifies verification coupling: issues are compile-coupled or shared verification. Verification Coupling field in each issue records the coupling (e.g., 'compile-coupled with Issue 1, 2, 3' or 'shared verification with Issue 1, 2, 3'). Plan identifies first trustworthy verification point and safe execution strategy (serial verification required, or isolated worktrees required for parallel authoring). Does not rely on non-overlapping Target Areas alone as proof of parallel safety.",
+      "dimensions": ["verification_coupling_classification", "parallel_safety_explicit"]
+    },
+    {
+      "id": 12,
+      "prompt": "Create a plan from a legacy external document that contains planning_handoff, plan_delta, confirmed_intent, and scope_contract fields but no research.v3 fields. User explicitly selected this document as the source.",
+      "expected_output": "Plan treats these as obsolete or foreign-source evidence with downgraded authority. Source Contract Check validates that source still provides usable goal, scope/non_goals, success shape, constraints, and evidence. Maps obsolete fields into candidate Plan Constraints only when consistent with current user constraints and repo evidence. Does not upgrade obsolete fields into current Research truth. Compatibility fields do not become selected approach without Plan Engineering Review. Does not add legacy cleanup scope unless explicitly authorized.",
+      "dimensions": ["obsolete_field_handling", "downgraded_authority", "no_silent_upgrade"]
     }
   ]
 }
