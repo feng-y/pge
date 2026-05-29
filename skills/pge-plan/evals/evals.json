@@ -40,8 +40,8 @@
     {
       "id": 7,
       "prompt": "Fast-adopt a Claude plan mode output that has no goal/non_goals/target_areas headings, but prose and issue bullets clearly define the target outcome, stop condition, current phase boundary, fixed implementation decisions, excluded areas, verification expectations, and ordered work.",
-      "expected_output": "Treats adoption readiness as a semantic contract check, not a fixed-heading check. It fast-adopts only if it can derive executable issues without inventing scope or re-deciding architecture. Validates that external plan includes goal, scope, approach, issues with acceptance/verification, and evidence requirements. If lacking, supplements (not silently assumes). Runs Plan Engineering Review (mandatory for MEDIUM/DEEP plans). Materializes the source semantics into canonical plan.v2 fields including forbidden_areas and plan_gate. Does not silently replan.",
-      "dimensions": ["fast_adopt", "semantic_source_check", "fast_adopt_validation", "canonical_output_materialization"]
+      "expected_output": "Treats adoption readiness as a semantic contract check, not a fixed-heading check. It fast-adopts only if it can derive executable issues without inventing scope or re-deciding architecture. Validates that the external plan semantically provides goal, bounded scope/phase, approach or fixed decisions, ordered work, acceptance/verification meaning, and evidence expectations. Missing canonical fields may be materialized; missing required semantics must route NEEDS_INFO or leave Fast Adopt for normal planning when current user intent allows. Runs Plan Engineering Review (mandatory for MEDIUM/DEEP plans). Materializes the source semantics into canonical plan.v2 fields including forbidden_areas, source refs, source_fidelity, and plan_gate. Does not silently replan.",
+      "dimensions": ["fast_adopt", "semantic_source_check", "source_fidelity", "canonical_output_materialization"]
     },
     {
       "id": 8,

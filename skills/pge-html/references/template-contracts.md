@@ -6,6 +6,7 @@ Every generated page must answer:
 - What should the reader understand or decide faster?
 - What should they look at first?
 - What evidence supports the claims?
+- What source packet or context bundle did this page consume?
 - Which source facts are primary, supporting, or raw detail?
 - Where is each primary/supporting fact represented in the page?
 - What should a future agent avoid or verify?
@@ -17,6 +18,7 @@ Every generated page must answer:
 
 All styles must include:
 - **Cognitive job**: a one-sentence statement near the top.
+- **Context intake summary**: source file, task directory, current-thread context, generated draft, command output, browser observation, or mixed source packet used to build the page.
 - **Orientation**: start-here rail, summary strip, or first-read role list.
 - **Visual structure**: diagram, grid, timeline, comparison, dashboard, annotated diff, or map.
 - **Evidence surface**: source paths, commands, confidence, or provenance.
@@ -30,6 +32,7 @@ All styles must include:
 - **No mechanical translation**: do not copy Markdown heading order, tables, or prose blocks into HTML unless that structure is the best visual model for the cognitive job.
 - **Semantic completeness**: reorganizing source material is required for non-render modes, but source meaning must not be lost. If a detail is omitted, the page or result must name the omission and why it is safe.
 - **Sidebar discipline**: sidebars/rails are for navigation, filters, current selection, or start-here orientation; do not use them as dumps for evidence paths or long source lists.
+- **Markup integrity**: exactly one page-level `<h1>`, valid table bodies, no unrendered Markdown syntax in prose, no pasted subreport shells, and no malformed code/detail blocks.
 
 Visual quality gate:
 - first viewport must contain the primary cognition object, not only title text, metric cards, or boxed notes
@@ -38,10 +41,12 @@ Visual quality gate:
 - avoid card soup: repeated bordered panels may frame repeated items, but whole-page sections should not all look like identical cards
 - avoid monotone beige/cream/slate palettes; use restrained contrast and semantic accent colors
 - turn generated Markdown structure into a designed information model; do not render every heading/table in source order when it weakens comprehension
+- consume current-thread or generated-output context directly when the user asks for it; do not require a temporary Markdown file as an artificial source
 - coverage beats brevity: collapse dense information instead of deleting it
 - pages meant for choice/edit/review must include interaction that changes what the user can decide or export; decorative interaction does not count
 - pages synthesized from multiple files, git history, browser observations, or MCP records must keep provenance near the claims it supports, not only in a footer
 - for cognition artifacts, source heading order must not be the page outline unless the generation explicitly justifies why that order is the fastest cognition path
+- pages synthesized from generated reports must rebuild one integrated information architecture; repeated Overview/Summary/References sections from subreports are a failure signal
 
 ## minimal
 

@@ -45,7 +45,7 @@ pge-research → pge-plan → pge-exec → pge-review → pge-challenge → ship
 
 每个技能产生一个产物或门控结果供下一步消费。你可以从任何点进入——如果你已经了解全局就跳过研究，如果你已经有计划文件就跳过计划，或者在 PGE 流水线之外对普通差异运行审查/挑战。
 
-PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、`docs/exec-plan/` 文档或外部工作流计划，只要其语义足以让 `pge-plan` 确认目标、可观察的成功/停止条件、有界范围、已固定的决策与所有权边界、允许/禁止区域、验证/证据期望，以及足够的有序工作结构来切出可执行议题，而不发明 scope 或重做架构决策，就可以 fast-adopt。源内容可以是 prose、表格、issue list、review comments 或其他结构化笔记；不需要 canonical 标题。Fast-adopt 会把这些语义 materialize 成 canonical `.pge/tasks-<slug>/plan.md` 的 `plan.v2` 字段，并在允许执行前运行 Final Plan Gate。采纳后，`pge-exec` 只在 `plan_gate` 通过时消费该规范产物。
+PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、`docs/exec-plans/` 文档或外部工作流计划，只要其语义足以让 `pge-plan` 确认目标、可观察的成功/停止条件、有界范围、已固定的决策与所有权边界、允许/禁止区域、验证/证据期望，以及足够的有序工作结构来切出可执行议题，而不发明 scope 或重做架构决策，就可以 fast-adopt。源内容可以是 prose、表格、issue list、review comments 或其他结构化笔记；不需要 canonical 标题。Fast-adopt 会把这些语义 materialize 成 canonical `.pge/tasks-<slug>/plan.md` 的 `plan.v2` 字段，并在允许执行前运行 Final Plan Gate。采纳后，`pge-exec` 只在 `plan_gate` 通过时消费该规范产物。
 
 ### 工作流映射
 
@@ -84,7 +84,7 @@ PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、
 
 - **[`/pge-learn`](./skills/pge-learn/SKILL.md)** — 从上下文摩擦、代理记忆、代码摘要和运行 artifacts 中学习。以 `learn` 作为默认捕获命令；必要时记录 workspace-local raw learning candidates，并且只把有证据、质量过关的候选提升为 durable repo knowledge。
 
-- **[`/pge-html`](./skills/pge-html/SKILL.md)** — 将规范 PGE artifacts 渲染为保真的单文件 HTML 页面和派生决策板。保真页面保留源结构；决策板把 artifacts 压缩为 issue、evidence、risk、gate 和 human-attention 视图，同时保持 Markdown/JSON/evidence 作为事实源。也支持非 PGE 的认知、design-to-HTML、展示和本地编辑器 HTML artifacts，并要求语义覆盖检查。
+- **[`/pge-html`](./skills/pge-html/SKILL.md)** — 将规范 PGE artifacts 渲染为保真的单文件 HTML 页面和派生决策板。保真页面保留源结构；决策板把 artifacts 压缩为 issue、evidence、risk、gate 和 human-attention 视图，同时保持 Markdown/JSON/evidence 作为事实源。也可以直接消费当前对话上下文、生成报告、命令输出、浏览器观察和混合 source packet，不要求先整理成 Markdown 文件；同时支持非 PGE 的认知、design-to-HTML、展示和本地编辑器 HTML artifacts，并要求语义覆盖与 markup-integrity 检查。
 
 - **[`/pge-complexity`](./skills/pge-complexity/SKILL.md)** — 默认只报告的复杂度与性能热点分析。查找潜在算法复杂度、嵌套、长函数和大文件热点；只有用户明确要求时才修改代码。
 

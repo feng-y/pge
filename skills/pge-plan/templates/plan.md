@@ -69,6 +69,12 @@ Validate the upstream research/input before planning proceeds.
 - Risks: <what could go wrong>
 - Security: yes | no
 - upstream_decision_refs: <decision IDs from research/upstream, or "none">
+- Source refs:
+  - source_plan: <section / paragraph / bullet / table row / review note, or not_applicable>
+  - research: <field or not_applicable>
+  - user_constraint: <current prompt constraint or not_applicable>
+  - repo_evidence: <file:line / command / not_applicable>
+  - mechanical_support: <why this issue is necessary execution support, or not_applicable>
 - State: READY_FOR_EXECUTE
 
 ## acceptance
@@ -91,6 +97,32 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 
 - <what exec must show for review to confirm done>
 
+## plan_gate_inputs
+
+This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-contract changes, artifact-schema changes, validation-contract changes, gate/tooling changes, or plans with material forbidden-zone risk. LIGHT plans may omit it when the ordinary Final Plan Gate checklist is sufficient.
+
+### Declared Change Types
+
+- <change_type> - reason: <why this type applies> - target issues: <IDs>
+
+### Required Claims
+
+| Claim ID | Claim | Required By | Evidence Type | Required Shape | Provided Evidence | Status |
+|----------|-------|-------------|---------------|----------------|-------------------|--------|
+| C1 | <claim the gate must trust> | <change type / issue / acceptance criterion> | code_pointer_set / doc_pointer / command_output / artifact_field / user_statement / negative_boundary / manual_review | <specific shape> | <evidence reference> | satisfied / pending / not_applicable |
+
+### Boundary Checks
+
+| Check ID | Boundary | Rule | Evidence | Future Tool Check | Status |
+|----------|----------|------|----------|-------------------|--------|
+| B1 | allowed_targets / forbidden_paths / forbidden_semantics / generated_artifacts / route_vocabulary / schema_fields | <rule> | <evidence reference> | changed_files_intersection / section_diff / route_vocab_scan / schema_field_scan / manual_review | pass / pending / not_applicable |
+
+### Validation Reality
+
+- Cheap feedback: <checks useful during implementation>
+- Trust gates: <checks/evidence required before review can trust completion>
+- Unavailable checks: <checks that cannot run now, with fallback evidence or terminal handling>
+
 ## risks
 
 - <risk> — impact: <what happens if unresolved> — mitigation: <how to handle>
@@ -106,7 +138,7 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 
 - Verdict: PASS | REVISE | ESCALATE | REJECT
 - Exec Allowed: yes | no
-- Failed Gate: Contract Completeness | Plan Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
+- Failed Gate: Contract Completeness | Source Fidelity | Plan Engineering Review | Repo Reality | Execution Readiness | Skill Execution Stability | none
 - Failed Criterion: <criterion or "none">
 - Evidence: <file:line / artifact / command / user statement / "none">
 - Required Repair: <specific repair or "none">
@@ -117,6 +149,7 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 | Gate | Status | Evidence | Required Repair |
 |------|--------|----------|-----------------|
 | Contract Completeness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
+| Source Fidelity | PASS / REVISE / ESCALATE / REJECT / SKIP_NOT_APPLICABLE | <evidence> | <repair or none> |
 | Plan Engineering Review | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Repo Reality | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
 | Execution Readiness | PASS / REVISE / ESCALATE / REJECT | <evidence> | <repair or none> |
@@ -137,6 +170,9 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 - plan_id: <YYYYMMDD-HHMM-slug>
 - created_at: <ISO date>
 - source_ref: <path to research brief or upstream input>
+- fast_adopt: true | false
+- source_type: research.v3 | current_prompt | external_plan | claude_plan_mode | docs_exec_plan | mixed
+- source_fidelity: PASS | REVISE | ESCALATE | REJECT | SKIP_NOT_APPLICABLE
 - task_dir: .pge/tasks-<slug>/
 
 ## Handoff To Execute
@@ -152,6 +188,14 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 - Risks not to ignore: <list>
 
 ## Optional When Useful
+
+### Source Semantics Ledger
+
+For Fast Adopt, include this compact ledger when source fidelity is not obvious from issue-level source refs.
+
+| Source item | Authority | Meaning | Canonical location | Transform |
+|---|---|---|---|---|
+| <source goal / decision / boundary / step> | source_plan / research / user / repo_evidence / inferred | <semantic interpretation> | <plan section or issue ID> | preserved / operationalized / split / merged / omitted / changed |
 
 ### Plan Constraints
 
@@ -220,6 +264,7 @@ Optional summary table when it helps:
 
 | Check | Status | Skip Reason | Audit Note |
 |------|--------|-------------|------------|
+| Source Fidelity | <status> | <reason if skipped> | <note> |
 | Plan Engineering Review | <status> | <reason if skipped for LIGHT> | <note> |
 | Experience Context Check | <status> | <reason if skipped> | <note> |
 

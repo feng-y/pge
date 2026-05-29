@@ -19,6 +19,13 @@ Confirm that the synthesized plan is still aligned, covered, verifiable, and exe
 3. **Verification and evidence** — confirm every major acceptance criterion has a concrete verification path or required evidence. "Run tests" alone is insufficient unless the named test scope proves the criterion.
 4. **Exec readiness** — confirm each ready issue has concrete action, behavior contract, target areas, acceptance, verification hint/type, test expectation, required evidence, dependencies, risks, security classification, and execution state.
 
+For Fast Adopt, apply these four areas against both the source plan and the inherited research problem contract when present:
+
+- Goal-backward fit starts from the source plan goal and research goal, not from the canonical draft alone.
+- Coverage includes every material source decision, phase boundary, semantic ownership boundary, non-goal, rollout constraint, and verification burden.
+- Verification and evidence must prove the same source acceptance meaning without weakening it or expanding scope.
+- Exec readiness must confirm each ready issue can be implemented without inventing source semantics.
+
 ## Repair Rule
 
 Fix failures inline once and rerun only the failed sanity area. If the same area still fails, route instead of looping:

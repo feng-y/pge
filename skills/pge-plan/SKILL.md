@@ -92,6 +92,7 @@ Plan owns this synthesis. Research supplies intent, discrepancy, evidence, and c
 Depth scaling:
 - LIGHT tasks may collapse this into short statements in `goal`, `non_goals`, `forbidden_areas`, `verification`, and issue behavior contracts.
 - MEDIUM/DEEP and workflow-contract plans must expose the dimensions clearly enough that `pge-exec`, `pge-review`, and Final Plan Gate can detect scope drift, unsupported claims, and validation-reality confusion.
+- MEDIUM/DEEP Architecture Delta Contracts, workflow-contract changes, artifact-schema changes, validation-contract changes, gate/tooling changes, and plans with material forbidden-zone risk must also include `## plan_gate_inputs` using `references/final-plan-gate.md`: declared change types, required claims, evidence schemas, boundary checks, and validation reality.
 - If the current slice is only the lightweight Phase 1 of a larger gate/tooling direction, say what later registry/script/schema work is deliberately not moved by this delta.
 
 **Field authority classification:**
@@ -243,7 +244,7 @@ When ALL of these are true:
 
 Then:
 - Skip Outside Voice (already conditional on MEDIUM+)
-- Use LIGHT self-review from `references/self-review.md`: checks 1, 5, 8 plus check 4 when upstream has a Decision Log or spec-level decisions
+- Use LIGHT final sanity pass from `references/self-review.md`: sanity areas 1, 3, and 4, plus area 2 when upstream decisions, non-goals, or source boundaries exist
 - Skip pressure test
 - Target: 1-2 issues maximum
 - Keep the issue surface proportional: do not turn a verification carrier into a new feature, framework, flag, helper layer, or broad validation system unless the current constraints explicitly ask for it
@@ -253,7 +254,7 @@ Fast Lane is the smallest direct prompt path, not the only direct prompt path. M
 
 ### Fast Adopt (explicit external plan → PGE contract)
 
-Use this path when the selected source is already an explicit plan — including Claude Code plan mode output, `docs/exec-plan/` documents, gstack/Codex reviewed plans, design execution notes, or a structured design/execution plan — but it is not in canonical `.pge/tasks-<slug>/plan.md` format.
+Use this path when the selected source is already an explicit plan — including Claude Code plan mode output, `docs/exec-plans/` documents, gstack/Codex reviewed plans, design execution notes, or a structured design/execution plan — but it is not in canonical `.pge/tasks-<slug>/plan.md` format.
 
 Fast Adopt is allowed for LIGHT, MEDIUM, or DEEP inputs. Depth controls issue count and verification strictness, not whether adoption is available.
 
@@ -279,11 +280,11 @@ When adoption-ready:
 - Materialize PGE execution contract fields: issue slices, target areas, acceptance, verification, dependencies, execution type, evidence required, and stop condition.
 - Split into the smallest number of execution issues needed for `pge-exec`; issue slicing may decide order and grouping but must not add scope.
 - Mark `fast_adopt: true` and record the source path or `claude_plan_mode` source in Metadata.
-- Run Coverage Audit, Plan Engineering Review (mandatory for MEDIUM/DEEP plans), and Final Plan Gate against source fidelity: missing fields, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
+- Run Coverage Audit, Plan Engineering Review (mandatory for MEDIUM/DEEP plans), and Final Plan Gate against source fidelity: missing semantics, unauthorized expansion, issue traceability, acceptance/verification coverage, repo reality, and execution readiness.
 
 **Fast Adopt validation:**
 
-Fast Adopt must validate that the external plan includes goal, scope, approach, issues with acceptance/verification, and evidence requirements. If the external plan lacks these, Fast Adopt should supplement them (not silently assume). Fast Adopt must not silently replan; it should preserve the external plan's approach and only add missing execution-required fields.
+Fast Adopt must validate that the external plan semantically provides goal, bounded phase/scope, approach or fixed implementation decisions, issues or ordered work, acceptance/verification meaning, and evidence expectations. If the source lacks canonical headings or PGE fields, Fast Adopt may materialize them. If the source lacks required semantics, Fast Adopt must stop with `NEEDS_INFO` or leave Fast Adopt for normal planning when current user intent allows. It must not supplement missing semantics as assumptions. Fast Adopt must not silently replan; it should preserve the external plan's approach and only add missing execution-required fields.
 
 If converting the source requires choosing new scope, adding helpers/flags/cleanup/abstractions, inventing target areas, inventing acceptance criteria, resolving undecided semantic ownership, or changing phase boundaries, Fast Adopt must stop with `NEEDS_INFO` or route to the normal pge-plan path. Do not silently turn adoption into replanning.
 
@@ -306,13 +307,13 @@ Before Coverage Audit, build an internal input-priority interpretation. Use it t
 | Input Source | Role | Priority | Handling |
 |---|---|---|---|
 | Current user prompt / trailing arguments | hard constraint, latest override, or selected scope | highest | reflect in Intent, Non-goals, Target Areas, issue boundaries, and Verification; never ignore |
-| `docs/exec-plan/` document explicitly selected or referenced | canonical planning source | high | preserve phase, scope, semantic ownership, non-goals, and success criteria; do not re-decide its authorized boundary |
+| `docs/exec-plans/` document explicitly selected or referenced | canonical planning source | high | preserve phase, scope, semantic ownership, non-goals, and success criteria; do not re-decide its authorized boundary |
 | Original user-provided source, spec, issue, design doc, or referenced source-of-truth file | source of truth | high | read when referenced by the selected source or current user; preserve requirements, decisions, boundaries, phases, and success criteria |
 | Repo code/docs/config | evidence | high | confirm feasibility and stale assumptions; may contradict upstream with cited evidence |
 | `pge-research` brief or other summary artifact | derived summary | medium | consume as compressed understanding, but do not let it erase original source constraints or current user constraints |
 | Prior notes, old plans, or non-authoritative summaries | context | low | use only when consistent with higher-priority inputs |
 
-When planning from a `docs/exec-plan/` document, boundary fidelity is the primary quality bar. Preserve the document's phase/scope decisions and semantic ownership exactly unless the current user explicitly overrides them or repo evidence proves a contradiction. Do not add helpers, flags, cleanup, validation systems, broader refactors, or "nice" abstractions that the exec plan did not authorize. In domain-specific planning, treat correctness and semantic ownership as higher priority than generic task breakdown polish.
+When planning from a `docs/exec-plans/` document, boundary fidelity is the primary quality bar. Preserve the document's phase/scope decisions and semantic ownership exactly unless the current user explicitly overrides them or repo evidence proves a contradiction. Do not add helpers, flags, cleanup, validation systems, broader refactors, or "nice" abstractions that the exec plan did not authorize. In domain-specific planning, treat correctness and semantic ownership as higher priority than generic task breakdown polish.
 
 If a derived research artifact names or depends on an original source-of-truth artifact, and the current planning decision depends on scope, boundaries, rollout, verification, phase position, or "only allowed addition" constraints, read the original source too. Do not plan from a derivative summary alone when the summary is incomplete for those decisions.
 
@@ -433,13 +434,13 @@ Audit inputs against the goal in priority order. Mark each requirement or hard c
 
 Coverage Audit must include:
 - current user constraints from prompt/trailing arguments
-- `docs/exec-plan/` phase/scope decisions when that document is selected or referenced
+- `docs/exec-plans/` phase/scope decisions when that document is selected or referenced
 - original source-of-truth requirements and boundaries when available
 - research-derived requirements and assumptions
 - current-source decisions and any explicitly selected obsolete/foreign evidence items when present
 - repo evidence that confirms, contradicts, or narrows the above
 
-If `docs/exec-plan/` is the canonical input, audit proposed issues against the source document before writing them. Any issue that introduces unrequested helpers, flags, cleanup, validation expansion, broad refactors, or abstraction work must either cite explicit authorization from the exec plan/current user or be removed.
+If `docs/exec-plans/` is the canonical input, audit proposed issues against the source document before writing them. Any issue that introduces unrequested helpers, flags, cleanup, validation expansion, broad refactors, or abstraction work must either cite explicit authorization from the exec plan/current user or be removed.
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
@@ -512,17 +513,20 @@ For LIGHT plans, Plan Engineering Review may be a compact paragraph or short bul
 
 Read `references/plan-gate.md` for the authoritative final gate contract. This is the hard execution-contract gate for the whole plan after issues, acceptance, verification, and evidence are written.
 
+Read `references/final-plan-gate.md` when the plan requires structured gate inputs: MEDIUM/DEEP Architecture Delta Contracts, workflow-contract changes, artifact-schema changes, validation-contract changes, gate/tooling changes, or material forbidden-zone risk. These inputs are not a second gate and do not authorize execution; they are structured material consumed by `references/plan-gate.md`.
+
 The Final Plan Gate is the only execution authorization validator. Plan Engineering Review hardens the selected approach and repairs planning weaknesses, but Final Plan Gate owns the veto: it decides whether the hardened plan may enter `pge-exec`.
 
 Stability rule: run the Final Plan Gate exactly in the order defined by `references/plan-gate.md`. Use the exact verdict and field vocabulary. Apply at most one inline repair pass per failed layer, rerun only the affected layer plus downstream layers, and stop instead of looping if the same layer fails twice.
 
-The gate has five layers:
+The gate has six layers. Source Fidelity is mandatory for Fast Adopt and `SKIP_NOT_APPLICABLE` for ordinary direct-prompt plans with no external source to preserve:
 
 1. **Contract Completeness Gate** — goal, non-goals, repo facts, target areas, forbidden areas, vertical slices, acceptance criteria, verification path, evidence requirements, stop condition, and risks/unknowns are present and usable.
-2. **Plan Engineering Review** — confirms selected-approach hardening findings were consumed into the approach, issue slicing, acceptance, verification, evidence, and risks.
-3. **Repo Reality Gate** — target files/modules, entry paths, existing semantics, dynamic/config-driven paths, hidden runtime behavior, and forbidden areas are grounded in repo evidence.
-4. **Execution Readiness Gate** — slices are bounded, independently verifiable where claimed, retry/block/escalate routing is clear, exec context is sufficient, and human decisions are explicit.
-5. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, explicit legacy compatibility, clear clarification/terminal routes, and complete handoff fields.
+2. **Source Fidelity Gate** — for Fast Adopt, source semantics are traceable into canonical fields without silent goal, scope, phase, ownership, non-goal, acceptance, verification, or issue-behavior drift.
+3. **Plan Engineering Review** — confirms selected-approach hardening findings were consumed into the approach, issue slicing, acceptance, verification, evidence, and risks.
+4. **Repo Reality Gate** — target files/modules, entry paths, existing semantics, dynamic/config-driven paths, hidden runtime behavior, and forbidden areas are grounded in repo evidence.
+5. **Execution Readiness Gate** — slices are bounded, independently verifiable where claimed, retry/block/escalate routing is clear, exec context is sufficient, and human decisions are explicit.
+6. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, explicit legacy compatibility, clear clarification/terminal routes, and complete handoff fields.
 
 **Final Plan Gate verdict:** `PASS | REVISE | ESCALATE | REJECT`
 
@@ -616,7 +620,7 @@ Gate verdicts map to plan routing. No gate may invent route vocabulary outside t
 As part of Plan Engineering Review or final sanity, actively grill the plan input against the emerging plan. This is not a separate route authority, generic brainstorming, or permission to re-decide upstream scope. Its job is to find contradictions early and repair the plan before Final Plan Gate.
 
 Ask these checks in order:
-- Does the proposed approach preserve every authoritative phase/scope decision, especially from `docs/exec-plan/`?
+- Does the proposed approach preserve every authoritative phase/scope decision, especially from `docs/exec-plans/`?
 - Does any issue introduce helpers, flags, cleanup, validation expansion, broad refactors, or abstractions that the source did not authorize?
 - Does the issue split move semantic ownership away from the module or phase named by the source?
 - Do acceptance and verification prove the requested behavior, or only prove that tasks were completed?
@@ -629,7 +633,7 @@ Resolve each inconsistency before synthesis:
 - If it changes goal, phase, scope, semantic ownership, acceptance, or safety, ask the user one blocking question or route `NEEDS_INFO`.
 - If the inconsistency comes from unrequested expansion, remove the expansion.
 
-Record the result as `Plan Grill Log`: `check`, `finding`, `resolution`, and `source/evidence`. Empty logs are suspicious for MEDIUM/DEEP plans and for any plan sourced from `docs/exec-plan/`.
+Record the result as `Plan Grill Log`: `check`, `finding`, `resolution`, and `source/evidence`. Empty logs are suspicious for MEDIUM/DEEP plans and for any plan sourced from `docs/exec-plans/`.
 
 ### Coherence Verification for High-Risk Surfaces
 

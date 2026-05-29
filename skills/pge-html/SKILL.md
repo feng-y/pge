@@ -7,7 +7,7 @@ description: >
   from non-PGE sources. Non-render modes build a semantic model first and preserve
   source facts with coverage. HTML is never the source of truth and is not part of
   the pipeline.
-argument-hint: "render <source>|board <plan|run|gate|handoff|source>|<source> [--open] [--share] [--style 01-exploration-code-approaches|04-code-understanding|11-status-report|13-flowchart-diagram|14-research-feature-explainer|16-implementation-plan|17-pr-writeup]"
+argument-hint: "render <source>|board <plan|run|gate|handoff|source>|context <thread|source-packet|mixed sources>|<source> [--open] [--share] [--style 01-exploration-code-approaches|04-code-understanding|11-status-report|13-flowchart-diagram|14-research-feature-explainer|16-implementation-plan|17-pr-writeup]"
 allowed-tools:
   - Read
   - Write
@@ -24,7 +24,9 @@ For canonical PGE artifacts, `pge-html` has two command families that must stay 
 1. **Faithful rendering mode**: render canonical Markdown/JSON/evidence into a single-file HTML page without reinterpreting the content.
 2. **Decision-board mode**: derive a high-density view model from canonical artifacts, then render that view model into an HTML board for fast human judgment.
 
-For non-PGE source material, `pge-html` may still produce cognition, design, presentation, preservation, or local-editor artifacts using the template system below.
+For current-session or mixed-source material, `pge-html` also has **context intake mode**: build a source packet from the current conversation, recent tool observations, generated artifacts, and local files before choosing the artifact shape.
+
+For non-PGE source material, `pge-html` may still produce cognition, design, presentation, preservation, or local-editor artifacts using the template system below. Source material can be a file, task directory, current conversation context, command output, generated report, browser observation, screenshot notes, or a mixed source packet; do not force the user to first convert context into a Markdown file.
 
 HTML is for human understanding, participation, and decision-making, not for skill-to-skill contracts. Keep canonical PGE artifacts in Markdown/JSON/evidence files. Compose HTML only when the user benefits from an artifact, not when the source merely needs a prettier rendering.
 
@@ -62,7 +64,7 @@ single-file HTML
 
 `pge-html-view.json` is a derived view, not a runtime contract. It can be exported for inspection or copy/prompt workflows, but the SSOT remains the original Markdown/JSON/evidence artifacts until an owning PGE stage updates them.
 
-For non-render modes, do not translate Markdown into HTML section-by-section. Build a semantic model first, then design the page around that model. The source document's headings are evidence labels, not the default page outline.
+For non-render modes, do not translate Markdown or agent output into HTML section-by-section. Build a semantic model first, then design the page around that model. Source headings are evidence labels, not the default page outline. If the input is a generated report made of multiple subreports, collapse it into a coherent model instead of preserving each subreport's title, order, and repeated overview/summary sections.
 
 Treat HTML as a visual output medium, not a text container. Prefer layouts, diagrams, motion-lite interactions, spatial grouping, and visual comparison when they let the reader grasp structure faster than prose.
 
@@ -74,9 +76,10 @@ First classify the command family:
 
 - `render`: faithful artifact rendering; preserve source meaning and structure, improve readability, and do not add conclusions.
 - `board`: derived decision surface; aggregate canonical artifacts into a view model, then render issue/evidence/risk/gate views with provenance.
+- `context`: build from the current conversation, recent tool observations, pasted notes, generated reports, screenshots, command output, or other non-file context supplied or authorized by the user.
 - default source mode: non-PGE cognition, design, presentation, preservation, or editor artifact.
 
-Do not blur the two. Faithful rendering may reformat but must not reinterpret. Decision boards may aggregate and derive, but derived conclusions require visible source support.
+Do not blur the modes. Faithful rendering may reformat but must not reinterpret. Decision boards and context artifacts may aggregate and derive, but derived conclusions require visible source support.
 
 Before writing HTML, state the cognitive job the artifact performs:
 - read/share a canonical artifact faithfully
@@ -158,12 +161,17 @@ If two or more warning signs are present in a non-render mode, stop and redesign
 
 ## Semantic Model And Coverage
 
-Before selecting a template for any non-render mode, build a semantic inventory. This is a thinking artifact; it may be internal, but the resulting HTML must reflect it.
+Before selecting a template for any non-render or context mode, build a semantic inventory. This is a thinking artifact; it may be internal, but the resulting HTML must reflect it.
 
 Minimum inventory:
 
 ```text
 source_inventory:
+  intake:
+    - source_ref
+      type: markdown | json | code | diff | command_output | conversation_context | generated_html | browser_observation | screenshot_note | other
+      role: canonical | evidence | observation | user_intent | generated_draft | raw_detail
+      trust: confirmed | inferred | unverified
   facts:
     - id
       statement
@@ -182,6 +190,25 @@ source_inventory:
   raw_details:
     - dense data that must remain available but can move to drilldown
 ```
+
+For context intake, first write a compact source packet before designing:
+
+```text
+source_packet:
+  user_goal: <what the user wants this HTML to help with>
+  available_context:
+    - <conversation correction, artifact path, command observation, screenshot note, generated output, or source file>
+  canonical_sources:
+    - <files or artifacts that remain source of truth>
+  observations:
+    - <runtime/render/source observations with evidence>
+  constraints:
+    - <privacy, sharing, output location, fidelity, interaction, or style constraints>
+  gaps:
+    - <missing source or unverified assumption>
+```
+
+If the user says "use this context", "use the current thread", "turn the PGE output into HTML", or points at a generated artifact, consume the relevant conversation and observations as source context. Do not ask for a Markdown file unless the missing source is actually required for correctness.
 
 Then build the view model from this inventory:
 
@@ -202,6 +229,7 @@ Coverage requirements:
 - Every derived status, risk, confidence, recommendation, or next action must cite source references.
 - If a source fact is intentionally omitted because it is duplicate, obsolete, or irrelevant to the cognitive job, record that in the self-check summary.
 - If completeness cannot be established, return `coverage: incomplete` and name the missing source area instead of silently shipping the HTML.
+- If source context is conversation-only, cite it as `conversation:<short label>` and separate user-stated facts from assistant observations and inferences.
 
 The right failure mode is not a prettier incomplete page. The right failure mode is an explicit coverage gap.
 
@@ -243,7 +271,7 @@ digraph pge_html {
     label="Phase 1: Input";
     style=dashed;
     read_source [label="Read source(s):\nfile(s), repo context,\ngit, browser, MCP"];
-    classify_command [label="Classify command family:\nrender, board,\nor default source mode"];
+    classify_command [label="Classify command family:\nrender, board,\ncontext, or default source mode"];
     classify_level [label="Classify artifact mode:\nfaithful, cognition,\ndecision board,\ndesign, presentation,\npreservation, or editor"];
     define_job [label="Define cognitive job\n(one sentence)"];
     semantic_inventory [label="Build semantic inventory:\nfacts, entities,\nrelationships, claims,\ngaps, raw details"];
@@ -347,10 +375,30 @@ digraph pge_html {
 Use all relevant local context the user authorizes or provides:
 - source files and existing PGE artifacts
 - git diff, history, PR notes, and review output
+- current conversation corrections, decisions, and produced context
+- generated HTML, Markdown drafts, pasted notes, command output, logs, and terminal snippets
 - browser observations or screenshots when the user asks for UI/prototype inspection
 - MCP/app context such as issue trackers or team notes when explicitly available in the session
 
 Do not assume HTML input must start from one Markdown file. When multiple sources are involved, synthesize the facts into one designed information model and keep provenance visible near the claim it supports.
+
+### Context Intake Protocol
+
+Use context intake when the source is not a single clean file, including:
+- the current thread or a recent PGE run result
+- a generated report that needs repair or redesign
+- several research notes, command outputs, screenshots, or browser observations
+- a user correction such as "this output feels bad" or "make the artifact explain X instead"
+- a task directory plus fresh conversation context that changes what the page should emphasize
+
+Context intake steps:
+1. **Gather** only the relevant context: user goal, explicit corrections, source artifact paths, observations, and constraints.
+2. **Classify authority** for each item: user intent, canonical artifact, evidence, observation, generated draft, or raw detail.
+3. **Normalize** into a source packet before template selection. The packet, not the original Markdown/HTML heading order, drives the page.
+4. **Design** around the reader's job: architecture comprehension, decision, review, status, explanation, editor, or shareable presentation.
+5. **Preserve provenance** near claims. Conversation-derived facts must be labeled as user-stated, observed, or inferred.
+
+Generated HTML can be inspected as evidence of output quality, but it is rarely a good canonical source. If the generated HTML contains malformed markup, raw Markdown markers, duplicated report titles, or table/list damage, use it to diagnose the generator and rebuild the page from underlying facts where available.
 
 For PGE artifacts, treat these as canonical inputs:
 
@@ -419,7 +467,7 @@ Key distinction: 01 is for "which approach should we choose?" — mutually exclu
 
 1. **Mode boundary** — `render` preserves source content and source order; non-render modes preserve source facts through a semantic model. Do not mix faithful rendering and derived judgment without labeling the derived area.
 2. **保真模式不丢内容** — In `render` mode, the source file's information must appear in the HTML. The template decides presentation, not meaning.
-3. **非 render 模式不漏事实** — In cognition, board, presentation, design, and editor modes, build a source inventory and coverage map. Reorganize the structure, but preserve primary/supporting facts and reachable raw details.
+3. **非 render 模式不漏事实** — In cognition, board, presentation, design, editor, and context modes, build a source packet, source inventory, and coverage map. Reorganize the structure, but preserve primary/supporting facts and reachable raw details.
 4. **决策板不造事实** — In `board` mode, compress rather than summarize. Derived statuses, confidence, gaps, risk, and next action must cite canonical artifacts or evidence. If support is missing, show `Evidence: none` or `Confidence: unknown` rather than filling the gap with prose.
 5. **Human Attention is mandatory for boards** — Every decision board must include a compact section listing only the decisions that require human judgment.
 6. **No HTML-only verdicts** — New verdicts, changed acceptance criteria, and changed risk decisions must be exported back as a prompt, Markdown patch, JSON patch, or explicit human instruction; they are not authoritative until the owning PGE stage updates canonical artifacts.
@@ -433,6 +481,8 @@ Key distinction: 01 is for "which approach should we choose?" — mutually exclu
 8. **密集内容用折叠** — 完整代码块、详细参数列表、长表格用 `<details>` 折叠，保持页面呼吸感。摘要/关键行在外面，完整内容折叠内。
 9. **HTML-native before prose** — 如果信息天然是流程、空间、差异、状态、层级、时间线、可调参数或可编辑结构，优先用 SVG、表格、网格、tabs、filters、sliders、toggles、drag/reorder、copy/export 等浏览器原生表达，不要退回长段落。
 10. **Share-ready by default** — 面向他人阅读的产物要能脱离当前对话理解：顶部说明目的、来源、更新时间、如何阅读，以及哪些结论是 confirmed / inferred / unresolved。不要依赖会话上下文。
+11. **No raw Markdown leakage** — Outside escaped code/detail blocks, generated HTML must not show unrendered Markdown syntax such as `**bold**`, backtick code markers, fenced code fences, Markdown table pipes, horizontal-rule `---`, or list bullets wrapped as plain paragraphs.
+12. **One document hierarchy** — A generated page gets one `<h1>`. Subreport titles become sections, tabs, timeline labels, or evidence entries. Do not paste multiple standalone report documents into one page.
 
 ## Generated HTML Evaluation
 
@@ -447,13 +497,14 @@ Required self-check:
 - **Coverage**: primary facts are visible, supporting facts and raw details are reachable, and any omitted source area is explicitly named with a reason.
 - **SSOT safety**: no verdict, acceptance criterion, requirement, or risk exists only in HTML.
 - **Template contract**: every required component in `references/template-contracts.md` is present.
+- **Markup integrity**: one `<h1>`, valid table structure, no raw Markdown leakage, no nested `<thead>/<tbody>` row damage, no unclosed code/pre blocks, and no copied subreport document shells.
 - **Evidence**: important claims carry compact source paths, commands, confidence, or provenance.
 - **Interaction**: tabs, filters, collapses, copy/export, or local controls change what the reader can inspect or reuse when the job needs participation.
 - **Shareability**: teammate-facing artifacts include enough provenance, orientation, and durable links/paths to be understandable outside the current chat.
 - **Visual failure scan**: no card soup, placeholder residue, text overflow, file-path dump sidebars, or prose-only first screen.
 - **Safety**: source-derived text is escaped or inserted with `textContent`; generated JavaScript does not use source-derived `innerHTML`.
 
-If the self-check finds a failure, repair the HTML and rerun the checklist. If a failure remains, return `required_components: failed` and state the unresolved item.
+If the self-check finds a failure, repair the HTML and rerun the checklist. Markup integrity failures are blocking; do not return the page as "good enough". If a failure remains, return `required_components: failed` and state the unresolved item.
 
 ## Required Template Contracts
 
@@ -537,6 +588,8 @@ Regenerate before returning if the page has:
 - tables where a flow, dependency map, or annotated diagram would answer faster
 - Markdown shape preserved even though the visual job needs a different information model
 - no interaction/export even though the page asks the user to decide, rank, tune, or annotate
+- multiple pasted reports with repeated "Overview", "Summary", "Conclusion", "References", or "Version" sections instead of one integrated artifact
+- broken HTML semantics: repeated top-level `<h1>`, table rows emitted as headers, raw Markdown markers visible as prose, or code fences rendered as paragraph text
 
 ## Templates
 
@@ -573,15 +626,18 @@ All templates in `templates/` are from [html-effectiveness](https://github.com/T
 /pge-html docs/research/ref-superpowers.md --style 14-research-feature-explainer --open
 /pge-html render .pge/tasks-auth/runs/run-001/review.md --style 03-code-review-pr
 /pge-html docs/pr-auth-rewrite.md --style 17-pr-writeup --open
+/pge-html context "use the current thread and the generated report at /tmp/report.html to make a diagnostic board"
+/pge-html context "turn the PGE output we just discussed into a shareable architecture explainer"
 ```
 
 ## Output
 
 ```md
 ## PGE HTML Result
-- source: <input file>
+- source: <input file | directory | none for current-thread context>
+- input_context: <file | directory | current thread | source packet | mixed>
 - output: <output .html file>
-- mode: render | board | cognition | design | presentation | preservation
+- mode: render | board | context | cognition | design | presentation | preservation
 - style: minimal | rich | dashboard | comparison | review | explainer | code-understanding | module-map | execution-semantics | code-review | pr-writeup
 - cognitive_job: <what this page helps the reader do faster>
 - canonical_sources: <source artifacts used as SSOT>
@@ -589,6 +645,6 @@ All templates in `templates/` are from [html-effectiveness](https://github.com/T
 - coverage: complete | incomplete | render-preserved
 - coverage_summary: primary=<n>, supporting=<n>, raw_details=<n>, omitted=<n or none>, missing=<areas or none>
 - required_components: pass | repaired | failed
-- evaluation: <one-line result of mode fit, SSOT safety, and generated HTML self-check>
+- evaluation: <one-line result of mode fit, context intake, markup integrity, SSOT safety, and generated HTML self-check>
 - opened: yes | no
 ```
