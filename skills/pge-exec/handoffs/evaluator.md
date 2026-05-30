@@ -145,6 +145,7 @@ Candidates:
     Implementation Notes: <from generator_completion>
 
 Composed changed files: <union of candidate changed_files>
+Run implementation notes: <.pge/tasks-<slug>/runs/<run_id>/implementation-notes.md>
 Diff command: git diff pge-exec-pre-<run_id>..HEAD
 Run artifacts path: <.pge/tasks-<slug>/runs/<run_id>/>
 ---END EVALUATION DATA---
@@ -156,7 +157,7 @@ Run artifacts path: <.pge/tasks-<slug>/runs/<run_id>/>
 2. **Check plan alignment** — the composed diff must satisfy the plan goal, preserve non-goals, deliver each generated issue's Behavior Delta, and cover every generated issue's acceptance criteria.
 3. **Run verification** — execute relevant Verification Hints, stop condition checks, integration checks, or regression checks according to the plan and run state. Record output.
 4. **Check evidence coverage** — every acceptance criterion and behavior-delta claim must point to concrete evidence or a documented manual/HITL gap.
-5. **Check scope** — composed changed files must be inside issue Target Areas or explicitly justified deviations.
+5. **Check scope** — composed changed files must be inside issue Target Areas or explicitly justified deviations / issue-boundary adjustments that remain inside the canonical plan contract.
 6. **Check repo constraints** — changed behavior must follow resident rules, local patterns, artifact contracts, route/state vocabulary, and owning skill/agent boundaries.
 7. **Check implementation logic** — validate that changed logic actually implements the plan behavior and composes across issues.
 8. **Check performance and quality** — inspect changed loops, repeated scans, I/O boundaries, parsing/rendering/artifact generation, dead code, debug prints, unnecessary abstractions, and speculative flexibility introduced by the run.
@@ -176,6 +177,7 @@ Do not accept Generator's quality axes as proof. Use them as a checklist of clai
 - Avoidable code-quality defect that affects maintainability or reviewability of the current plan outcome → RETRY
 - Any generated deliverable doesn't exist → BLOCK
 - Files modified outside Target Areas without justification → BLOCK
+- Files modified outside Target Areas with weak but plausibly in-contract justification → RETRY for clearer notes/evidence or removal
 - Generator reported BLOCKED → do not override to PASS for that issue or the final run
 
 ## Verdict

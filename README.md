@@ -32,7 +32,7 @@ Templates are scaffolds for consistency. They are not a reason to pad simple tas
 ```
 /pge-research   → understand the problem space
 /pge-plan       → produce a bounded plan with issues and acceptance criteria
-/pge-exec       → execute the plan issue by issue with verification
+/pge-exec       → execute the plan with bounded lanes, evidence, and verification
 /pge-review     → review the composed diff against standards, alignment, simplicity
 /pge-challenge  → prove meaningful changes survive adversarial checks
 ```
@@ -82,7 +82,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — Produce a bounded executable solution-design contract under `.pge/tasks-<slug>/plan.md`. Translates intent into numbered executable issue contracts with acceptance criteria, verification hints, evidence requirements, forbidden areas, depth-scaled Plan Engineering Review, repo reality checks, and a Final Plan Gate that must pass before `pge-exec`. Also supports fast-adopt for explicit external plans whose semantics are sufficient to materialize the canonical contract.
 
-- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues using Generator + Evaluator agents. Consumes a plan file, dispatches per-issue Generator work with local verification and contract self-review, then uses an independent Evaluator for composed-run plan alignment rather than per-issue approval. Records evidence, reports plan deviations, recovers stalled lanes with Progress Watchdog, and escalates unclear development failures into Diagnostic Recovery instead of trial-and-error repair.
+- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — Execute plan issues with lightweight coordination, compact bounded Generator lanes, staged verification, and final Evaluator pressure. Consumes a plan file, allows implementation adaptation inside the plan contract with `implementation-notes.md`, uses optional read-only prep hints when useful, and verifies the composed run rather than forcing per-issue Evaluator approval. Records evidence, reports plan deviations, recovers stalled lanes with Progress Watchdog, and escalates unclear development failures into Diagnostic Recovery instead of trial-and-error repair.
 
 - **[`/pge-review`](./skills/pge-review/SKILL.md)** — Review-stage gate for changes since a fixed point. Checks standards, semantic alignment with the plan/original intent, simplicity, and verification story before routing to fix, challenge, or ship.
 
@@ -92,7 +92,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — Shape one human-selected repo evolution direction into a bounded AI-native refactor plan before PGE execution. Focuses one dominant friction: entry, containment, verification, structural toxicity, or a missing mechanical invariant.
 
-- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Superpowers brainstorming bundled locally without installing Superpowers. Starts from original goal A, asks one question at a time, compares 2-3 approaches, gets user approval, writes `.pge/tasks-<slug>/spark.md` in a research-comparable artifact format, and stops after the user-approved spec.
+- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Local Superpowers brainstorming shim for fuzzy, broad, value-laden, or solution-first prompts. Recovers original goal A before implementation hypothesis B, asks one question at a time, compares 2-3 framings or approaches, writes `.pge/tasks-<slug>/spark.md`, and stops after the user-approved spec for later PGE consumption.
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a temporary, focused handoff for another agent or future session. Matt-style task slice only: no pipeline control and no knowledge extraction.
 

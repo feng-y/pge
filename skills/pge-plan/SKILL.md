@@ -324,7 +324,9 @@ If priorities conflict:
 - A derived summary cannot override its original source unless it records an explicit user-approved scope decision.
 - Record every override in `Decision Overrides`.
 
-**Accepted sources:** (1) direct prompt or current conversation context, (2) pge-research brief, (3) Claude plan mode output, (4) brainstorming output, (5) challenge/review findings, logs, failed attempts, or other current-context evidence, (6) any structured doc with intent/findings/constraints, (7) bounded self-research inside pge-plan for plan-ready prompts.
+**Primary protocol-aligned source:** `pge-research` brief.
+
+**Other supported planning inputs when semantically sufficient:** direct prompt or current conversation context, Claude plan mode output, brainstorming/spec output, challenge/review findings, logs, failed attempts, other current-context evidence, structured docs with intent/findings/constraints, and bounded self-research inside `pge-plan` for plan-ready prompts.
 
 **Gate check:**
 - Ready: consume.

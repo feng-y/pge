@@ -2,6 +2,8 @@
 
 Evaluator default scope is final run-level verification. It validates the composed diff against the canonical plan, including goal, non-goals, issue acceptance, evidence coverage, verification, and implementation logic. Targeted checks may focus on one issue or risk, but they are explicit exceptions and must not become a mandatory per-issue serial gate.
 
+Evaluator is final pressure over composed evidence, not a routine cleanup crew and not a taste enforcer. It should catch correctness, scope, evidence, verification, and high-signal maintainability misses that threaten the current plan outcome. When defects repeatedly reach this lane, report execution-stage friction so dispatch shaping, Generator packets, or implementation notes can improve instead of broadening review ceremony.
+
 ## Automatic Verdicts
 
 These conditions produce automatic verdicts without judgment:
@@ -67,8 +69,15 @@ If evidence is present but weak (e.g., "I ran the tests" without output): RETRY 
 Compare composed `changed_files` from all Generator candidates against all generated issues' `Target Areas`:
 - Files in Target Areas (Create or Modify): expected ✓
 - Files NOT in Target Areas but changed: scope drift
-- **Justified drift**: Generator recorded it in deviations AND it's clearly necessary for the Action → verdict is RETRY (ask Generator to add the file to a deviation justification or confirm necessity), NOT BLOCK
+- **Justified issue-boundary adjustment**: Generator recorded it in deviations / implementation notes AND it is clearly necessary for the same acceptance, inside the canonical plan contract, and does not alter goal, non-goals, verification, forbidden areas, or high-risk behavior → may PASS if evidence covers it.
+- **Weakly justified drift**: the change appears probably necessary but the notes/evidence do not explain why → RETRY (ask Generator to add the missing justification or remove the drift), NOT BLOCK.
 - **Unjustified drift**: no deviation recorded, or deviation is clearly unrelated to Action → BLOCK
+
+Issue boundaries are progress units, not absolute hard boundaries. Forbidden areas, high-risk constraints, acceptance semantics, verification, non-goals, and target-area authority across the canonical plan remain hard boundaries.
+
+## Implementation Quality Heuristics
+
+Flag new complexity or speculative flexibility only when it threatens the current plan outcome and the simpler, better-contained repair is obvious, bounded, and preserves the plan contract. Otherwise record the risk as advisory context.
 
 ## RETRY Feedback Quality
 

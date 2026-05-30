@@ -1,14 +1,15 @@
 ---
 name: pge-spark
 description: >
-  Superpowers brainstorming, bundled locally for PGE so it can be used without
-  installing Superpowers. Explore project context, ask one question at a time,
-  propose 2-3 approaches, present the design for approval, write and self-review
-  the spec, get user approval, then stop at the planning handoff. The only PGE
-  adaptation is that the spec is written to .pge/tasks-<slug>/spark.md and the
-  final response uses the same result-block shape as pge-research.
+  Local wrapper around Superpowers brainstorming for fuzzy, broad,
+  value-laden, or solution-first prompts where the goal must be recovered
+  before planning. Ask one question at a time, compare 2-3 framings or
+  approaches, write a user-approved spec, and stop before implementation. The
+  PGE-specific adaptations are intentionally narrow: write the spec to
+  .pge/tasks-<slug>/spark.md and keep the result consumable by later PGE stages
+  without importing the broader Superpowers suite.
 version: 0.1.0
-argument-hint: "<idea or feature>"
+argument-hint: "<goal, problem, vague direction, or proposed solution>"
 allowed-tools:
   - Read
   - Write
@@ -19,7 +20,7 @@ allowed-tools:
 
 # PGE Spark
 
-This is Superpowers brainstorming as a local PGE skill. Its job is to turn an idea into a user-approved spec through conversation.
+This is Superpowers brainstorming as a local PGE skill. Use it when the prompt is fuzzy, broad, value-laden, or prematurely narrowed to an implementation path and the real goal still needs to be recovered before planning. Its job is to turn that conversation into a user-approved spec.
 
 Do not treat this as a reduced baseline. Do not turn it into PGE research. Do not add repo-evidence gates, authority ledgers, PGE `planning_handoff` fields, issue plans, or implementation work. Those belong to `pge-research` / `pge-plan`.
 
@@ -27,6 +28,7 @@ The PGE adaptations are intentionally narrow:
 
 - write the spec to `.pge/tasks-<slug>/spark.md`
 - use `templates/spec.md` for a research-comparable artifact shape
+- keep the output consumable as brainstorming/spec input for later PGE stages, typically via `pge-plan`
 - final response uses a `PGE Spark Result` block matching `pge-research` result style
 
 ## Core Rule

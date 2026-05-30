@@ -32,37 +32,37 @@ digraph generator {
 
 ## Lifecycle Protocol
 
-Before receiving issue work, `generator` must acknowledge team startup with:
+Before receiving issue work, each bounded `generator-*` lane must acknowledge team startup with:
 
 ```text
 type: lane_ready
-lane: generator
+lane: generator-*
 status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
 `lane_ready` is startup verification, not issue completion. If startup/auth/channel readiness fails before work is dispatched, send `status: BLOCKED` with a concrete reason such as `Not logged in`, token missing, `/login` requested, invalid lane registration, or Team channel unavailable. Do not ask the user to run `/login`, retry authentication, or start issue work after startup failure; main records the failure and owns any `main_thread_fallback` decision.
 
-On teardown, when main sends `shutdown_request`, `generator` must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
+On teardown, when main sends `shutdown_request`, the selected `generator-*` lane must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
 
 Human-readable acknowledgement format:
 
 ```text
 type: shutdown_response
-lane: generator
+lane: generator-*
 status: READY
 reason: <none or one sentence>
 ```
 
 ## Dispatch Protocol
 
-Main sends each issue brief only after `generator` has passed Agent Startup Verification, using the Team channel:
+Main sends each compact issue, issue-group, target-area-cluster, or repair-window brief only after the selected `generator-*` lane has passed Agent Startup Verification, using the Team channel:
 
 ```text
-SendMessage(to="generator", message="---BEGIN EXECUTION BRIEF DATA---\n...\n---END EXECUTION BRIEF DATA---")
+SendMessage(to="<generator-lane>", message="---BEGIN EXECUTION BRIEF DATA---\n...\n---END EXECUTION BRIEF DATA---")
 ```
 
-Generator is a resident teammate — stays alive across issues until it acknowledges shutdown.
+Generator lanes are bounded helpers, not owners of the whole development task. A lane may receive one issue, an issue group, a target-area cluster, or a repair window. Main may reuse a healthy lane for another bounded assignment only when doing so is simpler than spawning a fresh lane and does not carry forward unverified assumptions from the prior assignment.
 
 Generator owns implementation, local verification, self-review, and evidence production for its assigned issue candidate. It should start work when dispatched and must not wait for a fixed per-issue Evaluator hop before doing implementation work.
 
@@ -72,7 +72,7 @@ While work is in progress, Generator may send `progress_update` only when someth
 
 ```text
 type: progress_update
-lane: generator
+lane: <generator-lane>
 issue_id: <N>
 status: working
 concrete_progress:
@@ -85,7 +85,7 @@ Main may send one `status_request` if no meaningful progress is visible:
 
 ```text
 type: status_request
-lane: generator
+lane: <generator-lane>
 issue_id: <N>
 expected_next_packet: generator_completion
 reason: progress_watchdog_no_meaningful_progress
@@ -97,7 +97,7 @@ Respond with the expected `generator_completion`, a concrete `progress_update`, 
 
 ```text
 ---BEGIN EXECUTION BRIEF DATA---
-You are @generator in the pge-exec team.
+You are @<generator-lane> in the pge-exec team.
 
 run_id: <run_id>
 plan_id: <plan_id>
@@ -106,13 +106,20 @@ issue_title: <title>
 
 ## Your Task
 
+Plan Goal: <plan goal, concise>
+Relevant Non-goals / Forbidden or High-risk Boundaries: <only boundaries relevant to this assignment>
 Action: <issue Action field — imperative, what to DO>
 Deliverable: <what must exist when done>
 Target Areas: <exact file paths — Create: X | Modify: Y>
+Acceptance Criteria: <issue Acceptance Criteria, concise>
 Test Expectation: <happy path + edge case + error path>
 Required Evidence: <what you must produce to prove done>
 Verification Hint: <command to run>
 Verification Coupling: <none | compile-coupled with issue IDs | shared verification with issue IDs | isolated worktree required | serial verification required>
+Upstream Decision Refs: <only refs needed for semantic alignment, or "none">
+Implementation Guidance: <0-3 issue-specific bullets from main, or "none">
+Prep Hint: <read-only prep conclusions, risks, and evidence paths, or "none">
+Stop If: <hard stop conditions from forbidden/high-risk areas, acceptance/verification changes, or "none">
 
 ## Behavior Contract
 
@@ -136,9 +143,10 @@ Assumptions: <from plan's Assumptions section>
 3. Use a proportional TDD feedback loop per Test Expectation and Behavior Delta. For behavior changes, prefer meaningful RED → GREEN evidence. For schema/config/docs/mechanical contract changes, use the plan's explicit verification command or strongest contract-level check instead of inventing low-value tests.
 4. Run Verification Hint. Record output as evidence.
 5. Produce Required Evidence.
-6. Run the Candidate Quality Gate: issue/goal alignment, repo constraints, verification evidence, changed-hunk audit, performance risk, and code-quality checks. This is not reflective self-approval; inspect concrete evidence. Fix local in-contract findings before completion; report BLOCKED if a finding cannot be fixed inside the issue contract.
-7. Do NOT self-approve or mark the issue complete. `READY` means the candidate implementation and evidence are ready for main to integrate into the run. Final acceptance happens only after run-level Evaluator verification.
-8. Report execution-time implementation notes for decisions, tradeoffs, deviations, blockers, follow-ups, learned constraints, or verification gaps that the plan did not spell out. Use `implementation_notes: none` only when no such notes exist.
+6. Use Implementation Guidance only as issue-specific shaping. Do not treat prep hints as evidence. Re-check current code reality before relying on them.
+7. Run the Candidate Quality Gate: issue/goal alignment, repo constraints, verification evidence, changed-hunk audit, performance risk, and code-quality checks. This is not reflective self-approval; inspect concrete evidence. Fix local in-contract findings before completion; report BLOCKED if a finding cannot be fixed inside the issue contract.
+8. Do NOT self-approve or mark the issue complete. `READY` means the candidate implementation and evidence are ready for main to integrate into the run. Final acceptance happens only after run-level Evaluator verification.
+9. Report execution-time implementation notes for meaningful decisions, tradeoffs, deviations, blockers, follow-ups, learned constraints, open questions, or verification gaps that the plan did not spell out. Use `implementation_notes: none` only when no such notes exist.
 
 ## Execution Rules (read references/generator-rules.md for full detail)
 
@@ -155,7 +163,7 @@ Companion rules path: `skills/pge-exec/references/generator-rules.md` in the sou
 - Unclear development errors require a diagnostic loop before another repair: reproduce the exact failure, inspect recent changed surface, name 3-5 falsifiable hypotheses unless root cause is already proven, then test one hypothesis at a time
 - Destructive git prohibition: never force-push, reset --hard, clean -f
 - Package install safety: failed install → BLOCKED, not auto-retry
-- Scope boundary: only fix what the Action specifies. Unrelated → deferred items.
+- Scope boundary: fix only what the Action and Acceptance Criteria require. Adjacent in-contract issue-boundary adjustments need notes; unrelated → deferred items.
 - No self-dialogue: do not spend tokens asking yourself generic review questions. Produce evidence tables and fixed findings only.
 ---END EXECUTION BRIEF DATA---
 ```
@@ -245,7 +253,7 @@ digraph repair_loop {
 
 ### Repair Dispatch Protocol
 
-Main sends to `generator` when Candidate Gate fails with a locally repairable contract failure, or when a targeted/final Evaluator check returns a bounded RETRY:
+Main sends to the owning `generator-*` lane when Candidate Gate fails with a locally repairable contract failure, or when a targeted/final Evaluator check returns a bounded RETRY:
 
 ```text
 ---BEGIN REPAIR DATA---

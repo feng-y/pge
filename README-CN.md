@@ -70,7 +70,7 @@ PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、
 
 - **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — 在 `.pge/tasks-<slug>/plan.md` 下产生有界的可执行方案设计合约。将意图转化为带有验收标准、验证提示、证据要求、禁止区域、按深度缩放的 Plan Engineering Review、仓库现实检查和 Final Plan Gate 的编号可执行议题合约；Final Plan Gate 通过前不能进入 `pge-exec`。也支持从语义充分的外部计划 fast-adopt 成 canonical 合约。
 
-- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — 使用生成器（Generator）+ 评估器（Evaluator）代理执行计划议题。消费计划文件，分派每个议题的执行，用独立评估器验证，记录证据，报告任何计划偏差。
+- **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — 以轻量协调、紧凑且有界的 Generator lanes、分阶段验证和最终 Evaluator 压力执行计划议题。消费计划文件，允许在计划合约内通过 `implementation-notes.md` 记录实现适配，在有用时使用可选只读 prep hints，并验证 composed run，而不是强制每个议题都经过 Evaluator 批准。记录证据，报告计划偏差，用 Progress Watchdog 恢复停滞 lanes，并把不清晰的开发失败升级为 Diagnostic Recovery，而不是试错式修补。
 
 - **[`/pge-review`](./skills/pge-review/SKILL.md)** — 自固定点以来变更的审查阶段门控。在路由到修复、挑战或交付前，检查标准、与计划/原始意图的语义对齐、简洁性和验证故事。
 
@@ -79,6 +79,8 @@ PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、
 ### 实用工具
 
 - **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — 在 PGE 执行前，将一个人工选择的仓库演进方向塑造为有界的 AI 原生重构计划。聚焦一个主导摩擦：入口、包含、验证、结构毒性或缺失的机械不变量。
+
+- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — 本地化的 Superpowers brainstorming shim，适用于 fuzzy、broad、value-laden 或 solution-first 的输入。先恢复原始目标 A，再处理实现假设 B；一次只问一个问题，比较 2-3 个 framing 或 approach，写入 `.pge/tasks-<slug>/spark.md`，并在用户批准 spec 后停止，供后续 PGE 阶段消费。
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — 为另一个代理或未来会话创建临时、聚焦的 handoff。Matt-style task slice only：无流水线控制，无知识提取。
 

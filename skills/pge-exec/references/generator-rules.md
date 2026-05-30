@@ -64,6 +64,14 @@ Outcomes:
 
 Generator must not send `READY` with a known in-contract bug, issue/goal mismatch, repo-constraint violation, missing required evidence, unresolved scope drift, obvious performance regression, avoidable code-quality defect, or unrun required verification. Fix it, or report `BLOCKED`.
 
+## Lightweight Implementation Shaping
+
+Implementation Guidance from main is a short risk hint, not a gate. Use it to avoid known bad paths, but keep the plan contract and current code reality as the source of truth.
+
+Prep hints are read-only inputs. They can identify likely files, reusable capabilities, legacy traps, and coupling risks. They are not evidence and do not replace fresh reads, verification, or Required Evidence.
+
+For old or inconsistent code, prefer the current Target Area's confirmed local convention and the simplest verifiable in-contract path. If that conflicts with explicit plan acceptance, follow the plan contract and record the tradeoff; if it requires changing acceptance, verification, target areas, non-goals, or forbidden areas, report `contract-blocked`.
+
 ## Behavior Contract Before First Edit
 
 Before editing, restate the execution brief in working memory:
@@ -228,11 +236,12 @@ Introducing a second pattern is worse than either pattern alone. If you genuinel
 
 ## Scope Boundary
 
-- Only modify files listed in the issue's Target Areas
-- Only fix what the issue's Action specifies
-- **Target Areas = which files you may touch. Action = what you do in those files. Both must be satisfied.** Modifying a Target Area file for a purpose not described in Action = scope drift.
-- Unrelated bugs found → record in `deferred_items`, do not fix
-- If the Action requires touching a file not in Target Areas: record as deviation, proceed only if clearly necessary for the Action
+- Target Areas are the default allowed files. Action is the behavioral change to make. Both matter.
+- Only fix what the issue's Action and Acceptance Criteria require.
+- Small adjacent changes outside the current issue boundary are allowed only when they are necessary for the same acceptance, stay inside the canonical plan contract, avoid duplicate work, or preserve local compatibility. Record why, plan impact, verification impact, and risk in `deviations` / `implementation_notes`.
+- Completing part of a later issue early, changing implementation grouping, or touching a target area outside the current issue requires strong justification and notes.
+- Unrelated bugs found → record in `deferred_items`, do not fix.
+- Must stop and report `contract-blocked` when the change would touch forbidden areas, high-risk runtime/data/security areas not authorized by the plan, alter goal/non-goals/acceptance/verification, or add unplanned core behavior.
 - **Plan references wrong path:** If plan references a file that doesn't exist but an obvious equivalent exists (renamed, moved), record as deviation with the correct path and proceed. Evaluator will check if the deviation is justified.
 
 ## Final Completion Check
@@ -240,7 +249,7 @@ Introducing a second pattern is worse than either pattern alone. If you genuinel
 Before sending `generator_completion`:
 1. Does the Deliverable exist at the expected path?
 2. Does the evidence match what Required Evidence asks for?
-3. Did I stay within Target Areas? Any scope drift?
+3. Did I stay within Target Areas, or record a justified in-contract issue-boundary adjustment? Any unresolved scope drift?
 4. Did I satisfy the Test Expectation?
 5. Any deviations from the plan? Recorded?
 6. **Assumption check**: what did I assume that isn't explicitly in the plan? Record in evidence.
