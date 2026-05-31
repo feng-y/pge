@@ -95,7 +95,7 @@ Checks:
 - Architecture, data flow, edge cases, test coverage, performance, failure modes, and protocol coherence were applied according to depth and relevance.
 - Plan Engineering Review findings have been consumed into the plan before Final Plan Gate validation. Plan Engineering Review does not produce routes directly; only Final Plan Gate has execution authorization.
 - If an external gstack `/plan-eng-review` or equivalent review was provided in current context, its findings are consumed as pressure input, but PGE still owns the final authorization verdict.
-- Legacy `### Engineering Review Gate` may be read as an alias for older artifacts; new plan output should use `### Plan Engineering Review`.
+- New plan output must use `### Plan Engineering Review`.
 
 ## Layer 4: Repo Reality Gate
 
@@ -132,7 +132,7 @@ Checks:
 - The plan uses only fixed route/status/verdict vocabulary defined by `pge-plan`, `plan_gate`, and `pge-exec`.
 - Downstream consumer expectations are satisfied: `pge-exec` can locate ready issues, blocked issues, behavior contracts, target areas, forbidden areas, acceptance, verification, evidence, assumptions, source refs when applicable, and handoff fields without interpreting prose.
 - Repair loops are bounded: retry, revise, block, escalate, and human-decision paths are explicit where likely.
-- Legacy compatibility is explicit when adopting older artifacts: aliases are read only during adoption, and new output is rewritten to canonical shape.
+- Non-canonical sources are rewritten to canonical shape before execution; `pge-exec` must not interpret alias headings or missing contract fields.
 - Clarification and stop paths are stable for missing evidence, ambiguous selectors, stale artifacts, plan-changing context, terminal conditions, and unavailable checks.
 - The final response can report `plan_route`, `plan_gate`, `exec_allowed`, ready issues, blocked issues, assumptions, and next skill without inventing fields.
 - Route/status/verdict vocabulary and schema field boundary checks pass when workflow or artifact-schema contracts are changed.
@@ -155,7 +155,7 @@ Planning does not treat unresolved conditions as runtime exceptions. They are co
 | Required tool/check unavailable, but alternative evidence exists | `REVISE` | no final route until plan records alternative evidence | no | Add fallback verification/evidence |
 | Required tool/check unavailable and no alternative evidence exists | `ESCALATE` | `NEEDS_HUMAN` or `BLOCKED` | no | Stop before execution |
 | Human-only decision remains unresolved | `ESCALATE` | `NEEDS_HUMAN` | no | Mark affected issues `NEEDS_HUMAN` |
-| Legacy artifact lacks `plan_gate` or forbidden areas | `REVISE` | contract upgrade through `pge-plan` | no | Fast-adopt / rewrite into canonical shape |
+| Selected source lacks `plan_gate`, `forbidden_areas`, or canonical headings | `REVISE` | contract upgrade through `pge-plan` | no | Fast-adopt / rewrite into canonical shape |
 | Stale artifact or provenance mismatch | `REJECT` | `BLOCKED` | no | Refuse to execute stale contract |
 
 Never use `PASS` with warnings for terminal conditions. A terminal condition is either confirmed/resolved and recorded inside the plan, or it prevents exec.
@@ -203,13 +203,8 @@ Record under `## plan_gate` in `.pge/tasks-<slug>/plan.md`:
 
 Do not create a separate `canonical-plan.md`. The canonical plan is `.pge/tasks-<slug>/plan.md` only after the Final Plan Gate passes.
 
-## Compatibility Rules
+## Canonical Shape Rules
 
 New `plan.v2` artifacts use `## issues`, `## forbidden_areas`, `## terminal_conditions`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value.
 
-For older artifacts:
-
-- `## Slices` is a legacy alias for `## issues`.
-- `Stop Condition` is a legacy alias for `## stop_conditions`.
-- Missing `plan_gate` means the plan is not execution-ready under this contract; route through `pge-plan` fast-adopt / contract upgrade before `pge-exec`.
-- Missing `forbidden_areas` must fail Contract Completeness unless the plan explicitly proves that no forbidden areas exist.
+If a selected source or prior artifact is not already in canonical shape, `pge-plan` must rewrite it before execution authorization. Missing `plan_gate`, missing `forbidden_areas`, or non-canonical headings are execution-blocking contract failures until the plan is upgraded.

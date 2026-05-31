@@ -162,18 +162,18 @@ Validate before lane creation:
 - `plan_route` is `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`.
 - `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`. If absent, failing, or ambiguous, route upstream to `pge-plan` for fast-adopt / contract upgrade; do not treat Plan Engineering Review alone as execution authorization.
 - If route is `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, assumptions are explicit in the canonical plan.
-- At least one issue under canonical `## issues` has `State: READY_FOR_EXECUTE`. Legacy `## Slices` is accepted only as a compatibility alias; do not require both headings.
-- `## stop_conditions` is present and checkable. Legacy `Stop Condition` wording is accepted as a compatibility alias.
+- At least one issue under canonical `## issues` has `State: READY_FOR_EXECUTE`.
+- `## stop_conditions` is present and checkable.
 - Each ready issue has Action, Deliverable, Behavior Contract, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Test Expectation, Required Evidence, Dependencies, Risks, and Security.
 - Forbidden areas are present and specific enough for scope drift checks.
 - Terminal conditions are present. Any condition with `Exec Allowed: no` or an unresolved trigger blocks execution and routes upstream; do not waive it in `implementation-notes.md`.
-- Newly produced plans should include Verification Coupling. If a legacy or external canonical plan omits it, main must classify verification coupling before dispatch and treat the missing field as `unknown` until that check resolves it to `none`, `compile-coupled`, `shared verification`, `isolated worktree required`, or `serial verification required`.
+- Each ready issue includes Verification Coupling. If it is missing, route upstream to `pge-plan` for contract repair before dispatch.
 - Dependencies reference known issue IDs.
 - Target Areas are concrete enough for scope drift checks.
 
 Exec may consume assumptions already in the canonical plan. It must not invent new assumptions. If assumptions are missing, unclear, or plan-changing, route upstream.
 
-Extract issues from `## issues` (`## Slices` legacy alias accepted). Dispatch only issues with `State: READY_FOR_EXECUTE`, in issue-ID order. Issues with `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` are skipped and recorded in manifest. If all issues are non-ready, route `BLOCKED`.
+Extract issues from canonical `## issues`. Dispatch only issues with `State: READY_FOR_EXECUTE`, in issue-ID order. Issues with `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` are skipped and recorded in manifest. If all issues are non-ready, route `BLOCKED`.
 
 Rollback point: before execution starts, create a git tag `pge-exec-pre-<run_id>`. If exec routes `BLOCKED` or `PARTIAL` after modifying files, the user can roll back with `git reset --hard pge-exec-pre-<run_id>`. Record the tag in `state.json` and manifest.
 
@@ -725,7 +725,7 @@ Write synthesized review to `.pge/tasks-<slug>/runs/<run_id>/review.md` when the
 
 ## Verification & Route
 
-Stop Condition:
+stop_conditions check:
 - passes means candidate `SUCCESS`
 - fails but generated candidates exist means `PARTIAL`
 - fails with no usable generated candidates means `BLOCKED`
@@ -736,12 +736,12 @@ Integration verification: if the plan touches 3+ files across 2+ modules, run an
 
 Regression check: after all dispatchable Generator candidates are `GENERATED`, re-run relevant Verification Hints against the composed tree. If any regressed, route bounded repair, `PARTIAL`, or `BLOCKED` with regression evidence according to repairability.
 
-After final Evaluator verification, Stop Condition, integration verification, and regression checks pass, run Final Review Gate. `SUCCESS` requires final Evaluator verification to pass and the Final Review Gate to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
+After final Evaluator verification, the `stop_conditions` check, integration verification, and regression checks pass, run Final Review Gate. `SUCCESS` requires final Evaluator verification to pass and the Final Review Gate to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
 
 Final response `next` is the next explicit stage recommendation, not an automatic invocation. For a normal execution `SUCCESS`, default to `pge-review <task-slug>`. Use `pge-plan` for upstream contract blockers and `user decision` for HITL. Do not output `next: done`, `pge-challenge`, or `ship` for a normal post-plan execution success; exec success means the Execute stage is complete, not that Review/Challenge/Ship are complete.
 
 Route values:
-- `SUCCESS`: all dispatchable ready issues are finally verified as `PASS`, Stop Condition passes, final Evaluator verification passes, and final review returns `PASS`/`ADVISORY_ONLY`
+- `SUCCESS`: all dispatchable ready issues are finally verified as `PASS`, the `stop_conditions` check passes, final Evaluator verification passes, and final review returns `PASS`/`ADVISORY_ONLY`
 - `PARTIAL`: some progress, some blocked, regression/integration gap, or unresolved bounded final-review finding
 - `BLOCKED`: no issues could complete, or a blocking run-level failure prevents trustworthy continuation
 - `NEEDS_HUMAN`: HITL verification, decision, or action required

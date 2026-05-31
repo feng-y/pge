@@ -6,7 +6,7 @@ description: >
   before planning. Ask one question at a time, compare 2-3 framings or
   approaches, write a user-approved spec, and stop before implementation. The
   PGE-specific adaptations are intentionally narrow: write the spec to
-  .pge/tasks-<slug>/spark.md and keep the result consumable by later PGE stages
+  .pge/tasks-<slug>/spark.md and keep the result consumable by pge-plan
   without importing the broader Superpowers suite.
 version: 0.1.0
 argument-hint: "<goal, problem, vague direction, or proposed solution>"
@@ -22,13 +22,13 @@ allowed-tools:
 
 This is Superpowers brainstorming as a local PGE skill. Use it when the prompt is fuzzy, broad, value-laden, or prematurely narrowed to an implementation path and the real goal still needs to be recovered before planning. Its job is to turn that conversation into a user-approved spec.
 
-Do not treat this as a reduced baseline. Do not turn it into PGE research. Do not add repo-evidence gates, authority ledgers, PGE `planning_handoff` fields, issue plans, or implementation work. Those belong to `pge-research` / `pge-plan`.
+Do not treat this as a reduced baseline. Do not turn it into PGE research. Do not add repo-evidence gates, authority ledgers, issue plans, or implementation work. Those belong to `pge-research` / `pge-plan`.
 
 The PGE adaptations are intentionally narrow:
 
 - write the spec to `.pge/tasks-<slug>/spark.md`
 - use `templates/spec.md` for a research-comparable artifact shape
-- keep the output consumable as brainstorming/spec input for later PGE stages, typically via `pge-plan`
+- keep the output consumable as a planning source for `pge-plan`; it is not a direct `pge-exec` contract
 - final response uses a `PGE Spark Result` block matching `pge-research` result style
 
 ## Core Rule
@@ -40,6 +40,8 @@ The common failure this skill prevents is: user starts with original goal A, the
 ## Hard Boundary
 
 Do not implement. Do not write code. Do not create issues. Do not produce an implementation plan. Do not invoke `pge-research`, `pge-plan`, `pge-exec`, or any implementation skill.
+
+Spark may feed `pge-plan`, but it does not become a `research.v3` contract and it must not be consumed directly by `pge-exec`.
 
 Spark ends when `.pge/tasks-<slug>/spark.md` exists, has been self-reviewed, and the user has approved the written spec or the route is `NEEDS_INFO` / `BLOCKED`.
 

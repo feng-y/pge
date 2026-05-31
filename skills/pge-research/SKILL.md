@@ -30,6 +30,8 @@ my understanding of the goal = the user's real goal
 
 Research produces `schema_version: research.v3`. It clarifies the problem-side contract before planning; it does not design the executable solution.
 
+`pge-spark` may help recover intent before Research runs, but `spark.v1` is not a substitute for `research.v3`. When Research runs, it owns the problem-discovery contract and route semantics.
+
 ## Output contract
 
 Write the artifact to:

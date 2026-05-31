@@ -55,7 +55,7 @@ PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、
 | 计划 | `pge-plan` | `.pge/tasks-<slug>/plan.md` 带有可执行议题合约和 Final Plan Gate |
 | 计划（外部） | `pge-plan` fast-adopt | 从语义充分的外部计划 materialize 而来的 canonical `.pge/tasks-<slug>/plan.md`，通过 Final Plan Gate 后可执行 |
 | 执行 | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
-| 审查 | `pge-review` + 可选 `pge-challenge` | 审查门控：`BLOCK_SHIP`、`NEEDS_FIX`、`READY_FOR_CHALLENGE` 或 `READY_TO_SHIP`；需要时提供证明证据 |
+| 审查 | `pge-review` + 可选 `pge-challenge` | `.pge/tasks-<slug>/review.md` 和 `.pge/tasks-<slug>/challenge.md`；反馈只在 provenance 校验通过后回流 `pge-exec` 做有界修复，`pge-challenge` 通常从 review 阶段的 `READY_FOR_CHALLENGE` 路由进入 |
 | 交付 | 外部 git/PR/部署工作流 | commit、PR、merge、deploy 或交接 |
 
 `pge-ai-native-refactor`、`pge-handoff`、`pge-learn`、`pge-html`、`pge-complexity`、`pge-diagnose`、`pge-grill-me`、`pge-redo` 和 `pge-zoom-out` 是支持界面。它们在弧线周围很有用，但不替代主阶段合约。
@@ -80,7 +80,7 @@ PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、
 
 - **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — 在 PGE 执行前，将一个人工选择的仓库演进方向塑造为有界的 AI 原生重构计划。聚焦一个主导摩擦：入口、包含、验证、结构毒性或缺失的机械不变量。
 
-- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — 本地化的 Superpowers brainstorming shim，适用于 fuzzy、broad、value-laden 或 solution-first 的输入。先恢复原始目标 A，再处理实现假设 B；一次只问一个问题，比较 2-3 个 framing 或 approach，写入 `.pge/tasks-<slug>/spark.md`，并在用户批准 spec 后停止，供后续 PGE 阶段消费。
+- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — 本地化的 Superpowers brainstorming shim，适用于 fuzzy、broad、value-laden 或 solution-first 的输入。先恢复原始目标 A，再处理实现假设 B；一次只问一个问题，比较 2-3 个 framing 或 approach，写入 `.pge/tasks-<slug>/spark.md`，并在用户批准 spec 后停止，供 `pge-plan` 消费。
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — 为另一个代理或未来会话创建临时、聚焦的 handoff。Matt-style task slice only：无流水线控制，无知识提取。
 

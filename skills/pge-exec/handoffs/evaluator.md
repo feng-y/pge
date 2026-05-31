@@ -115,7 +115,7 @@ Independently validate that the composed run satisfies the canonical plan. For t
 
 Goal: <plan goal>
 Non-goals: <plan non_goals>
-Stop Condition: <plan stop_conditions>
+Stop Conditions: <plan stop_conditions>
 Issues:
   - issue_id: <N>
     Action: <issue Action>

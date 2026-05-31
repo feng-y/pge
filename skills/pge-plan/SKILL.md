@@ -114,7 +114,7 @@ Plan must not silently override `goal`, `success_shape`, `scope`, `non_goals`, `
 
 **Reality extraction boundary:** Do not create a separate persisted Reality Extraction artifact. Fold bounded repo/runtime truth extraction into Plan exploration only as needed to design execution path: runtime paths, producer/consumer/validator surfaces, coupling hotspots, verification constraints, migration blockers, rollout/rollback constraints, ownership boundaries, and execution-risk shape.
 
-**Legacy research rule:** Current Plan consumes `research.v3`. Older Research terms such as `research.v2`, `planning_handoff`, `plan_delta`, `confirmed_intent`, and `scope_contract` are obsolete historical or foreign-plan compatibility inputs only. Do not maintain them as active Research adapters, and do not let them become selected approach or current authority without Plan Engineering Review and current-source validation.
+**Current research contract:** `research.v3` is the only active PGE research contract. If a selected source does not already provide current problem-contract semantics, do not reconstruct them from historical field names; use current source evidence or route `RETURN_TO_RESEARCH` / `NEEDS_INFO`.
 
 ## Execution Flow
 
@@ -162,7 +162,7 @@ digraph pge_plan {
     label="Phase 3: Synthesis";
     style=dashed;
     self_eval [label="Self-Evaluation\n(Decision Classification\n+Authority Limits)"];
-    synthesize [label="Synthesize Intent\n+Plan Constraints\n+Phase Boundary\n+Stop Condition"];
+    synthesize [label="Synthesize Intent\n+Plan Constraints\n+Phase Boundary\n+stop_conditions"];
     self_eval -> synthesize;
   }
 
@@ -326,7 +326,9 @@ If priorities conflict:
 
 **Primary protocol-aligned source:** `pge-research` brief.
 
-**Other supported planning inputs when semantically sufficient:** direct prompt or current conversation context, Claude plan mode output, brainstorming/spec output, challenge/review findings, logs, failed attempts, other current-context evidence, structured docs with intent/findings/constraints, and bounded self-research inside `pge-plan` for plan-ready prompts.
+**Other supported planning inputs when semantically sufficient:** direct prompt or current conversation context, approved `spark.v1` specs, Claude plan mode output, challenge/review findings, logs, failed attempts, other current-context evidence, structured docs with intent/findings/constraints, and bounded self-research inside `pge-plan` for plan-ready prompts.
+
+An approved `spark.v1` spec is a planning source, not a peer research contract. Plan either translates it into canonical `plan.v2` or routes upstream when goal, scope, success shape, or constraints are still not fair to execute.
 
 **Gate check:**
 - Ready: consume.
@@ -369,12 +371,9 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 | Findings / evidence | Repo Context | as-is |
 | Affected areas | Target Areas | as-is |
 | Constraints / non-goals | Non-goals | as-is |
-| Structured Intent fields | Intent | authoritative unless contradicted |
-| Intent Lock / Intent Spec | Intent + Stop Condition + Acceptance Criteria | legacy/structured input; authoritative when challenge passed |
-| Clarify / Grill-With-Me Log | Coverage Audit + Risks / Open Questions | confirms plan-changing ambiguity was resolved or remains blocking |
+| Structured intent / spec decisions | Intent + Plan Constraints + Decision Coverage | authoritative unless contradicted |
+| Clarifying notes / open questions | Coverage Audit + Risks / Open Questions | blocking items stay blocking |
 | Zoom-Out Map | Repo Context + Target Areas + Architecture Assessment | preferred compressed system map; do not redo unless insufficient or contradicted |
-| Research Value Proof | Gate Check + Coverage Audit | consume when present; legacy/calibration input, not required for research.v3 |
-| Obsolete research compatibility fields (`Plan Delta`, `planning_handoff`, `plan_delta`) | Plan Constraints + Target Areas + Acceptance Criteria + Verification + Non-goals only when present in a legacy/foreign source | obsolete compatibility input with downgraded authority — not an active Research contract and never selected approach without Plan Engineering Review |
 | Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
 | Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
 | Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
@@ -382,7 +381,7 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 | Monitoring metrics / success-fail counters | Required Evidence + Verification | authoritative |
 | Multi-phase structure | Phase Boundary + issue selection | authoritative unless explicitly overridden |
 | Upstream risk assessment | Issue-level Risks | inherit, do not reinvent |
-| Options + recommendation | Approach candidates (downgraded authority) | compatibility input only |
+| Options + recommendation | Approach candidates | advisory input only |
 | Assumptions | Inherit | as-is |
 | Open questions (non-blocking) | Risks / Open Questions | pass-through |
 | Open questions (blocking) | BLOCK_PLAN | blocker |
@@ -400,16 +399,9 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective`, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice.
 6. **Plan owns approach selection.** `simplest_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
 
-**obsolete / foreign structured inputs:**
+**Non-canonical selected sources:**
 
-Current PGE Research truth is `research.v3`; do not preserve `research.v2`, `planning_handoff`, `plan_delta`, `confirmed_intent`, or `scope_contract` as active Research compatibility behavior. If an explicitly selected legacy/foreign document contains those fields, treat them as non-authoritative source evidence only after the current prompt or selected source authorizes using that document.
-
-When consuming obsolete fields from a non-current source:
-
-1. **Source Contract Check.** Verify the source still provides a usable goal, scope/non-goals, success shape, constraints, and evidence. If it does not, route `RETURN_TO_RESEARCH` or `NEEDS_INFO`; do not silently upgrade obsolete fields into current Research truth.
-2. **Downgraded authority.** Map obsolete goal/scope fields into candidate Plan Constraints only when consistent with current user constraints, current `research.v3` artifacts, and repo evidence.
-3. **Compatibility fields are not approach decisions.** `planning_handoff`, `plan_delta`, `Options`, and `Recommendation` can supply constraints, risks, invalid directions, or approach candidates, but none may become selected approach without Plan Engineering Review.
-4. **No legacy cleanup scope.** Do not add work just to preserve or remove obsolete Research adapters unless the selected plan/source explicitly authorizes it.
+If the selected source is not `research.v3`, consume only the current semantics it actually provides: goal, success shape, scope, non-goals, constraints, decisions, risks, and evidence. If those semantics are missing, stale, or ambiguous, route `RETURN_TO_RESEARCH` or `NEEDS_INFO` instead of reconstructing intent from historical field names.
 
 **Current constraint extraction:**
 
@@ -507,7 +499,7 @@ Plan Engineering Review does not produce routes directly. It produces findings t
 - `RETURN_TO_RESEARCH` → goal/scope/success shape or a Research-required adjustment is genuinely not executable without changing the problem contract.
 - `NEEDS_INFO` → ask one user-authority blocking question, then re-run affected checks.
 
-`SKIP_NOT_APPLICABLE` is valid only inside optional per-dimension records, not as the overall Plan Engineering Review result. Record the review under `### Plan Engineering Review`; for compatibility with old artifacts, `### Engineering Review Gate` may be read as an alias but new plan artifacts must use `### Plan Engineering Review`.
+`SKIP_NOT_APPLICABLE` is valid only inside optional per-dimension records, not as the overall Plan Engineering Review result. Record the review under `### Plan Engineering Review`. New plan artifacts must use that heading.
 
 For LIGHT plans, Plan Engineering Review may be a compact paragraph or short bullet list, or omitted entirely if the plan is trivial.
 
@@ -528,7 +520,7 @@ The gate has six layers. Source Fidelity is mandatory for Fast Adopt and `SKIP_N
 3. **Plan Engineering Review** — confirms selected-approach hardening findings were consumed into the approach, issue slicing, acceptance, verification, evidence, and risks.
 4. **Repo Reality Gate** — target files/modules, entry paths, existing semantics, dynamic/config-driven paths, hidden runtime behavior, and forbidden areas are grounded in repo evidence.
 5. **Execution Readiness Gate** — slices are bounded, independently verifiable where claimed, retry/block/escalate routing is clear, exec context is sufficient, and human decisions are explicit.
-6. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, explicit legacy compatibility, clear clarification/terminal routes, and complete handoff fields.
+6. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, clear clarification/terminal routes, and complete handoff fields.
 
 **Final Plan Gate verdict:** `PASS | REVISE | ESCALATE | REJECT`
 
@@ -565,7 +557,7 @@ audit_note: <optional; what was decided automatically and why>
 
 This is an optional context check for human-facing or artifact-facing features, not a mandatory gate. Apply only when experience quality directly affects acceptance criteria.
 
-`pge-plan` should explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets; legacy `experience_scope` / `design_surface_context` are obsolete or foreign-source evidence only.
+`pge-plan` should explicitly consume problem-side experience context when the task is human-facing or artifact-facing and research supplied it. In `research.v3`, this usually appears as `Optional: Design / Experience Note` or concise Context/Direction bullets.
 
 **Inputs when present:**
 - surface or artifact being shaped
@@ -712,7 +704,7 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 If the upstream source has current `research.v3` fields, carry `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant context, assumptions, open questions, and any conditional gate outputs through as the plan's intent baseline instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations.
 
-Current `research.v3` is the only active PGE Research baseline. If the explicitly selected source has legacy `pge-research` v2 fields, older `Intent Spec` / `intent_spec` fields, `confirmed_intent`, `scope_contract`, `planning_handoff`, or `plan_delta`, treat them only as downgraded legacy/foreign-source evidence. Consume them only when authorized by the current source selection and consistent with current user constraints, current `research.v3` artifacts, and repo evidence. Do not preserve old clarify logs or compatibility fields as active plan authority.
+Current `research.v3` is the only active PGE Research baseline. If the explicitly selected source is not `research.v3`, consume only the current semantics it actually provides and keep it as non-canonical source evidence unless `pge-plan` rewrites it into canonical `plan.v2`.
 
 Produce: structured intent, plan constraints, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
 
@@ -823,7 +815,7 @@ Ready routes require Final Plan Gate `PASS` and `exec_allowed: yes`. If the gate
 
 `.pge/tasks-<slug>/plan.md` is the frozen canonical execution contract only when `plan_gate.verdict: PASS` and `plan_route` is ready. Do not create a separate `canonical-plan.md`; separate draft/frozen plan files would create a second truth surface.
 
-New plan artifacts use `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Legacy aliases may be read during adoption, but new artifacts must use the canonical headings so `pge-exec` can consume them predictably.
+New plan artifacts use `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Non-canonical sources must be rewritten to these headings before `pge-exec`; exec should not interpret alias headings.
 
 Plans must also include `## terminal_conditions` for known clarification or stop cases: missing evidence, ambiguous selector, stale artifact, plan-changing context, unsafe scope expansion, unverified repo reality, unavailable required checks, and human-only decisions. These are not runtime exceptions. Each condition must either be self-resolved from evidence, confirmed through the normal one-question ask path, or mapped to one gate verdict plus one plan route. If no terminal conditions exist, write the canonical `none | PASS | READY_FOR_EXECUTE | yes` row.
 

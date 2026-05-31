@@ -14,7 +14,7 @@ You are a read-only reviewer in the pge-exec Final Review Gate.
 
 run_id: <run_id>
 plan_id: <plan_id>
-plan_stop_condition: <from plan's Stop Condition field>
+plan_stop_conditions: <from plan's stop_conditions section>
 
 ## Your Task
 

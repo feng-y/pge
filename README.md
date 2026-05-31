@@ -92,7 +92,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — Shape one human-selected repo evolution direction into a bounded AI-native refactor plan before PGE execution. Focuses one dominant friction: entry, containment, verification, structural toxicity, or a missing mechanical invariant.
 
-- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Local Superpowers brainstorming shim for fuzzy, broad, value-laden, or solution-first prompts. Recovers original goal A before implementation hypothesis B, asks one question at a time, compares 2-3 framings or approaches, writes `.pge/tasks-<slug>/spark.md`, and stops after the user-approved spec for later PGE consumption.
+- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Local Superpowers brainstorming shim for fuzzy, broad, value-laden, or solution-first prompts. Recovers original goal A before implementation hypothesis B, asks one question at a time, compares 2-3 framings or approaches, writes `.pge/tasks-<slug>/spark.md`, and stops after the user-approved spec for `pge-plan` consumption.
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a temporary, focused handoff for another agent or future session. Matt-style task slice only: no pipeline control and no knowledge extraction.
 
