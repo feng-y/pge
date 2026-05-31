@@ -21,8 +21,8 @@
     },
     {
       "id": 4,
-      "prompt": "Research deleting planning_handoff from the workflow because Research should be lighter.",
-      "expected_output": "If repo evidence shows downstream Plan still consumes planning_handoff, includes Conditional: Implementation Friction with expected_understanding, actual_implementation_reality, conflict, why_it_matters_for_plan, and required_plan_adjustment. Should not recommend hard deletion as the simplest direction without compatibility.",
+      "prompt": "Research deleting the remaining old Research compatibility seams from the workflow because Research should be lighter.",
+      "expected_output": "If repo evidence shows downstream Plan still contains old Research compatibility seams, includes Conditional: Implementation Friction with expected_understanding, actual_implementation_reality, conflict, why_it_matters_for_plan, and required_plan_adjustment. Should not recommend hard deletion until the active consumer/validator upgrade is scoped clearly.",
       "files": []
     },
     {

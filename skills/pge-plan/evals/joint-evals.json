@@ -44,13 +44,13 @@
     {
       "id": "joint-4",
       "scenario": "Implementation Friction is carried into Plan without reviving obsolete fields",
-      "research_input": "Research.v3 says obsolete planning_handoff references appear in a foreign artifact; required_plan_adjustment says current Plan must not preserve them as active Research compatibility behavior and should consume them only as downgraded source evidence if explicitly selected.",
+      "research_input": "Research.v3 says active Plan surfaces still contain old Research compatibility seams; required_plan_adjustment says the upgrade must remove those seams instead of carrying old Research inputs forward.",
       "research_expected": "research.v3 brief with Conditional: Implementation Friction and required_plan_adjustment.",
-      "plan_expected": "Consumes required_plan_adjustment, rejects restoring planning_handoff as current authority, scopes issues to current pge-plan responsibility boundaries, and records obsolete compatibility cleanup as non-goal unless explicitly authorized.",
+      "plan_expected": "Consumes required_plan_adjustment, scopes issues to current pge-plan responsibility boundaries, and removes old Research compatibility behavior from active surfaces without reviving a legacy Research adapter.",
       "joint_check": [
         "Plan covers required_plan_adjustment explicitly",
         "Plan does not ignore repo reality or current-source conflict",
-        "Plan keeps obsolete field authority downgraded and visible in constraints or non-goals"
+        "Plan removes the old Research seam instead of downgrading it into continued active behavior"
       ]
     },
     {

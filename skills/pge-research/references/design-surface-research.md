@@ -2,7 +2,7 @@
 
 Use this reference only when the task has a human-visible surface and experience context would change planning. Examples include UI, documentation, CLI/prompt output, generated reports, workflow artifacts, or reviewable HTML/markdown surfaces.
 
-This file calibrates optional Research behavior. It must not make `experience_scope`, `design_surface_context`, or `planning_handoff` mandatory `research.v3` fields.
+This file calibrates optional Research behavior. It must not reintroduce obsolete Research-only fields or make optional design context part of the default `research.v3` contract.
 
 ## Boundary
 

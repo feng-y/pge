@@ -27,7 +27,7 @@ Validate the upstream research/input before planning proceeds.
 
 ## goal
 
-<Target outcome translated from research.v3 goal / current source goal semantics / authorized downgraded foreign-source evidence>
+<Target outcome translated from research.v3 goal or current source goal semantics>
 
 ## non_goals
 

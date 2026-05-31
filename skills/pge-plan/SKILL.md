@@ -401,7 +401,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 
 **Non-canonical selected sources:**
 
-If the selected source is not `research.v3`, consume only the current semantics it actually provides: goal, success shape, scope, non-goals, constraints, decisions, risks, and evidence. If those semantics are missing, stale, or ambiguous, route `RETURN_TO_RESEARCH` or `NEEDS_INFO` instead of reconstructing intent from historical field names.
+If the selected source is not `research.v3`, consume only the current semantics it actually provides: goal, success shape, scope, non-goals, constraints, decisions, risks, and evidence. Do not treat legacy Research-shaped docs or old handoff-style artifacts as supported Research contracts. If the source cannot stand on its own current semantics, route `RETURN_TO_RESEARCH` or `NEEDS_INFO` instead of reconstructing intent from obsolete Research field names.
 
 **Current constraint extraction:**
 
@@ -431,14 +431,14 @@ Coverage Audit must include:
 - `docs/exec-plans/` phase/scope decisions when that document is selected or referenced
 - original source-of-truth requirements and boundaries when available
 - research-derived requirements and assumptions
-- current-source decisions and any explicitly selected obsolete/foreign evidence items when present
+- current-source decisions
 - repo evidence that confirms, contradicts, or narrows the above
 
 If `docs/exec-plans/` is the canonical input, audit proposed issues against the source document before writing them. Any issue that introduces unrequested helpers, flags, cleanup, validation expansion, broad refactors, or abstraction work must either cite explicit authorization from the exec plan/current user or be removed.
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
-Obsolete or foreign-field coverage is mandatory only when the current user selected that source and its fields affect scope, target areas, acceptance, verification, or risks. Every consumed facts/constraints/invalid-directions/risks/blockers item must be covered, rejected with rationale, or escalated. Obsolete Research compatibility fields are consumed as downgraded source evidence, not as active Research contract surfaces.
+Do not revive obsolete Research compatibility fields during Coverage Audit. If a selected source depends on old Research-only field names instead of expressing current semantics directly, stop and route upstream rather than carrying those fields forward into the plan.
 
 ### Explore (fill gaps)
 
@@ -704,7 +704,7 @@ For each question: record Question, Why it matters, Can repo answer?, Blocking?,
 
 If the upstream source has current `research.v3` fields, carry `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant context, assumptions, open questions, and any conditional gate outputs through as the plan's intent baseline instead of rewriting a weaker intent. Add only execution-level detail: stop condition, code-level acceptance criteria, issue boundaries, and verification expectations.
 
-Current `research.v3` is the only active PGE Research baseline. If the explicitly selected source is not `research.v3`, consume only the current semantics it actually provides and keep it as non-canonical source evidence unless `pge-plan` rewrites it into canonical `plan.v2`.
+Current `research.v3` is the only active PGE Research baseline. If the explicitly selected source is not `research.v3`, consume only the current semantics it actually provides and keep it as non-canonical source evidence unless `pge-plan` rewrites it into canonical `plan.v2`. Do not treat legacy Research artifacts or old handoff-style docs as active Research inputs.
 
 Produce: structured intent, plan constraints, non-goals, repo context, acceptance criteria, assumptions, **stop condition** (observable "done" state).
 

@@ -164,4 +164,4 @@ Evidence gathered during Plan exploration (runtime paths, protocol surfaces, cou
 - Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
 ```
 
-For compatibility, `### Engineering Review Gate` may be read from older artifacts as the same review surface, but new `plan.v2` artifacts should use `### Plan Engineering Review`.
+New `plan.v2` artifacts use `### Plan Engineering Review`. Do not preserve older heading aliases as part of the active contract.

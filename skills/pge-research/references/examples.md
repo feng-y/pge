@@ -67,23 +67,23 @@ route: READY_FOR_PLAN
 - user_request: Remove heavy Research handoff fields so Research is lightweight.
 - goal: Make Research lighter without breaking downstream Plan consumption.
 - success_shape: Planning receives a safe migration target instead of deleting fields that are still consumed.
-- scope: Research output contract and Plan input compatibility.
+- scope: Research output contract and Plan input upgrade.
 - non_goals: Exec redesign; broad historical cleanup.
-- constraints: Preserve downstream compatibility during the transition.
+- constraints: Remove old Research protocol seams without widening the workflow change.
 
 ## 2. Context
 
 - relevant_user_context: User wants Research to stop behaving like a heavy template.
 - relevant_repo_or_architecture_context:
-  - Plan currently consumes legacy `planning_handoff` semantics.
-- assumptions: Legacy v2 consumption can remain as compatibility while v3 becomes current.
+  - Plan still contains old Research compatibility seams that must be removed before the upgrade is complete.
+- assumptions: The upgrade should converge on `research.v3` as the only active Research contract.
 
 ## 3. Direction
 
-- simplest_direction: Make `research.v3` current and add a minimal Plan adapter that still accepts v2.
+- simplest_direction: Make `research.v3` the only active Research contract and remove old Research compatibility seams from Plan.
 - rejected_directions:
-  - Hard-delete `planning_handoff` everywhere — breaks current Plan assumptions.
-- why_this_is_enough_for_plan: Plan has a clear compatibility boundary and can choose the execution slice.
+  - Preserve a legacy Research adapter — keeps the old protocol alive.
+- why_this_is_enough_for_plan: Plan has a clear upgrade boundary and can scope the active consumer/validator cleanup.
 
 ## 4. Open Questions
 
@@ -92,11 +92,11 @@ route: READY_FOR_PLAN
 
 ## Conditional: Implementation Friction
 
-- expected_understanding: Research can remove the old handoff fields directly.
-- actual_implementation_reality: Plan still consumes legacy handoff semantics.
-- conflict: Direct deletion would break downstream planning assumptions.
-- why_it_matters_for_plan: Plan must authorize compatibility migration, not hard removal.
-- required_plan_adjustment: Add research.v3 consumption while preserving v2 compatibility.
+- expected_understanding: Research can drop the old protocol once the active consumers are upgraded.
+- actual_implementation_reality: Plan still contains old Research compatibility seams.
+- conflict: Deleting the old protocol is correct, but active Plan surfaces must be upgraded in the same change.
+- why_it_matters_for_plan: Plan must remove the old seam instead of carrying legacy Research inputs forward.
+- required_plan_adjustment: Upgrade active Plan consumers/validators to `research.v3` only before removing the old protocol references.
 
 ## 5. Route
 
@@ -129,7 +129,7 @@ route: READY_FOR_PLAN
 
 ## 3. Direction
 
-- simplest_direction: First make `research.v3` authoritative in Research and add minimal Plan compatibility.
+- simplest_direction: First make `research.v3` authoritative across active Research and Plan contract surfaces.
 - rejected_directions:
   - One-shot redesign of all stages — too broad and unsafe for direct planning.
 - why_this_is_enough_for_plan: The first objective is bounded and protects downstream consumers.
@@ -143,8 +143,8 @@ route: READY_FOR_PLAN
 
 - direct_goal: Full workflow protocol redesign.
 - direct_planning_risk: Too many stage contracts and validation assumptions would change at once.
-- structural_blocker: Research producer, Plan consumer, docs, and eval calibration need an explicit compatibility boundary first.
-- first_plannable_objective: Make `research.v3` authoritative in `pge-research` and add minimal `pge-plan` compatibility.
+- structural_blocker: Research producer, Plan consumer, docs, and eval calibration must all converge on one protocol before the old one can be deleted safely.
+- first_plannable_objective: Make `research.v3` authoritative in `pge-research` and remove old Research compatibility behavior from active `pge-plan` surfaces.
 - deferred_goal_parts: Exec redesign, Review/Challenge redesign, universal protocol extraction, historical cleanup.
 - plan_instruction: Plan the first compatibility slice, not the full final goal.
 

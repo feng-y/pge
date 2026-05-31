@@ -21,9 +21,9 @@
     },
     {
       "id": 4,
-      "prompt": "Create a plan from a research.v3 brief with Conditional: Implementation Friction. Research says older planning_handoff references exist in a foreign note, but current pge-plan should consume research.v3 as authoritative and required_plan_adjustment says obsolete fields must not be preserved as active Research adapters unless the current source explicitly authorizes cleanup.",
-      "expected_output": "Plan continues only if route is READY_FOR_PLAN, consumes required_plan_adjustment, and reflects it in constraints/issues/rejected approaches. It treats planning_handoff as obsolete or foreign evidence with downgraded authority, does not make it selected approach or current Research truth, and does not add legacy compatibility or cleanup scope unless explicitly authorized.",
-      "dimensions": ["research_v3_adapter", "implementation_friction_consumption", "obsolete_field_boundary"]
+      "prompt": "Create a plan from a research.v3 brief with Conditional: Implementation Friction. Research says active Plan surfaces still contain old Research compatibility seams, and required_plan_adjustment says the upgrade must remove those seams rather than preserving downgraded old-protocol inputs.",
+      "expected_output": "Plan continues only if route is READY_FOR_PLAN, consumes required_plan_adjustment, and reflects it in constraints/issues/rejected approaches. It removes old Research compatibility behavior from the active Plan upgrade scope, does not revive obsolete Research field handling, and does not add unrelated cleanup scope unless explicitly authorized.",
+      "dimensions": ["research_v3_adapter", "implementation_friction_consumption", "no_legacy_research_seam"]
     },
     {
       "id": 5,
@@ -69,9 +69,9 @@
     },
     {
       "id": 12,
-      "prompt": "Create a plan from a legacy external document that contains planning_handoff, plan_delta, confirmed_intent, and scope_contract fields but no research.v3 fields. User explicitly selected this document as the source.",
-      "expected_output": "Plan treats these as obsolete or foreign-source evidence with downgraded authority. Source Contract Check validates that source still provides usable goal, scope/non_goals, success shape, constraints, and evidence. Maps obsolete fields into candidate Plan Constraints only when consistent with current user constraints and repo evidence. Does not upgrade obsolete fields into current Research truth. Compatibility fields do not become selected approach without Plan Engineering Review. Does not add legacy cleanup scope unless explicitly authorized.",
-      "dimensions": ["obsolete_field_handling", "downgraded_authority", "no_silent_upgrade"]
+      "prompt": "Create a plan from a legacy Research-shaped document that uses obsolete Research-era field names and has no research.v3 fields. User explicitly selected this document as the source.",
+      "expected_output": "Plan does not treat it as a supported Research contract. It either plans from current semantics that stand on their own as a non-Research source, or routes RETURN_TO_RESEARCH / NEEDS_INFO instead of carrying obsolete Research fields forward. It does not upgrade obsolete fields into current Research truth or preserve a legacy Research adapter.",
+      "dimensions": ["obsolete_field_rejection", "current_semantics_only", "no_legacy_research_adapter"]
     }
   ]
 }
