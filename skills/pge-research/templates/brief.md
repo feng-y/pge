@@ -88,7 +88,7 @@ Use only when citations or checked facts materially affect planning.
 
 Use only when user intent, repo reality, architecture intent, and inference are mixed in a way that would cause Plan to misattribute authority.
 
-- <claim> — authority: user_confirmed | repo_evidence | architecture_intent | inferred — source: <evidence>
+- <claim> — authority: user_confirmed | source_of_truth | repo_evidence | inferred_by_research — source: <evidence>
 
 ## Metadata
 

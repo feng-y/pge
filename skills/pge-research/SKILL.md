@@ -243,7 +243,7 @@ Use only when user intent, repo reality, architecture intent, and inference are 
 ```md
 ## Optional: Authority Notes
 
-- <claim> — authority: user_confirmed | repo_evidence | architecture_intent | inferred — source: <evidence>
+- <claim> — authority: user_confirmed | source_of_truth | repo_evidence | inferred_by_research — source: <evidence>
 ```
 
 Authority Notes help Plan avoid upgrading inferred claims to user-confirmed constraints or treating repo evidence as user intent.

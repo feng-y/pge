@@ -399,7 +399,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective` as the current plan target, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice. The current plan must not target `direct_goal` when `first_plannable_objective` exists.
 6. **Plan owns approach selection.** `candidate_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
-7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims.
+7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims; map Research `inferred_by_research` to Plan `inherited_from_research`.
 
 **Non-canonical selected sources:**
 
@@ -541,6 +541,7 @@ All plan-stage reviews and gates use a unified result vocabulary to prevent down
 
 | Surface | Result vocabulary |
 |---|---|
+| Source Contract Check | `CONTINUE_TO_PLAN` &#124; `RETURN_TO_RESEARCH` &#124; `NEEDS_INFO` &#124; `BLOCKED` |
 | Plan Engineering Review | `PASS` &#124; `REWORK_PLAN` &#124; `RETURN_TO_RESEARCH` &#124; `NEEDS_INFO` |
 | Final Plan Gate | `PASS` &#124; `REVISE` &#124; `ESCALATE` &#124; `REJECT` |
 | Plan-level route | `READY_FOR_EXECUTE` &#124; `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` &#124; `RETURN_TO_RESEARCH` &#124; `NEEDS_INFO` &#124; `BLOCKED` &#124; `NEEDS_HUMAN` |
@@ -562,7 +563,7 @@ Before routing `READY_FOR_EXECUTE`, verify the plan satisfies `pge-exec` Plan Va
 - Dependencies reference known issue IDs
 - Assumptions are explicit and non-scope-changing
 
-If any check fails, route `REVISE` and repair before producing a ready route.
+If any check fails, record Final Plan Gate `REVISE` and repair before producing a ready route.
 
 ### Quality Check Result Shape
 
