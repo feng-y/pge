@@ -52,7 +52,7 @@ Write the chosen and rejected readings into:
 - `Spec Discovery.goal`
 - `Spec Discovery.scope`
 - `Spec Discovery.non_goals`
-- `Direction.rejected_directions`
+- `Direction.rejected_framings`
 - `Open Questions`
 
 ### 4. Ask targeted questions

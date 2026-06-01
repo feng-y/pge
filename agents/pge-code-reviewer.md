@@ -1,6 +1,6 @@
 ---
 name: pge-code-reviewer
-description: Senior code reviewer that evaluates execution output across five dimensions — correctness, readability, architecture, security, and performance. Spawned by pge-exec Final Review Gate for whole-diff review after all issues pass.
+description: Senior code reviewer that evaluates execution output across five dimensions — correctness, readability, architecture, security, and performance. Spawned by pge-exec Exec QA Gate for whole-diff review after all issues pass.
 tools: Read, Bash, Grep, Glob
 ---
 
@@ -160,7 +160,7 @@ Watch for these patterns in your own review — they signal insufficient rigor:
 
 ## Composition
 
-- **Spawned by:** pge-exec Final Review Gate (main orchestrator)
+- **Spawned by:** pge-exec Exec QA Gate (main orchestrator)
 - **Receives:** full diff, run artifacts, plan stop condition
 - **Returns:** structured review report to main
 - **Does NOT:** modify code, approve deliverables, issue routing decisions, or spawn other agents

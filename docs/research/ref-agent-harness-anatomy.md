@@ -49,7 +49,7 @@ Key evidence: LangChain changed only infrastructure (same model, same weights) a
 | State | state.json + resume support + git tags |
 | Error Handling | Retry(max 3) → BLOCKED, rewind-style retry |
 | Guardrails | Target Areas scope check, deviation classification |
-| Verification | Independent Evaluator + Final Review Gate |
+| Verification | Independent Evaluator + Exec QA Gate |
 | Subagents | Agent Teams (generator/evaluator/reviewer), adaptive scaling |
 
 ## Key Insights for PGE

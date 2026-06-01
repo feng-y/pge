@@ -22,8 +22,8 @@ This is a minimum contract scaffold, not a fixed prose template. Scale depth to 
 
 ## 3. Direction
 
-- simplest_direction:
-- rejected_directions:
+- candidate_direction:
+- rejected_framings:
 - why_this_is_enough_for_plan:
 
 ## 4. Open Questions
@@ -83,6 +83,12 @@ Use only when a human-visible surface would change planning.
 Use only when citations or checked facts materially affect planning.
 
 - <finding> — basis: user | upstream | repo | architecture | inferred — source: <file:line | command | conversation>
+
+### Optional: Authority Notes
+
+Use only when user intent, repo reality, architecture intent, and inference are mixed in a way that would cause Plan to misattribute authority.
+
+- <claim> — authority: user_confirmed | repo_evidence | architecture_intent | inferred — source: <evidence>
 
 ## Metadata
 

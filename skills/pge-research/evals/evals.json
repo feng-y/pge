@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Please research adding a dark mode toggle to this repo. I don't want code yet — I want to understand the current theming pattern, likely affected areas, and the safest direction for planning.",
-      "expected_output": "Produces a short research.v3 brief with route: READY_FOR_PLAN, goal, success_shape, scope/non_goals, constraints, relevant repo context, assumptions, simplest_direction, rejected_directions, and no blocking questions. Should not ask unnecessary questions if the repo already makes the direction clear. Should not include default Implementation Friction, Progressive Feasibility, or Four-Way Gap sections.",
+      "expected_output": "Produces a short research.v3 brief with route: READY_FOR_PLAN, goal, success_shape, scope/non_goals, constraints, relevant repo context, assumptions, candidate_direction, rejected_framings, and no blocking questions. Should not ask unnecessary questions if the repo already makes the direction clear. Should not include default Implementation Friction, Progressive Feasibility, or Four-Way Gap sections.",
       "files": []
     },
     {

@@ -2,7 +2,7 @@
 
 ## Dispatch Protocol
 
-Send to spawned reviewer agent(s) when Final Review Gate triggers. Reviewer agents are read-only — they do not modify code or issue routing decisions.
+Send to spawned reviewer agent(s) when Exec QA Gate triggers. Reviewer agents are read-only — they do not modify code or issue routing decisions.
 
 This handoff is for the final whole-diff batch review after Generator candidates have been produced and final Evaluator verification has run. It is separate from Evaluator's plan-alignment authority and remains the final read-only code-review surface for completed executions across `LIGHT`, `MEDIUM`, and `DEEP` runs.
 
@@ -12,7 +12,7 @@ This handoff is for the final whole-diff batch review after Generator candidates
 
 ```text
 ---BEGIN REVIEW DATA---
-You are a read-only reviewer in the pge-exec Final Review Gate.
+You are a read-only reviewer in the pge-exec Exec QA Gate.
 
 run_id: <run_id>
 plan_id: <plan_id>

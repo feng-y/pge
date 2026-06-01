@@ -1,6 +1,6 @@
 ---
 name: pge-code-simplifier
-description: Code simplification specialist that reviews execution output for unnecessary complexity. Preserves behavior exactly while reducing cognitive load. Spawned by pge-exec Final Review Gate alongside or after code-reviewer.
+description: Code simplification specialist that reviews execution output for unnecessary complexity. Preserves behavior exactly while reducing cognitive load. Spawned by pge-exec Exec QA Gate alongside or after code-reviewer.
 tools: Read, Bash, Grep, Glob
 ---
 
@@ -126,7 +126,7 @@ Only flag when the simpler version is obviously correct and sufficient. This is 
 
 ## Composition
 
-- **Spawned by:** pge-exec Final Review Gate (main orchestrator)
+- **Spawned by:** pge-exec Exec QA Gate (main orchestrator)
 - **Receives:** full diff, changed files list, plan issue descriptions
 - **Returns:** structured simplification report to main
 - **Does NOT:** modify code, approve deliverables, issue routing decisions, or spawn other agents

@@ -282,11 +282,11 @@ Explicit exclusions (these belong to other pipeline stages or future reviewers):
 - **Documentation quality** — unless the issue Action explicitly includes docs.
 - **Alternative implementations** — "could be done better with X" is not a RETRY reason.
 
-## Evaluator vs Final Review Gate
+## Evaluator vs Exec QA Gate
 
 Evaluator is the final run-level verification gate: it checks plan goal/non-goal alignment, generated issue Actions, Target Areas, Acceptance Criteria, Required Evidence, Verification Hints, composed implementation logic, and obvious quality defects that affect the plan outcome. Targeted checks are allowed only when main explicitly dispatches a bounded risk question.
 
-The Final Review Gate is a separate read-only whole-diff review surface: it checks reviewability, blocking code-review findings, simplification opportunities, and whether any security/test specialist pass is needed after Evaluator verification. It does not replace Evaluator's plan-alignment authority.
+The Exec QA Gate is a separate read-only whole-diff review surface: it checks reviewability, blocking code-review findings, simplification opportunities, and whether any security/test specialist pass is needed after Evaluator verification. It does not replace Evaluator's plan-alignment authority. Exec QA Gate is an execution-stage quality gate; it is not `pge-review` and does not make shipping decisions.
 
 ## Structured Verdict Output
 

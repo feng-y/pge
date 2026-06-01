@@ -250,4 +250,4 @@ If verification fails in files outside the targeted issue or generated issue bei
 
 ## Relationship To Final Review
 
-Evaluator is the independent run-level verification lane for plan alignment and composed implementation logic. Targeted checks are allowed for risk-triggered questions, but they are not the default issue gate. The separate pge-exec Final Review Gate remains the read-only whole-diff reviewer surface for additional code-review / simplification / specialist findings after final Evaluator verification.
+Evaluator is the independent run-level verification lane for plan alignment and composed implementation logic. Targeted checks are allowed for risk-triggered questions, but they are not the default issue gate. The separate pge-exec Exec QA Gate remains the read-only whole-diff reviewer surface for additional code-review / simplification / specialist findings after final Evaluator verification.

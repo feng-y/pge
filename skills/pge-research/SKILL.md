@@ -60,8 +60,8 @@ Context:
   assumptions
 
 Direction:
-  simplest_direction
-  rejected_directions
+  candidate_direction
+  rejected_framings
   why_this_is_enough_for_plan
 
 Open Questions:
@@ -81,13 +81,14 @@ Conditional: Progressive Feasibility
 Optional: Four-Way Gap
 Optional: Design / Experience Note
 Optional: Evidence Notes
+Optional: Authority Notes
 ```
 
 Do not pad the brief to satisfy a template. A short brief is valid when it preserves intent, names scope and non-goals, marks assumptions, exposes plan-changing uncertainty, and gives Plan enough context to proceed without guessing.
 
 ## Hard boundary
 
-Research may recommend the simplest **direction** for planning, but Plan selects the implementation approach and writes executable contracts.
+Research may recommend a **candidate direction** for planning, but Plan selects the implementation approach and writes executable contracts.
 
 Research must not:
 
@@ -98,7 +99,7 @@ Research must not:
 - write implementation code, pseudocode, function bodies, or field rewiring
 - invoke `pge-plan`, `pge-exec`, or implementation agents
 
-`Direction.simplest_direction` is a candidate framing for Plan, not selected architecture.
+`Direction.candidate_direction` is a candidate framing for Plan, not selected architecture.
 
 ## Core distinction: A vs B
 
@@ -217,7 +218,7 @@ When triggered, add:
 - plan_instruction:
 ```
 
-The most important field is `first_plannable_objective`. It tells Plan to plan the first safe structural objective, not the entire final goal.
+The most important field is `first_plannable_objective`. It tells Plan to plan the first safe structural objective, not the entire final goal. When Progressive Feasibility is triggered, `pge-plan` must plan `first_plannable_objective` as the current target; `direct_goal` is deferred context only, not the current plan target.
 
 ### Optional: Four-Way Gap
 
@@ -234,6 +235,18 @@ Use only as a diagnostic lens when Implementation Friction is hard to explain di
 ```
 
 Do not make this a default section.
+
+### Optional: Authority Notes
+
+Use only when user intent, repo reality, architecture intent, and inference are mixed in a way that would cause Plan to misattribute authority. Do not trigger for straightforward tasks where evidence sources are obvious.
+
+```md
+## Optional: Authority Notes
+
+- <claim> — authority: user_confirmed | repo_evidence | architecture_intent | inferred — source: <evidence>
+```
+
+Authority Notes help Plan avoid upgrading inferred claims to user-confirmed constraints or treating repo evidence as user intent.
 
 ## Process
 

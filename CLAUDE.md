@@ -45,7 +45,7 @@ Legacy (archived, do not treat as active runtime):
 - `skills/pge-setup/` — removed (unnecessary; .pge/ directory created by pipeline skills on demand)
 - `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` — removed (superseded by `pge-exec` handoffs + references)
 
-Review agents (active, spawned by pge-exec Final Review Gate):
+Review agents (active, spawned by pge-exec Exec QA Gate):
 - `agents/pge-code-reviewer.md` — 5-axis code review
 - `agents/pge-code-simplifier.md` — simplification pressure
 
@@ -110,7 +110,7 @@ Templates are scaffolds. Required field semantics are binding; prose shape and o
 - Semantically sufficient plans from outside PGE may be adopted into repo management by `pge-plan` fast-adopt into `.pge/tasks-<slug>/plan.md`; the source does not need canonical headings. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract.
 - Subagents/workers are bounded helpers, not workflow authorities.
 - Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
-- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Final Review Gate.
+- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Exec QA Gate.
 
 ## Missing detail policy
 

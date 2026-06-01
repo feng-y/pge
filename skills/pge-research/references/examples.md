@@ -31,8 +31,8 @@ route: READY_FOR_PLAN
 
 ## 3. Direction
 
-- simplest_direction: Add the toggle through the existing settings and preference path, using CSS custom properties.
-- rejected_directions:
+- candidate_direction: Add the toggle through the existing settings and preference path, using CSS custom properties.
+- rejected_framings:
   - Full theme-system redesign — outside requested scope.
   - New theming library — unnecessary given existing CSS variable pattern.
 - why_this_is_enough_for_plan: Goal, scope, constraints, and likely affected surfaces are clear enough for Plan to choose implementation details.
@@ -80,8 +80,8 @@ route: READY_FOR_PLAN
 
 ## 3. Direction
 
-- simplest_direction: Make `research.v3` the only active Research contract and remove old Research compatibility seams from Plan.
-- rejected_directions:
+- candidate_direction: Make `research.v3` the only active Research contract and remove old Research compatibility seams from Plan.
+- rejected_framings:
   - Preserve a legacy Research adapter — keeps the old protocol alive.
 - why_this_is_enough_for_plan: Plan has a clear upgrade boundary and can scope the active consumer/validator cleanup.
 
@@ -129,8 +129,8 @@ route: READY_FOR_PLAN
 
 ## 3. Direction
 
-- simplest_direction: First make `research.v3` authoritative across active Research and Plan contract surfaces.
-- rejected_directions:
+- candidate_direction: First make `research.v3` authoritative across active Research and Plan contract surfaces.
+- rejected_framings:
   - One-shot redesign of all stages — too broad and unsafe for direct planning.
 - why_this_is_enough_for_plan: The first objective is bounded and protects downstream consumers.
 

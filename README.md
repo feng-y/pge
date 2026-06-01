@@ -18,12 +18,21 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 
 PGE uses fixed interfaces with flexible expression.
 
-- Research must expose `schema_version: research.v3`, goal, success shape, scope, non-goals, constraints, task-relevant context, simplest direction, open questions, and route. Implementation Friction and Progressive Feasibility are conditional gates only.
+- Research must expose `schema_version: research.v3`, goal, success shape, scope, non-goals, constraints, task-relevant context, candidate direction, open questions, and route. Implementation Friction and Progressive Feasibility are conditional gates only.
 - Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `forbidden_areas`, `acceptance`, `verification`, `evidence_required`, `risks`, `terminal_conditions`, `plan_gate`, `stop_conditions`, and `route`.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, any plan deviations, any stalled-lane recovery, and any Diagnostic Recovery record for unclear or repeated development failures.
 - Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.
 - Every stage must consume its explicit input plus relevant current context. When context changes intent, scope, or the fix target, the stage must clarify before producing the next contract.
 - Research owns problem discovery; Plan owns executable solution design. Exec should not be where major intent, scope, or acceptance ambiguity is resolved; that means the upstream contract was not ready.
+
+### Stage Authority
+
+| Stage | Owns | Does not own |
+|---|---|---|
+| Research | Problem contract: goal, success shape, scope, non-goals, constraints, candidate direction, route | Final solution approach, issue slicing, acceptance criteria, verification path, implementation |
+| Plan | Executable solution contract: selected approach, issue graph, target/forbidden areas, acceptance, verification, evidence, Plan Engineering Review, Final Plan Gate | Goal/scope redefinition, implementation code, shipping decision |
+| Exec | Implementation and evidence inside plan contract: scheduling, bounded repair, deviation detection, Exec QA Gate | Plan mutation, scope expansion, verification waiver, shipping decision |
+| Review | Alignment audit: diff vs plan vs original intent, shipping-readiness route | Implementation, plan changes, execution |
 
 Templates are scaffolds for consistency. They are not a reason to pad simple tasks or bury the real decision.
 
@@ -92,7 +101,7 @@ Skills you use in sequence to go from fuzzy intent to verified code.
 
 - **[`/pge-ai-native-refactor`](./skills/pge-ai-native-refactor/SKILL.md)** — Shape one human-selected repo evolution direction into a bounded AI-native refactor plan before PGE execution. Focuses one dominant friction: entry, containment, verification, structural toxicity, or a missing mechanical invariant.
 
-- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Local Superpowers brainstorming shim for fuzzy, broad, value-laden, or solution-first prompts. Recovers original goal A before implementation hypothesis B, asks one question at a time, compares 2-3 framings or approaches, writes `.pge/tasks-<slug>/spark.md`, and stops after the user-approved spec for `pge-plan` consumption.
+- **[`/pge-spark`](./skills/pge-spark/SKILL.md)** — Superpowers-style brainstorming reference workflow for fuzzy, broad, value-laden, or solution-first prompts. It is not the canonical PGE research contract. Recovers original goal A before implementation hypothesis B, asks one question at a time, compares 2-3 framings or approaches, writes `.pge/tasks-<slug>/spark.md`, and stops after the user-approved spec for `pge-plan` consumption.
 
 - **[`/pge-handoff`](./skills/pge-handoff/SKILL.md)** — Create a temporary, focused handoff for another agent or future session. Matt-style task slice only: no pipeline control and no knowledge extraction.
 

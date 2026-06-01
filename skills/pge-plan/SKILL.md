@@ -108,7 +108,7 @@ Plan inherits authority classification from research and adds its own:
 
 Plan must not upgrade `inferred` research findings to `user_confirmed` plan decisions. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
 
-**Research Contract Override Rule:** When Research has `route: READY_FOR_PLAN`, Plan inherits the Research problem contract as authoritative. Plan may challenge and change `simplest_direction`, selected implementation approach, issue slicing, migration shape, rollout safety, execution topology, and verification strategy. Plan may operationalize Research conclusions into executable acceptance, target areas, issue boundaries, and verification as long as it does not change their semantic meaning.
+**Research Contract Override Rule:** When Research has `route: READY_FOR_PLAN`, Plan inherits the Research problem contract as authoritative. Plan may challenge and change `candidate_direction`, selected implementation approach, issue slicing, migration shape, rollout safety, execution topology, and verification strategy. Plan may operationalize Research conclusions into executable acceptance, target areas, issue boundaries, and verification as long as it does not change their semantic meaning.
 
 Plan must not silently override `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, `Implementation Friction.required_plan_adjustment`, or `Progressive Feasibility.first_plannable_objective`. If evidence shows a Research conclusion is wrong, stale, unsafe, or not executable, record the conflict and route to `NEEDS_INFO`, `NEEDS_HUMAN`, or `RETURN_TO_RESEARCH`; do not produce `READY_FOR_EXECUTE` until the problem-contract change is confirmed. Research blocking questions must not become Plan assumptions.
 
@@ -393,11 +393,22 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 **research.v3 (current):**
 
 1. **Route gate.** Continue only when `route: READY_FOR_PLAN`. If route is `NEEDS_USER`, stop with `NEEDS_INFO` and direct the user to answer the research blocking question, then rerun `pge-research`; do not produce a ready plan from a non-ready research artifact. If route is `NEEDS_REPO_EVIDENCE`, route `RETURN_TO_RESEARCH` unless the current user prompt explicitly overrides the selected research artifact and authorizes direct planning from current context. If route is `BLOCKED`, stop and do not produce a plan artifact.
-2. **Source Contract Check.** Verify required v3 fields are present and usable, or explicitly `none` / `not_applicable`: `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant user/repo/architecture context, assumptions, `simplest_direction`, `rejected_directions`, blocking and non-blocking questions, route, and route reason. `blocking_questions` must be empty for `READY_FOR_PLAN`, and any conditional gate must have the field Plan must consume. Missing required v3 fields or a non-ready route must not be silently guessed.
-3. **Field mapping.** Consume v3 fields as follows: `Spec Discovery.goal` → plan goal; `success_shape` → acceptance baseline; `scope` and `non_goals` → plan scope/non-goals; `constraints` → Plan Constraints/forbidden areas; `Context.assumptions` → assumptions; `relevant_repo_or_architecture_context` → repo context; `Direction.simplest_direction` → approach candidate only; `Direction.rejected_directions` → rejected approach inputs; open questions → risks or blockers.
+2. **Source Contract Check.** Verify required v3 fields are present and usable, or explicitly `none` / `not_applicable`: `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant user/repo/architecture context, assumptions, `candidate_direction`, `rejected_framings`, blocking and non-blocking questions, route, and route reason. `blocking_questions` must be empty for `READY_FOR_PLAN`, and any conditional gate must have the field Plan must consume. Missing required v3 fields or a non-ready route must not be silently guessed.
+3. **Field mapping.** Consume v3 fields as follows: `Spec Discovery.goal` → plan goal; `success_shape` → acceptance baseline; `scope` and `non_goals` → plan scope/non-goals; `constraints` → Plan Constraints/forbidden areas; `Context.assumptions` → assumptions; `relevant_repo_or_architecture_context` → repo context; `Direction.candidate_direction` → approach candidate only; `Direction.rejected_framings` → rejected approach/framing inputs; open questions → risks or blockers.
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
-5. **Progressive Feasibility.** If present, plan around `first_plannable_objective`, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice.
-6. **Plan owns approach selection.** `simplest_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
+5. **Progressive Feasibility.** If present, plan around `first_plannable_objective` as the current plan target, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice. The current plan must not target `direct_goal` when `first_plannable_objective` exists.
+6. **Plan owns approach selection.** `candidate_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
+7. **Source Authority Check.** When consuming research or upstream input, classify each material claim by authority before using it as a plan constraint or decision basis:
+
+   | Authority | Meaning | Plan treatment |
+   |---|---|---|
+   | `user_confirmed` | User explicitly stated or confirmed | Authoritative constraint; do not deviate |
+   | `source_of_truth` | From authoritative upstream source, spec, or referenced document | Inherit as constraint |
+   | `repo_evidence` | Derived from code, docs, config with cited source | High confidence; cite source |
+   | `inherited_from_research` | Research conclusion with evidence | Inherit; do not re-litigate unless repo contradicts |
+   | `inferred_by_plan` | Plan inference or design choice | Auditable; mark explicitly |
+
+   Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims.
 
 **Non-canonical selected sources:**
 
@@ -450,7 +461,7 @@ Only explore gaps not covered by upstream. Use repo/docs/code before asking user
 
 ### Propose Approaches
 
-Treat upstream `simplest_direction`, recommendations, and foreign-plan options as candidates, not selected implementation. If one candidate clearly satisfies the inherited problem contract with lowest risk and no contradicting repo evidence, select it through Plan Engineering Review and record why. Otherwise compare 2-3 implementation-level approaches with tradeoffs.
+Treat upstream `candidate_direction`, recommendations, and foreign-plan options as candidates, not selected implementation. If one candidate clearly satisfies the inherited problem contract with lowest risk and no contradicting repo evidence, select it through Plan Engineering Review and record why. Otherwise compare 2-3 implementation-level approaches with tradeoffs.
 
 Do not propose alternatives for authoritative problem-contract fields or spec-level decisions. Only propose alternatives for implementation-level choices or for upstream decisions contradicted by repo evidence.
 
@@ -532,6 +543,35 @@ The gate has six layers. Source Fidelity is mandatory for Fast Adopt and `SKIP_N
 No `PASS`, no `pge-exec`. A plan with Final Plan Gate `REVISE`, `ESCALATE`, or `REJECT` must not produce a ready execution route.
 
 Record the result in the plan artifact under `## plan_gate`. Each failed verdict must name `failed_gate`, `failed_criterion`, `required_repair`, and `exec_allowed: no`.
+
+### Review / Gate Result Normalization
+
+All plan-stage reviews and gates use a unified result vocabulary to prevent downstream confusion:
+
+| Surface | Result vocabulary |
+|---|---|
+| Plan Engineering Review | `PASS` &#124; `REWORK_PLAN` &#124; `RETURN_TO_RESEARCH` &#124; `NEEDS_INFO` |
+| Final Plan Gate | `PASS` &#124; `REVISE` &#124; `ESCALATE` &#124; `REJECT` |
+| Plan-level route | `READY_FOR_EXECUTE` &#124; `READY_FOR_EXECUTE_WITH_ASSUMPTIONS` &#124; `RETURN_TO_RESEARCH` &#124; `NEEDS_INFO` &#124; `BLOCKED` &#124; `NEEDS_HUMAN` |
+
+Do not invent result values outside these vocabularies. Do not use exec-stage or review-stage vocabulary (`SUCCESS`, `PARTIAL`, `BLOCK_SHIP`, `NEEDS_FIX`, `READY_TO_SHIP`) in plan-stage results.
+
+### Exec Readiness Check
+
+Before routing `READY_FOR_EXECUTE`, verify the plan satisfies `pge-exec` Plan Validation requirements:
+
+- `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`
+- At least one issue has `State: READY_FOR_EXECUTE`
+- Each ready issue has: Action, Deliverable, Behavior Contract, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Verification Coupling, Test Expectation, Required Evidence, Dependencies, Risks, and Security
+- `## forbidden_areas` is present and specific enough for scope drift checks
+- `## stop_conditions` is present and checkable
+- `## terminal_conditions` is present
+- Target Areas are concrete (paths, not vague module names)
+- Verification Coupling is explicit for each ready issue
+- Dependencies reference known issue IDs
+- Assumptions are explicit and non-scope-changing
+
+If any check fails, route `REVISE` and repair before producing a ready route.
 
 ### Quality Check Result Shape
 

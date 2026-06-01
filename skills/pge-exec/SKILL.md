@@ -63,7 +63,7 @@ Optimization means stronger default Generator quality plus lower duplicated orch
 - Bounded repair with retry budget and Evaluator Repair Contracts
 - Startup fallback for team/lane auth/channel failures only
 - Final Evaluator verification over the composed run
-- Final Review Gate with code-review and simplification pressure before SUCCESS
+- Exec QA Gate with code-review and simplification pressure before SUCCESS
 - Durable run artifacts under `.pge/tasks-<slug>/runs/<run_id>/`
 - HITL routing for verification/decision/action requirements
 - Diagnostic Recovery for unclear or recurring development errors
@@ -74,7 +74,7 @@ Optimization means stronger default Generator quality plus lower duplicated orch
 - Reducing Generator quality requirements (TDD/proportional verification, issue-contract self-review, behavior contract, changed-hunk audit, quality axes, complete evidence)
 - Weakening Candidate Gate or Evaluator thresholds
 - Replacing useful evidence with under-specified minimal packets
-- Skipping final Evaluator verification or Final Review Gate
+- Skipping final Evaluator verification or Exec QA Gate
 - Lowering protocol consistency between lanes and main
 
 Generator quality should improve through better default checks, not lower through lighter process. Evidence must remain complete and useful for review, resume, and repair. Final review must remain an executable PGE gate with verified reviewer output and structured verdicts.
@@ -115,8 +115,48 @@ Native capability invocation is not permission for free-form execution, weak evi
 18. Apply final Evaluator `PASS | RETRY | BLOCK` to bounded repair, blocked state, run route, or lane recovery.
 19. Check stop condition, semantic alignment, regression, and integration.
 20. Activate Diagnostic Recovery when a development error has unclear root cause, repeats after repair, is flaky, or produces a symptom that does not match the issue contract.
-21. Run Final Review Gate for every completed execution before `SUCCESS`.
+21. Run Exec QA Gate for every completed execution before `SUCCESS`.
 22. Teardown using runtime truth, then write artifacts before the final response.
+
+## Execution Shape Scaling
+
+Choose execution shape from plan size, coupling, risk, and verification cost. Shape determines default lane count, prep usage, Evaluator engagement, and review depth.
+
+**LIGHT:**
+- One Generator lane by default
+- No prep lane unless target ownership is unclear
+- No targeted Evaluator unless a high-risk trigger fires
+- Compact final Evaluator verification
+- Minimal `implementation-notes.md`
+- Compact Exec QA Gate review
+
+**MEDIUM:**
+- Bounded parallel Generator lanes when dependencies, target areas, and verification coupling allow
+- Targeted Evaluator only for explicit risk triggers
+- Normal final Evaluator verification
+- Standard Exec QA Gate review
+
+**DEEP:**
+- Full dependency / target-area / verification-coupling schedule
+- Progress Watchdog active on all lanes
+- Diagnostic Recovery available
+- Stronger final Evaluator verification
+- Full Exec QA Gate with code-reviewer and simplifier
+
+Shape selection is a scheduling decision, not a quality decision. All shapes require the same evidence, Candidate Gate, final Evaluator verification, and Exec QA Gate. Shape only controls parallelism, prep usage, and targeted Evaluator frequency.
+
+## Targeted Evaluator Triggers
+
+Main dispatches a targeted Evaluator check only when a concrete signal fires. The following are the recognized triggers:
+
+- Deviation may affect acceptance, verification, forbidden areas, or high-risk behavior
+- Evidence contradicts acceptance (candidate claims pass but observed behavior differs)
+- Issue grouping changes verification coupling (merged or split issues share a verification surface)
+- Security, data, production, or irreversible behavior touched by the candidate
+- Repeated repair occurs (same issue fails after one bounded repair)
+- Current context narrows plan and may invalidate issue boundaries
+
+These are signals, not a brittle checklist. Main must record the observed signal and routing reason whenever it escalates or declines escalation. Missing evidence, weak evidence, or failed local verification are Candidate Gate failures, not targeted Evaluator triggers.
 
 ## Must Not
 
@@ -167,7 +207,7 @@ pge-exec repair review findings for <task-slug>
 pge-exec repair challenge findings for <task-slug>
 ```
 
-If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, keep the task slug as the user-facing entrypoint and use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`. The provenance and backflow rules in Final Review govern whether those findings are consumable. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
+If `ARGUMENTS:` explicitly names a task slug or canonical `.pge/tasks-<slug>/plan.md`, treat that as the user's selected source and use it without asking again. `--run-id <run_id>` is the only explicit resume selector. If the prompt asks to repair review/challenge findings for a task, keep the task slug as the user-facing entrypoint and use the named task's canonical plan plus the matching task artifact under `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md`. The provenance and backflow rules in Exec QA Gate govern whether those findings are consumable. If no task artifact or explicit current-context repair input is present, route `NEEDS_HUMAN` for the missing repair input instead of guessing. Otherwise, on a bare `pge-exec` invocation, discover `.pge/tasks-<slug>/plan.md` artifacts but do not silently select one. Ask the user to confirm a single discovered plan or choose among multiple plans.
 
 Non-canonical inputs include Claude plan mode output, `docs/exec-plan/` documents, current conversation plan text, and foreign workflow plans. Ask once whether to activate the source through `pge-plan`:
 
@@ -343,7 +383,7 @@ Adaptive scaling (existing safe concurrency):
 **Concurrency eligibility** (existing safe boundaries):
 - Independent Generators require: no dependency overlap, no Target Area overlap, no unsafe shared verification surface (compile-coupled work uses isolated worktrees or serialized integration verification).
 - Parallel final reviewers: reviewer agents may run concurrently after final Evaluator verification, with main synthesizing one `review.md` from their findings.
-- Quality gates remain unchanged: existing concurrency must not bypass Candidate Gate, final Evaluator, Final Review, or required evidence.
+- Quality gates remain unchanged: existing concurrency must not bypass Candidate Gate, final Evaluator, Exec QA Gate, or required evidence.
 
 **Shared-context mechanics** are explicitly excluded from this execution model. Future designs for cross-lane context sharing, persistent lane state, or inter-issue learning artifacts require separate contracts with defined lifecycle, staleness handling, and evidence boundaries. Do not implement shared-context persistence, new state schemas, or cross-lane scheduling artifacts in the current `pge-exec` contract.
 
@@ -551,6 +591,9 @@ Implementation notes are audit notes, not a parallel plan. Record only facts tha
 ```md
 ## Implementation Notes
 
+### In-Contract Local Decisions
+<!-- Decisions the plan did not spell out but exec resolved inside the contract -->
+
 ### <timestamp or issue id>
 - type: decision | tradeoff | deviation | blocker | follow_up | verification_gap
 - issue: <issue id or run-level>
@@ -558,6 +601,12 @@ Implementation notes are audit notes, not a parallel plan. Record only facts tha
 - rationale: <why this was acceptable or why execution stopped>
 - plan_impact: none | in_scope | route_upstream_required
 - evidence: <file path, command, artifact, or reviewer packet>
+
+### Deviations Detected
+<!-- Any deviation from plan Target Areas, approach, or issue boundaries -->
+
+### Verification Gaps
+<!-- Anything that could not be verified within the current run -->
 ```
 
 Use `route_upstream_required` for anything that would change goal, scope, target areas, acceptance, verification, or non-goals, then stop and route to `pge-plan` or `pge-research`. Use `follow_up` only for work that should not expand the current run.
@@ -748,13 +797,13 @@ Handle by subtype:
 
 Headless mode must not turn missing human confirmation into approval, missing human choice into a decision, or missing human action completion into a completed action. If a future plan explicitly allows a headless substitute, the run must record it as a substitute with evidence and confidence, not as human verification, human decision, or manual action completion.
 
-## Final Review
+## Exec QA Gate
 
-Evaluator validates the composed run against the canonical plan before route decisions. It checks plan alignment, acceptance/evidence coverage, implementation logic, stop condition, integration, and regression risk. Final Review Gate is the separate whole-diff / cross-issue code review after final Evaluator verification.
+Evaluator validates the composed run against the canonical plan before route decisions. It checks plan alignment, acceptance/evidence coverage, implementation logic, stop condition, integration, and regression risk. Exec QA Gate is the separate whole-diff / cross-issue code review after final Evaluator verification. Exec QA Gate is an execution-stage quality gate; it is not `pge-review` and does not make shipping decisions.
 
 **Final Evaluator verification** (always required): Uses `skills/pge-exec/handoffs/evaluator.md` and must follow the same startup-gated dispatch path as targeted checks: evaluator passes Agent Startup Verification, main sends `SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")`, and main waits for exactly one terminal `evaluator_verdict`. If evaluator startup/channel readiness failed before dispatch and startup fallback is active, main performs evaluator-equivalent final verification directly and records `execution_mode: main_thread_fallback` for `evaluation_scope: final_run`.
 
-**Final Review Gate** (always required): Run Final Review Gate for every completed execution before routing `SUCCESS`. There is no LIGHT skip. Small, low-risk runs use a compact review shape, but they still must produce a final-review verdict and write `.pge/tasks-<slug>/runs/<run_id>/review.md`. The simplification is review depth and report size, not whether review happens.
+**Exec QA Gate** (always required): Run Exec QA Gate for every completed execution before routing `SUCCESS`. There is no LIGHT skip. Small, low-risk runs use a compact review shape, but they still must produce a final-review verdict and write `.pge/tasks-<slug>/runs/<run_id>/review.md`. The simplification is review depth and report size, not whether review happens.
 
 **Review capability resolution** (PGE reviewer default with optional native code-review cross-validation):
 - **Default executable path**: `agents/pge-code-reviewer.md` is the guaranteed default read-only reviewer. `agents/pge-code-simplifier.md` is conditional for broad or complex changes. These PGE reviewer agents provide the stable final review gate.
@@ -803,7 +852,7 @@ Integration verification: if the plan touches 3+ files across 2+ modules, run an
 
 Regression check: after all dispatchable Generator candidates are `GENERATED`, re-run relevant Verification Hints against the composed tree. If any regressed, route bounded repair, `PARTIAL`, or `BLOCKED` with regression evidence according to repairability.
 
-After final Evaluator verification, the `stop_conditions` check, integration verification, and regression checks pass, run Final Review Gate. `SUCCESS` requires final Evaluator verification to pass and the Final Review Gate to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
+After final Evaluator verification, the `stop_conditions` check, integration verification, and regression checks pass, run Exec QA Gate. `SUCCESS` requires final Evaluator verification to pass and the Exec QA Gate to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
 
 Final response `next` is the next explicit stage recommendation, not an automatic invocation. For a normal execution `SUCCESS`, default to `pge-review <task-slug>`. Use `pge-plan` for upstream contract blockers and `user decision` for HITL. Do not output `next: done`, `pge-challenge`, or `ship` for a normal post-plan execution success; exec success means the Execute stage is complete, not that Review/Challenge/Ship are complete.
 
