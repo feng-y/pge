@@ -52,6 +52,47 @@ Exec may adapt implementation details inside the plan contract, including local 
 
 Route upstream instead of writing a note when execution would change goal, scope, acceptance, verification, non-goals, forbidden areas, high-risk behavior, required core behavior, or safety/data/security/production/irreversible authority. Small adjacent file changes outside the current issue Target Areas may stay in-contract only when later scope-boundary rules explicitly allow them and the canonical plan contract is unchanged.
 
+### Quality-First Functional Parity Baseline
+
+Optimization means stronger default Generator quality plus lower duplicated orchestration, not weaker gates or reduced evidence usefulness.
+
+**Functional parity baseline** (frozen):
+- Canonical plan execution with plan validation and authorization gates
+- Issue-based progress with dependency, Target Area, and verification-coupling scheduling
+- Complete evidence artifacts: manifest, state, implementation-notes, deliverables, verification results
+- Bounded repair with retry budget and Evaluator Repair Contracts
+- Startup fallback for team/lane auth/channel failures only
+- Final Evaluator verification over the composed run
+- Final Review Gate with code-review and simplification pressure before SUCCESS
+- Durable run artifacts under `.pge/tasks-<slug>/runs/<run_id>/`
+- HITL routing for verification/decision/action requirements
+- Diagnostic Recovery for unclear or recurring development errors
+- Route discipline: SUCCESS, PARTIAL, BLOCKED, NEEDS_HUMAN
+- State persistence and resumability
+
+**Quality-first non-regression rule**: Efficiency improvements must not be obtained by:
+- Reducing Generator quality requirements (TDD/proportional verification, issue-contract self-review, behavior contract, changed-hunk audit, quality axes, complete evidence)
+- Weakening Candidate Gate or Evaluator thresholds
+- Replacing useful evidence with under-specified minimal packets
+- Skipping final Evaluator verification or Final Review Gate
+- Lowering protocol consistency between lanes and main
+
+Generator quality should improve through better default checks, not lower through lighter process. Evidence must remain complete and useful for review, resume, and repair. Final review must remain an executable PGE gate with verified reviewer output and structured verdicts.
+
+### Native Capability Invocation with Re-entry Gates
+
+When delegating to native Claude Code capabilities (Agent Teams, code-review agents, thinking modes), `pge-exec` must define:
+
+**Context**: What the capability receives (plan contract, issue brief, changed files, verification results, prior findings).
+
+**Boundary**: What the capability may decide (implementation path, local design, verification approach) vs. what remains under main control (route, state, retry budget, plan contract).
+
+**Expected Return**: Required packet shape (generator_completion, evaluator_verdict, reviewer findings) with evidence, status, and self-review.
+
+**Re-entry Gate**: Validation main applies before integrating the result (Candidate Gate for Generator, verdict structure for Evaluator, finding severity/actionability for reviewers).
+
+Native capability invocation is not permission for free-form execution, weak evidence, or skipped quality checks. The capability must satisfy the same contract as if main executed the work directly. Re-entry gates enforce that contract before the result affects run state or route decisions.
+
 ## Critical Path
 
 1. Resolve the selected canonical plan.
@@ -285,7 +326,7 @@ Progress Watchdog:
 - If recovery also stalls, route the issue or run `BLOCKED` with `failure_surface: progress_watchdog_stall`, record evidence in `implementation-notes.md`, and do not leave the run `IN_PROGRESS`.
 - A recovered lane must send fresh `lane_ready` before receiving work. A replaced lane must not reuse unpersisted assumptions from the stalled lane.
 
-Adaptive scaling:
+Adaptive scaling (existing safe concurrency):
 - LIGHT: one bounded `generator-1`, no prep lane, cheap checks plus final verification/review.
 - MEDIUM: bounded Generator lanes by issue or issue group, optional read-only prep for the next issue, staged verification, final Evaluator.
 - DEEP: explicit issue/coupling graph, issue-group or target-area-cluster Generator lanes, optional prep lanes, final composed Evaluator, targeted review.
@@ -299,12 +340,20 @@ Adaptive scaling:
 - If a generator needs a file outside assigned Target Areas, it records the smallest justified deviation when the change is inside the plan contract and needed for the same acceptance; it reports `BLOCKED` only when the file touches forbidden/high-risk areas, changes acceptance/verification/non-goals, or requires a plan-changing boundary decision.
 - Integrate Generator candidates in dependency and issue-ID order unless Target Area or verification coupling requires a stricter order.
 
-Opportunistic prep:
+**Concurrency eligibility** (existing safe boundaries):
+- Independent Generators require: no dependency overlap, no Target Area overlap, no unsafe shared verification surface (compile-coupled work uses isolated worktrees or serialized integration verification).
+- Parallel final reviewers: reviewer agents may run concurrently after final Evaluator verification, with main synthesizing one `review.md` from their findings.
+- Quality gates remain unchanged: existing concurrency must not bypass Candidate Gate, final Evaluator, Final Review, or required evidence.
+
+**Shared-context mechanics** are explicitly excluded from this execution model. Future designs for cross-lane context sharing, persistent lane state, or inter-issue learning artifacts require separate contracts with defined lifecycle, staleness handling, and evidence boundaries. Do not implement shared-context persistence, new state schemas, or cross-lane scheduling artifacts in the current `pge-exec` contract.
+
+Opportunistic prep (existing read-only native lane):
 - Start `prep-*` only when the next issue or issue group has real uncertainty that can be resolved read-only while implementation proceeds.
 - Prep may inspect likely target surfaces, existing capabilities, coupling risks, legacy traps, verification cost, and stop-if conditions.
 - Prep output is `preflight_hint`: likely target surface, possible reuse, risks, stop-if, confidence, and evidence paths.
 - Prep must not modify files, alter the plan, claim completion, replace verification, or provide acceptance evidence.
 - Main may use prep hints to shape a compact Generator dispatch packet, but must re-check current code reality before relying on them.
+- Prep lanes are bounded read-only helpers that run ahead of implementation; they do not persist state, share context across issues, or replace Generator's own fresh reads.
 
 Read these authoritative handoff contracts:
 - `skills/pge-exec/handoffs/prep.md`
@@ -316,7 +365,18 @@ Read these authoritative handoff contracts:
 
 Default execution is generator-first with concurrent scheduling. Generator produces issue candidates with TDD or proportional local verification, issue-contract self-review, and evidence. Evaluator is an independent final verification lane over the composed run, with optional targeted risk checks before final verification only when main explicitly dispatches them. Do not force a fixed Generator -> Evaluator serial hop after every issue, and do not treat Evaluator as Generator's reviewer.
 
-Targeted Evaluator checks are exceptional. Main may dispatch one only when a bounded, run-blocking risk question cannot be answered by Generator self-review or main's Candidate Gate, for example a shared interface/protocol change whose correctness affects multiple pending issues, security/destructive work that must be independently checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. A targeted check must include a concrete `targeted_question`; "verify this candidate" is not a valid targeted question.
+**Targeted Evaluator checks** (adaptive escalation, not default quality guarantee): Main may dispatch one only when a bounded, run-blocking risk question cannot be answered by Generator self-review or main's Candidate Gate. Examples: shared interface/protocol change whose correctness affects multiple pending issues, security/destructive work that must be independently checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. A targeted check must include a concrete `targeted_question`; "verify this candidate" is not a valid targeted question.
+
+**Adaptive escalation signals** (when main cannot confidently route from a candidate whose evidence is already complete):
+- Plan/code reality conflict appears (acceptance claims don't match observed behavior)
+- Changed surface has cross-boundary risk (shared protocol, security surface, data migration, cross-issue composition)
+- Evidence is complete but exposes an unresolved cross-boundary risk that cannot be answered inside the issue contract
+- Repair uncertainty remains after one bounded repair attempt
+- Main observes a concrete signal that warrants independent verification before safe continuation
+
+Evidence completeness is a precondition for escalation, not a trigger for it. Missing evidence, weak evidence, failed local verification, unrecorded scope drift, or incomplete self-review are Generator/Candidate Gate failures, not targeted Evaluator triggers; main must reject the candidate and send bounded Generator repair, classify the blocker, or route upstream instead of dispatching Evaluator over a malformed candidate.
+
+Main must record the observed signal and routing reason whenever it escalates to targeted Evaluator or declines escalation. Adaptive escalation is signal-based, not a brittle trigger matrix. Escalation supplements Generator default quality; it does not replace it. Strong default Generator quality (from Issue 2 code-review-informed checks) handles routine defects before targeted checks are needed.
 
 Candidate malformed states are not targeted Evaluator triggers. Missing evidence, weak evidence, failed local verification, unrecorded or weakly justified Target Area drift, absent deviation records, or incomplete self-review are Generator contract failures. Main must reject the candidate and send a bounded repair request, classify the issue blocker, or route upstream; it must not hand the failed self-review to Evaluator as a per-issue approval gate.
 
@@ -349,10 +409,16 @@ For each ready issue:
    - every changed file is inside Target Areas or explicitly recorded as a justified deviation
    - deviations and implementation notes are recorded
    - `behavior_contract` is present and maps current behavior, desired behavior, behavior delta, key interfaces checked, verification points, and out-of-scope items
-   - `changed_hunk_audit` is present for changed files and covers issue/goal alignment, repo constraints, deleted invariants, caller/callee impact, edge/error paths, performance, code quality, scope, and evidence
+   - `changed_hunk_audit` is present for changed files and covers issue/goal alignment, repo constraints, deleted invariants, caller/callee/consumer impact, edge/error paths, performance, code quality, scope, and evidence
+   - `removed_behavior_audit` is present when lines were deleted or replaced, confirming guards/invariants/validations are preserved or intentionally removed
+   - `caller_consumer_check` is present when exported contracts changed, confirming immediate callers/consumers remain compatible
+   - `edge_error_coverage` confirms at least one realistic edge case and error path was checked for behavior changes
+   - `performance_sanity` confirms no obvious regressions (N+1 queries, unbounded loops, missing pagination, sync-for-async) in changed code
+   - `simplification_check` confirms new code avoids deep nesting (3+ levels), long functions (50+ lines for simple logic), unnecessary abstractions, dead code, and speculative flexibility
    - `quality_axes` reports issue_alignment, goal_alignment, repo_constraints, verification, performance, and code_quality as passed / not_applicable where relevant
    - contract self-review covers Action, Deliverable, behavior delta, Acceptance Criteria, Test Expectation, Required Evidence, Target Areas, scope drift, maintainability, and obvious regressions
    - TDD / verification evidence is proportional to the issue: meaningful behavior RED/GREEN where applicable, or the strongest plan-authorized contract-level verification when a RED test would be artificial
+   - Generator must not send `READY` with known in-contract bugs, weak evidence, unresolved scope drift, obvious performance regression, or avoidable code-quality defects
    - any `BLOCKED` packet includes blocker classification, source files, and repairability
 6. If Generator reports `BLOCKED`, skip Evaluator and classify the blocker before changing the issue route:
    - `implementation-blocked`: compile errors, include-surface mismatch, forward-declaration or type-surface problems, sibling issue contamination, local interface assembly errors, or other code-level failures that do not require user decisions or plan contract changes.
@@ -686,14 +752,15 @@ Headless mode must not turn missing human confirmation into approval, missing hu
 
 Evaluator validates the composed run against the canonical plan before route decisions. It checks plan alignment, acceptance/evidence coverage, implementation logic, stop condition, integration, and regression risk. Final Review Gate is the separate whole-diff / cross-issue code review after final Evaluator verification.
 
-Final Evaluator verification uses `skills/pge-exec/handoffs/evaluator.md` and must follow the same startup-gated dispatch path as targeted checks: evaluator passes Agent Startup Verification, main sends `SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")`, and main waits for exactly one terminal `evaluator_verdict`. If evaluator startup/channel readiness failed before dispatch and startup fallback is active, main performs evaluator-equivalent final verification directly and records `execution_mode: main_thread_fallback` for `evaluation_scope: final_run`.
+**Final Evaluator verification** (always required): Uses `skills/pge-exec/handoffs/evaluator.md` and must follow the same startup-gated dispatch path as targeted checks: evaluator passes Agent Startup Verification, main sends `SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")`, and main waits for exactly one terminal `evaluator_verdict`. If evaluator startup/channel readiness failed before dispatch and startup fallback is active, main performs evaluator-equivalent final verification directly and records `execution_mode: main_thread_fallback` for `evaluation_scope: final_run`.
 
-Run Final Review Gate for every completed execution before routing `SUCCESS`. There is no LIGHT skip. Small, low-risk runs use a compact review shape, but they still must produce a final-review verdict and write `.pge/tasks-<slug>/runs/<run_id>/review.md`. The simplification is review depth and report size, not whether review happens.
+**Final Review Gate** (always required): Run Final Review Gate for every completed execution before routing `SUCCESS`. There is no LIGHT skip. Small, low-risk runs use a compact review shape, but they still must produce a final-review verdict and write `.pge/tasks-<slug>/runs/<run_id>/review.md`. The simplification is review depth and report size, not whether review happens.
 
-External dependencies:
-- `agents/pge-code-reviewer.md` is the default read-only reviewer.
-- `agents/pge-code-simplifier.md` is conditional for broad or complex changes.
-- If a reviewer spec is missing, skip that reviewer and log `reviewer agent spec not found`.
+**Review capability resolution** (PGE reviewer default with optional native code-review cross-validation):
+- **Default executable path**: `agents/pge-code-reviewer.md` is the guaranteed default read-only reviewer. `agents/pge-code-simplifier.md` is conditional for broad or complex changes. These PGE reviewer agents provide the stable final review gate.
+- **Optional native code-review cross-validation**: Claude Code `/code-review` or equivalent native capability may be used as optional cross-validation only when main can verify the capability exists, invoke it, and map its result to the required structured verdict (`PASS | ADVISORY_ONLY | REPAIR_REQUIRED | BLOCKED`). If native code-review is unavailable, returns unmappable output, or cannot be verified, the run continues through the PGE reviewer path without blocking.
+- **Final synthesized review**: The final `review.md` records which review capability was used (PGE reviewers, optional native code-review, or both), whether optional native code-review was available or skipped, and how PGE invariant checks were applied before the final verdict.
+- If a PGE reviewer spec is missing, skip that reviewer and log `reviewer agent spec not found`. If all PGE reviewer specs are missing and native code-review is unavailable, route `BLOCKED` with `final_review_unavailable`.
 
 Review shape:
 - Spawn `pge-code-reviewer` over the final diff, run artifacts, and plan stop condition.

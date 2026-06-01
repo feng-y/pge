@@ -44,18 +44,36 @@ Contract evidence check:
 9. Goal Alignment: changed behavior supports the plan goal and does not erode non-goals.
 10. Repo Constraints: follows local patterns, resident rules, artifact contracts, route/state vocabulary, and owning skill/agent boundaries.
 
-Changed-hunk audit:
-1. Read every changed hunk and its enclosing function/section.
-2. For every deleted or replaced line, name the invariant, guard, validation, error path, or artifact contract it used to enforce and confirm the new code preserves it.
-3. Trace each changed exported function, command, artifact, or contract to immediate callers/consumers that can break.
-4. Check one realistic edge/error path for every behavior change, even if the happy path passed.
+Changed-hunk audit (code-review-informed):
+1. Read every changed hunk line-by-line and its enclosing function/section.
+2. **Removed-behavior audit**: For every deleted or replaced line, identify the guard, invariant, validation, error path, or behavior it used to enforce. Search the new code for where that behavior is re-established. If it is gone and the behavior mattered, fix it or report blocked. Record in `removed_behavior_audit`.
+3. **Caller/consumer check**: For each changed exported function, type, command, or artifact contract, check immediate callers and relevant consumers. Flag new preconditions, return-shape changes, exceptions, timing/ordering changes, or sibling changes that make a call unsafe. Record in `caller_consumer_check`.
+4. **Edge/error path coverage**: Check at least one realistic edge case and error path for every behavior change, even if the happy path passed. Record in `edge_error_coverage`.
 5. Check that local fixes did not introduce unrelated edits outside the Action.
 
-Performance and code-quality audit:
-1. Performance: check changed loops, repeated scans, I/O boundaries, network calls, parsing, rendering, or artifact generation for obvious regressions introduced by the issue.
-2. Optimization boundary: improve only what is required to preserve the issue behavior, performance acceptance, or obvious correctness; record unrelated optimization ideas in `deferred_items`.
-3. Code quality: remove dead code, debug prints, unused imports, implementation-restating tests, unnecessary abstractions, and speculative flexibility introduced by the issue.
-4. Simplicity: if a simpler in-contract implementation is clearly sufficient, simplify before completion.
+Performance sanity check (code-review-informed):
+1. **Obvious regression check**: Inspect changed loops, repeated scans, I/O boundaries, network calls, parsing, rendering, or artifact generation for obvious regressions introduced by the issue:
+   - N+1 query patterns (loop with query inside)
+   - Unbounded loops or unconstrained data fetching
+   - Synchronous operations that should be async
+   - Missing pagination on list endpoints
+2. **Optimization boundary**: Improve only what is required to preserve the issue behavior, performance acceptance, or obvious correctness; record unrelated optimization ideas in `deferred_items`.
+3. Record in `performance_sanity`.
+
+Simplification check (code-review-informed, applies only to NEW code from this issue):
+1. **Deep nesting**: 3+ levels → flatten with guard clauses or extract helper functions.
+2. **Long functions**: 50+ lines for simple logic → split into focused functions with descriptive names.
+3. **Unnecessary abstractions**: Class/interface/wrapper with single call site → inline, single use doesn't justify abstraction.
+4. **Dead code**: Unused imports, unreachable branches, commented-out blocks → remove.
+5. **Speculative flexibility**: Config layer for one value, abstract base with one impl, event system for one event, plugin architecture for one plugin → remove indirection, use direct approach.
+6. **Generic names in new code**: `data`, `result`, `temp`, `item` → use descriptive names.
+7. **Nested ternaries**: 2+ chained → replace with if/else or lookup.
+8. **Over-engineered patterns**: Factory-for-factory, strategy-with-one-strategy → replace with direct approach.
+9. Record in `simplification_check`. Fix before completion when the simpler version is obviously correct and sufficient.
+
+Code-quality audit:
+1. Remove dead code, debug prints, unused imports, implementation-restating tests, unnecessary abstractions, and speculative flexibility introduced by the issue.
+2. Simplicity: if a simpler in-contract implementation is clearly sufficient, simplify before completion.
 
 Outcomes:
 - `pass`: no in-contract issue found, with evidence.

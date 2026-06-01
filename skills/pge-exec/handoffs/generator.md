@@ -2,6 +2,8 @@
 
 ## Generator Internal Flow
 
+**Native lane responsibility**: Generator is a bounded implementation lane that executes assigned issues using Claude Code native Agent Teams. Generator implements, verifies, self-reviews, and returns candidates for its assigned scope only. Generator does not persist state across issues, share context with sibling lanes, or replace final Evaluator verification.
+
 ```dot
 digraph generator {
   rankdir=TB;
@@ -200,9 +202,40 @@ contract_self_review:
 changed_hunk_audit:
   - file: <path>
     hunk_or_symbol: <function/section/line summary>
-    checks: <issue/goal alignment / repo constraint / deleted invariant / caller-callee / edge case / error path / performance / code quality / scope / evidence>
-    result: pass | fixed | blocked
+    issue_alignment: <does this hunk implement the issue Action, or is it unrelated>
+    goal_alignment: <does this hunk support the plan goal and preserve non-goals>
+    repo_constraints: <follows local patterns, conventions, artifact contracts>
+    deleted_invariants: <for replaced/deleted lines: what guard/validation/behavior was removed, and is it preserved elsewhere or intentionally removed>
+    caller_consumer_impact: <for changed exports/contracts: which immediate callers/consumers were checked, and are they still compatible>
+    edge_error_paths: <at least one realistic edge case and error path checked for behavior changes>
+    performance: <no obvious regression: N+1 query, unbounded loop, missing pagination, sync-for-async>
+    code_quality: <no deep nesting (3+ levels), long functions (50+ lines simple logic), unnecessary abstractions, dead code, speculative flexibility in new code>
+    scope: <within Target Areas or justified in-contract adjustment>
     evidence: <file path, command, or concise reason>
+removed_behavior_audit:
+  - file: <path, or "not_applicable" if no lines deleted/replaced>
+    deleted_or_replaced_lines: <line range or "none">
+    prior_behavior: <what guard/invariant/validation/error-path/behavior the old code enforced>
+    preserved_in: <where the new code re-establishes it, or "intentionally_removed" with rationale>
+caller_consumer_check:
+  - changed_export: <function/type/command/artifact contract that changed, or "not_applicable" if no exports changed>
+    immediate_callers_consumers: <which callers/consumers were inspected>
+    compatibility: <still compatible | breaking change recorded | not_applicable>
+edge_error_coverage:
+  - behavior_change: <what behavior changed, or "not_applicable" if no behavior change>
+    edge_case_checked: <at least one realistic edge case tested/inspected>
+    error_path_checked: <at least one error path tested/inspected>
+performance_sanity:
+  - changed_surface: <loops/IO/network/parsing/rendering in changed code, or "not_applicable">
+    regression_check: <no N+1 query / no unbounded loop / no missing pagination / no sync-for-async / not_applicable>
+    evidence: <why no regression, or "not_applicable">
+simplification_check:
+  - new_code_surface: <new functions/classes/modules introduced, or "not_applicable">
+    deep_nesting: <none | fixed before completion>
+    long_functions: <none (or justified by complexity) | fixed before completion>
+    unnecessary_abstractions: <none (single-use wrapper/class/interface removed) | fixed before completion>
+    dead_code: <none (unused imports/unreachable branches/commented blocks removed) | fixed before completion>
+    speculative_flexibility: <none (config-for-one-value/abstract-base-for-one-impl removed) | fixed before completion>
 quality_axes:
   issue_alignment: passed | failed
   goal_alignment: passed | failed
@@ -290,7 +323,7 @@ Verification Coupling: <original issue Verification Coupling>
 2. Do not broaden scope.
 3. Re-run Verification Hint. Record output.
 4. Preserve the original Behavior Contract and explain how the repair restores its Behavior Delta.
-5. Send fresh generator_completion, including updated `behavior_contract`, `contract_self_review`, `changed_hunk_audit`, `quality_axes`, and `implementation_notes`.
+5. Send fresh generator_completion, including updated `behavior_contract`, `contract_self_review`, `changed_hunk_audit`, `removed_behavior_audit`, `caller_consumer_check`, `edge_error_coverage`, `performance_sanity`, `simplification_check`, `quality_axes`, and `implementation_notes`.
 6. Do not spend more attempts than `retry_budget_remaining` allows. If the budget is exhausted or the same fix would be retried without a new approach, report BLOCKED.
 7. If approach is fundamentally wrong (not a local fix): report BLOCKED with reason.
 ---END REPAIR DATA---
@@ -312,7 +345,12 @@ Verification Coupling: <original issue Verification Coupling>
 - Required Evidence is present in the completion message
 - Changed files are inside Target Areas, or every extra file is recorded as a justified deviation
 - `behavior_contract` is present and maps current behavior, desired behavior, behavior delta, key interfaces checked, verification points, and out-of-scope items
-- `changed_hunk_audit` is present for changed files and covers issue/goal alignment, repo constraints, deleted invariants, caller/callee impact, edge/error paths, performance, code quality, scope, and evidence
+- `changed_hunk_audit` is present for changed files and covers issue/goal alignment, repo constraints, deleted invariants, caller/callee/consumer impact, edge/error paths, performance, code quality, scope, and evidence
+- `removed_behavior_audit` is present when lines were deleted or replaced, confirming guards/invariants/validations are preserved or intentionally removed
+- `caller_consumer_check` is present when exported contracts changed, confirming immediate callers/consumers remain compatible
+- `edge_error_coverage` confirms at least one realistic edge case and error path was checked for behavior changes
+- `performance_sanity` confirms no obvious regressions (N+1 queries, unbounded loops, missing pagination, sync-for-async) in changed code
+- `simplification_check` confirms new code avoids deep nesting (3+ levels), long functions (50+ lines for simple logic), unnecessary abstractions, dead code, and speculative flexibility
 - `quality_axes` reports issue_alignment, goal_alignment, repo_constraints, verification, performance, and code_quality as passed / not_applicable where relevant
 - Contract self-review explicitly covers Action, Deliverable, Behavior Delta, Acceptance Criteria, Test Expectation, Required Evidence, Target Areas, scope drift, and uncertainty
 - TDD / verification evidence is proportional to the issue and does not rely on implementation-restating tests

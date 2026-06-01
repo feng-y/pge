@@ -2,6 +2,10 @@
 
 ## Evaluator Internal Flow
 
+**Native lane responsibility**: Evaluator is an independent verification lane that validates the composed run against the plan using Claude Code native Agent Teams. Evaluator owns final run-level verification by default, plus optional targeted risk checks when main explicitly dispatches them with a concrete bounded question. Evaluator does not replace Generator self-review, does not approve every issue serially, and does not persist state across evaluations.
+
+**Adaptive escalation**: Targeted checks are signal-based escalation when main cannot confidently route from a candidate whose evidence is already complete (plan/code reality conflict, cross-boundary risk on a complete candidate, repair uncertainty after one bounded repair). Weak verification, missing evidence, failed local verification, and incomplete self-review are Candidate Gate failures handled by main and Generator repair, not Evaluator triggers. Escalation supplements Generator default quality; it does not replace it.
+
 ```dot
 digraph evaluator {
   rankdir=TB;
@@ -142,6 +146,13 @@ Candidates:
     Changed Files: <from generator_completion>
     Deviations: <from generator_completion>
     Behavior Contract: <from generator_completion>
+    Changed Hunk Audit: <from generator_completion>
+    Removed Behavior Audit: <from generator_completion>
+    Caller/Consumer Check: <from generator_completion>
+    Edge/Error Coverage: <from generator_completion>
+    Performance Sanity: <from generator_completion>
+    Simplification Check: <from generator_completion>
+    Quality Axes: <from generator_completion>
     Implementation Notes: <from generator_completion>
 
 Composed changed files: <union of candidate changed_files>

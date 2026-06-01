@@ -2,6 +2,8 @@
 
 Evaluator default scope is final run-level verification. It validates the composed diff against the canonical plan, including goal, non-goals, issue acceptance, evidence coverage, verification, and implementation logic. Targeted checks may focus on one issue or risk, but they are explicit exceptions and must not become a mandatory per-issue serial gate.
 
+**Adaptive escalation for targeted checks**: Main dispatches targeted Evaluator checks only when a bounded, run-blocking risk question cannot be answered by a candidate whose evidence is already complete. Acceptable signals are plan/code reality conflict, cross-boundary risk on a complete candidate, and repair uncertainty after one bounded repair. Weak verification, missing evidence, failed local verification, and incomplete self-review are Candidate Gate failures, not Evaluator triggers. Main records the observed signal and routing reason when escalating. Escalation is signal-based, not a brittle trigger matrix. Escalation supplements Generator default quality; it does not replace it.
+
 Evaluator is final pressure over composed evidence, not a routine cleanup crew and not a taste enforcer. It should catch correctness, scope, evidence, verification, and high-signal maintainability misses that threaten the current plan outcome. When defects repeatedly reach this lane, report execution-stage friction so dispatch shaping, Generator packets, or implementation notes can improve instead of broadening review ceremony.
 
 ## Automatic Verdicts

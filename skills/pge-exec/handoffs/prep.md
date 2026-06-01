@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Prep lanes are optional, read-only helpers for upcoming issues or issue groups. They reduce dispatch uncertainty for main and Generator lanes. They do not write code, modify artifacts, approve scope changes, produce acceptance evidence, or replace verification.
+Prep lanes are optional, read-only native helpers for upcoming issues or issue groups. They reduce dispatch uncertainty for main and Generator lanes. They do not write code, modify artifacts, approve scope changes, produce acceptance evidence, or replace verification.
+
+**Native lane responsibility**: Prep is a bounded read-only exploration lane that runs ahead of implementation using Claude Code native Agent Teams execution. Prep does not persist state, share context across issues, or replace Generator's own fresh reads. Prep hints are inputs to Generator dispatch, not cached truth.
 
 Use prep only when a future dispatch has real uncertainty: likely implementation surface, existing capability search, legacy trap identification, coupling risk, or verification cost.
 
