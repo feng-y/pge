@@ -367,9 +367,7 @@ Progress Watchdog:
 - A recovered lane must send fresh `lane_ready` before receiving work. A replaced lane must not reuse unpersisted assumptions from the stalled lane.
 
 Adaptive scaling (existing safe concurrency):
-- LIGHT: one bounded `generator-1`, no prep lane, cheap checks plus final verification/review.
-- MEDIUM: bounded Generator lanes by issue or issue group, optional read-only prep for the next issue, staged verification, final Evaluator.
-- DEEP: explicit issue/coupling graph, issue-group or target-area-cluster Generator lanes, optional prep lanes, final composed Evaluator, targeted review.
+- Shape definitions (LIGHT/MEDIUM/DEEP) are in the Execution Shape Scaling section above. Use that section as the authoritative shape contract.
 - Add `generator-2` only when independent ready work exists and the added lane improves throughput more than it increases coordination cost.
 - At 12+ independent issues, consider `generator-3`.
 - Cap at 3 generator lanes.
@@ -408,11 +406,10 @@ Default execution is generator-first with concurrent scheduling. Generator produ
 **Targeted Evaluator checks** (adaptive escalation, not default quality guarantee): Main may dispatch one only when a bounded, run-blocking risk question cannot be answered by Generator self-review or main's Candidate Gate. Examples: shared interface/protocol change whose correctness affects multiple pending issues, security/destructive work that must be independently checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. A targeted check must include a concrete `targeted_question`; "verify this candidate" is not a valid targeted question.
 
 **Adaptive escalation signals** (when main cannot confidently route from a candidate whose evidence is already complete):
-- Plan/code reality conflict appears (acceptance claims don't match observed behavior)
+
+The recognized trigger signals are defined in the Targeted Evaluator Triggers section above. In addition to those triggers, the following cross-boundary risk surfaces always qualify for escalation when evidence is complete but exposes unresolved risk:
 - Changed surface has cross-boundary risk (shared protocol, security surface, data migration, cross-issue composition)
 - Evidence is complete but exposes an unresolved cross-boundary risk that cannot be answered inside the issue contract
-- Repair uncertainty remains after one bounded repair attempt
-- Main observes a concrete signal that warrants independent verification before safe continuation
 
 Evidence completeness is a precondition for escalation, not a trigger for it. Missing evidence, weak evidence, failed local verification, unrecorded scope drift, or incomplete self-review are Generator/Candidate Gate failures, not targeted Evaluator triggers; main must reject the candidate and send bounded Generator repair, classify the blocker, or route upstream instead of dispatching Evaluator over a malformed candidate.
 

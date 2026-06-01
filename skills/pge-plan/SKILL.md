@@ -102,11 +102,12 @@ Plan inherits authority classification from research and adds its own:
 | Authority | Meaning | How exec should treat |
 |---|---|---|
 | `user_confirmed` | User explicitly stated or confirmed | Authoritative; do not deviate |
-| `upstream_authoritative` | From authoritative upstream source or research | Inherit; do not re-litigate |
-| `repo_evidence` | Derived from code, docs, config | High confidence; cite source |
-| `inferred` | Plan inference or design choice | Auditable; exec may flag if implementation contradicts |
+| `source_of_truth` | From authoritative upstream source, spec, or referenced document | Inherit as constraint; do not re-litigate |
+| `repo_evidence` | Derived from code, docs, config with cited source | High confidence; cite source |
+| `inherited_from_research` | Research conclusion with evidence | Inherit; do not re-litigate unless repo contradicts |
+| `inferred_by_plan` | Plan inference or design choice | Auditable; exec may flag if implementation contradicts |
 
-Plan must not upgrade `inferred` research findings to `user_confirmed` plan decisions. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
+Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
 
 **Research Contract Override Rule:** When Research has `route: READY_FOR_PLAN`, Plan inherits the Research problem contract as authoritative. Plan may challenge and change `candidate_direction`, selected implementation approach, issue slicing, migration shape, rollout safety, execution topology, and verification strategy. Plan may operationalize Research conclusions into executable acceptance, target areas, issue boundaries, and verification as long as it does not change their semantic meaning.
 
@@ -398,17 +399,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective` as the current plan target, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice. The current plan must not target `direct_goal` when `first_plannable_objective` exists.
 6. **Plan owns approach selection.** `candidate_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
-7. **Source Authority Check.** When consuming research or upstream input, classify each material claim by authority before using it as a plan constraint or decision basis:
-
-   | Authority | Meaning | Plan treatment |
-   |---|---|---|
-   | `user_confirmed` | User explicitly stated or confirmed | Authoritative constraint; do not deviate |
-   | `source_of_truth` | From authoritative upstream source, spec, or referenced document | Inherit as constraint |
-   | `repo_evidence` | Derived from code, docs, config with cited source | High confidence; cite source |
-   | `inherited_from_research` | Research conclusion with evidence | Inherit; do not re-litigate unless repo contradicts |
-   | `inferred_by_plan` | Plan inference or design choice | Auditable; mark explicitly |
-
-   Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims.
+7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims.
 
 **Non-canonical selected sources:**
 
