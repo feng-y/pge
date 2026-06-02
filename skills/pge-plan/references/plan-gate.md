@@ -59,6 +59,7 @@ Checks:
 
 - Every issue has a bounded action, deliverable, behavior contract, target areas, acceptance criteria, verification hint, verification type, test expectation, required evidence, dependencies, risks, security classification, and execution state.
 - Every behavior contract names current behavior or current repo state, desired behavior, the behavior delta, key interfaces, out-of-scope items, and assumptions Generator must not infer.
+- For any issue that conditionally triggers or conditionally emits, the behavior contract includes a concrete `Trigger Predicate` and/or `Output Admission Predicate`. A conditional feature missing its predicate fails this layer with `REVISE`. Unconditional issues may omit them.
 - Every major acceptance criterion traces to user intent, research success shape, upstream constraint, current prompt, or necessary technical support.
 - Each acceptance criterion has verification or required evidence. "Run tests" alone is insufficient unless the specific test scope proves the criterion.
 - Non-goals and forbidden areas define what exec must not touch.

@@ -81,6 +81,14 @@ Verify that required fields, enum values, route/status/verdict vocabulary, stage
 
 Fix in-scope protocol mismatches in the same change. If the mismatch would require a broader workflow redesign, stop and surface it as a blocker or follow-up instead of silently leaving drift.
 
+## Workflow tool authorization (PGE contract maintenance)
+
+This authorizes the `Workflow` multi-agent orchestration tool for one bounded class of work; it is a standing opt-in, not a general one.
+
+When the active task is **PGE contract maintenance** — editing skills, agents, handoffs, references, templates, route/state/verdict vocabulary, artifact schemas, or running the cross-stage protocol consistency review above — you may author and run a `Workflow` for audit/verification fan-out (e.g. parallel producer/consumer/validator checks across many files) without re-asking, because this repo's primary work *is* evolving these contracts. Prefer direct edits for small bounded changes; reach for `Workflow` only when the change genuinely fans out across many files or needs independent adversarial verification.
+
+This authorization does not extend to target-repo product work, destructive actions, or anything outside PGE contract maintenance. For those, the normal opt-in rule applies: the user must request orchestration.
+
 ## Core invariant
 
 Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.

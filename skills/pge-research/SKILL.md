@@ -128,6 +128,8 @@ Keep evidence authority explicit:
 
 Do not use repo evidence to invent user intent. Do not use user belief to prove code reality when the repo can be checked.
 
+**[P0] Observed behavior vs confirmed contract:** When the task is reliability/recovery/fallback/safety-related, and Research observes or depends on an existing reliability mechanism (ack/redelivery semantics, idempotency boundary, retry contract, recovery driver, state persistence order), classify it as `observed_behavior` rather than `confirmed_contract` unless user/upstream evidence explicitly confirms it as intentional design. Do not let `repo_evidence` auto-upgrade to a preservation constraint in Plan. Tag such claims in Authority Notes as `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation`.
+
 ## Triggers
 
 Research has three triggered capabilities. Do not add more default gates.
@@ -243,10 +245,15 @@ Use only when user intent, repo reality, architecture intent, and inference are 
 ```md
 ## Optional: Authority Notes
 
-- <claim> — authority: user_confirmed | source_of_truth | repo_evidence | inferred_by_research — source: <evidence>
+- <claim> — authority: user_confirmed | source_of_truth | repo_evidence | inferred_by_research | observed_behavior | repo_evidence / needs_confirmation | inferred_by_research / needs_confirmation — source: <evidence>
 ```
 
-Authority Notes help Plan avoid upgrading inferred claims to user-confirmed constraints or treating repo evidence as user intent.
+**[P0] Authority classification:**
+- `observed_behavior` — current repo behavior that may be incidental rather than intentional design; must not become a preservation constraint without confirmation.
+- `repo_evidence / needs_confirmation` — repo fact that looks like a contract but user/upstream has not confirmed it as intentional.
+- `inferred_by_research / needs_confirmation` — Research inference that affects safety/correctness/scope and requires user authority before Plan treats it as constraint.
+
+Authority Notes help Plan avoid upgrading inferred claims to user-confirmed constraints, treating repo evidence as user intent, or treating observed reliability mechanisms as preservation requirements without confirmation.
 
 ## Process
 
@@ -275,11 +282,16 @@ If no, use the Intent Discovery Trigger. Ask only when user authority is needed;
 
 ### 3. Collect only task-relevant context
 
-Explore just enough repo, docs, config, prior artifacts, or architecture structure to determine whether the goal and scope are plan-ready.
+**[latency] Efficiency rule:** Explore just enough repo, docs, config, prior artifacts, or architecture structure to determine whether the goal and scope are plan-ready. Stop exploring when another file would not change goal, scope, constraints, route, or Plan's first move.
 
-Prefer direct reading for narrow work. Use an Agent only when exploration is broad, cross-cutting, or likely to produce dead-end noise whose raw output Plan will not need.
+**[latency] Direct reading first:** For 1-5 files or narrow cross-file questions, use direct Read/Grep/Bash. Prefer direct tools over Agent delegation when the overhead of spawning, summarizing, and consuming an Agent result exceeds reading the raw evidence yourself.
 
-Stop exploring when another file would not change goal, scope, constraints, route, or Plan's first move.
+**[latency] Agent delegation triggers:** Use an Agent only when ALL of these are true:
+- exploration is genuinely broad (6+ candidate files, unknown naming conventions, or multi-module sweep)
+- AND the raw exploration output would be large enough (200+ lines of grep results, multi-file dumps) that Plan will not need the full detail
+- AND you only need the Agent's compact conclusion (yes/no/where/confidence/discarded dead ends), not the verbatim evidence
+
+Agent delegation does not save context when the alternative is 3 Read calls. It saves context when the alternative is 15 Read calls whose raw content you'd have to filter and summarize anyway.
 
 ### 4. Check for implementation friction
 
@@ -297,6 +309,8 @@ Ask whether the direct goal can be planned as a safe, bounded, incrementally ver
 
 Research does not write the staged plan. It only tells Plan which first objective is safe and which parts are deferred.
 
+**[P1] Coverage boundary for recovery/compensation features:** When the task is recovery/compensation/fallback/best-effort output, identify the **structural precondition** the mechanism depends on (e.g., Redis anchor must exist, event must be normalized, identity must be stable). Mark failure classes that fall outside that precondition as out-of-coverage, and name who handles them (ops offset replay, upstream normalization, etc.). This is distinct from non-goals — it documents what the mechanism **physically cannot see** versus what it **chooses not to do**.
+
 ### 6. Synthesize the brief
 
 Use `templates/brief.md`. Keep findings, assumptions, and open questions separate.
@@ -310,8 +324,30 @@ For `READY_FOR_PLAN`, the brief must make these true:
 - blocking questions are empty
 - any conditional gate includes the field Plan must consume
 - route reason explains why Plan can proceed
+- **[P0] core friction is confirmed or recorded with explicit needs_confirmation tag** (see Core Friction Confirmation below)
 
-### 7. Self-review before routing
+### 7. Core Friction Confirmation
+
+**[P0] Trigger:** Before routing `READY_FOR_PLAN`, classify material frictions/assumptions/mechanisms into **core** vs **self-decidable**.
+
+**Core friction** = affects safety, correctness, or scope boundary. Examples:
+- ACK/commit/redelivery semantics for reliability features
+- reclaim/lease thresholds for stateful recovery
+- trigger predicates for conditional features (what makes input valid/invalid)
+- admission predicates for conditional outputs (minimum publishable contract)
+- coverage boundary preconditions (what the mechanism physically depends on)
+- observed reliability mechanisms that look like contracts
+
+**Self-decidable** = reversible impl/design choices, cosmetic conventions, file/module layout, default config values with no correctness risk.
+
+**Handling:**
+- Core friction with reasonable evidence-based default → record in `non_blocking_questions` with confidence level **AND** add an Authority Notes entry tagged `needs_confirmation` for that claim. **[P0] The `needs_confirmation` Authority Notes tag is mandatory for every core friction that is not user-confirmed — parking it in `non_blocking_questions` alone is insufficient, because Plan consumes Authority Notes, not the question prose.** Route `NEEDS_USER` if the friction genuinely blocks a fair contract.
+- Core friction with no safe default → ask one focused question (requirement gap).
+- Self-decidable → record assumption with basis and continue.
+
+This gate preserves the "do not grill" discipline while catching the narrow slice of frictions that define contracts rather than preferences.
+
+### 8. Self-review before routing
 
 Before writing or finalizing the artifact, check:
 
@@ -323,6 +359,9 @@ Before writing or finalizing the artifact, check:
 - If Implementation Friction exists, is `required_plan_adjustment` present?
 - If Progressive Feasibility exists, is `first_plannable_objective` present?
 - Is the route vocabulary one of the v3 routes?
+- **[P0] Are core frictions either confirmed or tagged `needs_confirmation`?**
+- **[P0] Are observed reliability behaviors classified as `observed_behavior` or `repo_evidence / needs_confirmation` rather than auto-upgraded to preservation constraints?**
+- **[P1] For recovery/compensation features, is the coverage boundary precondition explicit?**
 
 Repair the brief before routing `READY_FOR_PLAN`.
 

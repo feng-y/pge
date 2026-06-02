@@ -55,6 +55,8 @@ Validate the upstream research/input before planning proceeds.
   - Desired Behavior: <behavior or contract that must be true after this issue>
   - Behavior Delta: <the smallest behavior/contract change to deliver>
   - Key Interfaces: <types, functions, commands, config shapes, or artifact contracts to inspect; avoid stale line numbers>
+  - Trigger Predicate: <for conditional features: when does this fire / what makes input valid; omit for unconditional work>
+  - Output Admission Predicate: <for conditional outputs: minimum contract to allow output / what must be true to publish; omit if no conditional output>
   - Out Of Scope Confirmed: <adjacent work, non-goals, and forbidden changes not to touch>
   - What Not To Infer: <assumptions Generator must not invent from surrounding context>
 - Target Areas: <exact file paths — Create: path | Modify: path>
@@ -272,4 +274,4 @@ Optional summary table when it helps:
 
 | Question | Classification | Blocking? | Decision |
 |----------|---------------|-----------|----------|
-| <potential question> | Mechanical / Taste / User Challenge | yes/no | SELF_ANSWERED / ASK_USER / ASSUME_AND_RECORD / BLOCK_PLAN |
+| <potential question> | Mechanical / Taste / Core Friction / User Challenge | yes/no | SELF_ANSWERED / ASK_USER / ASSUME_AND_RECORD / LOCK_IN_ACCEPTANCE / BLOCK_PLAN |

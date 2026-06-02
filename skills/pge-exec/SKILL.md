@@ -280,10 +280,10 @@ Agent(subagent_type="general-purpose", team_name=team_name, name="prep-1")
 
 # After spawn, verify runtime registration and lane_ready before any dispatch.
 # After terminal route, request shutdown from every active lane that was actually started:
-SendMessage(message={"type": "shutdown_request"}, to="generator-1")
-SendMessage(message={"type": "shutdown_request"}, to="generator-2")
-SendMessage(message={"type": "shutdown_request"}, to="prep-1")
-SendMessage(message={"type": "shutdown_request"}, to="evaluator")
+SendMessage(to="generator-1", message='{"type": "shutdown_request"}')
+SendMessage(to="generator-2", message='{"type": "shutdown_request"}')
+SendMessage(to="prep-1", message='{"type": "shutdown_request"}')
+SendMessage(to="evaluator", message='{"type": "shutdown_request"}')
 # skip lanes that were never started; otherwise wait for protocol-level shutdown approval
 # or teammate termination from every active lane, then delete the current team context
 TeamDelete()
@@ -309,6 +309,8 @@ lane: generator-* | prep-* | evaluator
 status: READY | BLOCKED
 reason: <none or one sentence>
 ```
+
+**SendMessage serialization invariant (binding for every packet on the Team channel).** `SendMessage` accepts `message` as a **string** only. Every structured packet in this skill and its handoffs (`lane_ready`, `shutdown_request`, `shutdown_response`, dispatch briefs, `generator_completion`, `evaluator_verdict`, `progress_update`) is a *logical shape*, not a literal call argument. When a lane or main sends one, serialize it to a string first — either a JSON string (`SendMessage(to="evaluator", message='{"type": "lane_ready", "lane": "evaluator", "status": "READY"}')`) or the `---BEGIN ... DATA---\n...\n---END ... DATA---` delimited form used for briefs. Passing an object literal (`message={...}`) raises `InputValidationError: expected string, received object` and stalls the lane handshake. Never call `SendMessage` with a non-string `message`.
 
 Agent Startup Verification happens after `Agent(...)` spawn and before any execution or evaluation dispatch:
 - Wait up to 30 seconds for the lane's structured `lane_ready` packet.

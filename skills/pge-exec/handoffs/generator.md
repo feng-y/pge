@@ -43,6 +43,8 @@ status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
+When sending this over the Team channel, serialize it to a **string** — `SendMessage` rejects object literals with `InputValidationError: expected string, received object`. Send `SendMessage(message='{"type": "lane_ready", "lane": "generator-1", "status": "READY"}')` (JSON string) or the equivalent plain-text lines, never `message={...}`.
+
 `lane_ready` is startup verification, not issue completion. If startup/auth/channel readiness fails before work is dispatched, send `status: BLOCKED` with a concrete reason such as `Not logged in`, token missing, `/login` requested, invalid lane registration, or Team channel unavailable. Do not ask the user to run `/login`, retry authentication, or start issue work after startup failure; main records the failure and owns any `main_thread_fallback` decision.
 
 On teardown, when main sends `shutdown_request`, the selected `generator-*` lane must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
@@ -129,6 +131,8 @@ Current Behavior: <current behavior or current repo state this issue changes>
 Desired Behavior: <behavior or contract that must be true after this issue>
 Behavior Delta: <the smallest behavior/contract change to deliver>
 Key Interfaces: <types, functions, commands, config shapes, or artifact contracts to inspect; avoid stale line numbers>
+Trigger Predicate: <for conditional features: when does this fire / what makes input valid; carry through from the plan issue, omit only if the plan omitted it for unconditional work>
+Output Admission Predicate: <for conditional outputs: minimum contract to allow output / what must be true to publish; carry through from the plan issue, omit only if no conditional output>
 Out Of Scope Confirmed: <adjacent work, non-goals, and forbidden changes not to touch>
 What Not To Infer: <assumptions not authorized by the issue contract>
 

@@ -45,6 +45,8 @@ status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
+When sending this over the Team channel, serialize it to a **string** — `SendMessage` rejects object literals with `InputValidationError: expected string, received object`. Send `SendMessage(message='{"type": "lane_ready", "lane": "evaluator", "status": "READY"}')` (JSON string) or the equivalent plain-text lines, never `message={...}`.
+
 `lane_ready` is startup verification, not evaluation completion. If startup/auth/channel readiness fails before work is dispatched, send `status: BLOCKED` with a concrete reason such as `Not logged in`, token missing, `/login` requested, invalid lane registration, or Team channel unavailable. Do not ask the user to run `/login`, retry authentication, or start verification work after startup failure; main records the failure and owns any `main_thread_fallback` decision.
 
 On teardown, when main sends `shutdown_request`, `evaluator` must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate. A lane may also send a plain-text acknowledgement for human-readable tracing, but teardown only completes after the runtime records shutdown approval or teammate termination.
@@ -134,6 +136,8 @@ Issues:
       Desired Behavior: <from execution brief>
       Behavior Delta: <from execution brief>
       Key Interfaces: <from execution brief>
+      Trigger Predicate: <from execution brief if conditional feature; omit if plan omitted it>
+      Output Admission Predicate: <from execution brief if conditional output; omit if plan omitted it>
       Out Of Scope Confirmed: <from execution brief>
       What Not To Infer: <from execution brief>
 

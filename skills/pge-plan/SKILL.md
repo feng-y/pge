@@ -106,8 +106,10 @@ Plan inherits authority classification from research and adds its own:
 | `repo_evidence` | Derived from code, docs, config with cited source | High confidence; cite source |
 | `inherited_from_research` | Research conclusion with evidence | Inherit; do not re-litigate unless repo contradicts |
 | `inferred_by_plan` | Plan inference or design choice | Auditable; exec may flag if implementation contradicts |
+| `observed_behavior` | Current repo behavior that may be incidental, not intentional design | **[P0] Not a preservation constraint. Plan must confirm with user or discard before treating as a constraint. Do not inherit as a D-constraint.** |
+| `needs_confirmation` | Research flagged a safety/correctness/scope claim that needs user authority | **[P0] Plan must confirm, lock in acceptance with counterexample tests (`Security: yes`), or route `NEEDS_INFO`. Must not silently ASSUME_AND_RECORD.** |
 
-Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
+Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. **[P0] Plan must not upgrade `observed_behavior` or `needs_confirmation` claims to preservation constraints without user confirmation.** `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
 
 **Research Contract Override Rule:** When Research has `route: READY_FOR_PLAN`, Plan inherits the Research problem contract as authoritative. Plan may challenge and change `candidate_direction`, selected implementation approach, issue slicing, migration shape, rollout safety, execution topology, and verification strategy. Plan may operationalize Research conclusions into executable acceptance, target areas, issue boundaries, and verification as long as it does not change their semantic meaning.
 
@@ -196,9 +198,9 @@ digraph pge_plan {
 ## Anti-Patterns
 
 - **"Let Me Brainstorm Everything First"** — Scale brainstorm to task. If the prompt is plan-ready, plan from it directly. If research already recommended, adopt it.
-- **"I Should Ask To Be Safe"** — Questions are expensive. Self-evaluate first. Record assumptions instead.
+- **"I Should Ask To Be Safe"** — Questions are expensive. Self-evaluate first. Record assumptions instead. **[P0] Exception: core frictions (safety/correctness/scope boundaries) flagged by Research with `needs_confirmation` must be confirmed or acceptance-locked with counterexample tests, not assumed.**
 - **"Let Me Plan The Whole System"** — Plan only what was asked. Respect upstream scope.
-- **"Let Me Re-Decide The Spec"** — Authoritative upstream decisions are constraints, not fresh options. Plan decides implementation details; it does not re-litigate product behavior, rollout strategy, architecture direction, or scope already settled upstream.
+- **"Let Me Re-Decide The Spec"** — Authoritative upstream decisions are constraints, not fresh options. Plan decides implementation details; it does not re-litigate product behavior, rollout strategy, architecture direction, or scope already settled upstream. **[P0] Exception: observed repo behaviors marked `observed_behavior` or `repo_evidence / needs_confirmation` by Research are not authoritative preservation constraints; confirm or discard.**
 - **"Selector Means Ignore The Rest"** — If arguments contain a selector plus extra text, the selector locates an artifact and the remaining text is current user constraint. Consume both.
 - **"Issues Should Be Granular"** — Prefer few vertical slices over long micro-task checklists.
 - **"Skip Plan Engineering Review"** — Even simple tasks get a compact scope/reuse/verification sanity check.
@@ -399,7 +401,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective` as the current plan target, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice. The current plan must not target `direct_goal` when `first_plannable_objective` exists.
 6. **Plan owns approach selection.** `candidate_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
-7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims; map Research `inferred_by_research` to Plan `inherited_from_research`.
+7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims; map Research `inferred_by_research` to Plan `inherited_from_research`. **[P0] A `/ needs_confirmation` suffix is part of the classification and must be carried through the mapping, not stripped: `inferred_by_research / needs_confirmation` → `inherited_from_research / needs_confirmation`, and `repo_evidence / needs_confirmation` stays `repo_evidence / needs_confirmation`. Any claim still carrying `needs_confirmation` after mapping must be confirmed, locked into acceptance, or routed `NEEDS_INFO` per the authority table — never silently demoted to a plain inherited constraint.**
 
 **Non-canonical selected sources:**
 
@@ -419,6 +421,7 @@ For each hard constraint, map it to at least one of: `Plan Constraints`, `Non-go
 - Spec-level decisions from upstream are authoritative: product behavior, scope boundary, rollout strategy, monitoring metrics, phase structure, architecture direction, explicit non-goals.
 - Implementation-level choices are plan-owned: concrete file ordering, interface boundaries, issue slicing, test commands, local code patterns, and dependency sequencing.
 - Override a spec-level decision only when repo evidence contradicts it or requirements conflict. Record the override as Decision / Rationale / Alternatives considered, and mark whether user confirmation is required.
+- **[P0] Observed behaviors flagged `observed_behavior` or `needs_confirmation` in Research Authority Notes are NOT authoritative preservation constraints. Confirm with user or discard; do not inherit as D-constraints without evidence they are intentional.**
 
 ---
 
@@ -652,12 +655,14 @@ Ask these checks in order:
 - Do acceptance and verification prove the requested behavior, or only prove that tasks were completed?
 - Is any inferred requirement being treated as stated fact?
 - Is any current user constraint missing from `Plan Constraints`, `Non-goals`, `Target Areas`, issue scope, or `Verification`?
+- **[P1] Naming coherence:** When the plan references config blocks, message fields, metric names, or artifact schemas, does the same entity use exactly one name throughout, or are multiple names used inconsistently? If multiple names exist, are they explicitly merged/aliased, or is it accidental drift?
 
 Resolve each inconsistency before synthesis:
 - If code/docs answer it, self-answer with evidence.
 - If it is only an implementation detail, choose the repo-conventional default and record the assumption.
 - If it changes goal, phase, scope, semantic ownership, acceptance, or safety, ask the user one blocking question or route `NEEDS_INFO`.
 - If the inconsistency comes from unrequested expansion, remove the expansion.
+- **[P1] For naming drift, pick one canonical name and note the choice in Plan Constraints or issue scope.**
 
 Record the result as `Plan Grill Log`: `check`, `finding`, `resolution`, and `source/evidence`. Empty logs are suspicious for MEDIUM/DEEP plans and for any plan sourced from `docs/exec-plans/`.
 
@@ -720,17 +725,21 @@ Commit to one. Record selected/rejected/scope reductions as Decision / Rationale
 - **Mechanical**: one correct answer from code/docs. Decide it. Never ask.
 - **Taste**: multiple valid options. Choose, record rationale.
 - **User Challenge**: affects goal boundary. ONLY category that may trigger ASK_USER.
+- **[P0] Core Friction (from Research)**: Research flagged with `needs_confirmation`. Must confirm or lock in acceptance with counterexample tests and `Security: yes` tagging. Cannot silently ASSUME_AND_RECORD if failure mode is data corruption/double-publish/stealing active work/irreversibility.
 
-**Authority limits** — 3 valid escalation reasons only:
+**Authority limits** — valid escalation reasons:
 1. Goal boundary ambiguous, code cannot resolve.
 2. Missing info, no reasonable default.
 3. Dependency conflict makes requirements mutually exclusive.
+4. **[P0] Core friction flagged `needs_confirmation` by Research where a wrong default causes safety/correctness failure.**
 
-"Complex", "risky", "non-trivial" are NOT valid reasons.
+**[P1] Safety amplifier:** When a design choice's failure mode is data corruption, double-publish, stealing in-flight work, or irreversibility, auto-upgrade from Taste to Core Friction. Either confirm or lock the threshold/predicate/boundary in acceptance with counterexample tests and `Security: yes`.
 
-**Headless mode:** When non-interactive (pipeline/spawned agent/`--headless`), auto-choose lowest-risk for User Challenge decisions, record in Assumptions with LOW confidence.
+"Complex", "risky", "non-trivial" are NOT valid reasons by themselves unless they cross into the safety failure modes above.
 
-For each question: record Question, Why it matters, Can repo answer?, Blocking?, Safe assumption?, Risk if unanswered, Decision (SELF_ANSWERED | ASK_USER | ASSUME_AND_RECORD | DEFER_TO_SLICE | BLOCK_PLAN).
+**Headless mode:** When non-interactive (pipeline/spawned agent/`--headless`), auto-choose lowest-risk for User Challenge decisions, record in Assumptions with LOW confidence. Core Friction and safety-amplified decisions must not auto-choose in headless; route `NEEDS_INFO`.
+
+For each question: record Question, Why it matters, Can repo answer?, Blocking?, Safe assumption?, Risk if unanswered, Decision (SELF_ANSWERED | ASK_USER | ASSUME_AND_RECORD | DEFER_TO_SLICE | BLOCK_PLAN | LOCK_IN_ACCEPTANCE).
 
 ### Synthesize Intent
 
@@ -792,7 +801,7 @@ Each issue includes:
 - `ID`, `Title`, `Scope`, `Action` (imperative: what to DO)
 - `upstream_decision_refs` (decision IDs or "none"; referenced decisions must not be changed by exec)
 - `Deliverable` (what must exist when done)
-- `Behavior Contract` with `Current Behavior`, `Desired Behavior`, `Behavior Delta`, `Key Interfaces`, `Out Of Scope Confirmed`, and `What Not To Infer`. This is the Matt-style execution brief core that `pge-exec` hands to Generator; it must be behavioral, not procedural. Target Areas can name paths, but the behavior contract should name interfaces, types, commands, config shapes, artifact contracts, and scope boundaries without relying on line numbers.
+- `Behavior Contract` with `Current Behavior`, `Desired Behavior`, `Behavior Delta`, `Key Interfaces`, **`Trigger Predicate` (for conditional features: when does this fire / what makes input valid)**, **`Output Admission Predicate` (for conditional outputs: what must be true to allow output / minimum contract to publish)**, `Out Of Scope Confirmed`, and `What Not To Infer`. This is the Matt-style execution brief core that `pge-exec` hands to Generator; it must be behavioral, not procedural. Target Areas can name paths, but the behavior contract should name interfaces, types, commands, config shapes, artifact contracts, and scope boundaries without relying on line numbers. **[P1] Trigger Predicate and Output Admission Predicate are required when the feature conditionally triggers or conditionally emits; omit for unconditional work.**
 - `Target Areas` (exact paths: Create/Modify)
 - `Acceptance Criteria`, `Verification Hint`
 - `Verification Coupling`: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
@@ -802,7 +811,7 @@ Each issue includes:
 - `Required Evidence`: what proves done
 - `State`: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - `Dependencies`, `Risks`
-- `Security`: yes | no (yes if issue touches auth, data access, API boundaries, secrets, or permissions. Triggers stricter Evaluator thresholds.)
+- `Security`: yes | no (yes if issue touches auth, data access, API boundaries, secrets, permissions, **[P1] or if failure mode includes data corruption / double-publish / stealing active work / irreversibility**. Triggers stricter Evaluator thresholds.)
 
 When issues are compile-coupled or share a verification surface, `Dependencies`, `Risks`, and `Verification Coupling` must make the safe execution strategy explicit. If safe parallel execution requires isolated worktrees, say so; otherwise require serial verification. Do not leave this for `pge-exec` to infer from Target Areas alone.
 

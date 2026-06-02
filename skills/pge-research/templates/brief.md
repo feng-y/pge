@@ -17,7 +17,7 @@ This is a minimum contract scaffold, not a fixed prose template. Scale depth to 
 ## 2. Context
 
 - relevant_user_context:
-- relevant_repo_or_architecture_context:
+- relevant_repo_or_architecture_context: **[P1] For reliability/recovery features, surface candidate behavioral invariants (ack ordering, idempotency boundary, redelivery contract, etc.) when relevant — but tag each with authority. A behavior observed in code is `observed_behavior` or `repo_evidence / needs_confirmation`, NOT a confirmed preservation constraint, until the user confirms intent (see Core Friction Confirmation). For recovery/compensation features, state the structural precondition the mechanism depends on (e.g., Redis anchor exists, event normalized) and which failure classes fall outside coverage.**
 - assumptions:
 
 ## 3. Direction
@@ -88,7 +88,12 @@ Use only when citations or checked facts materially affect planning.
 
 Use only when user intent, repo reality, architecture intent, and inference are mixed in a way that would cause Plan to misattribute authority.
 
-- <claim> — authority: user_confirmed | source_of_truth | repo_evidence | inferred_by_research — source: <evidence>
+- <claim> — authority: user_confirmed | source_of_truth | repo_evidence | inferred_by_research | observed_behavior | repo_evidence / needs_confirmation | inferred_by_research / needs_confirmation — source: <evidence>
+
+**[P0] Authority classification:**
+- `observed_behavior` — current repo behavior that may be incidental rather than intentional design.
+- `repo_evidence / needs_confirmation` — repo fact that looks like a contract but user/upstream has not confirmed it as intentional.
+- `inferred_by_research / needs_confirmation` — Research inference affecting safety/correctness/scope that requires user authority.
 
 ## Metadata
 

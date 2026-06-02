@@ -19,6 +19,8 @@ status: READY | BLOCKED
 reason: <none or one sentence>
 ```
 
+When sending this over the Team channel, serialize it to a **string** — `SendMessage` rejects object literals with `InputValidationError: expected string, received object`. Send `SendMessage(message='{"type": "lane_ready", "lane": "prep-1", "status": "READY"}')` (JSON string) or the equivalent plain-text lines, never `message={...}`.
+
 On teardown, when main sends `shutdown_request`, the selected `prep-*` lane must stop accepting new work, approve the shutdown through the team runtime protocol using the request ID from that request, and then terminate.
 
 ## Dispatch Protocol
