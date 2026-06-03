@@ -94,11 +94,11 @@ Main sends evaluation data only after `evaluator` has passed Agent Startup Verif
 SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EVALUATION DATA---")
 ```
 
-Send to `evaluator` for final run-level verification over the composed run after Generator candidates have been produced, or for an explicit targeted risk check when main needs independent review before generation can safely continue. This lane is not a mandatory serial hop after every issue, not Generator's serial reviewer, and not the checker for each Generator candidate.
+Send to `evaluator` for final run-level verification over the composed run after Generator candidates have been produced, or for an explicit targeted risk check when main needs independent review before generation can safely continue. This lane is not a mandatory serial hop after every issue, not Generator's serial reviewer, and not the checker for each Generator candidate. Issue files are supporting issue-local contracts and evidence references; final judgment is the composed run against `plan.md`.
 
 Targeted dispatch is exceptional and must be bounded to a run-blocking question, such as shared interface/protocol risk, security/destructive work that must be checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. Missing evidence, weak evidence, failed local verification, scope drift, or malformed Generator completion are Candidate Gate failures handled by main and Generator repair, not reasons to dispatch Evaluator after the issue.
 
-Evaluator follows the Anthropic harness role: independent QA / alignment review over what the system actually does. Generator owns per-issue implementation, TDD or proportional verification, and candidate quality gates before handoff; Evaluator checks whether the composed run still satisfies the canonical plan and catches issue/goal drift, repo-constraint violations, integration regressions, performance regressions, scope leaks, code-quality defects, and behavior gaps that Generator or main did not catch.
+Evaluator follows the Anthropic harness role: independent QA / alignment review over what the system actually does. Generator owns per-issue implementation, TDD or proportional verification, and candidate quality gates before handoff; Evaluator checks whether the composed run still satisfies the canonical plan and catches issue/goal drift, repo-constraint violations, integration regressions, performance regressions, scope leaks, code-quality defects, and behavior gaps that Generator or main did not catch. Issue completion is evidence, not proof by itself.
 
 Evaluator must absorb the high-frequency review capabilities that belong inside execution: issue alignment, goal/non-goal alignment, repo constraints, changed-diff bug finding, performance sanity, code quality, verification evidence, and bounded repair feedback. `pge-review` remains a final independent audit; it must not be the first systematic place these routine execution defects are discovered.
 
@@ -119,15 +119,16 @@ Independently validate that the composed run satisfies the canonical plan. For t
 
 ## Criteria (from plan)
 
-Goal: <plan goal>
+Goal: <plan goal from plan_context_packet / plan.md>
 Non-goals: <plan non_goals>
 Stop Conditions: <plan stop_conditions>
 Issues:
   - issue_id: <N>
-    Action: <issue Action>
-    Acceptance Criteria: <issue Acceptance Criteria>
-    Required Evidence: <issue Required Evidence>
-    Verification Hint: <issue Verification Hint>
+    Issue File: <issues/Ixxx.md>
+    Task: <issue file task>
+    Acceptance Criteria: <issue file acceptance>
+    Required Evidence: <issue file required_evidence>
+    Local Validation: <issue file local_validation>
     Verification Coupling: <issue Verification Coupling>
     Verification Type: <AUTOMATED | MANUAL | MIXED>
     Target Areas: <issue Target Areas — scope boundary>
@@ -169,22 +170,22 @@ Run artifacts path: <.pge/tasks-<slug>/runs/<run_id>/>
 ## Evaluation Rules
 
 1. **Verify independently** — do not trust Generator self-reports. Check the actual files, run artifacts, verification outputs, and plan-relevant behavior.
-2. **Check plan alignment** — the composed diff must satisfy the plan goal, preserve non-goals, deliver each generated issue's Behavior Delta, and cover every generated issue's acceptance criteria.
-3. **Run verification** — execute relevant Verification Hints, stop condition checks, integration checks, or regression checks according to the plan and run state. Record output.
+2. **Check plan alignment** — the composed diff must satisfy the plan goal, preserve non-goals, deliver each generated issue's Behavior Delta, and cover every generated issue's acceptance criteria as supporting evidence.
+3. **Run verification** — execute relevant issue local validations, plan Verification Hints, stop condition checks, integration checks, or regression checks according to the plan and run state. Record output.
 4. **Check evidence coverage** — every acceptance criterion and behavior-delta claim must point to concrete evidence or a documented manual/HITL gap.
 5. **Check scope** — composed changed files must be inside issue Target Areas or explicitly justified deviations / issue-boundary adjustments that remain inside the canonical plan contract.
 6. **Check repo constraints** — changed behavior must follow resident rules, local patterns, artifact contracts, route/state vocabulary, and owning skill/agent boundaries.
 7. **Check implementation logic** — validate that changed logic actually implements the plan behavior and composes across issues.
 8. **Check performance and quality** — inspect changed loops, repeated scans, I/O boundaries, parsing/rendering/artifact generation, dead code, debug prints, unnecessary abstractions, and speculative flexibility introduced by the run.
 9. **Check deviations** — justified deviations may pass only when they remain in scope and do not mutate goal, acceptance, target areas, verification, or non-goals.
-10. **Check reviewability** — changed lines should trace to issue Actions or justified deviations. Unrelated churn is RETRY or BLOCK according to scope severity.
+10. **Check reviewability** — changed lines should trace to issue-file tasks or justified deviations. Unrelated churn is RETRY or BLOCK according to scope severity.
 
 Do not accept Generator's quality axes as proof. Use them as a checklist of claims to verify against the diff and evidence. If Generator missed a concrete in-contract issue, return `RETRY` with the smallest repair path rather than letting the issue escape to `pge-review`.
 
 ## Hard Thresholds (automatic verdicts)
 
 - Required Evidence missing → RETRY
-- Verification Hint, stop condition, integration, or regression command fails → RETRY
+- Issue local validation, plan Verification Hint, stop condition, integration, or regression command fails → RETRY
 - Any single Acceptance Criterion unmet → RETRY (with specific feedback)
 - Plan goal or non-goal violated → RETRY or BLOCK according to whether a bounded in-contract repair exists
 - Repo constraint or artifact contract violated by generated code/docs → RETRY

@@ -64,6 +64,20 @@
         "Deferred goal parts are protected as non-goals or phase boundary",
         "Plan remains executable and bounded"
       ]
+    },
+    {
+      "id": "joint-6",
+      "scenario": "Issue-file protocol migration preserves producer / validator / consumer alignment",
+      "research_input": "Research or an external adopted plan says PGE must move from embedded issue bodies in plan.md to a compact issue index plus issues/Ixxx.md, with exec lazy-loading issue files and Evaluator remaining run-level.",
+      "research_expected": "READY_FOR_PLAN or semantically sufficient source with goal, scope, non-goals, verification expectation, and protocol boundary: plan.md stays stable, issues/Ixxx.md is issue-local, exec lazy-loads selected issue files, evaluator judges plan outcome.",
+      "plan_expected": "Produces plan.md with ## issues as Execution Index, writes issues/Ixxx.md issue files, updates Final Plan Gate to validate index/file consistency and reject embedded issue-body execution input, updates pge-exec to require issue-file plans and use plan_context_packet, and preserves run-level evaluator/review boundary.",
+      "joint_check": [
+        "Producer writes compact issue index and issue files",
+        "Validator checks missing issue files, embedded issue bodies, dependencies, and index/file consistency",
+        "Consumer rejects non_canonical_plan_shape before run creation and lazy-loads selected issue files",
+        "Evaluator and review treat issue files as supporting evidence, not final proof",
+        "Run state remains under runs/<run_id>/ with no task-level exec/progress.md or exec/decision-log.md"
+      ]
     }
   ]
 }

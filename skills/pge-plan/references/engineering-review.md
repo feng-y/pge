@@ -36,7 +36,7 @@ Low-confidence findings that affect correctness must include a verification path
 
 For each new codepath or integration point, describe ONE realistic production failure scenario:
 - Not "this might fail" — describe the specific sequence: what triggers it, what breaks, what the user sees.
-- If the plan doesn't account for it, add error handling to the relevant issue's Action or flag as a gap.
+- If the plan doesn't account for it, add error handling to the relevant issue-file task/acceptance or flag as a gap.
 - Simple CRUD with no new integrations: skip this check.
 
 ## Test Coverage Pressure
@@ -45,13 +45,24 @@ For each issue, trace the verification coverage:
 
 ```
 Issue N: <title>
-  ├── Happy path: [covered by Test Expectation? yes/no]
+  ├── Happy path: [covered by local_validation / acceptance evidence? yes/no]
   ├── Edge cases: [which ones? covered?]
   ├── Error path: [what fails? covered?]
   └── Integration boundary: [if crosses modules, covered?]
 ```
 
-Gaps in coverage → add to the issue's Test Expectation. Don't just flag — fix.
+Gaps in coverage → add to the issue file's acceptance, local_validation, or required_evidence. Don't just flag — fix.
+
+## Issue File Contract Pressure
+
+For issue-file plans, check progressive disclosure before Final Plan Gate:
+
+- `plan.md ## issues` is schedulable as an index: ID, file path, state, dependencies, verification coupling, execution type, and enough title/summary.
+- Each ready `issues/Ixxx.md` can be executed from the issue file plus shared plan context.
+- Issue files do not redefine the plan goal, non-goals, forbidden areas, or global verification strategy.
+- Hidden coupling is explicit: shared files, runtime paths, fixtures, generated artifacts, or trust-gate commands appear in dependencies or verification coupling.
+- Oversized issues are split or marked with serial/shared verification; over-thin issues are merged into adjacent executable slices.
+- Embedded full issue bodies under `plan.md ## issues` are repaired by moving them into issue files.
 
 ## Existing Solutions Check
 

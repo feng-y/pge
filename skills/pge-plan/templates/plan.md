@@ -43,41 +43,15 @@ Validate the upstream research/input before planning proceeds.
 
 ## issues
 
-### Issue 1: <Title>
+`## issues` is an Execution Index, not full issue body storage. Full issue contracts live in `issues/Ixxx.md` using `skills/pge-plan/templates/issue.md`.
 
-- ID: 1
-- Title: <short title>
-- Scope: <what this issue covers>
-- Action: <imperative — what to DO>
-- Deliverable: <what must exist when done>
-- Behavior Contract:
-  - Current Behavior: <current behavior or current repo state this issue changes>
-  - Desired Behavior: <behavior or contract that must be true after this issue>
-  - Behavior Delta: <the smallest behavior/contract change to deliver>
-  - Key Interfaces: <types, functions, commands, config shapes, or artifact contracts to inspect; avoid stale line numbers>
-  - Trigger Predicate: <for conditional features: when does this fire / what makes input valid; omit for unconditional work>
-  - Output Admission Predicate: <for conditional outputs: minimum contract to allow output / what must be true to publish; omit if no conditional output>
-  - Out Of Scope Confirmed: <adjacent work, non-goals, and forbidden changes not to touch>
-  - What Not To Infer: <assumptions Generator must not invent from surrounding context>
-- Target Areas: <exact file paths — Create: path | Modify: path>
-- Acceptance Criteria: <checkable conditions>
-- Verification Hint: <command or check>
-- Verification Coupling: none | independent | compile-coupled with <issue IDs> | shared verification with <issue IDs> | integration-only | isolated worktree required | serial verification required
-- Verification Type: AUTOMATED | MANUAL | MIXED
-- Execution Type: AFK | HITL:verify | HITL:decision | HITL:action
-- Test Expectation: <happy path + edge case to test, or "none — [reason]">
-- Required Evidence: <what must be shown to prove done>
-- Dependencies: <issue IDs or "none">
-- Risks: <what could go wrong>
-- Security: yes | no
-- upstream_decision_refs: <decision IDs from research/upstream, or "none">
-- Source refs:
-  - source_plan: <section / paragraph / bullet / table row / review note, or not_applicable>
-  - research: <field or not_applicable>
-  - user_constraint: <current prompt constraint or not_applicable>
-  - repo_evidence: <file:line / command / not_applicable>
-  - mechanical_support: <why this issue is necessary execution support, or not_applicable>
-- State: READY_FOR_EXECUTE
+| ID | File | Title | State | Depends On | Verification Coupling | Execution Type | Security | Parallel Hint |
+|---|---|---|---|---|---|---|---|---|
+| I001 | `issues/I001.md` | <short title> | READY_FOR_EXECUTE | none | independent | AFK | no | sequential base |
+
+Required index fields: `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`.
+
+Do not embed full executable issue bodies in `plan.md`. If a selected source has embedded issue bodies, fast-adopt upgrades them into `issues/Ixxx.md` before Final Plan Gate can pass.
 
 ## acceptance
 
@@ -183,6 +157,7 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - Eligible issues: <list>
 - AFK issues: <list>
 - HITL issues: <list>
+- Issue files: <relative paths from `## issues` index>
 - Forbidden areas: <list>
 - Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
 - Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>

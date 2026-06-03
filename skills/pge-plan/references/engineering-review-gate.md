@@ -11,7 +11,7 @@ Reduce `pge-exec` friction by checking scope discipline, existing-code reuse, se
 Plan Engineering Review is:
 - **Mandatory** for MEDIUM/DEEP plans (multi-issue, architecture changes, protocol surfaces, migration, rollout sequencing)
 - **Optional** for LIGHT plans (single-issue, low-risk, existing patterns) — may be omitted entirely if the plan is trivial
-- **Findings must be consumed** into selected approach, issues, acceptance, verification, and risks before Final Plan Gate validation
+- **Findings must be consumed** into selected approach, `plan.md ## issues` index, issue files, acceptance, verification, and risks before Final Plan Gate validation
 
 ## Routing Authority
 
@@ -65,13 +65,13 @@ Example format:
 
 ## Test Coverage Review (MEDIUM + DEEP)
 
-For each issue, verify the test expectation covers:
+For each issue, verify acceptance and local validation cover:
 - Happy path: primary success scenario
 - Edge cases: boundary values, empty inputs, concurrent access (where relevant)
 - Error path: what fails and how it is reported
 - Integration boundary: if crossing modules, is the seam tested?
 
-Gaps found here must be added to the issue's `Test Expectation` field before the gate can pass.
+Gaps found here must be added to the issue file's `acceptance`, `local_validation`, or `required_evidence` before the gate can pass.
 
 ## Verification Story Review (all depths)
 
@@ -82,6 +82,16 @@ Check:
 - verification commands, review checks, or manual proof are specific enough for `pge-exec`
 - grep/manual checks include semantic evidence rows instead of bare command output
 - weak verification repairs the plan via `REWORK_PLAN`; `READY_FOR_EXECUTE` still depends on Final Plan Gate `PASS`
+
+## Issue File Contract Review
+
+For issue-file plans, verify:
+
+- `plan.md ## issues` is a compact schedulable index with ID, File, State, Depends On, Verification Coupling, and Execution Type.
+- Full issue execution contracts live in `issues/Ixxx.md`, not inside `plan.md`.
+- Each ready issue file has enough task, behavior_contract, scope, target_areas, acceptance, local_validation, required_evidence, risks, and source_refs for Generator to start from the issue file plus shared plan context.
+- Dependencies and verification coupling reflect hidden coupling from shared files, runtime paths, fixtures, generated artifacts, or trust-gate commands.
+- Issue files do not redefine plan goal, non-goals, forbidden areas, or global verification strategy.
 
 For LIGHT plans, a short verification story is enough when the prompt and acceptance criteria are obvious. The gate still must record why the verification is sufficient.
 
@@ -159,7 +169,7 @@ Evidence gathered during Plan exploration (runtime paths, protocol surfaces, cou
 - Complexity / Risk Reduction: <how the plan reduces implementation friction and blast radius>
 - Scope Drift Check: <why goal/scope/non-goals/constraints are preserved>
 - Verification Strategy: <first trustworthy verification point and final evidence>
-- Issue Slicing / Coupling: <execution order, dependencies, coupling, or "N/A — LIGHT">
+- Issue Slicing / Coupling: <execution order, index schedulability, issue-file isolation, dependencies, coupling, or "N/A — LIGHT">
 - Protocol Coherence: <producer/consumer/validator/evidence check when relevant, or "N/A">
 - Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
 ```

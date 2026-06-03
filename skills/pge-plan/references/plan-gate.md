@@ -1,6 +1,6 @@
 # Final Plan Gate
 
-Plan-owned execution-contract gate. Runs after the draft plan, issue contracts, acceptance, verification, evidence requirements, and final sanity pass are written.
+Plan-owned execution-contract gate. Runs after the draft `plan.md`, issue index, referenced issue files, acceptance, verification, evidence requirements, and final sanity pass are written.
 
 Plan Engineering Review is a gstack-style decision-hardening layer inside `pge-plan`. It catches selected-approach, issue-slicing, architecture, data-flow, edge-case, test-coverage, performance, and implementation-friction weaknesses before the plan is frozen. The Final Plan Gate is the hard authorization validator: it decides whether the plan is executable, verifiable, repo-grounded, and safe to hand to `pge-exec`.
 
@@ -20,7 +20,7 @@ Run this gate deterministically:
 6. If the same layer fails twice, stop with `REVISE`, `ESCALATE`, or `REJECT`; do not loop.
 7. Use exactly the verdict vocabulary in this file. Do not invent near-synonyms such as `READY`, `APPROVED`, `WARN`, or `CONCERNS`.
 8. Write `Exec Allowed: yes` only when `Verdict: PASS`; otherwise write `Exec Allowed: no`.
-9. Preserve `.pge/tasks-<slug>/plan.md` as the only canonical plan artifact.
+9. Preserve `.pge/tasks-<slug>/plan.md` as the stable canonical plan artifact and `.pge/tasks-<slug>/issues/Ixxx.md` as canonical issue-local execution contracts referenced by that plan.
 
 This protocol is meant to keep skill execution stable. The gate must return a boring, parseable result even when the plan is messy.
 
@@ -44,8 +44,8 @@ Required fields:
 - repo facts / source evidence
 - target_areas
 - forbidden_areas
-- vertical slices
-- behavior contracts
+- vertical slices in the `## issues` Execution Index
+- referenced issue files with behavior contracts
 - acceptance criteria
 - verification path
 - evidence requirements
@@ -57,7 +57,11 @@ Structured gate inputs are required here when the plan is MEDIUM/DEEP, changes w
 
 Checks:
 
-- Every issue has a bounded action, deliverable, behavior contract, target areas, acceptance criteria, verification hint, verification type, test expectation, required evidence, dependencies, risks, security classification, and execution state.
+- `## issues` is a compact Execution Index, not embedded full issue body storage.
+- Every ready index row has `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`.
+- Every ready index row references an existing readable issue file under the same task directory, normally `issues/Ixxx.md`.
+- Every ready issue file has status, context, task, behavior_contract, scope, target_areas, acceptance, local_validation, required_evidence, risks, source_refs, verification type, dependencies, security classification, and execution state.
+- Embedded full issue bodies under `plan.md ## issues` fail this layer with `REVISE`; `pge-plan` must upgrade them into issue files before execution.
 - Every behavior contract names current behavior or current repo state, desired behavior, the behavior delta, key interfaces, out-of-scope items, and assumptions Generator must not infer.
 - For any issue that conditionally triggers or conditionally emits, the behavior contract includes a concrete `Trigger Predicate` and/or `Output Admission Predicate`. A conditional feature missing its predicate fails this layer with `REVISE`. Unconditional issues may omit them.
 - Every major acceptance criterion traces to user intent, research success shape, upstream constraint, current prompt, or necessary technical support.
@@ -118,6 +122,8 @@ Repo evidence must be concrete: file paths, `file:line`, commands, config refere
 Checks:
 
 - Slices are small enough for bounded worker execution.
+- The issue index is schedulable without opening every issue file.
+- Selected issue files are complete enough for `pge-exec` to build a Generator brief from the issue file plus shared plan context.
 - Each ready slice can be independently verified, or the plan explicitly records verification coupling and safe strategy.
 - Retry/block/escalate routing is clear for likely mismatch types.
 - HITL work is explicit: `HITL:verify`, `HITL:decision`, or `HITL:action`.
@@ -130,8 +136,9 @@ Checks:
 Checks:
 
 - The plan uses canonical headings and fields: `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with `plan_route:`.
+- `## issues` uses issue-file index shape. It must not contain embedded executable issue fields such as repeated `Action`, `Behavior Contract`, `Acceptance Criteria`, or `Verification Hint` blocks.
 - The plan uses only fixed route/status/verdict vocabulary defined by `pge-plan`, `plan_gate`, and `pge-exec`.
-- Downstream consumer expectations are satisfied: `pge-exec` can locate ready issues, blocked issues, behavior contracts, target areas, forbidden areas, acceptance, verification, evidence, assumptions, source refs when applicable, and handoff fields without interpreting prose.
+- Downstream consumer expectations are satisfied: `pge-exec` can locate ready issues, blocked issues, issue file paths, behavior contracts, target areas, forbidden areas, acceptance, verification, evidence, assumptions, source refs when applicable, and handoff fields without interpreting prose.
 - Repair loops are bounded: retry, revise, block, escalate, and human-decision paths are explicit where likely.
 - Non-canonical sources are rewritten to canonical shape before execution; `pge-exec` must not interpret alias headings or missing contract fields.
 - Clarification and stop paths are stable for missing evidence, ambiguous selectors, stale artifacts, plan-changing context, terminal conditions, and unavailable checks.
@@ -202,10 +209,10 @@ Record under `## plan_gate` in `.pge/tasks-<slug>/plan.md`:
 - `ESCALATE` routes to `NEEDS_HUMAN` or `NEEDS_INFO`.
 - `REJECT` routes to `BLOCKED` unless the problem contract itself is invalid, in which case route `RETURN_TO_RESEARCH`.
 
-Do not create a separate `canonical-plan.md`. The canonical plan is `.pge/tasks-<slug>/plan.md` only after the Final Plan Gate passes.
+Do not create a separate `canonical-plan.md`. The stable canonical plan is `.pge/tasks-<slug>/plan.md` only after the Final Plan Gate passes; issue-local canonical execution contracts are the referenced `.pge/tasks-<slug>/issues/Ixxx.md` files.
 
 ## Canonical Shape Rules
 
-New `plan.v2` artifacts use `## issues`, `## forbidden_areas`, `## terminal_conditions`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value.
+New `plan.v2` artifacts use `## issues` as an Execution Index plus `## forbidden_areas`, `## terminal_conditions`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Full issue bodies live in referenced issue files, not inside `plan.md`.
 
 If a selected source or prior artifact is not already in canonical shape, `pge-plan` must rewrite it before execution authorization. Missing `plan_gate`, missing `forbidden_areas`, or non-canonical headings are execution-blocking contract failures until the plan is upgraded.

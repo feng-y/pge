@@ -21,7 +21,7 @@ allowed-tools:
 
 # PGE Plan
 
-Produce one bounded, executable PGE plan artifact at `.pge/tasks-<slug>/plan.md`.
+Produce one bounded, executable PGE plan contract under `.pge/tasks-<slug>/`: a stable `.pge/tasks-<slug>/plan.md` plus issue-local execution contracts under `.pge/tasks-<slug>/issues/Ixxx.md`.
 
 Run `pge-plan` in the current main reasoning context. Do not hand core planning, phase/scope interpretation, or semantic ownership decisions to an automatically selected lower-capability planning model. Agents may help with bounded evidence gathering or outside voice review, but main owns the plan contract and final decisions.
 
@@ -35,7 +35,7 @@ my issues = executable implementation path for the inherited problem contract
 
 Plan owns approach selection, architecture-friction reduction, issue slicing as an execution graph, execution ordering, verification topology, migration/rollout sequencing when relevant, blast-radius minimization, protocol coherence strategy, and execution ergonomics. It must not reopen Research problem discovery, redefine the inherited goal/scope/success shape/non-goals/constraints, or pre-write implementation code.
 
-The artifact shape is flexible, but these semantic fields are mandatory:
+The `plan.md` shape is flexible, but these semantic fields are mandatory:
 
 ```text
 schema_version
@@ -58,6 +58,8 @@ route
 ```
 
 Do not write a long plan to satisfy a template. Write the smallest plan that lets `pge-exec` implement without guessing, while preserving the same semantic target from the user/research input.
+
+For new executable plans, `## issues` in `plan.md` is an Execution Index, not full issue body storage. Each ready issue row must point to a full `issues/Ixxx.md` issue contract. Full issue bodies embedded under `plan.md ## issues` are non-canonical execution input and must be upgraded by `pge-plan` before Final Plan Gate can pass.
 
 Plan specifies implementation path at the contract level, not the coding level. Make direction, scope, ordering, verification coupling, and proof requirements explicit; do not specify exact code edits, helper functions, abstractions, flags, or test internals unless a public/protocol contract requires named symbols, fields, files, or commands.
 
@@ -470,7 +472,7 @@ Read `references/engineering-review.md` and `references/engineering-review-gate.
 Plan Engineering Review is:
 - **Mandatory** for MEDIUM/DEEP plans (multi-issue, architecture changes, protocol surfaces, migration, rollout sequencing)
 - **Optional** for LIGHT plans (single-issue, low-risk, existing patterns)
-- **Findings must be consumed** into selected approach, issues, acceptance, verification, and risks before Final Plan Gate validation
+- **Findings must be consumed** into selected approach, the `plan.md ## issues` index, issue files, acceptance, verification, and risks before Final Plan Gate validation
 
 Inputs:
 - inherited Research/current-source problem contract
@@ -489,6 +491,9 @@ The review checks, scaled by depth:
 - scope discipline, existing-code reuse, and minimum change set
 - selected-approach rationale and rejected alternatives
 - issue slicing, ordering, boundaries, and failure modes
+- issue-file isolation: each issue can execute from its issue file plus shared plan context without reading sibling issue bodies by default
+- index schedulability: `plan.md ## issues` exposes file path, state, dependencies, verification coupling, execution type, and enough title/summary for scheduling
+- hidden coupling: shared target files, runtime paths, fixtures, generated artifacts, and trust-gate commands are reflected in dependencies or verification coupling
 - verification topology, first trustworthy verification point, and required evidence
 - protocol coherence for contract-surface changes
 - performance and migration risk only when applicable
@@ -558,8 +563,11 @@ Do not invent result values outside these vocabularies. Do not use exec-stage or
 Before routing `READY_FOR_EXECUTE`, verify the plan satisfies `pge-exec` Plan Validation requirements:
 
 - `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`
-- At least one issue has `State: READY_FOR_EXECUTE`
-- Each ready issue has: Action, Deliverable, Behavior Contract, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Verification Coupling, Test Expectation, Required Evidence, Dependencies, Risks, and Security
+- `## issues` is a compact Execution Index with `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`
+- At least one indexed issue has `State: READY_FOR_EXECUTE`
+- Every ready indexed issue references an existing readable `issues/Ixxx.md` file
+- Every ready issue file has: status, context, task, behavior_contract, scope, target_areas, acceptance, local_validation, required_evidence, risks, source_refs, Verification Type, Verification Coupling, Dependencies, Execution Type, and Security
+- Index fields for `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security` agree with the issue file `## status`
 - `## forbidden_areas` is present and specific enough for scope drift checks
 - `## stop_conditions` is present and checkable
 - `## terminal_conditions` is present
@@ -567,6 +575,7 @@ Before routing `READY_FOR_EXECUTE`, verify the plan satisfies `pge-exec` Plan Va
 - Verification Coupling is explicit for each ready issue
 - Dependencies reference known issue IDs
 - Assumptions are explicit and non-scope-changing
+- `plan.md ## issues` does not contain embedded executable issue bodies such as `Action`, `Behavior Contract`, `Acceptance Criteria`, or repeated issue body sections
 
 If any check fails, record Final Plan Gate `REVISE` and repair before producing a ready route.
 
@@ -799,27 +808,37 @@ Vertical slices, not micro-tasks. Rules:
 - **Interface-first:** types/contracts before implementations
 - **Vertical slices:** each issue cuts all relevant layers. Horizontal only for genuine shared dependencies.
 
-Each issue includes:
-- `ID`, `Title`, `Scope`, `Action` (imperative: what to DO)
-- `upstream_decision_refs` (decision IDs or "none"; referenced decisions must not be changed by exec)
-- `Deliverable` (what must exist when done)
-- `Behavior Contract` with `Current Behavior`, `Desired Behavior`, `Behavior Delta`, `Key Interfaces`, **`Trigger Predicate` (for conditional features: when does this fire / what makes input valid)**, **`Output Admission Predicate` (for conditional outputs: what must be true to allow output / minimum contract to publish)**, `Out Of Scope Confirmed`, and `What Not To Infer`. This is the Matt-style execution brief core that `pge-exec` hands to Generator; it must be behavioral, not procedural. Target Areas can name paths, but the behavior contract should name interfaces, types, commands, config shapes, artifact contracts, and scope boundaries without relying on line numbers. **[P1] Trigger Predicate and Output Admission Predicate are required when the feature conditionally triggers or conditionally emits; omit for unconditional work.**
-- `Target Areas` (exact paths: Create/Modify)
-- `Acceptance Criteria`, `Verification Hint`
-- `Verification Coupling`: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
-- `Verification Type`: AUTOMATED | MANUAL | MIXED
-- `Execution Type`: AFK | HITL:verify | HITL:decision | HITL:action
-- `Test Expectation`: happy path + edge case + error path (+ integration if boundary)
-- `Required Evidence`: what proves done
+`plan.md ## issues` contains only the Execution Index. Each index row includes:
+- `ID`
+- `File`
+- `Title`
 - `State`: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
-- `Dependencies`, `Risks`
-- `Security`: yes | no (yes if issue touches auth, data access, API boundaries, secrets, permissions, **[P1] or if failure mode includes data corruption / double-publish / stealing active work / irreversibility**. Triggers stricter Evaluator thresholds.)
+- `Depends On`
+- `Verification Coupling`: none | independent | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
+- `Execution Type`: AFK | HITL:verify | HITL:decision | HITL:action
+- `Security`: yes | no
+- optional compact scheduling hints
+
+Each full issue file under `issues/Ixxx.md` includes:
+- `status` with State, Dependencies, Verification Coupling, Execution Type, Verification Type, and Security
+- `context` with plan link and upstream decisions
+- `task`
+- `behavior_contract` with `Current Behavior`, `Desired Behavior`, `Behavior Delta`, `Key Interfaces`, **`Trigger Predicate`**, **`Output Admission Predicate`**, `Out Of Scope Confirmed`, and `What Not To Infer`
+- `scope`
+- `target_areas`
+- `acceptance`
+- `local_validation`
+- `required_evidence`
+- `risks`
+- `source_refs`
+
+Do not embed full issue files under `plan.md ## issues`. If the selected source contains embedded issue bodies, write the compact index in `plan.md` and move the full execution contracts into `issues/Ixxx.md`.
 
 When issues are compile-coupled or share a verification surface, `Dependencies`, `Risks`, and `Verification Coupling` must make the safe execution strategy explicit. If safe parallel execution requires isolated worktrees, say so; otherwise require serial verification. Do not leave this for `pge-exec` to infer from Target Areas alone.
 
 ### Write Plan Artifact
 
-The plan artifact MUST be written only to `.pge/tasks-<slug>/plan.md`. This `.pge/` path is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifact. ID format: `YYYYMMDD-HHMM-<slug>`.
+The stable plan artifact MUST be written to `.pge/tasks-<slug>/plan.md`, and full issue contracts MUST be written to `.pge/tasks-<slug>/issues/Ixxx.md`. This `.pge/` task directory is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifacts. ID format: `YYYYMMDD-HHMM-<slug>`.
 
 Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Required semantics are binding; optional sections should appear only when they help `pge-exec` execute or help review detect scope drift.
 
@@ -827,6 +846,7 @@ Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Require
 
 ```bash
 mkdir -p .pge/tasks-<slug>/
+mkdir -p .pge/tasks-<slug>/issues/
 ```
 
 ### Final Sanity Pass
@@ -858,7 +878,7 @@ Ready routes require Final Plan Gate `PASS` and `exec_allowed: yes`. If the gate
 
 `.pge/tasks-<slug>/plan.md` is the frozen canonical execution contract only when `plan_gate.verdict: PASS` and `plan_route` is ready. Do not create a separate `canonical-plan.md`; separate draft/frozen plan files would create a second truth surface.
 
-New plan artifacts use `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Non-canonical sources must be rewritten to these headings before `pge-exec`; exec should not interpret alias headings.
+New plan artifacts use `## issues` as an index plus `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Non-canonical sources must be rewritten to these headings and issue files before `pge-exec`; exec should not interpret alias headings or embedded issue bodies.
 
 Plans must also include `## terminal_conditions` for known clarification or stop cases: missing evidence, ambiguous selector, stale artifact, plan-changing context, unsafe scope expansion, unverified repo reality, unavailable required checks, and human-only decisions. These are not runtime exceptions. Each condition must either be self-resolved from evidence, confirmed through the normal one-question ask path, or mapped to one gate verdict plus one plan route. If no terminal conditions exist, write the canonical `none | PASS | READY_FOR_EXECUTE | yes` row.
 
@@ -883,7 +903,7 @@ If the user redirects to execution or implementation mid-run, close the stage fi
 
 ## Handoff To Execute
 
-`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, upstream decisions to preserve, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
+`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads the plan index + `.pge/config/*`, builds a shared plan context packet, then lazy-loads selected `issues/Ixxx.md` files to construct compact per-issue execution packs. Handoff tells exec: issue order, issue file paths, eligible issues, AFK vs HITL, target areas, acceptance criteria, upstream decisions to preserve, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
 
 ## Guardrails
 
@@ -894,6 +914,7 @@ Do not: write business code, write implementation pseudocode or function bodies,
 ```md
 ## PGE Plan Result
 - plan_path: .pge/tasks-<slug>/plan.md
+- issue_files: .pge/tasks-<slug>/issues/Ixxx.md count=<n>
 - plan_route: READY_FOR_EXECUTE | READY_FOR_EXECUTE_WITH_ASSUMPTIONS | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - ready_issues: <ids or None>
 - blocked_issues: <ids or None>

@@ -8,6 +8,8 @@ For the longer rationale and future validator shape, see `docs/pge/plan-gate-v3.
 
 Use this reference when a plan is MEDIUM/DEEP, changes workflow contracts, changes artifact schemas, changes validation/evidence rules, introduces architecture deltas, or has meaningful forbidden zones.
 
+Issue-file plan migrations are both `workflow_contract_change` and `artifact_schema_change`: include boundary checks for the `plan.md ## issues` index fields, referenced `issues/Ixxx.md` files, index/file consistency, and the rule that embedded executable issue bodies are non-canonical execution input.
+
 ## Required Section
 
 For those plans, include `## plan_gate_inputs` before `## plan_gate` in the canonical plan.
@@ -68,6 +70,7 @@ If none apply, omit the section for LIGHT plans or declare `none` with a short r
 - Boundary checks must cover both `target_areas` and `forbidden_areas`.
 - When route/status/verdict vocabulary changes or is referenced, include a `route_vocabulary` boundary check.
 - When template/schema fields change, include a `schema_fields` boundary check.
+- When issue-file plans are introduced or changed, include `schema_fields` for the index and issue-file required fields, plus `generated_artifacts` or equivalent evidence that referenced issue files exist.
 
 ## Evidence Types
 
