@@ -33,6 +33,10 @@ Validate the upstream research/input before planning proceeds.
 
 - <scope that must not be implemented, with rationale>
 
+## necessary_context
+
+- <only context pge-exec / Generator needs to execute without guessing>
+
 ## target_areas
 
 - <file or module> — reason: <why it will be touched>
@@ -43,41 +47,15 @@ Validate the upstream research/input before planning proceeds.
 
 ## issues
 
-### Issue 1: <Title>
+`## issues` is an Execution Index, not full issue body storage. Full issue contracts live in `issues/Ixxx.md` using `skills/pge-plan/templates/issue.md`.
 
-- ID: 1
-- Title: <short title>
-- Scope: <what this issue covers>
-- Action: <imperative — what to DO>
-- Deliverable: <what must exist when done>
-- Behavior Contract:
-  - Current Behavior: <current behavior or current repo state this issue changes>
-  - Desired Behavior: <behavior or contract that must be true after this issue>
-  - Behavior Delta: <the smallest behavior/contract change to deliver>
-  - Key Interfaces: <types, functions, commands, config shapes, or artifact contracts to inspect; avoid stale line numbers>
-  - Trigger Predicate: <for conditional features: when does this fire / what makes input valid; omit for unconditional work>
-  - Output Admission Predicate: <for conditional outputs: minimum contract to allow output / what must be true to publish; omit if no conditional output>
-  - Out Of Scope Confirmed: <adjacent work, non-goals, and forbidden changes not to touch>
-  - What Not To Infer: <assumptions Generator must not invent from surrounding context>
-- Target Areas: <exact file paths — Create: path | Modify: path>
-- Acceptance Criteria: <checkable conditions>
-- Verification Hint: <command or check>
-- Verification Coupling: none | independent | compile-coupled with <issue IDs> | shared verification with <issue IDs> | integration-only | isolated worktree required | serial verification required
-- Verification Type: AUTOMATED | MANUAL | MIXED
-- Execution Type: AFK | HITL:verify | HITL:decision | HITL:action
-- Test Expectation: <happy path + edge case to test, or "none — [reason]">
-- Required Evidence: <what must be shown to prove done>
-- Dependencies: <issue IDs or "none">
-- Risks: <what could go wrong>
-- Security: yes | no
-- upstream_decision_refs: <decision IDs from research/upstream, or "none">
-- Source refs:
-  - source_plan: <section / paragraph / bullet / table row / review note, or not_applicable>
-  - research: <field or not_applicable>
-  - user_constraint: <current prompt constraint or not_applicable>
-  - repo_evidence: <file:line / command / not_applicable>
-  - mechanical_support: <why this issue is necessary execution support, or not_applicable>
-- State: READY_FOR_EXECUTE
+| ID | File | Title | State | Depends On | Verification Coupling | Execution Type | Security | Parallel Hint |
+|---|---|---|---|---|---|---|---|---|
+| I001 | `issues/I001.md` | <short title> | READY_FOR_EXECUTE | none | independent | AFK | no | sequential base |
+
+Required index fields: `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`.
+
+Do not embed full executable issue bodies in `plan.md`. If a selected source has embedded issue bodies, fast-adopt upgrades them into `issues/Ixxx.md` before Final Plan Gate can pass.
 
 ## acceptance
 
@@ -125,16 +103,12 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - Trust gates: <checks/evidence required before review can trust completion>
 - Unavailable checks: <checks that cannot run now, with fallback evidence or terminal handling>
 
-## risks
-
-- <risk> — impact: <what happens if unresolved> — mitigation: <how to handle>
-
 ## terminal_conditions
 
 | Condition | Gate Verdict | Plan Route | Exec Allowed | Handling |
 |-----------|--------------|------------|--------------|----------|
 | none | PASS | READY_FOR_EXECUTE | yes | No terminal conditions identified. |
-| <missing evidence / ambiguous selector / stale artifact / plan-changing context / human-only decision / unavailable check / unsafe scope expansion> | REVISE / ESCALATE / REJECT | NEEDS_INFO / NEEDS_HUMAN / RETURN_TO_RESEARCH / BLOCKED / no final route until repaired | yes/no | <self-resolve from evidence, ask one confirmation question, or stop before exec> |
+| <missing evidence / ambiguous selector / stale artifact / plan-changing context / human-only decision / unavailable check / unsafe scope expansion> | REVISE / ESCALATE / REJECT | NEEDS_INFO / NEEDS_HUMAN / RETURN_TO_RESEARCH / BLOCKED / no final route until repaired | yes/no | <self-resolve from evidence, clarify until executable, require human decision, or stop before exec> |
 
 ## plan_gate
 
@@ -183,11 +157,13 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - Eligible issues: <list>
 - AFK issues: <list>
 - HITL issues: <list>
+- Issue files: <relative paths from `## issues` index>
 - Forbidden areas: <list>
+- Necessary context: <short list, or "see ## necessary_context">
+- Recommended approach: <summary or "none">
 - Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
 - Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>
-- Upstream decisions to preserve: <decision IDs and short labels, or "none">
-- Risks not to ignore: <list>
+- Optional risk-triggered checks: <security / public API / schema / performance / none>
 
 ## Optional When Useful
 
@@ -228,6 +204,12 @@ Record when the plan risk/depth needs an explicit record. LIGHT plans may use a 
 - Issue Slicing / Coupling: <execution order, dependencies, verification coupling classification, or "N/A — LIGHT">
 - Protocol Coherence: <producer/consumer/validator/evidence check when relevant, or "N/A">
 - Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
+
+Closed-loop issue slicing review for MEDIUM/DEEP plans:
+
+| Issue | Issue-local goal | Change | Validation closure | Independent? | Coupling / first trustworthy verification | Review action |
+|---|---|---|---|---|---|---|
+| I001 | <goal> | <bounded change> | expected + check + evidence present? | yes/no | <none or explicit coupling> | keep / split / merge / rework |
 
 Evidence gathered during Plan exploration (runtime paths, protocol surfaces, coupling hotspots, verification constraints, migration blockers) should be embedded here or in approach rationale when it informs traceable decisions.
 

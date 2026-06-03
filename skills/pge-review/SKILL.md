@@ -38,7 +38,7 @@ Review is responsible for checking:
 diff still aligns with original user intent
 ```
 
-The plan is the strongest implementation contract, but research/user intent remains relevant when judging whether the plan was narrowed, expanded, or conceptually replaced during execution.
+The plan is the strongest implementation contract, with referenced issue files as supporting issue-local execution contracts when the plan uses issue-file shape. Research/user intent remains relevant when judging whether the plan was narrowed, expanded, or conceptually replaced during execution.
 
 ## Process
 
@@ -186,6 +186,7 @@ Treat the selected source as the strongest available contract, not just backgrou
 
 When the selected source is a PGE plan, extract its contract-bearing fields before review:
 - `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `forbidden_areas`, `acceptance`, `verification`, `evidence_required`, `risks`, `terminal_conditions`, `plan_gate`, `stop_conditions`, and route/state vocabulary.
+- Referenced `issues/Ixxx.md` files when `plan.md ## issues` is an Execution Index; use them as issue-local support, not as a replacement for plan-level acceptance.
 - Plan Engineering Review record or compact rationale when present, especially selected/rejected approach, scope drift check, issue slicing/coupling, and verification strategy.
 - Any cross-issue verification commands, grep scopes, evidence tables, or manual walkthrough checks.
 - Any templates, examples, evals, references, handoffs, or final response/output formats named by the plan or touched by the diff.

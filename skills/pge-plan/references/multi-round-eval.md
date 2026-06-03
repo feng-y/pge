@@ -49,7 +49,7 @@ Agents avoid specificity through soft language. Catch these patterns:
 The review step is not a findings document. It is a repair pass.
 
 - Found a vague term? Replace it with the specific one from the code.
-- Found a coverage gap? Add the missing test expectation to the issue.
+- Found a coverage gap? Add the missing expected result, check, or evidence to the issue file's validation.
 - Found an assumption? Either verify it (read one more file) or mark it explicitly.
 - Found a contradiction? Resolve it — don't flag both sides as "noted."
 

@@ -72,6 +72,36 @@
       "prompt": "Create a plan from a legacy Research-shaped document that uses obsolete Research-era field names and has no research.v3 fields. User explicitly selected this document as the source.",
       "expected_output": "Plan does not treat it as a supported Research contract. It either plans from current semantics that stand on their own as a non-Research source, or routes RETURN_TO_RESEARCH / NEEDS_INFO instead of carrying obsolete Research fields forward. It does not upgrade obsolete fields into current Research truth or preserve a legacy Research adapter.",
       "dimensions": ["obsolete_field_rejection", "current_semantics_only", "no_legacy_research_adapter"]
+    },
+    {
+      "id": 13,
+      "prompt": "Create a plan for a clear MEDIUM protocol migration with five execution issues. The source explicitly says full issue bodies must not live in plan.md and issue files should be lazy-loaded by exec.",
+      "expected_output": "Produces .pge/tasks-<slug>/plan.md with ## issues as a compact Execution Index containing ID, File, Title, State, Depends On, Verification Coupling, Execution Type, and Security. Writes full issue contracts to .pge/tasks-<slug>/issues/I001.md etc. Does not embed full issue bodies under plan.md ## issues. Final response reports plan_path and issue file count.",
+      "dimensions": ["issue_file_plan_output", "progressive_disclosure", "producer_contract"]
+    },
+    {
+      "id": 14,
+      "prompt": "Run Final Plan Gate on a plan whose ## issues index references issues/I001.md but the file is missing.",
+      "expected_output": "Final Plan Gate returns REVISE with Exec Allowed: no. It records missing issue file as a Contract Completeness or Execution Readiness failure and does not route READY_FOR_EXECUTE.",
+      "dimensions": ["final_plan_gate", "issue_file_completeness", "missing_file_blocks_exec"]
+    },
+    {
+      "id": 15,
+      "prompt": "Fast-adopt an external plan that has full executable issue bodies under ## issues but no issue files.",
+      "expected_output": "Treats the source as upgrade input, not executable output. Materializes canonical plan.md with a compact issue index and writes issues/Ixxx.md files. If it cannot write issue files or preserve source semantics, it routes REVISE/NEEDS_INFO rather than allowing pge-exec to execute embedded issue bodies.",
+      "dimensions": ["embedded_issue_upgrade", "fast_adopt", "non_canonical_plan_shape"]
+    },
+    {
+      "id": 16,
+      "prompt": "Create a plan where one issue has a slightly stale repo hint but the goal, target area, acceptance, and verification are clear.",
+      "expected_output": "Plan allows pge-exec to adapt issue-local repo hints and record implementation-notes.md, while preserving plan goal, scope, acceptance, verification, non-goals, and forbidden areas. It does not route back for issue-local imperfections and does not allow plan mutation during exec.",
+      "dimensions": ["exec_local_adaptation", "implementation_notes_boundary", "plan_boundary_preservation"]
+    },
+    {
+      "id": 17,
+      "prompt": "Create a MEDIUM plan whose draft issue list has micro-tasks: one issue adds a config field, one issue renames a helper, one issue updates docs, and only the final issue has observable behavior and tests.",
+      "expected_output": "Plan Engineering Review performs closed-loop issue slicing review as part of the review, not as a separate issue-review stage. It rejects non-verifiable micro-task issues as ready execution units, then merges or rewrites them into vertical slices with issue-local goal, bounded change, target areas, forbidden boundaries, validation Expected/Check/Evidence, and explicit verification coupling when needed. Final Plan Gate cannot pass while split/merge/rework actions remain unresolved.",
+      "dimensions": ["plan_engineering_review_issue_slicing", "closed_loop_execution_unit", "micro_task_rejection", "verification_coupling_classification"]
     }
   ]
 }

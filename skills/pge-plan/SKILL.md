@@ -21,7 +21,7 @@ allowed-tools:
 
 # PGE Plan
 
-Produce one bounded, executable PGE plan artifact at `.pge/tasks-<slug>/plan.md`.
+Produce one bounded, executable PGE plan contract under `.pge/tasks-<slug>/`: a stable `.pge/tasks-<slug>/plan.md` plus issue-local execution contracts under `.pge/tasks-<slug>/issues/Ixxx.md`.
 
 Run `pge-plan` in the current main reasoning context. Do not hand core planning, phase/scope interpretation, or semantic ownership decisions to an automatically selected lower-capability planning model. Agents may help with bounded evidence gathering or outside voice review, but main owns the plan contract and final decisions.
 
@@ -35,7 +35,7 @@ my issues = executable implementation path for the inherited problem contract
 
 Plan owns approach selection, architecture-friction reduction, issue slicing as an execution graph, execution ordering, verification topology, migration/rollout sequencing when relevant, blast-radius minimization, protocol coherence strategy, and execution ergonomics. It must not reopen Research problem discovery, redefine the inherited goal/scope/success shape/non-goals/constraints, or pre-write implementation code.
 
-The artifact shape is flexible, but these semantic fields are mandatory:
+The `plan.md` shape is flexible, but these semantic fields are mandatory:
 
 ```text
 schema_version
@@ -44,13 +44,13 @@ selected_approach
 rejected_approaches
 goal
 non_goals
+necessary_context
 issues
 target_areas
 forbidden_areas
 acceptance
 verification
 evidence_required
-risks
 terminal_conditions
 plan_gate
 stop_conditions
@@ -58,6 +58,8 @@ route
 ```
 
 Do not write a long plan to satisfy a template. Write the smallest plan that lets `pge-exec` implement without guessing, while preserving the same semantic target from the user/research input.
+
+For new executable plans, `## issues` in `plan.md` is an Execution Index, not full issue body storage. Each ready issue row must point to a full `issues/Ixxx.md` issue contract. Full issue bodies embedded under `plan.md ## issues` are non-canonical execution input and must be upgraded by `pge-plan` before Final Plan Gate can pass.
 
 Plan specifies implementation path at the contract level, not the coding level. Make direction, scope, ordering, verification coupling, and proof requirements explicit; do not specify exact code edits, helper functions, abstractions, flags, or test internals unless a public/protocol contract requires named symbols, fields, files, or commands.
 
@@ -85,7 +87,7 @@ The plan must make these dimensions explicit, scaled to task risk:
 - **Forbidden zones** — paths, behaviors, route/state/verdict vocabulary, artifact layouts, or responsibilities exec must not touch.
 - **Claim/evidence expectations** — plan-relevant claims that need evidence, and what evidence is required for review to trust them.
 - **Validation reality** — which checks are cheap execution feedback and which checks are final trust gates such as compile, replay, or equivalent evidence.
-- **Stop conditions** — observable conditions that force revise, escalate, reject, or route upstream before execution continues.
+- **Stop conditions** — observable conditions that force revise, escalate, reject, clarify, or require a human decision before execution continues.
 
 Plan owns this synthesis. Research supplies intent, discrepancy, evidence, and constraints; plan selects the approach and turns them into an executable Architecture Delta Contract; exec consumes only the passed canonical plan. Do not move this synthesis into research or execution.
 
@@ -377,18 +379,18 @@ Route `RETURN_TO_RESEARCH` when intent or success shape is not confirmed and pla
 | Affected areas | Target Areas | as-is |
 | Constraints / non-goals | Non-goals | as-is |
 | Structured intent / spec decisions | Intent + Plan Constraints + Decision Coverage | authoritative unless contradicted |
-| Clarifying notes / open questions | Coverage Audit + Risks / Open Questions | blocking items stay blocking |
+| Clarifying notes / open questions | Coverage Audit + Open Questions; risk notes only when relevant | blocking items stay blocking |
 | Zoom-Out Map | Repo Context + Target Areas + Architecture Assessment | preferred compressed system map; do not redo unless insufficient or contradicted |
 | Synthesis Summary: Stated / Inferred / Out | Intent, Assumptions, Non-goals | stated/out authoritative; inferred auditable |
 | Upstream Requirement Ledger / Spec Coverage | Coverage Audit | authoritative trace input |
 | Decision Log / upstream spec decisions | Plan Constraints + Decision Coverage | authoritative |
-| Rollout strategy / compare mode / flags / gray rollout | Issue verification strategy + risks | authoritative |
-| Monitoring metrics / success-fail counters | Required Evidence + Verification | authoritative |
+| Rollout strategy / compare mode / flags / gray rollout | Issue verification strategy + risk notes when relevant | authoritative |
+| Monitoring metrics / success-fail counters | Evidence Required + Verification | authoritative |
 | Multi-phase structure | Phase Boundary + issue selection | authoritative unless explicitly overridden |
-| Upstream risk assessment | Issue-level Risks | inherit, do not reinvent |
+| Upstream risk assessment | Issue-level risk notes when relevant | inherit, do not reinvent |
 | Options + recommendation | Approach candidates | advisory input only |
 | Assumptions | Inherit | as-is |
-| Open questions (non-blocking) | Risks / Open Questions | pass-through |
+| Open questions (non-blocking) | Open Questions; risk notes only when relevant | pass-through |
 | Open questions (blocking) | BLOCK_PLAN | blocker |
 
 **pge-research adaptation:**
@@ -399,7 +401,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 
 1. **Route gate.** Continue only when `route: READY_FOR_PLAN`. If route is `NEEDS_USER`, stop with `NEEDS_INFO` and direct the user to answer the research blocking question, then rerun `pge-research`; do not produce a ready plan from a non-ready research artifact. If route is `NEEDS_REPO_EVIDENCE`, route `RETURN_TO_RESEARCH` unless the current user prompt explicitly overrides the selected research artifact and authorizes direct planning from current context. If route is `BLOCKED`, stop and do not produce a plan artifact.
 2. **Source Contract Check.** Verify required v3 fields are present and usable, or explicitly `none` / `not_applicable`: `goal`, `success_shape`, `scope`, `non_goals`, `constraints`, relevant user/repo/architecture context, assumptions, `candidate_direction`, `rejected_framings`, blocking and non-blocking questions, route, and route reason. `blocking_questions` must be empty for `READY_FOR_PLAN`, and any conditional gate must have the field Plan must consume. Missing required v3 fields or a non-ready route must not be silently guessed.
-3. **Field mapping.** Consume v3 fields as follows: `Spec Discovery.goal` → plan goal; `success_shape` → acceptance baseline; `scope` and `non_goals` → plan scope/non-goals; `constraints` → Plan Constraints/forbidden areas; `Context.assumptions` → assumptions; `relevant_repo_or_architecture_context` → repo context; `Direction.candidate_direction` → approach candidate only; `Direction.rejected_framings` → rejected approach/framing inputs; open questions → risks or blockers.
+3. **Field mapping.** Consume v3 fields as follows: `Spec Discovery.goal` → plan goal; `success_shape` → acceptance baseline; `scope` and `non_goals` → plan scope/non-goals; `constraints` → Plan Constraints/forbidden areas; `Context.assumptions` → assumptions; `relevant_repo_or_architecture_context` → repo context; `Direction.candidate_direction` → approach candidate only; `Direction.rejected_framings` → rejected approach/framing inputs; open questions → open questions, blockers, or risk notes when relevant.
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective` as the current plan target, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice. The current plan must not target `direct_goal` when `first_plannable_objective` exists.
 6. **Plan owns approach selection.** `candidate_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
@@ -407,7 +409,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 
 **Non-canonical selected sources:**
 
-If the selected source is not `research.v3`, consume only the current semantics it actually provides: goal, success shape, scope, non-goals, constraints, decisions, risks, and evidence. Do not treat legacy Research-shaped docs or old handoff-style artifacts as supported Research contracts. If the source cannot stand on its own current semantics, route `RETURN_TO_RESEARCH` or `NEEDS_INFO` instead of reconstructing intent from obsolete Research field names.
+If the selected source is not `research.v3`, consume only the current semantics it actually provides: goal, success shape, scope, non-goals, constraints, decisions, relevant risk notes, and evidence. Do not treat legacy Research-shaped docs or old handoff-style artifacts as supported Research contracts. If the source cannot stand on its own current semantics, route `RETURN_TO_RESEARCH` or `NEEDS_INFO` instead of reconstructing intent from obsolete Research field names.
 
 **Current constraint extraction:**
 
@@ -445,7 +447,7 @@ If `docs/exec-plans/` is the canonical input, audit proposed issues against the 
 
 Spec decisions coverage is mandatory when upstream contains a `Decision Log`, rollout strategy, monitoring metrics, phase structure, risk assessment, or equivalent spec-level decision. Every such decision must appear in `Plan Constraints`, a specific issue's `upstream_decision_refs`, `Verification`, or an explicit override record.
 
-Do not revive obsolete Research compatibility fields during Coverage Audit. If a selected source depends on old Research-only field names instead of expressing current semantics directly, stop and route upstream rather than carrying those fields forward into the plan.
+Do not revive obsolete Research compatibility fields during Coverage Audit. If a selected source depends on old Research-only field names instead of expressing current semantics directly, stop and route `RETURN_TO_RESEARCH` or `NEEDS_INFO` rather than carrying those fields forward into the plan.
 
 ### Explore (fill gaps)
 
@@ -470,7 +472,7 @@ Read `references/engineering-review.md` and `references/engineering-review-gate.
 Plan Engineering Review is:
 - **Mandatory** for MEDIUM/DEEP plans (multi-issue, architecture changes, protocol surfaces, migration, rollout sequencing)
 - **Optional** for LIGHT plans (single-issue, low-risk, existing patterns)
-- **Findings must be consumed** into selected approach, issues, acceptance, verification, and risks before Final Plan Gate validation
+- **Findings must be consumed** into selected approach, the `plan.md ## issues` index, issue files, acceptance, verification, and risk-triggered notes when relevant before Final Plan Gate validation
 
 Inputs:
 - inherited Research/current-source problem contract
@@ -489,6 +491,10 @@ The review checks, scaled by depth:
 - scope discipline, existing-code reuse, and minimum change set
 - selected-approach rationale and rejected alternatives
 - issue slicing, ordering, boundaries, and failure modes
+- closed-loop issue slicing: each ready issue has one issue-local goal, bounded change, concrete validation, and either independent verification or explicit verification coupling with a safe strategy
+- issue-file isolation: each issue can execute from its issue file plus shared plan context without reading sibling issue bodies by default
+- index schedulability: `plan.md ## issues` exposes file path, state, dependencies, verification coupling, execution type, and enough title/summary for scheduling
+- hidden coupling: shared target files, runtime paths, fixtures, generated artifacts, and trust-gate commands are reflected in dependencies or verification coupling
 - verification topology, first trustworthy verification point, and required evidence
 - protocol coherence for contract-surface changes
 - performance and migration risk only when applicable
@@ -501,7 +507,7 @@ Plan Engineering Review does not produce routes directly. It produces findings t
 
 **Plan Engineering Review result:** `PASS | REWORK_PLAN | RETURN_TO_RESEARCH | NEEDS_INFO`
 
-- `PASS` → selected approach, issue slicing, acceptance, verification, and risks are hard enough to synthesize.
+- `PASS` → selected approach, issue slicing, acceptance, verification, and relevant risk handling are hard enough to synthesize.
 - `REWORK_PLAN` → fix approach, scope, coverage, or verification findings inline, then re-run affected checks.
 - `RETURN_TO_RESEARCH` → goal/scope/success shape or a Research-required adjustment is genuinely not executable without changing the problem contract.
 - `NEEDS_INFO` → ask one user-authority blocking question, then re-run affected checks.
@@ -522,9 +528,9 @@ Stability rule: run the Final Plan Gate exactly in the order defined by `referen
 
 The gate has six layers. Source Fidelity is mandatory for Fast Adopt and `SKIP_NOT_APPLICABLE` for ordinary direct-prompt plans with no external source to preserve:
 
-1. **Contract Completeness Gate** — goal, non-goals, repo facts, target areas, forbidden areas, vertical slices, acceptance criteria, verification path, evidence requirements, stop condition, and risks/unknowns are present and usable.
+1. **Contract Completeness Gate** — goal, non-goals, necessary repo context, target areas, forbidden areas, vertical slices, acceptance criteria, verification path, evidence requirements, and stop condition are present and usable.
 2. **Source Fidelity Gate** — for Fast Adopt, source semantics are traceable into canonical fields without silent goal, scope, phase, ownership, non-goal, acceptance, verification, or issue-behavior drift.
-3. **Plan Engineering Review** — confirms selected-approach hardening findings were consumed into the approach, issue slicing, acceptance, verification, evidence, and risks.
+3. **Plan Engineering Review** — confirms selected-approach hardening findings were consumed into the approach, issue slicing, acceptance, verification, evidence, and risk-triggered notes when relevant.
 4. **Repo Reality Gate** — target files/modules, entry paths, existing semantics, dynamic/config-driven paths, hidden runtime behavior, and forbidden areas are grounded in repo evidence.
 5. **Execution Readiness Gate** — slices are bounded, independently verifiable where claimed, retry/block/escalate routing is clear, exec context is sufficient, and human decisions are explicit.
 6. **Skill Execution Stability Gate** — downstream skill execution is deterministic: canonical headings, fixed route/status vocabulary, bounded repair loops, clear clarification/terminal routes, and complete handoff fields.
@@ -558,17 +564,21 @@ Do not invent result values outside these vocabularies. Do not use exec-stage or
 Before routing `READY_FOR_EXECUTE`, verify the plan satisfies `pge-exec` Plan Validation requirements:
 
 - `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`
-- At least one issue has `State: READY_FOR_EXECUTE`
-- Each ready issue has: Action, Deliverable, Behavior Contract, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Verification Coupling, Test Expectation, Required Evidence, Dependencies, Risks, and Security
+- `## issues` is a compact Execution Index with `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`
+- At least one indexed issue has `State: READY_FOR_EXECUTE`
+- Every ready indexed issue references an existing readable `issues/Ixxx.md` file
+- Every ready issue file has the default execution fields: goal, plan_context, change, target_areas, recommended_approach, forbidden, and validation
+- Issue state, dependencies, verification coupling, execution type, and security classification come from the `## issues` index and run/progress state, not duplicated issue-file status fields
 - `## forbidden_areas` is present and specific enough for scope drift checks
 - `## stop_conditions` is present and checkable
 - `## terminal_conditions` is present
 - Target Areas are concrete (paths, not vague module names)
 - Verification Coupling is explicit for each ready issue
 - Dependencies reference known issue IDs
-- Assumptions are explicit and non-scope-changing
+- Assumptions or recommended implementation choices are explicit and non-scope-changing
+- `plan.md ## issues` does not contain embedded executable issue bodies or repeated issue-local contract sections
 
-If any check fails, record Final Plan Gate `REVISE` and repair before producing a ready route.
+If any check fails, record Final Plan Gate `REVISE` and repair before producing a ready route. Do not duplicate the full checklist into issue briefs; keep the execution hot path focused on goal, plan context, change, target areas, recommended approach, forbidden boundaries, and validation.
 
 ### Quality Check Result Shape
 
@@ -798,28 +808,38 @@ Vertical slices, not micro-tasks. Rules:
 - Sequential numbering, no skips
 - **Interface-first:** types/contracts before implementations
 - **Vertical slices:** each issue cuts all relevant layers. Horizontal only for genuine shared dependencies.
+- **Closed-loop execution unit:** each ready issue must be independently actionable from `goal`, `plan_context`, `change`, `target_areas`, `recommended_approach`, `forbidden`, and `validation`. If the issue cannot be verified independently, record the exact verification coupling and first trustworthy verification point in the index or optional risk-triggered context.
+- **Split / merge pressure:** split oversized issues that hide multiple outcomes or failure modes; merge over-thin issues that only add a field, rename, placeholder, or check without producing a verifiable issue-local outcome.
 
-Each issue includes:
-- `ID`, `Title`, `Scope`, `Action` (imperative: what to DO)
-- `upstream_decision_refs` (decision IDs or "none"; referenced decisions must not be changed by exec)
-- `Deliverable` (what must exist when done)
-- `Behavior Contract` with `Current Behavior`, `Desired Behavior`, `Behavior Delta`, `Key Interfaces`, **`Trigger Predicate` (for conditional features: when does this fire / what makes input valid)**, **`Output Admission Predicate` (for conditional outputs: what must be true to allow output / minimum contract to publish)**, `Out Of Scope Confirmed`, and `What Not To Infer`. This is the Matt-style execution brief core that `pge-exec` hands to Generator; it must be behavioral, not procedural. Target Areas can name paths, but the behavior contract should name interfaces, types, commands, config shapes, artifact contracts, and scope boundaries without relying on line numbers. **[P1] Trigger Predicate and Output Admission Predicate are required when the feature conditionally triggers or conditionally emits; omit for unconditional work.**
-- `Target Areas` (exact paths: Create/Modify)
-- `Acceptance Criteria`, `Verification Hint`
-- `Verification Coupling`: none | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
-- `Verification Type`: AUTOMATED | MANUAL | MIXED
-- `Execution Type`: AFK | HITL:verify | HITL:decision | HITL:action
-- `Test Expectation`: happy path + edge case + error path (+ integration if boundary)
-- `Required Evidence`: what proves done
+`plan.md ## issues` contains only the Execution Index. Each index row includes:
+- `ID`
+- `File`
+- `Title`
 - `State`: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
-- `Dependencies`, `Risks`
-- `Security`: yes | no (yes if issue touches auth, data access, API boundaries, secrets, permissions, **[P1] or if failure mode includes data corruption / double-publish / stealing active work / irreversibility**. Triggers stricter Evaluator thresholds.)
+- `Depends On`
+- `Verification Coupling`: none | independent | compile-coupled with <issue IDs> | shared verification with <issue IDs> | isolated worktree required | serial verification required
+- `Execution Type`: AFK | HITL:verify | HITL:decision | HITL:action
+- `Security`: yes | no
+- optional compact scheduling hints
+
+Each full issue file under `issues/Ixxx.md` includes:
+- `goal`
+- `plan_context` (semantic plan intent, decision, phase, or slice only)
+- `change`
+- `target_areas`
+- `recommended_approach`
+- `forbidden`
+- `validation`
+
+Optional issue fields may be added only when they reduce execution ambiguity or are risk-triggered: stop-if conditions, source refs, risk notes, key interfaces, trigger/output predicates for conditional behavior, verification coupling details, caller/consumer checks, performance checks, simplification checks, or deeper behavior context. They are not part of the default Generator hot path.
+
+Do not embed full issue files under `plan.md ## issues`. If the selected source contains embedded issue bodies, write the compact index in `plan.md` and move the full execution contracts into `issues/Ixxx.md`.
 
 When issues are compile-coupled or share a verification surface, `Dependencies`, `Risks`, and `Verification Coupling` must make the safe execution strategy explicit. If safe parallel execution requires isolated worktrees, say so; otherwise require serial verification. Do not leave this for `pge-exec` to infer from Target Areas alone.
 
 ### Write Plan Artifact
 
-The plan artifact MUST be written only to `.pge/tasks-<slug>/plan.md`. This `.pge/` path is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifact. ID format: `YYYYMMDD-HHMM-<slug>`.
+The stable plan artifact MUST be written to `.pge/tasks-<slug>/plan.md`, and full issue contracts MUST be written to `.pge/tasks-<slug>/issues/Ixxx.md`. This `.pge/` task directory is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifacts. ID format: `YYYYMMDD-HHMM-<slug>`.
 
 Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Required semantics are binding; optional sections should appear only when they help `pge-exec` execute or help review detect scope drift.
 
@@ -827,6 +847,7 @@ Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Require
 
 ```bash
 mkdir -p .pge/tasks-<slug>/
+mkdir -p .pge/tasks-<slug>/issues/
 ```
 
 ### Final Sanity Pass
@@ -858,7 +879,7 @@ Ready routes require Final Plan Gate `PASS` and `exec_allowed: yes`. If the gate
 
 `.pge/tasks-<slug>/plan.md` is the frozen canonical execution contract only when `plan_gate.verdict: PASS` and `plan_route` is ready. Do not create a separate `canonical-plan.md`; separate draft/frozen plan files would create a second truth surface.
 
-New plan artifacts use `## issues`, `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Non-canonical sources must be rewritten to these headings before `pge-exec`; exec should not interpret alias headings.
+New plan artifacts use `## issues` as an index plus `## forbidden_areas`, `## plan_gate`, `## stop_conditions`, and `## route` with a `plan_route:` value. Non-canonical sources must be rewritten to these headings and issue files before `pge-exec`; exec should not interpret alias headings or embedded issue bodies.
 
 Plans must also include `## terminal_conditions` for known clarification or stop cases: missing evidence, ambiguous selector, stale artifact, plan-changing context, unsafe scope expansion, unverified repo reality, unavailable required checks, and human-only decisions. These are not runtime exceptions. Each condition must either be self-resolved from evidence, confirmed through the normal one-question ask path, or mapped to one gate verdict plus one plan route. If no terminal conditions exist, write the canonical `none | PASS | READY_FOR_EXECUTE | yes` row.
 
@@ -883,17 +904,18 @@ If the user redirects to execution or implementation mid-run, close the stage fi
 
 ## Handoff To Execute
 
-`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads full plan + `.pge/config/*`, then builds a compact per-issue execution pack. Handoff tells exec: issue order, eligible issues, AFK vs HITL, target areas, acceptance criteria, upstream decisions to preserve, assumptions to preserve, risks not to ignore. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
+`pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads the plan index + `.pge/config/*`, builds a shared plan context packet, then lazy-loads selected `issues/Ixxx.md` files to construct compact per-issue execution packs. Handoff tells exec: issue order, issue file paths, eligible issues, AFK vs HITL, goal, plan context, change, target areas, recommended approach, forbidden boundaries, validation, upstream decisions to preserve, and assumptions to preserve. Risk notes and detailed checklists are added only when the issue surface needs them. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
 
 ## Guardrails
 
-Do not: write business code, write implementation pseudocode or function bodies, execute the plan, invoke pge-exec, create run artifacts under `.pge/tasks-*/runs/`, ask non-blocking questions, ask multiple questions, publish GitHub Issues, use forbidden states.
+Do not: write business code, write implementation pseudocode or function bodies, execute the plan, invoke pge-exec, create run artifacts under `.pge/tasks-*/runs/`, ask non-blocking questions, publish GitHub Issues, use forbidden states.
 
 ## Final Response
 
 ```md
 ## PGE Plan Result
 - plan_path: .pge/tasks-<slug>/plan.md
+- issue_files: .pge/tasks-<slug>/issues/Ixxx.md count=<n>
 - plan_route: READY_FOR_EXECUTE | READY_FOR_EXECUTE_WITH_ASSUMPTIONS | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - ready_issues: <ids or None>
 - blocked_issues: <ids or None>

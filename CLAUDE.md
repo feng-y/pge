@@ -8,6 +8,14 @@ The system is defined through markdown contracts, agent definitions, and shell s
 
 Do not treat strategy docs as permission to expand harness theory during normal work.
 
+## PGE execution principle
+
+- PGE is a do-my-best execution system under explicit goal and verification, not a prove-everything-before-execution system.
+- `READY_FOR_EXECUTE` means the current contract is good enough to start, not that no clarification will ever be needed.
+- Issues are the best current executable slices, not perfect closed-world objects.
+- Validation is the strongest economical signal available now, not exhaustive proof.
+- Exec should keep moving inside the contract and clarify only when continuing would change goal, scope, validation, boundaries, or authority.
+
 ## First reads
 
 Before non-trivial work, read in this order:
@@ -92,6 +100,8 @@ This authorization does not extend to target-repo product work, destructive acti
 ## Core invariant
 
 Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.
+
+PGE is a harness, not a substitute for model capability. The harness constrains stage ownership, context boundaries, forbidden scope, and verification feedback loops. It must not decompose ordinary model execution into large required field sets, audit tables, or checklist packets by default. As model capability improves, prefer fewer required fields, stronger natural-language intent, and concrete verification over heavier protocol machinery. Add detailed protocol fields only for risk-triggered surfaces such as security, public APIs, schema/artifact contracts, persistence/migration, route/state vocabulary, performance-sensitive code, or DEEP cross-module work.
 
 PGE requires contract discipline, not template bureaucracy:
 - Research must produce a bounded `research.v3` problem-discovery contract: goal, success shape, scope, non-goals, constraints, task-relevant context, direction, open questions, and route.

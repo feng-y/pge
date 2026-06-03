@@ -38,9 +38,9 @@ target_issue_ids: <future issue IDs or issue group>
 ## Prep Task
 
 Goal: <plan goal, concise>
-Behavior Delta: <future issue behavior delta>
+Change: <future issue change>
 Target Areas: <candidate target areas>
-Verification Hint: <planned verification command>
+Plan Verification: <planned verification command>
 Known Dependencies: <issue IDs or "none">
 Known Risks: <from plan, or "none">
 
@@ -48,7 +48,7 @@ Known Risks: <from plan, or "none">
 
 1. Read only. Do not modify files or artifacts.
 2. Identify likely target surface, existing reusable capability, coupling warnings, legacy traps, verification risks, and stop-if conditions.
-3. Return hints only. Do not claim implementation completion, acceptance, or evidence.
+3. Return hints only. Do not claim implementation completion, validation, or evidence.
 4. If the plan appears wrong in a contract-changing way, report the suspected conflict as a risk for main; do not rewrite the plan.
 ---END PREP DATA---
 ```
@@ -76,8 +76,8 @@ evidence_paths:
 blocked_reason: <only when BLOCKED or STALE; otherwise "none">
 ```
 
-`BLOCKED` means prep could not complete useful read-only analysis. `STALE` means prep completed but its inspected context is no longer current enough for dispatch. Main records and discards blocked or stale prep unless the packet reports a suspected contract-changing risk, which main must evaluate through the ordinary upstream-routing rules.
+`BLOCKED` means prep could not complete useful read-only analysis. `STALE` means prep completed but its inspected context is no longer current enough for dispatch. Main records and discards blocked or stale prep unless the packet reports a suspected contract-changing risk, which main must evaluate through the ordinary clarification / RD-decision path.
 
 If main sends a `status_request`, respond with the expected `preflight_hint` packet, including `status: BLOCKED` if no useful hint can be produced. Repeated no-evidence progress is a prep stall; main may discard the prep result because prep is optional and non-evidence.
 
-Main may use a `READY` output to shape a compact Generator dispatch packet. Prep output is not Required Evidence and must not be cited as acceptance proof.
+Main may use a `READY` output to shape a compact Generator dispatch packet. Prep output is not validation evidence and must not be cited as acceptance proof.
