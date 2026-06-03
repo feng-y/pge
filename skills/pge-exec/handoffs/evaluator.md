@@ -4,7 +4,7 @@
 
 **Native lane responsibility**: Evaluator is an independent verification lane that validates the composed run against the plan using Claude Code native Agent Teams. Evaluator owns final run-level verification by default, plus optional targeted risk checks when main explicitly dispatches them with a concrete bounded question. Evaluator does not replace Generator self-review, does not approve every issue serially, and does not persist state across evaluations.
 
-**Adaptive escalation**: Targeted checks are signal-based escalation when main cannot confidently route from a candidate whose evidence is already complete (plan/code reality conflict, cross-boundary risk on a complete candidate, repair uncertainty after one bounded repair). Weak verification, missing evidence, failed local verification, and incomplete self-review are Candidate Gate failures handled by main and Generator repair, not Evaluator triggers. Escalation supplements Generator default quality; it does not replace it.
+**Adaptive escalation**: Targeted checks are signal-based escalation when main cannot confidently route from a candidate whose evidence is already complete (plan/code reality conflict, cross-boundary risk on a complete candidate, repair uncertainty after one bounded repair). Weak verification, missing evidence, failed issue validation, and incomplete self-review are Candidate Gate failures handled by main and Generator repair, not Evaluator triggers. Escalation supplements Generator default quality; it does not replace it.
 
 ```dot
 digraph evaluator {
@@ -96,7 +96,7 @@ SendMessage(to="evaluator", message="---BEGIN EVALUATION DATA---\n...\n---END EV
 
 Send to `evaluator` for final run-level verification over the composed run after Generator candidates have been produced, or for an explicit targeted risk check when main needs independent review before generation can safely continue. This lane is not a mandatory serial hop after every issue, not Generator's serial reviewer, and not the checker for each Generator candidate. Issue files are supporting issue-local contracts and evidence references; final judgment is the composed run against `plan.md`.
 
-Targeted dispatch is exceptional and must be bounded to a run-blocking question, such as shared interface/protocol risk, security/destructive work that must be checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. Missing evidence, weak evidence, failed local verification, scope drift, or malformed Generator completion are Candidate Gate failures handled by main and Generator repair, not reasons to dispatch Evaluator after the issue.
+Targeted dispatch is exceptional and must be bounded to a run-blocking question, such as shared interface/protocol risk, security/destructive work that must be checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. Missing evidence, weak evidence, failed issue verification, scope drift, or malformed Generator completion are Candidate Gate failures handled by main and Generator repair, not reasons to dispatch Evaluator after the issue.
 
 Evaluator follows the Anthropic harness role: independent QA / alignment review over what the system actually does. Generator owns per-issue implementation, TDD or proportional verification, and candidate quality gates before handoff; Evaluator checks whether the composed run still satisfies the canonical plan and catches issue/goal drift, repo-constraint violations, integration regressions, performance regressions, scope leaks, code-quality defects, and behavior gaps that Generator or main did not catch. Issue completion is evidence, not proof by itself.
 
@@ -125,22 +125,15 @@ Stop Conditions: <plan stop_conditions>
 Issues:
   - issue_id: <N>
     Issue File: <issues/Ixxx.md>
-    Task: <issue file task>
-    Acceptance Criteria: <issue file acceptance>
-    Required Evidence: <issue file required_evidence>
-    Local Validation: <issue file local_validation>
-    Verification Coupling: <issue Verification Coupling>
-    Verification Type: <AUTOMATED | MANUAL | MIXED>
+    Goal: <issue goal>
+    Plan Context: <semantic plan intent, decision, phase, or slice>
+    Change: <issue change>
     Target Areas: <issue Target Areas — scope boundary>
-    Behavior Contract:
-      Current Behavior: <from execution brief>
-      Desired Behavior: <from execution brief>
-      Behavior Delta: <from execution brief>
-      Key Interfaces: <from execution brief>
-      Trigger Predicate: <from execution brief if conditional feature; omit if plan omitted it>
-      Output Admission Predicate: <from execution brief if conditional output; omit if plan omitted it>
-      Out Of Scope Confirmed: <from execution brief>
-      What Not To Infer: <from execution brief>
+    Recommended Approach: <issue recommended approach>
+    Forbidden: <issue forbidden boundaries>
+    Validation: <expected result, check, and evidence>
+    Verification Coupling: <from plan index / run state>
+    Risk-Triggered Checks: <security / public API / schema / persistence / performance / route vocabulary / none>
 
 ## Generator Evidence
 
@@ -148,17 +141,12 @@ Candidates:
   - issue_id: <N>
     Deliverable Path: <from generator_completion>
     Evidence: <from generator_completion>
+    Validation: <from generator_completion>
+    Validation Result: <from generator_completion>
     Changed Files: <from generator_completion>
     Deviations: <from generator_completion>
-    Behavior Contract: <from generator_completion>
-    Changed Hunk Audit: <from generator_completion>
-    Removed Behavior Audit: <from generator_completion>
-    Caller/Consumer Check: <from generator_completion>
-    Edge/Error Coverage: <from generator_completion>
-    Performance Sanity: <from generator_completion>
-    Simplification Check: <from generator_completion>
-    Quality Axes: <from generator_completion>
-    Implementation Notes: <from generator_completion>
+    Notes: <from generator_completion>
+    Risk-Triggered Evidence: <from generator_completion, or "none">
 
 Composed changed files: <union of candidate changed_files>
 Run implementation notes: <.pge/tasks-<slug>/runs/<run_id>/implementation-notes.md>
@@ -170,23 +158,23 @@ Run artifacts path: <.pge/tasks-<slug>/runs/<run_id>/>
 ## Evaluation Rules
 
 1. **Verify independently** — do not trust Generator self-reports. Check the actual files, run artifacts, verification outputs, and plan-relevant behavior.
-2. **Check plan alignment** — the composed diff must satisfy the plan goal, preserve non-goals, deliver each generated issue's Behavior Delta, and cover every generated issue's acceptance criteria as supporting evidence.
-3. **Run verification** — execute relevant issue local validations, plan Verification Hints, stop condition checks, integration checks, or regression checks according to the plan and run state. Record output.
-4. **Check evidence coverage** — every acceptance criterion and behavior-delta claim must point to concrete evidence or a documented manual/HITL gap.
+2. **Check plan alignment** — the composed diff must satisfy the plan goal, preserve non-goals, deliver each generated issue's change, and satisfy each issue's validation.
+3. **Run verification** — execute relevant issue validation checks, plan verification commands, stop condition checks, integration checks, or regression checks according to the plan and run state. Record output.
+4. **Check evidence coverage** — every validation claim must point to concrete evidence or a documented manual/HITL gap.
 5. **Check scope** — composed changed files must be inside issue Target Areas or explicitly justified deviations / issue-boundary adjustments that remain inside the canonical plan contract.
 6. **Check repo constraints** — changed behavior must follow resident rules, local patterns, artifact contracts, route/state vocabulary, and owning skill/agent boundaries.
 7. **Check implementation logic** — validate that changed logic actually implements the plan behavior and composes across issues.
 8. **Check performance and quality** — inspect changed loops, repeated scans, I/O boundaries, parsing/rendering/artifact generation, dead code, debug prints, unnecessary abstractions, and speculative flexibility introduced by the run.
 9. **Check deviations** — justified deviations may pass only when they remain in scope and do not mutate goal, acceptance, target areas, verification, or non-goals.
-10. **Check reviewability** — changed lines should trace to issue-file tasks or justified deviations. Unrelated churn is RETRY or BLOCK according to scope severity.
+10. **Check reviewability** — changed lines should trace to issue-file changes or justified deviations. Unrelated churn is RETRY or BLOCK according to scope severity.
 
 Do not accept Generator's quality axes as proof. Use them as a checklist of claims to verify against the diff and evidence. If Generator missed a concrete in-contract issue, return `RETRY` with the smallest repair path rather than letting the issue escape to `pge-review`.
 
 ## Hard Thresholds (automatic verdicts)
 
-- Required Evidence missing → RETRY
-- Issue local validation, plan Verification Hint, stop condition, integration, or regression command fails → RETRY
-- Any single Acceptance Criterion unmet → RETRY (with specific feedback)
+- Validation evidence missing → RETRY
+- Issue validation check, plan verification command, stop condition, integration, or regression command fails → RETRY
+- Any validation expected result unmet → RETRY (with specific feedback)
 - Plan goal or non-goal violated → RETRY or BLOCK according to whether a bounded in-contract repair exists
 - Repo constraint or artifact contract violated by generated code/docs → RETRY
 - Obvious performance regression introduced by the run → RETRY
@@ -234,7 +222,7 @@ Exception: for `failure_attribution: sibling_issue | newly_added_run_file`, `req
 
 ## MANUAL Verification
 
-If Verification Type = MANUAL:
+If acceptance requires manual/HITL verification:
 - Check what you can (file existence, code structure, evidence)
 - For any acceptance-relevant part still requiring human verification: note it in `evidence_checked`
 - If any acceptance-relevant manual verification is still pending, verdict = BLOCK with reason "manual verification pending" so main can route `NEEDS_HUMAN`

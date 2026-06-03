@@ -28,7 +28,7 @@ Execute a canonical `.pge/tasks-<slug>/plan.md` produced by `pge-plan`, plus the
 
 This is an orchestration skill, but it must stay a light execution coordinator rather than a second planning stage or a heavy process engine. `pge-exec` trusts the canonical plan by default, lets execution choose an implementation path inside the plan contract, records meaningful implementation interpretation in `implementation-notes.md`, and uses staged verification plus final review pressure to prevent drift. Issue slices are progress units, not absolute boundaries; forbidden areas, acceptance semantics, verification gates, non-goals, and high-risk constraints are the hard boundaries.
 
-Generator lanes own implementation, TDD or proportional local verification, issue-contract self-review, and evidence production for assigned issue, issue-group, target-area cluster, or repair-window candidates. Evaluator owns final run-level verification: plan alignment, acceptance/evidence coverage, composed implementation logic, regression/integration risk, and any targeted risk checks main explicitly dispatches before final verification. Evaluator is the independent QA / alignment lane for the composed run, not the serial checker for every Generator issue. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
+Generator lanes own implementation, TDD or proportional issue verification, issue-contract self-review, and evidence production for assigned issue, issue-group, target-area cluster, or repair-window candidates. Evaluator owns final run-level verification: plan alignment, acceptance/evidence coverage, composed implementation logic, regression/integration risk, and any targeted risk checks main explicitly dispatches before final verification. Evaluator is the independent QA / alignment lane for the composed run, not the serial checker for every Generator issue. The stage is expected to produce real code changes through Generator output, not chat-only summaries or ad-hoc pseudocode.
 
 `pge-exec` must prevent common implementation defects before `pge-review`. Final review is an independent audit, not the first place that routine issue/goal alignment, repo-constraint, changed-hunk, performance, code-quality, or evidence failures are discovered. If high-frequency fixable findings regularly escape to `pge-review`, treat that as an execution-stage quality gate failure and strengthen Generator/Evaluator gates rather than making review broader.
 
@@ -50,7 +50,11 @@ Main owns durable route, state, scheduling, evidence map, implementation-note pe
 
 Exec may adapt implementation details inside the plan contract, including local design decisions, simpler implementation paths, small adjacent changes needed for the same acceptance, and issue grouping/order changes. Record meaningful decisions, deviations, tradeoffs, open questions, verification gaps, and learned constraints in `implementation-notes.md`.
 
-Route upstream instead of writing a note when execution would change goal, scope, acceptance, verification, non-goals, forbidden areas, high-risk behavior, required core behavior, or safety/data/security/production/irreversible authority. Small adjacent file changes outside the current issue Target Areas may stay in-contract only when later scope-boundary rules explicitly allow them and the canonical plan contract is unchanged.
+When goal, forbidden boundaries, acceptance, and verification are clear, Exec should push execution forward and repair local issue imperfections instead of asking broad clarifying questions or routing `BLOCKED`. Clarify only when the missing answer affects goal, forbidden boundaries, acceptance, verification trust, target areas, safety/data/security/production authority, or a human-only decision. Clarify until the execution target is clear enough to continue, then continue execution in the same run.
+
+Plan re-entry is a failure signal for the upstream execution contract, not an ordinary clarification path. Exec should not unilaterally exit execution or hand control back when a human/RD decision is needed. It should surface the decision, preserve run state, continue independent in-contract work where possible, and route `NEEDS_HUMAN` for the decision. Re-enter Plan only when the RD/user decision confirms the plan contract must change. If continuing would violate explicit safety/destructive/forbidden boundaries, stop the affected scope and ask for that decision instead of mutating the plan in exec.
+
+Treat goal, acceptance, verification trust, non-goals, forbidden areas, high-risk behavior, required core behavior, or safety/data/security/production/irreversible authority changes as plan-contract decisions. Exec records the decision needed, holds affected work, and continues independent in-contract work; RD/user decides whether that becomes a Plan return. Small adjacent file changes outside the current issue Target Areas may stay in-contract when they are necessary for the same acceptance and do not change the canonical plan contract.
 
 ### Quality-First Functional Parity Baseline
 
@@ -156,7 +160,7 @@ Main dispatches a targeted Evaluator check only when a concrete signal fires. Th
 - Repeated repair occurs (same issue fails after one bounded repair)
 - Current context narrows plan and may invalidate issue boundaries
 
-These are signals, not a brittle checklist. Main must record the observed signal and routing reason whenever it escalates or declines escalation. Missing evidence, weak evidence, or failed local verification are Candidate Gate failures, not targeted Evaluator triggers.
+These are signals, not a brittle checklist. Main must record the observed signal and routing reason whenever it escalates or declines escalation. Missing evidence, weak evidence, or failed issue verification are Candidate Gate failures, not targeted Evaluator triggers.
 
 ## Must Not
 
@@ -222,7 +226,7 @@ This route is not a guarantee that execution can continue. `pge-plan` may return
 
 Exec must consume relevant current context before dispatching work: latest user constraints, corrections made after the plan, observed failures, manual decisions, explicit "do not" or allowed-file restrictions, and task artifacts such as `.pge/tasks-<slug>/review.md` or `.pge/tasks-<slug>/challenge.md` when execution is rerunning from review/challenge feedback. Current context and task artifacts may narrow execution, pause it, or block it; they cannot silently expand the plan.
 
-Exec is not the stage for major intent discovery, normalization, or plan-changing clarification. If current context raises unresolved questions about goal, scope, acceptance, target areas, or verification, route back to `pge-plan` or `pge-research`; the upstream contract was not ready. If context changes goal, scope, acceptance, target areas, or verification, stop and route back unless the plan already authorizes that adjustment.
+Exec is not the stage for major intent discovery or source normalization. If current context raises unresolved questions about goal, scope, acceptance, target areas, or verification, hold only the affected issue/scope, clarify enough to restore a clear execution target, and continue independent in-contract work when possible. If the answer would change the plan contract, record the RD/user decision needed; re-enter `pge-plan` only after that decision confirms the canonical plan must change.
 
 Broken and ambiguous handoffs:
 - If an explicit continuation target is named but the corresponding `.pge/tasks-<slug>/plan.md` is missing, report a broken handoff instead of silently pretending the plan artifact exists.
@@ -242,22 +246,22 @@ All run output goes to `.pge/tasks-<slug>/runs/<run_id>/`. Review/challenge reru
 
 Validate before lane creation:
 - `plan_route` is `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`.
-- `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`. If absent, failing, or ambiguous, route upstream to `pge-plan` for fast-adopt / contract upgrade; do not treat Plan Engineering Review alone as execution authorization.
+- `plan_gate` exists with `Verdict: PASS` and `Exec Allowed: yes`. If absent, failing, or ambiguous, stop before lane creation and report the broken execution source; do not treat Plan Engineering Review alone as execution authorization.
 - If route is `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, assumptions are explicit in the canonical plan.
 - Plan shape is `issue_file_plan`: `## issues` is a compact index with `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`, and ready issue files exist under `issues/`.
-- Embedded full issue bodies under `plan.md ## issues` are `non_canonical_plan_shape`. Stop before creating a run, report the failure reason, and route to `pge-plan` for contract upgrade. Do not extract embedded issue bodies inside exec.
+- Embedded full issue bodies under `plan.md ## issues` are `non_canonical_plan_shape`. Stop before creating a run and report the failure reason. Do not extract embedded issue bodies inside exec.
 - At least one indexed issue has `State: READY_FOR_EXECUTE`.
 - `## stop_conditions` is present and checkable.
-- Each ready issue file exists and has status, context, task, behavior_contract, scope, target_areas, acceptance, local_validation, required_evidence, risks, source_refs, Verification Type, Verification Coupling, Dependencies, Execution Type, and Security.
-- Index fields for `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security` agree with the issue file `## status`.
-- Conditional issues must carry the `Trigger Predicate` and/or `Output Admission Predicate` required by their Behavior Contract; if a conditional issue is missing its predicate, route upstream to `pge-plan` for contract repair before dispatch.
+- Each ready issue file exists and has the default execution fields: goal, plan_context, change, target_areas, recommended_approach, forbidden, and validation.
+- Issue state, dependencies, verification coupling, execution type, and security classification come from the `## issues` index and run/progress state, not duplicated issue-file status fields.
+- Optional fields such as trigger/output predicates, source refs, risks, key interfaces, caller checks, performance checks, or simplification checks are required only when the issue risk surface makes them necessary for fair execution or verification.
 - Forbidden areas are present and specific enough for scope drift checks.
-- Terminal conditions are present. Any condition with `Exec Allowed: no` or an unresolved trigger blocks execution and routes upstream; do not waive it in `implementation-notes.md`.
-- Each ready issue includes Verification Coupling. If it is missing, route upstream to `pge-plan` for contract repair before dispatch.
+- Terminal conditions are present. Any condition with `Exec Allowed: no` or an unresolved trigger blocks dispatch for the affected scope; do not waive it in `implementation-notes.md`.
+- Each ready issue has schedulable verification coupling from the index or a clear default independent strategy. If coupling is ambiguous, hold only the affected issue(s), clarify enough to continue, and continue independent issues when possible.
 - Dependencies reference known issue IDs and no dependency cycle exists.
 - Target Areas are concrete enough for scope drift checks.
 
-Exec may consume assumptions already in the canonical plan. It must not invent new assumptions. If assumptions are missing, unclear, or plan-changing, route upstream.
+Exec may consume assumptions already in the canonical plan. It must not invent plan-changing assumptions. If assumptions are missing, unclear, or plan-changing, hold only affected issues, clarify enough to restore a clear execution target, preserve run state, and continue independent work when possible. Changing the plan contract or exiting exec is an RD/user decision.
 
 Parse the issue graph from canonical `## issues` index fields first. Dispatch only indexed issues with `State: READY_FOR_EXECUTE`, in issue-ID order unless dependencies or verification coupling require a stricter order. Load full `issues/Ixxx.md` files only for issues selected for dispatch, validation, repair, or final evaluation context. Issues with `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` are skipped and recorded in manifest. If all issues are non-ready, route `BLOCKED`.
 
@@ -288,7 +292,7 @@ plan_context_packet:
 
 Record only a packet summary or fingerprint in `runs/<run_id>/manifest.md`; do not create a new task-level source artifact.
 
-Rollback point: before execution starts, create a git tag `pge-exec-pre-<run_id>`. If exec routes `BLOCKED` or `PARTIAL` after modifying files, the user can roll back with `git reset --hard pge-exec-pre-<run_id>`. Record the tag in `state.json` and manifest.
+Rollback point: before execution starts, create a git tag `pge-exec-pre-<run_id>` and record it in `state.json` and manifest. Exec must not run destructive rollback commands. If exec routes `BLOCKED` or `PARTIAL` after modifying files, report the tag as a manual recovery reference for RD/user decision outside the exec workflow.
 
 ## Team Protocol
 
@@ -369,7 +373,7 @@ Recovery:
 - If `TeamCreate` fails before any lane exists, cleanup and retry once.
 - If lane spawn fails before registration, cleanup and retry once with the same selected default/custom `subagent_type`.
 - If a lane registers but fails Agent Startup Verification because of auth/startup/channel readiness, do not retry spawn; record the failure and use the Fallback Protocol for the affected issue or evaluation scope.
-- If retry still cannot create a usable team or startup fallback cannot produce required evidence, route `BLOCKED`.
+- If retry still cannot create a usable team or startup fallback cannot produce validation evidence, route `BLOCKED`.
 - If no required `generator-*` lane remains available for normal lane execution, either use startup-only fallback for affected issues or route `BLOCKED` with `team_runtime_unavailable: generator` when fallback is not allowed.
 - If `evaluator` remains unavailable for final verification or targeted checks, use main-thread fallback verification only when startup/auth/channel failure is recorded; otherwise route `BLOCKED`.
 - A replacement lane is not usable until it sends valid `lane_ready` and passes Agent Startup Verification.
@@ -415,7 +419,7 @@ Adaptive scaling (existing safe concurrency):
 **Concurrency eligibility** (existing safe boundaries):
 - Independent Generators require: no dependency overlap, no Target Area overlap, no unsafe shared verification surface (compile-coupled work uses isolated worktrees or serialized integration verification).
 - Parallel final reviewers: reviewer agents may run concurrently after final Evaluator verification, with main synthesizing one `review.md` from their findings.
-- Quality gates remain unchanged: existing concurrency must not bypass Candidate Gate, final Evaluator, Exec QA Gate, or required evidence.
+- Quality gates remain unchanged: existing concurrency must not bypass Candidate Gate, final Evaluator, Exec QA Gate, or validation evidence.
 
 **Shared-context mechanics** are explicitly excluded from this execution model. Future designs for cross-lane context sharing, persistent lane state, or inter-issue learning artifacts require separate contracts with defined lifecycle, staleness handling, and evidence boundaries. Do not implement shared-context persistence, new state schemas, or cross-lane scheduling artifacts in the current `pge-exec` contract.
 
@@ -435,7 +439,7 @@ Read these authoritative handoff contracts:
 
 ## Issue Loop
 
-Default execution is generator-first with concurrent scheduling. Generator produces issue candidates with TDD or proportional local verification, issue-contract self-review, and evidence. Evaluator is an independent final verification lane over the composed run, with optional targeted risk checks before final verification only when main explicitly dispatches them. Do not force a fixed Generator -> Evaluator serial hop after every issue, and do not treat Evaluator as Generator's reviewer.
+Default execution is generator-first with concurrent scheduling. Generator produces issue candidates with TDD or proportional issue verification, issue-contract self-review, and evidence. Evaluator is an independent final verification lane over the composed run, with optional targeted risk checks before final verification only when main explicitly dispatches them. Do not force a fixed Generator -> Evaluator serial hop after every issue, and do not treat Evaluator as Generator's reviewer.
 
 **Targeted Evaluator checks** (adaptive escalation, not default quality guarantee): Main may dispatch one only when a bounded, run-blocking risk question cannot be answered by Generator self-review or main's Candidate Gate. Examples: shared interface/protocol change whose correctness affects multiple pending issues, security/destructive work that must be independently checked before more generation continues, cross-issue composition risk, or an explicit user request for independent mid-run review. A targeted check must include a concrete `targeted_question`; "verify this candidate" is not a valid targeted question.
 
@@ -445,23 +449,17 @@ The recognized trigger signals are defined in the Targeted Evaluator Triggers se
 - Changed surface has cross-boundary risk (shared protocol, security surface, data migration, cross-issue composition)
 - Evidence is complete but exposes an unresolved cross-boundary risk that cannot be answered inside the issue contract
 
-Evidence completeness is a precondition for escalation, not a trigger for it. Missing evidence, weak evidence, failed local verification, unrecorded scope drift, or incomplete self-review are Generator/Candidate Gate failures, not targeted Evaluator triggers; main must reject the candidate and send bounded Generator repair, classify the blocker, or route upstream instead of dispatching Evaluator over a malformed candidate.
+Evidence completeness is a precondition for escalation, not a trigger for it. Missing evidence, weak evidence, failed issue verification, unrecorded scope drift, or incomplete self-review are Generator/Candidate Gate failures, not targeted Evaluator triggers; main must reject the candidate and send bounded Generator repair, classify the blocker, or hold the affected issue for clarification instead of dispatching Evaluator over a malformed candidate.
 
 Main must record the observed signal and routing reason whenever it escalates to targeted Evaluator or declines escalation. Adaptive escalation is signal-based, not a brittle trigger matrix. Escalation supplements Generator default quality; it does not replace it. Strong default Generator quality (from Issue 2 code-review-informed checks) handles routine defects before targeted checks are needed.
 
-Candidate malformed states are not targeted Evaluator triggers. Missing evidence, weak evidence, failed local verification, unrecorded or weakly justified Target Area drift, absent deviation records, or incomplete self-review are Generator contract failures. Main must reject the candidate and send a bounded repair request, classify the issue blocker, or route upstream; it must not hand the failed self-review to Evaluator as a per-issue approval gate.
+Candidate malformed states are not targeted Evaluator triggers. Missing evidence, weak evidence, failed issue verification, unrecorded or weakly justified Target Area drift, absent deviation records, or incomplete self-review are Generator contract failures. Main must reject the candidate and send a bounded repair request, classify the issue blocker, or clarify the affected contract gap; it must not hand the failed self-review to Evaluator as a per-issue approval gate.
 
 For each ready issue:
 
 1. Dependency check: if the issue depends on a `BLOCKED` issue, mark it `BLOCKED` with dependency reason.
-2. Build a compact issue execution brief. The brief is the authoritative per-issue Generator input derived from the selected issue file plus read-only `plan_context_packet`; surrounding conversation, the full plan, and sibling issue files are context only. Include only this issue file's task/action, Target Areas, Acceptance, local validation, Required Evidence, Verification Coupling, relevant assumptions, dependencies, directly needed repo context, upstream decision refs needed for semantic alignment, and a `behavior_contract`:
-   - `current_behavior`: current behavior or current repo state the issue changes, from the issue and fresh code read
-   - `desired_behavior`: behavior or contract that must be true after the issue
-   - `behavior_delta`: the smallest behavior/contract change Generator must deliver
-   - `key_interfaces`: types, functions, commands, config shapes, or artifact contracts Generator should inspect without relying on stale line numbers
-   - `out_of_scope_confirmed`: adjacent work, non-goals, and forbidden changes that must not be touched
-   - `what_not_to_infer`: assumptions Generator must not invent from surrounding context
-   Target Areas remain scope boundaries, not procedural instructions to make arbitrary edits in those files. Do not paste full plan text, all issue files, sibling implementation details, or generic anti-pattern catalogs into the brief. Add sibling issue context only when dependency or verification coupling requires it, preferably from the index or prior run evidence.
+2. Build a compact issue execution brief. The brief is the authoritative per-issue Generator input derived from the selected issue file plus read-only `plan_context_packet`; surrounding conversation, the full plan, and sibling issue files are context only. The default brief includes only goal, plan context, change, Target Areas, recommended approach, forbidden boundaries, and validation.
+   Target Areas remain scope boundaries, not procedural instructions to make arbitrary edits in those files. Do not paste full plan text, all issue files, sibling implementation details, generic anti-pattern catalogs, or the full Candidate Gate checklist into the dispatch brief. Add sibling issue context only when dependency or verification coupling requires it, preferably from the index or prior run evidence.
    Main may add `implementation_guidance` only when a concrete issue-specific risk is visible. Keep it to 1-3 bullets, such as "keep this local to <surface>", "reuse <existing capability>", or "stop if this requires <forbidden/high-risk area>". Guidance is shaping, not a gate and not a checklist.
    Main may include `prep_hint` conclusions when a read-only prep lane produced them, clearly labeled as hints rather than evidence.
 3. Dispatch Generator using `skills/pge-exec/handoffs/generator.md` only after the target lane has passed Agent Startup Verification. Send the execution brief through the Team channel:
@@ -472,22 +470,15 @@ For each ready issue:
 
    If Generator startup/channel readiness failed before dispatch and fallback is active, main consumes the same execution brief directly and records `execution_mode: main_thread_fallback`.
 4. Require exactly one terminal `generator_completion` packet for that attempt, or the same packet-shaped evidence from main when startup fallback owns the attempt.
-5. Candidate Gate: validate Generator's own completion contract before any integration:
+5. Candidate Gate: validate Generator's own completion contract before any integration. Default checks:
    - deliverable exists for `READY`
-   - evidence is present and matches Required Evidence
+   - validation evidence is present and matches the issue validation
    - status is `READY` or `BLOCKED`
    - changed files are listed
    - every changed file is inside Target Areas or explicitly recorded as a justified deviation
-   - deviations and implementation notes are recorded
-   - `behavior_contract` is present and maps current behavior, desired behavior, behavior delta, key interfaces checked, verification points, and out-of-scope items
-   - `changed_hunk_audit` is present for changed files and covers issue/goal alignment, repo constraints, deleted invariants, caller/callee/consumer impact, edge/error paths, performance, code quality, scope, and evidence
-   - `removed_behavior_audit` is present when lines were deleted or replaced, confirming guards/invariants/validations are preserved or intentionally removed
-   - `caller_consumer_check` is present when exported contracts changed, confirming immediate callers/consumers remain compatible
-   - `edge_error_coverage` confirms at least one realistic edge case and error path was checked for behavior changes
-   - `performance_sanity` confirms no obvious regressions (N+1 queries, unbounded loops, missing pagination, sync-for-async) in changed code
-   - `simplification_check` confirms new code avoids deep nesting (3+ levels), long functions (50+ lines for simple logic), unnecessary abstractions, dead code, and speculative flexibility
-   - `quality_axes` reports issue_alignment, goal_alignment, repo_constraints, verification, performance, and code_quality as passed / not_applicable where relevant
-   - contract self-review covers issue-file task, deliverable/equivalent output, behavior delta, Acceptance Criteria, Local Validation, Required Evidence, Target Areas, scope drift, maintainability, and obvious regressions
+   - completion maps change and validation to concrete output
+   - deviations and implementation notes are recorded when present
+   - risk-triggered checks are present only when the issue touches security, public API/CLI, schema/artifact layout, persistence/migration, performance-sensitive code, route/state/vocabulary, or other DEEP/cross-module behavior
    - TDD / verification evidence is proportional to the issue: meaningful behavior RED/GREEN where applicable, or the strongest plan-authorized contract-level verification when a RED test would be artificial
    - Generator must not send `READY` with known in-contract bugs, weak evidence, unresolved scope drift, obvious performance regression, or avoidable code-quality defects
    - any `BLOCKED` packet includes blocker classification, source files, and repairability
@@ -589,10 +580,10 @@ When Evaluator returns `RETRY` for a targeted or final check:
    - `issue_under_review`: repair the owning issue's Generator candidate.
    - `sibling_issue` or `newly_added_run_file`: route `shared_tree_contamination`, hold affected issues, repair the implicated source first, then rerun held verification.
    - `environment_or_manual`: route `NEEDS_HUMAN`, `BLOCKED`, or verification-gap handling according to subtype.
-   - `not_applicable` on final verification: repair the smallest generated issue whose issue-file task/Target Areas own the implicated behavior; if no owner exists, route `PARTIAL` or upstream instead of inventing a new issue.
+   - `not_applicable` on final verification: repair the smallest generated issue whose issue-file change/Target Areas own the implicated behavior; if no owner exists, route `PARTIAL` or ask RD/user whether the plan contract should change instead of inventing a new issue.
 4. If `retry_budget_remaining` is 0, main does not dispatch Generator. Route `PARTIAL` or `BLOCKED` according to completed work and repairability.
-5. Main sends `repair_request` to Generator using the original issue execution brief plus the Evaluator Repair Contract. The issue-file task, Behavior Contract, Acceptance Criteria, Target Areas, Local Validation / Verification Hint, and non-goals remain unchanged unless the finding explicitly routes upstream.
-6. Generator fixes only `required_fixes`, reruns the issue Local Validation / Verification Hint, and returns a fresh `generator_completion`.
+5. Main sends `repair_request` to Generator using the original issue execution brief plus the Evaluator Repair Contract. The issue goal, plan context, change, Target Areas, recommended approach, forbidden boundaries, and validation remain unchanged unless RD/user explicitly changes the plan contract.
+6. Generator fixes only `required_fixes`, reruns the issue validation check or relevant plan verification command, and returns a fresh `generator_completion`.
 7. Main runs Candidate Gate on the repaired completion. If it fails, main sends bounded Generator repair or classifies the blocker; it does not ask Evaluator to compensate for a malformed repair.
 8. After Candidate Gate passes, main re-dispatches Evaluator:
    - For `targeted_check`, re-run the same `targeted_question` with the repaired candidate and prior finding as `recheck_scope`.
@@ -609,13 +600,13 @@ After each `GENERATED` candidate, record:
 issue_id:
 changed_files:
 candidate_plan_contract_fields:
-candidate_acceptance_claim:
-candidate_verification_result:
-required_evidence:
+candidate_validation_claim:
+candidate_validation_result:
+validation_evidence:
 deviation_from_plan: none | <what changed and why>
 ```
 
-Any deviation that changes goal, scope, target areas, acceptance, verification, or non-goals must stop execution and route back to `pge-plan` unless the plan already authorized that deviation.
+Any deviation that changes goal, scope, target areas, validation, forbidden boundaries, or non-goals must stop the affected work and require RD/user decision unless the plan already authorized that deviation.
 
 Implementation notes are audit notes, not a parallel plan. Record only facts that help review or continuation:
 
@@ -640,9 +631,9 @@ Implementation notes are audit notes, not a parallel plan. Record only facts tha
 <!-- Anything that could not be verified within the current run -->
 ```
 
-Use `route_upstream_required` for anything that would change goal, scope, target areas, acceptance, verification, or non-goals, then stop and route to `pge-plan` or `pge-research`. Use `follow_up` only for work that should not expand the current run.
+Use `plan_contract_decision_required` for anything that would change goal, scope, target areas, acceptance, verification, or non-goals. Hold the affected work, continue independent in-contract work where possible, and ask RD/user for the decision; re-enter `pge-plan` only if that decision confirms the canonical plan must change. Use `follow_up` only for work that should not expand the current run.
 
-Rewind-style retry: if a Generator attempt used the wrong approach, record the learned constraint, return to the clean issue execution pack, and redispatch a fresh attempt with what the failed attempt proved, what path must not be repeated, unchanged issue-file task/Acceptance Criteria, and the smallest allowed repair direction. This consumes the next normal retry attempt and never resets the per-issue max of 3 attempts.
+Rewind-style retry: if a Generator attempt used the wrong approach, record the learned constraint, return to the clean issue execution pack, and redispatch a fresh attempt with what the failed attempt proved, what path must not be repeated, unchanged issue-file change/validation, and the smallest allowed repair direction. This consumes the next normal retry attempt and never resets the per-issue max of 3 attempts.
 
 Generator rules summary:
 - Read `skills/pge-exec/references/generator-rules.md`.
@@ -651,13 +642,13 @@ Generator rules summary:
 - Wrong approach means fresh execution pack with learned constraint.
 - Destructive git is prohibited.
 - Failed package install means `BLOCKED`, not auto-retry.
-- Fix only what the issue-file task and Acceptance Criteria require; adjacent in-contract issue-boundary adjustments require notes.
+- Fix only what the issue-file change and validation require; adjacent in-contract issue-boundary adjustments require notes.
 
 Evaluator rules summary for final or explicitly targeted checks:
 - Read `skills/pge-exec/references/evaluator-thresholds.md`.
-- Required Evidence missing means `RETRY`.
-- Local Validation / Verification Hint fails means `RETRY` with `failure_attribution`; sibling/new-run-file attribution routes through shared-tree contamination, not automatically to the issue being checked.
-- Any Acceptance Criterion unmet means `RETRY` with specific feedback.
+- Validation evidence missing means `RETRY`.
+- Issue validation or relevant plan verification command failure means `RETRY` with `failure_attribution`; sibling/new-run-file attribution routes through shared-tree contamination, not automatically to the issue being checked.
+- Any validation expected result unmet means `RETRY` with specific feedback.
 - Deliverable missing means `BLOCK`.
 - Unjustified scope drift outside Target Areas means `BLOCK`; weakly justified but plausibly in-contract issue-boundary adjustments should be repaired with clearer notes/evidence or removal.
 - Generator self-reported `BLOCKED` must not be overridden to `PASS`.
@@ -682,7 +673,7 @@ Resumable states:
 - `IN_PROGRESS`
 - `PARTIAL`
 - recoverable `BLOCKED` after the blocking input or environment issue has changed
-- `NEEDS_HUMAN` only after the required human input has been supplied, including confirmation, decision, or manual action completion
+- `NEEDS_HUMAN` with the pending confirmation, decision, manual verification, or manual action recorded in state. On resume, continue only after the required human input is supplied; otherwise remain in the waiting state without losing run context.
 
 Non-resumable by default:
 - `SUCCESS`
@@ -773,18 +764,18 @@ Minimum exception routing:
 
 | Failure surface | Required handling |
 |---|---|
-| non-canonical source | ask once whether to activate through `pge-plan`; stop if declined or ambiguous |
+| non-canonical source | ask whether RD/user wants to activate it through `pge-plan`; stop before execution if declined or still ambiguous |
 | `pge-plan` returns `NEEDS_HUMAN` or `BLOCKED` | do not bypass; resume exec only after a ready canonical plan exists |
 | missing canonical plan | `BLOCKED` with broken handoff reason |
 | invalid plan route / missing stop condition / no ready issues | `BLOCKED` before execution |
-| post-plan user correction expands scope | route upstream to `pge-plan` or `NEEDS_HUMAN` |
+| post-plan user correction expands scope | pause before expanding; clarify enough to restore a clear execution target; preserve run state and ask RD/user whether to change the plan contract; re-enter Plan only after that decision |
 | ambiguous run selection | stop before lane creation and require explicit resume/new-run decision |
 | selected run has missing/corrupt `state.json` | route selected run `BLOCKED`; do not reuse partial artifacts |
 | repair artifact provenance missing / unreadable / ambiguous | route run `BLOCKED`, reject the artifact, recommend rerunning the matching review/challenge, and do not start bounded repair |
 | repair artifact run reference missing or unreadable | route run `BLOCKED`, reject the artifact, recommend rerunning the matching review/challenge, and do not reuse the artifact as repair truth |
 | repair artifact plan identity mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
 | repair artifact reviewed head / base / diff fingerprint mismatch | route run `BLOCKED`, reject the artifact as stale, recommend rerunning the matching review/challenge, and do not consume `in-contract` findings |
-| TeamCreate failure before lane registration | cleanup, retry once; if still unavailable, record `startup_failure_surface: spawn_failure` and route `BLOCKED` unless startup fallback can produce required evidence for the affected scope |
+| TeamCreate failure before lane registration | cleanup, retry once; if still unavailable, record `startup_failure_surface: spawn_failure` and route `BLOCKED` unless startup fallback can produce validation evidence for the affected scope |
 | lane spawn failure before dispatch | cleanup, retry once with the same selected default/custom `subagent_type`; if still unavailable, record `startup_failure_surface: spawn_failure` and use startup fallback for the affected issue or evaluation scope when allowed |
 | invalid lane registration (`agentType` missing/null/mismatch, wrong lane name, wrong backend, wrong cwd) | do not dispatch; record `startup_failure_surface: invalid_lane_registration`; use startup fallback when allowed, otherwise `BLOCKED` |
 | `lane_ready` timeout or malformed readiness after one nudge | do not dispatch; record `startup_failure_surface: lane_ready_timeout`; use startup fallback when allowed, otherwise `BLOCKED` |
@@ -792,10 +783,10 @@ Minimum exception routing:
 | startup fallback selected but required generator/evaluator-shaped evidence is missing | route `BLOCKED`; do not claim fallback completion |
 | generator `BLOCKED` from compile/include/type/local interface failure | classify as implementation-blocked; hold dependent or contaminated issues; schedule bounded repair or main takeover; retry verification after the tree is buildable |
 | generator `BLOCKED` from sibling issue or newly added file breaking verification | route `shared_tree_contamination`; issue under verification becomes `HELD`; contaminating source becomes priority repair; rerun held verification after recovery |
-| generator `BLOCKED` from plan/scope/user-decision dependency | classify as contract-blocked; record issue `BLOCKED`; continue only with independent issues |
+| generator `BLOCKED` from plan/scope/user-decision dependency | clarify enough to restore a clear execution target; preserve run state, ask RD/user for the decision when needed, hold only affected issues, and continue independent issues |
 | missing or malformed `generator_completion` | nudge once, then lane recovery or issue `BLOCKED` |
 | no meaningful lane progress after dispatch | send one `status_request`; if no concrete progress or terminal packet follows, recover lane once; if recovery stalls, route `BLOCKED` with `progress_watchdog_stall` |
-| Candidate Gate failure from missing evidence, weak evidence, failed local verification, unrecorded Target Area drift, missing behavior contract, missing changed-hunk audit, failed quality axis, missing contract self-review, artificial/implementation-restating tests, or malformed `READY` packet | do not dispatch Evaluator; send bounded Generator repair if locally repairable, otherwise classify blocker |
+| Candidate Gate failure from missing evidence, weak evidence, failed issue verification, unrecorded Target Area drift, artificial/implementation-restating tests, malformed `READY` packet, or missing risk-triggered evidence | do not dispatch Evaluator; send bounded Generator repair if locally repairable, otherwise classify blocker and continue independent work when possible |
 | repeated or unclear development error | enter Diagnostic Recovery; do not spend another repair attempt until a reproducible loop, symptom record, and root-cause hypothesis exist |
 | targeted/final evaluator `RETRY` with `failure_attribution: sibling_issue | newly_added_run_file` | route `shared_tree_contamination`; hold affected issues; repair implicated source first; rerun affected verification after recovery |
 | other targeted/final evaluator `RETRY` | materialize an Evaluator Repair Contract with `finding_id`, `recheck_scope`, repair owner, and remaining retry budget; dispatch bounded Generator repair through main; re-dispatch Evaluator after Candidate Gate passes |
@@ -805,7 +796,7 @@ Minimum exception routing:
 | missing or malformed `evaluator_verdict` | nudge once, then lane recovery or run `BLOCKED` |
 | no-change repair | stop retry loop and route issue `BLOCKED` if no new approach |
 | dependency blocked | dependent issue becomes `BLOCKED` with dependency reason |
-| Target Area drift | accept only when justified as an in-contract issue-boundary adjustment with evidence; otherwise send bounded repair, route issue `BLOCKED`, or route upstream if the plan boundary changed |
+| Target Area drift | accept only when justified as an in-contract issue-boundary adjustment with evidence; otherwise send bounded repair, route issue `BLOCKED`, or ask RD/user whether the plan boundary should change |
 | HITL confirmation, decision, or action required | route `NEEDS_HUMAN`; do not auto-approve or choose defaults in headless mode |
 | verification command fails from compile/include/type/local interface error | implementation-blocked; repair or takeover before terminal routing |
 | verification command fails in sibling issue or newly added file | route `shared_tree_contamination`; hold affected issue and repair source first |
@@ -881,7 +872,7 @@ Semantic alignment check: before `SUCCESS`, verify the composed diff still satis
 
 Integration verification: if the plan touches 3+ files across 2+ modules, run an integration-level check beyond individual issue verification: full test suite, app startup, or plan-specified integration command. Record result in manifest.
 
-Regression check: after all dispatchable Generator candidates are `GENERATED`, re-run relevant Verification Hints against the composed tree. If any regressed, route bounded repair, `PARTIAL`, or `BLOCKED` with regression evidence according to repairability.
+Regression check: after all dispatchable Generator candidates are `GENERATED`, re-run relevant issue validation checks or plan verification commands against the composed tree. If any regressed, route bounded repair, `PARTIAL`, or `BLOCKED` with regression evidence according to repairability.
 
 After final Evaluator verification, the `stop_conditions` check, integration verification, and regression checks pass, run Exec QA Gate. `SUCCESS` requires final Evaluator verification to pass and the Exec QA Gate to return `PASS` / `ADVISORY_ONLY`. `REPAIR_REQUIRED` must either be repaired inside the current bounded plan or route `PARTIAL`. `BLOCKED` prevents `SUCCESS`. Do not auto-invoke `pge-review` or `pge-challenge`; those are explicit next-stage skills after `pge-exec` completes.
 

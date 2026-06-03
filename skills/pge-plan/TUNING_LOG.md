@@ -158,9 +158,9 @@ Full comparison: `docs/design/pge-plan-framework-comparison.md`
 4. **Phase 2**: Added `Scope Reduction Prohibition` with prohibited words list and 3 valid reduction reasons.
 5. **Phase 3 Self-Evaluation**: Added Decision Classification (Mechanical/Taste/User Challenge) — only User Challenge may trigger ASK_USER.
 6. **Phase 3 Synthesize**: Added context budget guidance (~50% executor context, split if exceeds).
-7. **Phase 4 Issues**: Added `Verification Type` (AUTOMATED/MANUAL/MIXED) and `Execution Type` (AFK/HITL).
+7. **Phase 4 Issues**: Added execution-mode metadata; later lightweight contract work collapsed issue proof detail into `validation`.
 8. **Phase 4 Self-Review**: Added traceability check (requirement → issue mapping) and confidence check.
-9. **Template**: Updated with all new fields (depth, Coverage Audit table, Confidence Summary, Classification, Verification Type, Execution Type, AFK/HITL in Handoff).
+9. **Template**: Updated with the then-current expanded fields; later lightweight contract work removed default heavy fields from the hot path.
 10. **Version**: bumped to 0.3.0.
 
 ### Evaluation (Round 5, 4 cases)
@@ -314,7 +314,7 @@ Key gaps found:
 2. No `Deliverable` — exec must infer what must EXIST when done
 3. Target Areas was vague ("files/modules") vs exact paths with Create/Modify
 4. No `Test Expectation` per issue — no test design guidance for exec
-5. No `Required Evidence` — evaluator doesn't know what to check
+5. No explicit evidence expectation — evaluator doesn't know what to check
 6. No `Stop Condition` — exec doesn't know when the plan as a whole is done
 7. No verification path for LOW-confidence assumptions
 8. No post-write confidence gate (CE's "Confidence Check and Deepening")
@@ -327,7 +327,7 @@ Full comparison: `docs/design/pge-plan-io-comparison.md`
 2. Added `Deliverable` field — what must exist when done
 3. Changed `Target Areas` to require exact paths with Create/Modify distinction
 4. Added `Test Expectation` — happy path + edge case per issue
-5. Added `Required Evidence` — what must be shown to prove done
+5. Added evidence expectation — what must be shown to prove done
 6. Added `Stop Condition` section to plan template
 7. Added verification path to LOW-confidence findings
 8. Added bounded confidence gate (max 1 re-entry to Phase 2 if LOW confidence affects correctness)
@@ -376,7 +376,7 @@ Rounds 9-10 are a **pass**. The output is now aligned with both external best-pr
 
 Key metrics:
 - Human-in-loop: ~75% → ~25% escalation rate (Decision Classification + Authority Limits)
-- Output actionability: exec needs zero interpretation (Action + Deliverable + Required Evidence)
+- Output actionability: exec needs zero interpretation (Action + Deliverable + Evidence expectation)
 - Requirement coverage: triple-check (Coverage Audit + Goal-backward + Traceability)
 - Self-correction: 6-step Self-Review + bounded confidence gate re-entry
 - Agent alignment: full section mapping with pge-planner contract
@@ -459,7 +459,7 @@ Mirror pge-research Round 4 on the plan side: ensure plan correctly consumes `ob
 1. **Authority enum closure.** Field authority table consumes `observed_behavior` (not a preservation constraint without user confirmation) and any valid base authority with the `/ needs_confirmation` suffix (must confirm / lock in acceptance / route NEEDS_INFO, never silent ASSUME_AND_RECORD). Source Authority Check now carries the suffix through the research→plan mapping instead of stripping it: `inferred_by_research / needs_confirmation` → `inherited_from_research / needs_confirmation`.
 2. **Core Friction classification.** Self-Evaluation gained `Core Friction` classification + `LOCK_IN_ACCEPTANCE` decision in both SKILL.md and the plan template, so a safety/correctness/scope friction cannot be silently ASSUME_AND_RECORD'd.
 3. **Safety amplifier.** `Security: yes` now triggers when failure mode includes data corruption / double-publish / stealing active work / irreversibility, raising Evaluator thresholds for those issues.
-4. **Conditional-feature predicates.** Behavior Contract gained `Trigger Predicate` (when does this fire / what makes input valid) and `Output Admission Predicate` (minimum contract to publish) for conditional features. Plan-gate Layer 1 validates them; exec generator handoff carries them through.
+4. **Conditional-feature predicates.** Conditional trigger/admission details were added for conditional features; later lightweight contract work made them risk-triggered rather than default issue fields.
 5. **Naming coherence** added to the Inconsistency Grill (config key naming drift like `backfill_policy` vs `[fallback]`).
 
 ### Cross-stage fixes (Codex 5 critical gaps)
@@ -467,7 +467,7 @@ Mirror pge-research Round 4 on the plan side: ensure plan correctly consumes `ob
 - Gap 2: core friction parkable without authority tag → research now mandates `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation` in Authority Notes (AND, not OR).
 - Gap 3: brief.md called observed facts "invariants the plan must preserve" without authority → now authority-qualified.
 - Gap 4: plan template Self-Evaluation lacked Core Friction + LOCK_IN_ACCEPTANCE → added.
-- Gap 5: predicates not validated in plan-gate nor handed to exec → plan-gate Layer 1 check + generator handoff Behavior Contract both updated.
+- Gap 5: conditional predicates were not validated in plan-gate nor handed to exec → plan-gate and generator handoff were updated; later lightweight contract work made these details risk-triggered.
 
 ### Related fix (pge-exec, same round)
 - SendMessage object/string contract: 4 object-form `SendMessage(message={...})` calls in pge-exec/SKILL.md fixed to string serialization; added a binding "SendMessage serialization invariant" and propagated the serialize-to-string note into generator/evaluator/prep handoff `lane_ready` specs. Root cause of recurring `InputValidationError: expected string, received object` lane-handshake stalls.

@@ -1,70 +1,39 @@
 # I001: <action-oriented title>
 
-## status
+## goal
 
-- State: READY_FOR_EXECUTE | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
-- Dependencies: <Ixxx or none>
-- Verification Coupling: none | independent | compile-coupled with <IDs> | shared verification with <IDs> | integration-only | isolated worktree required | serial verification required
-- Execution Type: AFK | HITL:verify | HITL:decision | HITL:action
-- Verification Type: AUTOMATED | MANUAL | MIXED
-- Security: yes | no
+<issue-local goal in one sentence; must support the plan goal>
 
-## context
+## plan_context
 
-- Plan: ../plan.md
-- Requirement goal served: <short stable reference>
-- Upstream decisions: <decision IDs or none>
+<semantic pointer to the plan intent, decision, phase, or slice this issue implements>
 
-## task
+## change
 
-<bounded action-oriented execution block>
-
-## behavior_contract
-
-- Current Behavior: <current behavior or repo state>
-- Desired Behavior: <post-change behavior>
-- Behavior Delta: <smallest required behavior/contract change>
-- Key Interfaces: <files, commands, config, schemas, public contracts>
-- Trigger Predicate: <when relevant, or not_applicable>
-- Output Admission Predicate: <when relevant, or not_applicable>
-- Out Of Scope Confirmed: <adjacent work not allowed>
-- What Not To Infer: <assumptions Generator must not invent>
-
-## scope
-
-### Do
-
-- <allowed local work>
-
-### Do Not
-
-- <issue-local forbidden work>
+<bounded issue-local change to deliver>
 
 ## target_areas
 
 - Modify: <path>
 - Create: <path>
 
-## acceptance
+## recommended_approach
 
-- <issue-local acceptance>
+<implementation direction that should help execution without becoming a rigid algorithm>
 
-## local_validation
+## forbidden
 
-- <command or check>
+- <plan or issue boundary the generator must not cross>
 
-## required_evidence
+## validation
 
-- <evidence pge-exec must produce>
+- Expected: <what must be true when this issue is done>
+- Check: <command, inspection, or manual check>
+- Evidence: <what pge-exec should record>
 
-## risks
+## optional_when_useful
 
-- <risk and mitigation>
-
-## source_refs
-
-- source_plan: <plan section / issue index row / external source section>
-- research: <field or not_applicable>
-- user_constraint: <prompt/source reference or not_applicable>
-- repo_evidence: <path/line or not_applicable>
-- mechanical_support: <why this issue is necessary support>
+- Stop if: <condition that means the issue must pause, clarify, require a human decision, or avoid unsafe scope expansion>
+- Verification Coupling: <none | independent | compile-coupled with <IDs> | shared verification with <IDs> | integration-only | isolated worktree required | serial verification required; include first trustworthy verification point when non-independent>
+- Source refs: <source plan / research / user constraint / repo evidence>
+- Risk note: <risk and mitigation>

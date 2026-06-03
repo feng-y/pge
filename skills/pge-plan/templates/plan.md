@@ -33,6 +33,10 @@ Validate the upstream research/input before planning proceeds.
 
 - <scope that must not be implemented, with rationale>
 
+## necessary_context
+
+- <only context pge-exec / Generator needs to execute without guessing>
+
 ## target_areas
 
 - <file or module> — reason: <why it will be touched>
@@ -99,16 +103,12 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - Trust gates: <checks/evidence required before review can trust completion>
 - Unavailable checks: <checks that cannot run now, with fallback evidence or terminal handling>
 
-## risks
-
-- <risk> — impact: <what happens if unresolved> — mitigation: <how to handle>
-
 ## terminal_conditions
 
 | Condition | Gate Verdict | Plan Route | Exec Allowed | Handling |
 |-----------|--------------|------------|--------------|----------|
 | none | PASS | READY_FOR_EXECUTE | yes | No terminal conditions identified. |
-| <missing evidence / ambiguous selector / stale artifact / plan-changing context / human-only decision / unavailable check / unsafe scope expansion> | REVISE / ESCALATE / REJECT | NEEDS_INFO / NEEDS_HUMAN / RETURN_TO_RESEARCH / BLOCKED / no final route until repaired | yes/no | <self-resolve from evidence, ask one confirmation question, or stop before exec> |
+| <missing evidence / ambiguous selector / stale artifact / plan-changing context / human-only decision / unavailable check / unsafe scope expansion> | REVISE / ESCALATE / REJECT | NEEDS_INFO / NEEDS_HUMAN / RETURN_TO_RESEARCH / BLOCKED / no final route until repaired | yes/no | <self-resolve from evidence, clarify until executable, require human decision, or stop before exec> |
 
 ## plan_gate
 
@@ -159,10 +159,11 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - HITL issues: <list>
 - Issue files: <relative paths from `## issues` index>
 - Forbidden areas: <list>
+- Necessary context: <short list, or "see ## necessary_context">
+- Recommended approach: <summary or "none">
 - Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
 - Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>
-- Upstream decisions to preserve: <decision IDs and short labels, or "none">
-- Risks not to ignore: <list>
+- Optional risk-triggered checks: <security / public API / schema / performance / none>
 
 ## Optional When Useful
 
@@ -203,6 +204,12 @@ Record when the plan risk/depth needs an explicit record. LIGHT plans may use a 
 - Issue Slicing / Coupling: <execution order, dependencies, verification coupling classification, or "N/A — LIGHT">
 - Protocol Coherence: <producer/consumer/validator/evidence check when relevant, or "N/A">
 - Remaining Findings: <none, or bounded issue fixed before Final Plan Gate>
+
+Closed-loop issue slicing review for MEDIUM/DEEP plans:
+
+| Issue | Issue-local goal | Change | Validation closure | Independent? | Coupling / first trustworthy verification | Review action |
+|---|---|---|---|---|---|---|
+| I001 | <goal> | <bounded change> | expected + check + evidence present? | yes/no | <none or explicit coupling> | keep / split / merge / rework |
 
 Evidence gathered during Plan exploration (runtime paths, protocol surfaces, coupling hotspots, verification constraints, migration blockers) should be embedded here or in approach rationale when it informs traceable decisions.
 

@@ -11,7 +11,7 @@ Reduce `pge-exec` friction by checking scope discipline, existing-code reuse, se
 Plan Engineering Review is:
 - **Mandatory** for MEDIUM/DEEP plans (multi-issue, architecture changes, protocol surfaces, migration, rollout sequencing)
 - **Optional** for LIGHT plans (single-issue, low-risk, existing patterns) — may be omitted entirely if the plan is trivial
-- **Findings must be consumed** into selected approach, `plan.md ## issues` index, issue files, acceptance, verification, and risks before Final Plan Gate validation
+- **Findings must be consumed** into selected approach, `plan.md ## issues` index, issue files, acceptance, verification, and risk-triggered notes when relevant before Final Plan Gate validation
 
 ## Routing Authority
 
@@ -65,20 +65,20 @@ Example format:
 
 ## Test Coverage Review (MEDIUM + DEEP)
 
-For each issue, verify acceptance and local validation cover:
+For each issue, verify validation covers:
 - Happy path: primary success scenario
 - Edge cases: boundary values, empty inputs, concurrent access (where relevant)
 - Error path: what fails and how it is reported
 - Integration boundary: if crossing modules, is the seam tested?
 
-Gaps found here must be added to the issue file's `acceptance`, `local_validation`, or `required_evidence` before the gate can pass.
+Gaps found here must be added to the issue file's `validation` before the gate can pass.
 
 ## Verification Story Review (all depths)
 
 Verify the plan explains how completion will be proven, not just what will be changed.
 
 Check:
-- acceptance criteria point to concrete verification or required evidence
+- validation points to concrete checks or evidence
 - verification commands, review checks, or manual proof are specific enough for `pge-exec`
 - grep/manual checks include semantic evidence rows instead of bare command output
 - weak verification repairs the plan via `REWORK_PLAN`; `READY_FOR_EXECUTE` still depends on Final Plan Gate `PASS`
@@ -89,11 +89,27 @@ For issue-file plans, verify:
 
 - `plan.md ## issues` is a compact schedulable index with ID, File, State, Depends On, Verification Coupling, and Execution Type.
 - Full issue execution contracts live in `issues/Ixxx.md`, not inside `plan.md`.
-- Each ready issue file has enough task, behavior_contract, scope, target_areas, acceptance, local_validation, required_evidence, risks, and source_refs for Generator to start from the issue file plus shared plan context.
+- Each ready issue file has enough goal, semantic plan context, change, target areas, recommended approach, forbidden boundaries, and validation for Generator to start without guessing.
 - Dependencies and verification coupling reflect hidden coupling from shared files, runtime paths, fixtures, generated artifacts, or trust-gate commands.
 - Issue files do not redefine plan goal, non-goals, forbidden areas, or global verification strategy.
 
 For LIGHT plans, a short verification story is enough when the prompt and acceptance criteria are obvious. The gate still must record why the verification is sufficient.
+
+## Closed-Loop Issue Slicing Review
+
+For MEDIUM/DEEP plans, Plan Engineering Review must check every ready issue as a closed-loop execution unit:
+
+| Issue | Issue-local goal | Change | Validation closure | Independent? | Coupling / first trustworthy verification | Review action |
+|---|---|---|---|---|---|---|
+| I001 | <goal> | <bounded change> | expected + check + evidence present? | yes/no | <none or explicit coupling> | keep / split / merge / rework |
+
+Rules:
+- `keep` only when the issue can be executed from its issue file plus shared plan context and can prove its result through `validation`.
+- `split` when one issue hides multiple outcomes, unrelated target areas, or failure modes that cannot be repaired as one bounded unit.
+- `merge` when an issue is only setup, a placeholder, a field addition, a rename, or a check without a verifiable issue-local outcome.
+- `rework` when validation is vague, target areas are too broad, hidden coupling is not reflected in dependencies / verification coupling, or the first trustworthy verification point is missing.
+
+Any `split`, `merge`, or `rework` action must be applied before Final Plan Gate. Do not route `READY_FOR_EXECUTE` with unresolved slicing actions.
 
 ## Performance Review (DEEP only)
 
@@ -113,7 +129,7 @@ Describe at least one realistic failure scenario per issue:
 - **Impact:** what breaks and what the user/system sees
 - **Mitigation:** how the plan accounts for it (error handling, retry, fallback, validation)
 
-If the plan does not account for a discovered failure mode, add mitigation to the relevant issue's Action or flag as a gap that blocks `PASS`.
+If the plan does not account for a discovered failure mode, add mitigation to the relevant issue's change/validation or flag as a gap that blocks `PASS`.
 
 Simple CRUD with no new integrations or state transitions: skip this requirement.
 

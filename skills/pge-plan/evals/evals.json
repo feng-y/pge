@@ -96,6 +96,12 @@
       "prompt": "Create a plan where one issue has a slightly stale repo hint but the goal, target area, acceptance, and verification are clear.",
       "expected_output": "Plan allows pge-exec to adapt issue-local repo hints and record implementation-notes.md, while preserving plan goal, scope, acceptance, verification, non-goals, and forbidden areas. It does not route back for issue-local imperfections and does not allow plan mutation during exec.",
       "dimensions": ["exec_local_adaptation", "implementation_notes_boundary", "plan_boundary_preservation"]
+    },
+    {
+      "id": 17,
+      "prompt": "Create a MEDIUM plan whose draft issue list has micro-tasks: one issue adds a config field, one issue renames a helper, one issue updates docs, and only the final issue has observable behavior and tests.",
+      "expected_output": "Plan Engineering Review performs closed-loop issue slicing review as part of the review, not as a separate issue-review stage. It rejects non-verifiable micro-task issues as ready execution units, then merges or rewrites them into vertical slices with issue-local goal, bounded change, target areas, forbidden boundaries, validation Expected/Check/Evidence, and explicit verification coupling when needed. Final Plan Gate cannot pass while split/merge/rework actions remain unresolved.",
+      "dimensions": ["plan_engineering_review_issue_slicing", "closed_loop_execution_unit", "micro_task_rejection", "verification_coupling_classification"]
     }
   ]
 }

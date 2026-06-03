@@ -11,7 +11,7 @@ This review is not a report. Every finding must be resolved before proceeding:
 
 ## Confidence Calibration
 
-Findings should separate evidence strength from decision authority. Use `confidence: high | medium | low` only when the distinction helps decide whether to repair, verify, or route upstream.
+Findings should separate evidence strength from decision authority. Use `confidence: high | medium | low` only when the distinction helps decide whether to repair, verify, clarify, or require an upstream source decision.
 
 - `high`: verified by specific code, config, artifact, command, or user/source statement
 - `medium`: supported by pattern or nearby evidence but still needs bounded verification
@@ -36,7 +36,7 @@ Low-confidence findings that affect correctness must include a verification path
 
 For each new codepath or integration point, describe ONE realistic production failure scenario:
 - Not "this might fail" — describe the specific sequence: what triggers it, what breaks, what the user sees.
-- If the plan doesn't account for it, add error handling to the relevant issue-file task/acceptance or flag as a gap.
+- If the plan doesn't account for it, add error handling to the relevant issue-file change/validation or flag as a gap.
 - Simple CRUD with no new integrations: skip this check.
 
 ## Test Coverage Pressure
@@ -45,13 +45,13 @@ For each issue, trace the verification coverage:
 
 ```
 Issue N: <title>
-  ├── Happy path: [covered by local_validation / acceptance evidence? yes/no]
+  ├── Happy path: [covered by validation? yes/no]
   ├── Edge cases: [which ones? covered?]
   ├── Error path: [what fails? covered?]
   └── Integration boundary: [if crosses modules, covered?]
 ```
 
-Gaps in coverage → add to the issue file's acceptance, local_validation, or required_evidence. Don't just flag — fix.
+Gaps in coverage → add to the issue file's validation. Don't just flag — fix.
 
 ## Issue File Contract Pressure
 
@@ -63,6 +63,16 @@ For issue-file plans, check progressive disclosure before Final Plan Gate:
 - Hidden coupling is explicit: shared files, runtime paths, fixtures, generated artifacts, or trust-gate commands appear in dependencies or verification coupling.
 - Oversized issues are split or marked with serial/shared verification; over-thin issues are merged into adjacent executable slices.
 - Embedded full issue bodies under `plan.md ## issues` are repaired by moving them into issue files.
+
+### Closed-Loop Slice Review
+
+For MEDIUM/DEEP plans, record one compact row per ready issue before Final Plan Gate:
+
+| Issue | Issue-local goal | Change | Validation closure | Independent? | Coupling / first trustworthy verification | Review action |
+|---|---|---|---|---|---|---|
+| I001 | <goal> | <bounded change> | expected + check + evidence present? | yes/no | <none or explicit coupling> | keep / split / merge / rework |
+
+Pass only when each ready issue is an execution unit that can be started without guessing and can prove its own result, or when its non-independent verification coupling and safe strategy are explicit. If an issue is only a setup fragment, placeholder, field addition, broad cleanup bucket, or unverifiable checklist item, merge it into a vertical slice or rework the issue before Final Plan Gate.
 
 ## Existing Solutions Check
 
@@ -83,7 +93,7 @@ If 8+ files touched OR 2+ new classes/services/abstractions:
 
 For each viable approach, ask whether it covers the inherited success shape, non-goals, execution boundary, failure modes, and verification evidence. Prefer the approach that satisfies the contract with the smallest blast radius and clearest proof.
 
-If the selected approach knowingly defers part of the requested success shape, the plan must route upstream or mark the deferred part as an explicit non-goal authorized by the source. Do not hide incompleteness behind numeric scores.
+If the selected approach knowingly defers part of the requested success shape, the plan must route `NEEDS_INFO` / `NEEDS_HUMAN` / `RETURN_TO_RESEARCH` or mark the deferred part as an explicit non-goal authorized by the source. Do not hide incompleteness behind numeric scores.
 
 ## Outside Voice (MEDIUM + DEEP)
 

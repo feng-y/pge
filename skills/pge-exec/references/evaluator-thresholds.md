@@ -1,8 +1,8 @@
 # Evaluator Hard Thresholds
 
-Evaluator default scope is final run-level verification. It validates the composed diff against the canonical plan, including goal, non-goals, issue-file acceptance, evidence coverage, verification, and implementation logic. Targeted checks may focus on one issue or risk, but they are explicit exceptions and must not become a mandatory per-issue serial gate.
+Evaluator default scope is final run-level verification. It validates the composed diff against the canonical plan, including goal, non-goals, issue-file validation, evidence coverage, plan verification, and implementation logic. Targeted checks may focus on one issue or risk, but they are explicit exceptions and must not become a mandatory per-issue serial gate.
 
-**Adaptive escalation for targeted checks**: Main dispatches targeted Evaluator checks only when a bounded, run-blocking risk question cannot be answered by a candidate whose evidence is already complete. Acceptable signals are plan/code reality conflict, cross-boundary risk on a complete candidate, and repair uncertainty after one bounded repair. Weak verification, missing evidence, failed local verification, and incomplete self-review are Candidate Gate failures, not Evaluator triggers. Main records the observed signal and routing reason when escalating. Escalation is signal-based, not a brittle trigger matrix. Escalation supplements Generator default quality; it does not replace it.
+**Adaptive escalation for targeted checks**: Main dispatches targeted Evaluator checks only when a bounded, run-blocking risk question cannot be answered by a candidate whose evidence is already complete. Acceptable signals are plan/code reality conflict, cross-boundary risk on a complete candidate, and repair uncertainty after one bounded repair. Weak verification, missing evidence, failed issue validation, and incomplete self-review are Candidate Gate failures, not Evaluator triggers. Main records the observed signal and routing reason when escalating. Escalation is signal-based, not a brittle trigger matrix. Escalation supplements Generator default quality; it does not replace it.
 
 Evaluator is final pressure over composed evidence, not a routine cleanup crew and not a taste enforcer. It should catch correctness, scope, evidence, verification, and high-signal maintainability misses that threaten the current plan outcome. When defects repeatedly reach this lane, report execution-stage friction so dispatch shaping, Generator packets, or implementation notes can improve instead of broadening review ceremony.
 
@@ -13,12 +13,12 @@ These conditions produce automatic verdicts without judgment:
 | Condition | Verdict | Reason |
 |-----------|---------|--------|
 | Any generated deliverable file doesn't exist | BLOCK | "deliverable not produced: <issue_id/path>" |
-| Required Evidence missing entirely | RETRY | "required evidence not provided: <which>" |
-| Issue local validation, plan Verification Hint, stop condition, integration, or regression command fails (non-zero exit) | RETRY | "verification failed: <command> → <output>" |
+| Validation evidence missing entirely | RETRY | "validation evidence not provided: <which>" |
+| Issue validation check, plan verification command, stop condition, integration, or regression command fails (non-zero exit) | RETRY | "verification failed: <command> → <output>" |
 | Files modified outside all approved Target Areas (unjustified) | BLOCK | "scope drift: <files> not in target areas" |
 | Generator self-reported BLOCKED | — | Do not evaluate. Main handles. |
 
-When a local validation or Verification Hint fails, attribute the failure before writing the verdict:
+When an issue validation check or plan verification command fails, attribute the failure before writing the verdict:
 - `issue_under_review`: failure is in the issue's own Target Areas or deliverable.
 - `sibling_issue`: failure stack points to another issue's Target Areas or sibling lane changes.
 - `newly_added_run_file`: failure stack points to files added elsewhere in the same run.
@@ -31,7 +31,7 @@ For `sibling_issue` or `newly_added_run_file`, return RETRY with the attribution
 For final run-level verification:
 - Check that the composed diff still satisfies the plan goal.
 - Check that non-goals remain untouched.
-- Check every generated issue against its issue-file task and Acceptance Criteria.
+- Check every generated issue against its issue-file change and validation.
 - Check that cross-issue behavior composes cleanly instead of merely passing isolated checks.
 - Check that the implementation logic matches the plan's intended behavior, not only that files changed.
 
@@ -47,19 +47,19 @@ Evaluator must verify generated changes against the repo constraints that future
 - artifact names, schemas, route/state/verdict vocabulary, and handoff contracts
 - "do not promote durable knowledge" / "do not create docs" boundaries when execution did not ask for that
 
-If a generated change violates a current repo constraint but can be repaired inside the plan contract, return RETRY with the smallest repair. If repairing it would change the plan contract, return BLOCK or route upstream through main.
+If a generated change violates a current repo constraint but can be repaired inside the plan contract, return RETRY with the smallest repair. If repairing it would change the plan contract, return BLOCK with the specific contract decision main must clarify with RD/user.
 
-## Acceptance Criteria Check
+## Validation Check
 
-For each criterion in each generated issue's Acceptance Criteria:
+For each expected result in each generated issue's validation:
 - Check independently (read files, run commands, inspect state)
-- If ANY single criterion is unmet → RETRY with the specific unmet criterion
+- If ANY single expected result is unmet → RETRY with the specific unmet result
 
 Do not batch multiple failures into one RETRY. Report the most critical one first.
 
-## Evidence Quality
+## Validation Evidence Quality
 
-Required Evidence must be:
+Validation evidence must be:
 - Present (not "will be added later")
 - Concrete (actual output, not "tests pass" without showing which)
 - Verifiable (you can reproduce or inspect it)
@@ -73,7 +73,7 @@ Compare composed `changed_files` from all Generator candidates against all gener
 - Files NOT in Target Areas but changed: scope drift
 - **Justified issue-boundary adjustment**: Generator recorded it in deviations / implementation notes AND it is clearly necessary for the same acceptance, inside the canonical plan contract, and does not alter goal, non-goals, verification, forbidden areas, or high-risk behavior → may PASS if evidence covers it.
 - **Weakly justified drift**: the change appears probably necessary but the notes/evidence do not explain why → RETRY (ask Generator to add the missing justification or remove the drift), NOT BLOCK.
-- **Unjustified drift**: no deviation recorded, or deviation is clearly unrelated to the issue-file task → BLOCK
+- **Unjustified drift**: no deviation recorded, or deviation is clearly unrelated to the issue-file change → BLOCK
 
 Issue boundaries are progress units, not absolute hard boundaries. Forbidden areas, high-risk constraints, acceptance semantics, verification, non-goals, and target-area authority across the canonical plan remain hard boundaries.
 
@@ -174,17 +174,17 @@ Check whether the implementation is disproportionately complex for what it does.
 
 ### Constraints
 
-- Simplification RETRY must NOT change acceptance criteria outcome — the simpler version must still satisfy the same criteria
+- Simplification RETRY must NOT change validation outcome — the simpler version must still satisfy the same validation
 - If the "simpler" version would be harder to understand (e.g., removing a helper that names a concept), do not flag
 - When in doubt between flagging and not flagging: do not flag. Only flag when the simpler version is obviously correct and sufficient.
 - This is NOT about style preference. It's about catching the LLM tendency to bloat code with speculative flexibility.
 
 ## Diff-Based Verification
 
-After checking acceptance criteria, review the actual composed diff against the issue-file tasks:
-- Every changed line should trace to an issue-file task or a justified deviation
-- If the diff includes changes that don't serve the issue-file task (reformatting, comment edits, unrelated "improvements") → RETRY with "diff includes changes unrelated to issue task: <specific lines>"
-- If the diff is surprisingly large for a small issue-file task, investigate whether the approach is overcomplicated
+After checking validation, review the actual composed diff against the issue-file changes:
+- Every changed line should trace to an issue-file change or a justified deviation
+- If the diff includes changes that don't serve the issue-file change (reformatting, comment edits, unrelated "improvements") → RETRY with "diff includes changes unrelated to issue change: <specific lines>"
+- If the diff is surprisingly large for a small issue-file change, investigate whether the approach is overcomplicated
 
 ## Performance And Optimization Boundary
 
@@ -220,7 +220,7 @@ Do not inflate Advisory findings into Important findings. Review cost is justifi
 For **LIGHT** runs (1-2 changed files): single-pass evaluation covering all plan criteria.
 
 For **DEEP** runs (8+ changed files, cross-module, or shared behavior): two-pass evaluation:
-1. **Spec compliance pass**: Does the deliverable satisfy the issue-file task, Acceptance Criteria, and Required Evidence? (functional correctness)
+1. **Spec compliance pass**: Does the deliverable satisfy the issue-file change and validation? (functional correctness)
 2. **Code quality pass**: Is the implementation clean? Proper error handling? Consistent with repo patterns? No obvious tech debt introduced?
 
 If spec compliance fails → RETRY immediately (don't waste time on quality review).
@@ -236,7 +236,7 @@ When any generated issue has `Security: yes`:
   - Auth/permission checks present for new endpoints or data access paths
   - Input validation on user-facing parameters
   - No permission downgrade without explicit justification in deviations
-- **Stricter threshold**: in-contract security omissions such as missing validation or missing auth wiring → RETRY with the smallest bounded repair. Plan-changing security model gaps, permission downgrades, secrets/credential exposure, or unclear trust-boundary changes → BLOCK and route upstream through main.
+- **Stricter threshold**: in-contract security omissions such as missing validation or missing auth wiring → RETRY with the smallest bounded repair. Plan-changing security model gaps, permission downgrades, secrets/credential exposure, or unclear trust-boundary changes → BLOCK with the specific contract/security decision main must clarify with RD/user.
 - **Adversarial pass** (mandatory for Security: yes): after spec compliance, actively construct failure scenarios (see Adversarial Mode below).
 
 ## Adversarial Mode (Security + DEEP issues)
@@ -277,14 +277,14 @@ Explicit exclusions (these belong to other pipeline stages or future reviewers):
 
 - **Style/naming** — not Evaluator's job unless a misleading new name hides mutation, trust-boundary behavior, or a plan-relevant data role needed for verification.
 - **Architecture decisions** — plan already made these. Evaluator checks execution, not design.
-- **Performance optimization** — unless Acceptance Criteria explicitly mentions performance.
-- **Test coverage completeness** — Evaluator checks Local Validation and required acceptance coverage are met, not that coverage is 100%.
-- **Documentation quality** — unless the issue-file task explicitly includes docs.
+- **Performance optimization** — unless validation explicitly mentions performance.
+- **Test coverage completeness** — Evaluator checks issue validation is met, not that coverage is 100%.
+- **Documentation quality** — unless the issue-file change explicitly includes docs.
 - **Alternative implementations** — "could be done better with X" is not a RETRY reason.
 
 ## Evaluator vs Exec QA Gate
 
-Evaluator is the final run-level verification gate: it checks plan goal/non-goal alignment, generated issue-file tasks, Target Areas, Acceptance Criteria, Required Evidence, local validations / Verification Hints, composed implementation logic, and obvious quality defects that affect the plan outcome. Targeted checks are allowed only when main explicitly dispatches a bounded risk question.
+Evaluator is the final run-level verification gate: it checks plan goal/non-goal alignment, generated issue-file changes, Target Areas, validation, relevant plan verification commands, composed implementation logic, and obvious quality defects that affect the plan outcome. Targeted checks are allowed only when main explicitly dispatches a bounded risk question.
 
 The Exec QA Gate is a separate read-only whole-diff review surface: it checks reviewability, blocking code-review findings, simplification opportunities, and whether any security/test specialist pass is needed after Evaluator verification. It does not replace Evaluator's plan-alignment authority. Exec QA Gate is an execution-stage quality gate; it is not `pge-review` and does not make shipping decisions.
 

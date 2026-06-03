@@ -17,7 +17,7 @@ Confirm that the synthesized plan is still aligned, covered, verifiable, and exe
 1. **Goal-backward fit** — state the inherited problem contract and confirm the issues, acceptance, evidence, and stop condition satisfy it without scope drift.
 2. **Coverage** — confirm current prompt constraints, upstream decisions, non-goals, target areas, forbidden areas, and relevant risks are covered, explicitly rejected, or routed.
 3. **Verification and evidence** — confirm every major acceptance criterion has a concrete verification path or required evidence. "Run tests" alone is insufficient unless the named test scope proves the criterion.
-4. **Exec readiness** — confirm `plan.md ## issues` is a compact schedulable index, each ready issue references an existing issue file, and each ready issue file has concrete task/action, behavior contract, target areas, acceptance, local validation, verification type/coupling, acceptance coverage, required evidence, dependencies, risks, security classification, and execution state.
+4. **Exec readiness** — confirm `plan.md ## issues` is a compact schedulable index, each ready issue references an existing issue file, and each ready issue file has the default execution fields: goal, semantic plan context, change, target areas, recommended approach, forbidden boundaries, and validation. Scheduling and progress state stay in the issue index and run/progress artifacts.
 
 For Fast Adopt, apply these four areas against both the source plan and the inherited research problem contract when present:
 
