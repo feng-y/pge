@@ -64,7 +64,7 @@ Fix case-study failure: pge-research self-decided core frictions (ACK semantics,
 ### Changes (P0+P1, latency-neutral)
 **P0:**
 1. Added explicit `observed_behavior` rule: observed repo facts are NOT preservation constraints until user confirms intent. Must tag with `observed_behavior` or `repo_evidence / needs_confirmation`, never auto-upgrade to a D-constraint.
-2. Added NEW step 7 "Core Friction Confirmation": classify material frictions into **core** (safety/correctness/scope — ACK semantics, reclaim thresholds, trigger predicates, admission predicates, coverage boundary preconditions, observed reliability mechanisms) vs **self-decidable** (reversible impl choices, cosmetic conventions). Core friction → `needs_confirmation` Authority Notes tag + `non_blocking_questions` entry (mandatory, not OR), or route `NEEDS_USER` if genuinely blocking.
+2. Added NEW step 7 "Core Friction Confirmation": classify material frictions into **core** (safety/correctness/scope — ACK semantics, reclaim thresholds, trigger predicates, admission predicates, coverage boundary preconditions, observed reliability mechanisms) vs **self-decidable** (reversible impl choices, cosmetic conventions). Core friction → `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation` Authority Notes entry + `non_blocking_questions` entry (mandatory, not OR), or route `NEEDS_USER` if genuinely blocking.
 3. Expanded Authority Notes enum to include `observed_behavior | repo_evidence / needs_confirmation | inferred_by_research / needs_confirmation` to preserve the confirmation flag across the research→plan handoff.
 4. Added P0 checks to step 8 Self-review for core friction confirmation and observed-behavior authority.
 

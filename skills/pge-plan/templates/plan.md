@@ -274,4 +274,4 @@ Optional summary table when it helps:
 
 | Question | Classification | Blocking? | Decision |
 |----------|---------------|-----------|----------|
-| <potential question> | Mechanical / Taste / Core Friction / User Challenge | yes/no | SELF_ANSWERED / ASK_USER / ASSUME_AND_RECORD / LOCK_IN_ACCEPTANCE / BLOCK_PLAN |
+| <potential question> | Mechanical / Taste / Core Friction / User Challenge | yes/no | SELF_ANSWERED / ASK_USER / ASSUME_AND_RECORD / DEFER_TO_SLICE / LOCK_IN_ACCEPTANCE / BLOCK_PLAN |

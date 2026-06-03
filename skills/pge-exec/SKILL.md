@@ -246,6 +246,7 @@ Validate before lane creation:
 - At least one issue under canonical `## issues` has `State: READY_FOR_EXECUTE`.
 - `## stop_conditions` is present and checkable.
 - Each ready issue has Action, Deliverable, Behavior Contract, Target Areas, Acceptance Criteria, Verification Hint, Verification Type, Test Expectation, Required Evidence, Dependencies, Risks, and Security.
+- Conditional issues must carry the `Trigger Predicate` and/or `Output Admission Predicate` required by their Behavior Contract; if a conditional issue is missing its predicate, route upstream to `pge-plan` for contract repair before dispatch.
 - Forbidden areas are present and specific enough for scope drift checks.
 - Terminal conditions are present. Any condition with `Exec Allowed: no` or an unresolved trigger blocks execution and routes upstream; do not waive it in `implementation-notes.md`.
 - Each ready issue includes Verification Coupling. If it is missing, route upstream to `pge-plan` for contract repair before dispatch.

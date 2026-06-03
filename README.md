@@ -18,8 +18,8 @@ AI coding agents are great at single-shot tasks. Ask them to fix a typo or add a
 
 PGE uses fixed interfaces with flexible expression.
 
-- Research must expose `schema_version: research.v3`, goal, success shape, scope, non-goals, constraints, task-relevant context, candidate direction, open questions, and route. Implementation Friction and Progressive Feasibility are conditional gates only.
-- Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `forbidden_areas`, `acceptance`, `verification`, `evidence_required`, `risks`, `terminal_conditions`, `plan_gate`, `stop_conditions`, and `route`.
+- Research must expose `schema_version: research.v3`, goal, success shape, scope, non-goals, constraints, task-relevant context, candidate direction, open questions, and route. Implementation Friction, Progressive Feasibility, and Core Friction Confirmation are conditional gates only; unresolved core friction must carry explicit authority such as `observed_behavior` or `<base authority> / needs_confirmation`.
+- Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `issues`, `target_areas`, `forbidden_areas`, `acceptance`, `verification`, `evidence_required`, `risks`, `terminal_conditions`, `plan_gate`, `stop_conditions`, and `route`. Conditional issue Behavior Contracts must include trigger and/or output-admission predicates when the work conditionally fires or emits.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, any plan deviations, any stalled-lane recovery, and any Diagnostic Recovery record for unclear or repeated development failures.
 - Review must check the diff against the plan and the original user intent, including scope drift and evidence gaps, and write exec-facing findings to the task directory when a PGE task exists.
 - Every stage must consume its explicit input plus relevant current context. When context changes intent, scope, or the fix target, the stage must clarify before producing the next contract.

@@ -453,18 +453,18 @@ Verify nothing was lost in the extraction from monolithic to progressive-disclos
 ## Round 14: Core Friction consumption + cross-stage authority closure
 
 ### Goal
-Mirror pge-research Round 4 on the plan side: ensure plan correctly consumes `observed_behavior` / `needs_confirmation` authority, classifies Core Friction, and carries conditional-feature predicates through to exec. Triggered by the backfill-fallback-recovery case study where core safety/scope frictions were self-decided rather than confirmed, plus a Codex review that found 5 critical cross-stage gaps.
+Mirror pge-research Round 4 on the plan side: ensure plan correctly consumes `observed_behavior` and authority values with the `/ needs_confirmation` suffix, classifies Core Friction, and carries conditional-feature predicates through to exec. Triggered by the backfill-fallback-recovery case study where core safety/scope frictions were self-decided rather than confirmed, plus a Codex review that found 5 critical cross-stage gaps.
 
 ### Changes
-1. **Authority enum closure.** Field authority table consumes `observed_behavior` (not a preservation constraint without user confirmation) and `needs_confirmation` (must confirm / lock in acceptance / route NEEDS_INFO, never silent ASSUME_AND_RECORD). Source Authority Check now carries the `/ needs_confirmation` suffix through the research→plan mapping instead of stripping it: `inferred_by_research / needs_confirmation` → `inherited_from_research / needs_confirmation`.
+1. **Authority enum closure.** Field authority table consumes `observed_behavior` (not a preservation constraint without user confirmation) and any valid base authority with the `/ needs_confirmation` suffix (must confirm / lock in acceptance / route NEEDS_INFO, never silent ASSUME_AND_RECORD). Source Authority Check now carries the suffix through the research→plan mapping instead of stripping it: `inferred_by_research / needs_confirmation` → `inherited_from_research / needs_confirmation`.
 2. **Core Friction classification.** Self-Evaluation gained `Core Friction` classification + `LOCK_IN_ACCEPTANCE` decision in both SKILL.md and the plan template, so a safety/correctness/scope friction cannot be silently ASSUME_AND_RECORD'd.
 3. **Safety amplifier.** `Security: yes` now triggers when failure mode includes data corruption / double-publish / stealing active work / irreversibility, raising Evaluator thresholds for those issues.
 4. **Conditional-feature predicates.** Behavior Contract gained `Trigger Predicate` (when does this fire / what makes input valid) and `Output Admission Predicate` (minimum contract to publish) for conditional features. Plan-gate Layer 1 validates them; exec generator handoff carries them through.
 5. **Naming coherence** added to the Inconsistency Grill (config key naming drift like `backfill_policy` vs `[fallback]`).
 
 ### Cross-stage fixes (Codex 5 critical gaps)
-- Gap 1: enum mapping stripped `needs_confirmation` → fixed at SKILL.md Source Authority Check.
-- Gap 2: core friction parkable without authority tag → research now mandates the `needs_confirmation` Authority Notes tag (AND, not OR).
+- Gap 1: enum mapping stripped the `/ needs_confirmation` suffix → fixed at SKILL.md Source Authority Check.
+- Gap 2: core friction parkable without authority tag → research now mandates `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation` in Authority Notes (AND, not OR).
 - Gap 3: brief.md called observed facts "invariants the plan must preserve" without authority → now authority-qualified.
 - Gap 4: plan template Self-Evaluation lacked Core Friction + LOCK_IN_ACCEPTANCE → added.
 - Gap 5: predicates not validated in plan-gate nor handed to exec → plan-gate Layer 1 check + generator handoff Behavior Contract both updated.

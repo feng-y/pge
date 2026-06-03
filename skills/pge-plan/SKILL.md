@@ -107,9 +107,11 @@ Plan inherits authority classification from research and adds its own:
 | `inherited_from_research` | Research conclusion with evidence | Inherit; do not re-litigate unless repo contradicts |
 | `inferred_by_plan` | Plan inference or design choice | Auditable; exec may flag if implementation contradicts |
 | `observed_behavior` | Current repo behavior that may be incidental, not intentional design | **[P0] Not a preservation constraint. Plan must confirm with user or discard before treating as a constraint. Do not inherit as a D-constraint.** |
-| `needs_confirmation` | Research flagged a safety/correctness/scope claim that needs user authority | **[P0] Plan must confirm, lock in acceptance with counterexample tests (`Security: yes`), or route `NEEDS_INFO`. Must not silently ASSUME_AND_RECORD.** |
+| `<base authority> / needs_confirmation` | Any claim with base authority `repo_evidence`, `inferred_by_research` mapped to `inherited_from_research`, or another valid authority plus a confirmation suffix | **[P0] Plan must preserve the suffix through mapping, then confirm, lock in acceptance with counterexample tests (`Security: yes`), or route `NEEDS_INFO`. Must not silently ASSUME_AND_RECORD.** |
 
-Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. **[P0] Plan must not upgrade `observed_behavior` or `needs_confirmation` claims to preservation constraints without user confirmation.** `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
+`/ needs_confirmation` is a suffix, not a standalone authority value. Research may emit `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation`; Plan maps the latter to `inherited_from_research / needs_confirmation`.
+
+Plan must not upgrade `inherited_from_research` or `inferred_by_plan` claims to `user_confirmed` constraints. **[P0] Plan must not upgrade `observed_behavior` or any claim with `/ needs_confirmation` to a preservation constraint without user confirmation.** `RETURN_TO_RESEARCH` is the correct route when plan needs user-confirmed intent that research did not provide.
 
 **Research Contract Override Rule:** When Research has `route: READY_FOR_PLAN`, Plan inherits the Research problem contract as authoritative. Plan may challenge and change `candidate_direction`, selected implementation approach, issue slicing, migration shape, rollout safety, execution topology, and verification strategy. Plan may operationalize Research conclusions into executable acceptance, target areas, issue boundaries, and verification as long as it does not change their semantic meaning.
 
@@ -198,7 +200,7 @@ digraph pge_plan {
 ## Anti-Patterns
 
 - **"Let Me Brainstorm Everything First"** — Scale brainstorm to task. If the prompt is plan-ready, plan from it directly. If research already recommended, adopt it.
-- **"I Should Ask To Be Safe"** — Questions are expensive. Self-evaluate first. Record assumptions instead. **[P0] Exception: core frictions (safety/correctness/scope boundaries) flagged by Research with `needs_confirmation` must be confirmed or acceptance-locked with counterexample tests, not assumed.**
+- **"I Should Ask To Be Safe"** — Questions are expensive. Self-evaluate first. Record assumptions instead. **[P0] Exception: core frictions (safety/correctness/scope boundaries) flagged by Research with `/ needs_confirmation` must be confirmed or acceptance-locked with counterexample tests, not assumed.**
 - **"Let Me Plan The Whole System"** — Plan only what was asked. Respect upstream scope.
 - **"Let Me Re-Decide The Spec"** — Authoritative upstream decisions are constraints, not fresh options. Plan decides implementation details; it does not re-litigate product behavior, rollout strategy, architecture direction, or scope already settled upstream. **[P0] Exception: observed repo behaviors marked `observed_behavior` or `repo_evidence / needs_confirmation` by Research are not authoritative preservation constraints; confirm or discard.**
 - **"Selector Means Ignore The Rest"** — If arguments contain a selector plus extra text, the selector locates an artifact and the remaining text is current user constraint. Consume both.
@@ -401,7 +403,7 @@ When the selected source is a `pge-research` brief, identify `schema_version` an
 4. **Implementation Friction.** If present, cover `required_plan_adjustment` in constraints, issue scope, rejected approaches, or verification/evidence expectations.
 5. **Progressive Feasibility.** If present, plan around `first_plannable_objective` as the current plan target, not the full `direct_goal`. Record `direct_goal` and `deferred_goal_parts` as context, non-goals, or phase boundary for this slice. The current plan must not target `direct_goal` when `first_plannable_objective` exists.
 6. **Plan owns approach selection.** `candidate_direction` is not a selected approach. Plan selects the implementation approach through Plan Engineering Review.
-7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims; map Research `inferred_by_research` to Plan `inherited_from_research`. **[P0] A `/ needs_confirmation` suffix is part of the classification and must be carried through the mapping, not stripped: `inferred_by_research / needs_confirmation` → `inherited_from_research / needs_confirmation`, and `repo_evidence / needs_confirmation` stays `repo_evidence / needs_confirmation`. Any claim still carrying `needs_confirmation` after mapping must be confirmed, locked into acceptance, or routed `NEEDS_INFO` per the authority table — never silently demoted to a plain inherited constraint.**
+7. **Source Authority Check.** When consuming research or upstream input, classify each material claim using the Field authority classification table above before using it as a plan constraint or decision basis. When Research supplies `Optional: Authority Notes`, consume them as the initial authority classification for those claims; map Research `inferred_by_research` to Plan `inherited_from_research`. **[P0] A `/ needs_confirmation` suffix is part of the classification and must be carried through the mapping, not stripped: `inferred_by_research / needs_confirmation` → `inherited_from_research / needs_confirmation`, and `repo_evidence / needs_confirmation` stays `repo_evidence / needs_confirmation`. Any claim still carrying the suffix after mapping must be confirmed, locked into acceptance, or routed `NEEDS_INFO` per the authority table — never silently demoted to a plain inherited constraint.**
 
 **Non-canonical selected sources:**
 
@@ -421,7 +423,7 @@ For each hard constraint, map it to at least one of: `Plan Constraints`, `Non-go
 - Spec-level decisions from upstream are authoritative: product behavior, scope boundary, rollout strategy, monitoring metrics, phase structure, architecture direction, explicit non-goals.
 - Implementation-level choices are plan-owned: concrete file ordering, interface boundaries, issue slicing, test commands, local code patterns, and dependency sequencing.
 - Override a spec-level decision only when repo evidence contradicts it or requirements conflict. Record the override as Decision / Rationale / Alternatives considered, and mark whether user confirmation is required.
-- **[P0] Observed behaviors flagged `observed_behavior` or `needs_confirmation` in Research Authority Notes are NOT authoritative preservation constraints. Confirm with user or discard; do not inherit as D-constraints without evidence they are intentional.**
+- **[P0] Observed behaviors flagged `observed_behavior` or with `/ needs_confirmation` in Research Authority Notes are NOT authoritative preservation constraints. Confirm with user or discard; do not inherit as D-constraints without evidence they are intentional.**
 
 ---
 
@@ -725,13 +727,13 @@ Commit to one. Record selected/rejected/scope reductions as Decision / Rationale
 - **Mechanical**: one correct answer from code/docs. Decide it. Never ask.
 - **Taste**: multiple valid options. Choose, record rationale.
 - **User Challenge**: affects goal boundary. ONLY category that may trigger ASK_USER.
-- **[P0] Core Friction (from Research)**: Research flagged with `needs_confirmation`. Must confirm or lock in acceptance with counterexample tests and `Security: yes` tagging. Cannot silently ASSUME_AND_RECORD if failure mode is data corruption/double-publish/stealing active work/irreversibility.
+- **[P0] Core Friction (from Research)**: Research flagged with `/ needs_confirmation`. Must confirm or lock in acceptance with counterexample tests and `Security: yes` tagging. Cannot silently ASSUME_AND_RECORD if failure mode is data corruption/double-publish/stealing active work/irreversibility.
 
 **Authority limits** — valid escalation reasons:
 1. Goal boundary ambiguous, code cannot resolve.
 2. Missing info, no reasonable default.
 3. Dependency conflict makes requirements mutually exclusive.
-4. **[P0] Core friction flagged `needs_confirmation` by Research where a wrong default causes safety/correctness failure.**
+4. **[P0] Core friction flagged with `/ needs_confirmation` by Research where a wrong default causes safety/correctness failure.**
 
 **[P1] Safety amplifier:** When a design choice's failure mode is data corruption, double-publish, stealing in-flight work, or irreversibility, auto-upgrade from Taste to Core Friction. Either confirm or lock the threshold/predicate/boundary in acceptance with counterexample tests and `Security: yes`.
 

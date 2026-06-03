@@ -128,7 +128,7 @@ Keep evidence authority explicit:
 
 Do not use repo evidence to invent user intent. Do not use user belief to prove code reality when the repo can be checked.
 
-**[P0] Observed behavior vs confirmed contract:** When the task is reliability/recovery/fallback/safety-related, and Research observes or depends on an existing reliability mechanism (ack/redelivery semantics, idempotency boundary, retry contract, recovery driver, state persistence order), classify it as `observed_behavior` rather than `confirmed_contract` unless user/upstream evidence explicitly confirms it as intentional design. Do not let `repo_evidence` auto-upgrade to a preservation constraint in Plan. Tag such claims in Authority Notes as `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation`.
+**[P0] Observed behavior vs confirmed contract:** When the task is reliability/recovery/fallback/safety-related, and Research observes or depends on an existing reliability mechanism (ack/redelivery semantics, idempotency boundary, retry contract, recovery driver, state persistence order), classify it as `observed_behavior` rather than treating it as a confirmed preservation contract unless user/upstream evidence explicitly confirms it as intentional design. Do not let `repo_evidence` auto-upgrade to a preservation constraint in Plan. Tag such claims in Authority Notes as `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation`.
 
 ## Triggers
 
@@ -341,7 +341,7 @@ For `READY_FOR_PLAN`, the brief must make these true:
 **Self-decidable** = reversible impl/design choices, cosmetic conventions, file/module layout, default config values with no correctness risk.
 
 **Handling:**
-- Core friction with reasonable evidence-based default → record in `non_blocking_questions` with confidence level **AND** add an Authority Notes entry tagged `needs_confirmation` for that claim. **[P0] The `needs_confirmation` Authority Notes tag is mandatory for every core friction that is not user-confirmed — parking it in `non_blocking_questions` alone is insufficient, because Plan consumes Authority Notes, not the question prose.** Route `NEEDS_USER` if the friction genuinely blocks a fair contract.
+- Core friction with reasonable evidence-based default → record in `non_blocking_questions` with confidence level **AND** add an Authority Notes entry for that claim using `repo_evidence / needs_confirmation` or `inferred_by_research / needs_confirmation`. **[P0] The `/ needs_confirmation` Authority Notes suffix is mandatory for every core friction that is not user-confirmed — parking it in `non_blocking_questions` alone is insufficient, because Plan consumes Authority Notes, not the question prose.** Route `NEEDS_USER` if the friction genuinely blocks a fair contract.
 - Core friction with no safe default → ask one focused question (requirement gap).
 - Self-decidable → record assumption with basis and continue.
 
@@ -359,7 +359,7 @@ Before writing or finalizing the artifact, check:
 - If Implementation Friction exists, is `required_plan_adjustment` present?
 - If Progressive Feasibility exists, is `first_plannable_objective` present?
 - Is the route vocabulary one of the v3 routes?
-- **[P0] Are core frictions either confirmed or tagged `needs_confirmation`?**
+- **[P0] Are core frictions either confirmed or tagged with `/ needs_confirmation`?**
 - **[P0] Are observed reliability behaviors classified as `observed_behavior` or `repo_evidence / needs_confirmation` rather than auto-upgraded to preservation constraints?**
 - **[P1] For recovery/compensation features, is the coverage boundary precondition explicit?**
 
