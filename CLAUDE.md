@@ -8,6 +8,14 @@ The system is defined through markdown contracts, agent definitions, and shell s
 
 Do not treat strategy docs as permission to expand harness theory during normal work.
 
+## PGE execution principle
+
+- PGE is a do-my-best execution system under explicit goal and verification, not a prove-everything-before-execution system.
+- `READY_FOR_EXECUTE` means the current contract is good enough to start, not that no clarification will ever be needed.
+- Issues are the best current executable slices, not perfect closed-world objects.
+- Validation is the strongest economical signal available now, not exhaustive proof.
+- Exec should keep moving inside the contract and clarify only when continuing would change goal, scope, validation, boundaries, or authority.
+
 ## First reads
 
 Before non-trivial work, read in this order:

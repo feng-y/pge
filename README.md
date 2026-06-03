@@ -20,6 +20,13 @@ PGE uses fixed interfaces with flexible expression.
 
 PGE is a harness, not a heavy protocol engine. Default artifacts should give the model the goal, forbidden boundaries, necessary context, recommended direction when useful, and verification evidence expected. Detailed audit fields are risk-triggered, not default execution ceremony.
 
+PGE execution principle:
+- PGE is a do-my-best execution system under explicit goal and verification, not a prove-everything-before-execution system.
+- `READY_FOR_EXECUTE` means the current contract is good enough to start, not that no clarification will ever be needed.
+- Issues are the best current executable slices, not perfect closed-world objects.
+- Validation is the strongest economical signal available now, not exhaustive proof.
+- Exec should keep moving inside the contract and clarify only when continuing would change goal, scope, validation, boundaries, or authority.
+
 - Research must expose `schema_version: research.v3`, goal, success shape, scope, non-goals, constraints, task-relevant context, candidate direction, open questions, and route. Implementation Friction, Progressive Feasibility, and Core Friction Confirmation are conditional gates only; unresolved core friction must carry explicit authority such as `observed_behavior` or `<base authority> / needs_confirmation`.
 - Plan must expose `schema_version`, `source_contract_check`, `selected_approach`, `rejected_approaches`, `goal`, `non_goals`, `necessary_context`, `issues`, `target_areas`, `forbidden_areas`, `acceptance`, `verification`, `evidence_required`, `terminal_conditions`, `plan_gate`, `stop_conditions`, and `route`. Add recommended approach only when it helps execution without constraining useful implementation choice. In new executable plans, `plan.md ## issues` is a compact Execution Index; full issue contracts live in `.pge/tasks-<slug>/issues/Ixxx.md`.
 - Exec must expose which issue each change implements, whether acceptance passed, what verification ran, any plan deviations, any stalled-lane recovery, and any Diagnostic Recovery record for unclear or repeated development failures.

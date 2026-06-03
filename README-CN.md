@@ -20,6 +20,13 @@ PGE 使用固定接口与灵活表达。
 
 PGE 是 harness，不是重型协议引擎。默认产物应该给模型目标、禁止边界、必要上下文、必要时的推荐方向，以及期望的验证证据。详细审计字段只在风险触发时出现，不是默认执行仪式。
 
+PGE 执行原则：
+- PGE 是在目标和验证明确前提下尽最大努力推进的执行系统，不是先证明一切再允许执行的系统。
+- `READY_FOR_EXECUTE` 表示当前合约足够开始，不表示之后绝不会需要澄清。
+- Issue 是当前最好的可执行切片，不是完美的闭世界对象。
+- Validation 是当前最经济可信的验证信号，不是穷尽证明。
+- Exec 应在合约内持续推进；只有继续执行会改变目标、范围、验证、边界或权限时才澄清。
+
 - 研究必须暴露 `schema_version: research.v3`、目标、成功形态、范围、非目标、约束、任务相关上下文、最简单方向、开放问题和路由。Implementation Friction 与 Progressive Feasibility 只在触发时出现。
 - 计划必须暴露 `schema_version`、`source_contract_check`、`selected_approach`、`rejected_approaches`、`goal`、`non_goals`、`necessary_context`、`issues`、`target_areas`、`forbidden_areas`、`acceptance`、`verification`、`evidence_required`、`terminal_conditions`、`plan_gate`、`stop_conditions` 和 `route`。推荐方案只在有助于执行且不会限制有用实现选择时出现。新的可执行计划中，`plan.md ## issues` 是紧凑执行索引；完整 issue 合约写入 `.pge/tasks-<slug>/issues/Ixxx.md`。
 - 执行必须暴露每个变更实现了哪个议题、验收是否通过、运行了什么验证、任何计划偏差、卡住 lane 的恢复，以及不清楚或重复开发失败的 Diagnostic Recovery 记录。
