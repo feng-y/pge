@@ -30,10 +30,12 @@ This is a planning skill. It does not execute code, edit implementation files, p
 Plan is responsible for **executable solution design**:
 
 ```text
-my issues = executable implementation path for the inherited problem contract
+intent -> executable approach -> bounded issues -> verification evidence
 ```
 
-Plan owns approach selection, architecture-friction reduction, issue slicing as an execution graph, execution ordering, verification topology, migration/rollout sequencing when relevant, blast-radius minimization, protocol coherence strategy, and execution ergonomics. It must not reopen Research problem discovery, redefine the inherited goal/scope/success shape/non-goals/constraints, or pre-write implementation code.
+Plan owns intent interpretation inside the inherited problem contract, requirement-boundary confirmation, approach selection, architecture-friction reduction, issue slicing, execution ordering, verification topology, migration/rollout sequencing when relevant, blast-radius minimization, protocol coherence strategy, and execution ergonomics. It must not reopen Research problem discovery, redefine the inherited goal/scope/success shape/non-goals/constraints, or pre-write implementation code.
+
+Plan should reduce execution failure by using existing plan surfaces to expose material ambiguity, stale assumptions, missing validation, forbidden-zone risk, unverifiable claims, or repo mismatches before routing ready. Resolve these through existing fields such as `necessary_context`, `selected_approach`, `issues`, `verification`, `evidence_required`, `terminal_conditions`, `plan_gate_inputs`, or `stop_conditions`; do not add ad hoc protocol fields to encode planning quality goals.
 
 The `plan.md` shape is flexible, but these semantic fields are mandatory:
 
@@ -61,7 +63,7 @@ Do not write a long plan to satisfy a template. Write the smallest plan that let
 
 For new executable plans, `## issues` in `plan.md` is an Execution Index, not full issue body storage. Each ready issue row must point to a full `issues/Ixxx.md` issue contract. Full issue bodies embedded under `plan.md ## issues` are non-canonical execution input and must be upgraded by `pge-plan` before Final Plan Gate can pass.
 
-Plan specifies implementation path at the contract level, not the coding level. Make direction, scope, ordering, verification coupling, and proof requirements explicit; do not specify exact code edits, helper functions, abstractions, flags, or test internals unless a public/protocol contract requires named symbols, fields, files, or commands.
+Plan specifies implementation path at the contract level, not the coding level. Make direction, requirement boundaries, issue ordering, verification coupling, and proof requirements explicit; do not specify exact code edits, helper functions, abstractions, flags, or test internals unless a public/protocol contract requires named symbols, fields, files, or commands.
 
 `schema_version` is always `plan.v2` for plans produced under this contract.
 
@@ -89,11 +91,11 @@ The plan must make these dimensions explicit, scaled to task risk:
 - **Validation reality** — which checks are cheap execution feedback and which checks are final trust gates such as compile, replay, or equivalent evidence.
 - **Stop conditions** — observable conditions that force revise, escalate, reject, clarify, or require a human decision before execution continues.
 
-Plan owns this synthesis. Research supplies intent, discrepancy, evidence, and constraints; plan selects the approach and turns them into an executable Architecture Delta Contract; exec consumes only the passed canonical plan. Do not move this synthesis into research or execution.
+Plan owns this synthesis. Research supplies intent, discrepancy, evidence, and constraints; plan confirms requirement boundaries, selects the approach, and turns them into an executable Architecture Delta Contract; exec consumes only the passed canonical plan. Do not move this synthesis into research or execution.
 
 Depth scaling:
 - LIGHT tasks may collapse this into short statements in `goal`, `non_goals`, `forbidden_areas`, `verification`, and issue behavior contracts.
-- MEDIUM/DEEP and workflow-contract plans must expose the dimensions clearly enough that `pge-exec`, `pge-review`, and Final Plan Gate can detect scope drift, unsupported claims, and validation-reality confusion.
+- MEDIUM/DEEP and workflow-contract plans must expose the dimensions clearly enough that `pge-exec`, Dynamic Workflow, `pge-review`, and Final Plan Gate can detect scope drift, unsupported claims, repo-reality mismatch, and validation-reality confusion.
 - MEDIUM/DEEP Architecture Delta Contracts, workflow-contract changes, artifact-schema changes, validation-contract changes, gate/tooling changes, and plans with material forbidden-zone risk must also include `## plan_gate_inputs` using `references/final-plan-gate.md`: declared change types, required claims, evidence schemas, boundary checks, and validation reality.
 - If the current slice is only the lightweight Phase 1 of a larger gate/tooling direction, say what later registry/script/schema work is deliberately not moved by this delta.
 
@@ -169,7 +171,7 @@ digraph pge_plan {
     label="Phase 3: Synthesis";
     style=dashed;
     self_eval [label="Self-Evaluation\n(Decision Classification\n+Authority Limits)"];
-    synthesize [label="Synthesize Intent\n+Plan Constraints\n+Phase Boundary\n+stop_conditions"];
+    synthesize [label="Synthesize Intent\n+Requirements\n+Dependencies/Gaps\n+Execution Logic\n+stop_conditions"];
     self_eval -> synthesize;
   }
 
@@ -831,7 +833,7 @@ Each full issue file under `issues/Ixxx.md` includes:
 - `forbidden`
 - `validation`
 
-Optional issue fields may be added only when they reduce execution ambiguity or are risk-triggered: stop-if conditions, source refs, risk notes, key interfaces, trigger/output predicates for conditional behavior, verification coupling details, caller/consumer checks, performance checks, simplification checks, or deeper behavior context. They are not part of the default Generator hot path.
+Optional issue fields may be added only when they reduce execution ambiguity or are risk-triggered: stop-if conditions, source refs, risk notes, key interfaces, trigger/output predicates for conditional behavior, verification coupling details, performance checks, simplification checks, or deeper behavior context. They are not part of the default Generator hot path.
 
 Do not embed full issue files under `plan.md ## issues`. If the selected source contains embedded issue bodies, write the compact index in `plan.md` and move the full execution contracts into `issues/Ixxx.md`.
 
@@ -877,7 +879,7 @@ Read `references/self-review.md` for the focused sanity pass. Summary:
 - Confirm goal-backward fit: the issues, acceptance, and stop condition still satisfy the inherited problem contract.
 - Confirm coverage: current prompt constraints, upstream decisions, non-goals, target areas, and forbidden areas are not silently dropped.
 - Confirm verification and evidence: every acceptance criterion has a proving check or required evidence, and weak proof is repaired before Final Plan Gate.
-- Confirm exec readiness: issue contracts are concrete enough for `pge-exec` to start without guessing.
+- Confirm exec/workflow readiness: issue contracts are concrete enough for `pge-exec` or Dynamic Workflow to start without guessing.
 - Confirm workflow handoff readiness for executable plans: the adapter exists only for ready plans, points to the canonical plan, and does not become a second plan.
 
 Fix failures inline once and rerun only the failed sanity area. If a failure would change goal, scope, success shape, or user authority, route `NEEDS_INFO` or `RETURN_TO_RESEARCH` instead of turning the sanity pass into another planning loop.

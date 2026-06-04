@@ -1,38 +1,31 @@
 # CLAUDE.md
 
-## PGE repo identity
+## Resident Rules
 
-PGE is a repo-coupled agentic engineering harness for evolving this repo toward AI-native development.
+This file is the resident agent entry point for work inside this repo. It is not a README, product pitch, or design document.
 
-The system is defined through markdown contracts, agent definitions, and shell scripts. PGE and the repo co-evolve: each useful run either produces a bounded verified repo improvement or exposes a concrete missing AI-operability surface.
+Use it to decide:
 
-Do not treat strategy docs as permission to expand harness theory during normal work.
+- what is authoritative
+- which PGE surface owns the current work
+- where artifacts must be written
+- when to stop, ask, replan, review, or execute
+- how to keep workflow contract changes coherent
 
-## PGE execution principle
+## First Reads
 
-- PGE is a do-my-best execution system under explicit goal and verification, not a prove-everything-before-execution system.
-- `READY_FOR_EXECUTE` means the current contract is good enough to start, not that no clarification will ever be needed.
-- Issues are the best current executable slices, not perfect closed-world objects.
-- Validation is the strongest economical signal available now, not exhaustive proof.
-- Exec should keep moving inside the contract and clarify only when continuing would change goal, scope, validation, boundaries, or authority.
+For non-trivial work, read only what the task needs. Default order:
 
-## First reads
+1. `README.md` for project map only
+2. the active skill being modified or invoked
+3. adjacent producer / consumer / validator files for that contract
 
-Before non-trivial work, read in this order:
+Do not bulk-read all skills by default.
 
-1. `README.md`
-2. `skills/pge-research/SKILL.md`
-3. `skills/pge-plan/SKILL.md`
-4. `skills/pge-exec/SKILL.md`
-5. `skills/pge-review/SKILL.md`
-6. `skills/pge-challenge/SKILL.md`
-7. `skills/pge-ai-native-refactor/SKILL.md`
-8. `skills/pge-handoff/SKILL.md`
-9. `skills/pge-learn/SKILL.md`
+## Truth Hierarchy
 
-## Truth hierarchy
+Active skill files are authoritative for runtime behavior:
 
-Active skill surfaces (authoritative):
 - `skills/pge-research/SKILL.md`
 - `skills/pge-plan/SKILL.md`
 - `skills/pge-exec/SKILL.md`
@@ -42,124 +35,117 @@ Active skill surfaces (authoritative):
 - `skills/pge-handoff/SKILL.md`
 - `skills/pge-learn/SKILL.md`
 
-Project map:
-- `README.md`
+Templates define artifact semantics where referenced by a skill:
 
-Research/reference (may inform design, must not override active skill truth):
-- `docs/research/ref-*.md`
+- `skills/pge-plan/templates/plan.md`
+- `skills/pge-plan/templates/issue.md`
+- `skills/pge-plan/templates/workflow-handoff.md`
 
-Legacy (archived, do not treat as active runtime):
-- `skills/pge-execute/` — removed (superseded by `pge-exec`)
-- `skills/pge-setup/` — removed (unnecessary; .pge/ directory created by pipeline skills on demand)
-- `agents/pge-planner.md`, `agents/pge-generator.md`, `agents/pge-evaluator.md` — removed (superseded by `pge-exec` handoffs + references)
+Stable cross-surface contract authority:
 
-Review agents (active, spawned by pge-exec Exec QA Gate):
-- `agents/pge-code-reviewer.md` — 5-axis code review
-- `agents/pge-code-simplifier.md` — simplification pressure
+- `docs/adr/0001-pge-contract-authority-and-planning.md`
 
-## Work discipline
+`README.md` is a project map and user-facing positioning, not the final authority on runtime details.
+
+`docs/research/*` and `docs/exec-plans/*` are source evidence or design notes. They are not active runtime contracts unless explicitly fast-adopted into `.pge/tasks-<slug>/plan.md`.
+
+## Core Invariants
+
+- PGE is a harness, not an agent OS.
+- Preserve user intent, bounded scope, forbidden areas, and verification expectations.
+- Prefer the smallest contract change that improves execution quality.
+- Do not add ceremony, fields, routes, agents, or artifacts without a current contract need.
+- Do not silently revive removed Planner / Generator / Evaluator agent-team architecture.
+- Subagents and workers are bounded helpers, not workflow authorities.
+
+## Stage Authority
+
+- `pge-research` owns bounded problem discovery: goal, success shape, scope, non-goals, constraints, task-relevant context, optional problem-side experience notes, conditional Implementation Friction / Progressive Feasibility, and route.
+- `pge-plan` owns executable solution design: intent confirmation, requirement boundaries, repo-reality alignment, selected/rejected approaches, issue slicing, target/forbidden areas, acceptance, verification, evidence requirements, terminal conditions, Plan Engineering Review, Final Plan Gate, and ready-plan `workflow-handoff.md` generation.
+- `pge-exec` owns default execution inside a ready plan contract: scheduling, bounded repair, implementation evidence, Diagnostic Recovery, and Exec QA Gate.
+- Dynamic Workflow is an optional execution backend through `.pge/tasks-<slug>/workflow-handoff.md`. It owns runtime orchestration only after explicit launch and must preserve `plan.md`.
+- `workflow-result.md` is evidence backflow for the next selected review, replan, ship, or handoff step. It is not a `pge-exec` repair artifact and not a `pge-review` route.
+- `pge-review` owns the `/pge-review` surface only when explicitly invoked. It returns a bounded review verdict; it does not own all workflow results by default.
+- `pge-challenge` owns manual prove-it pressure before PR/ship when invoked.
+- `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
+- `pge-handoff` owns temporary task handoff only. It must not extract durable knowledge.
+- `pge-learn` owns learning and quality evaluation before durable knowledge promotion.
+
+## Artifact Rules
+
+Canonical PGE task artifacts live under `.pge/tasks-<slug>/`.
+
+- `research.md`: optional problem-discovery contract
+- `plan.md`: canonical executable plan after Final Plan Gate passes
+- `issues/Ixxx.md`: full issue execution contracts
+- `workflow-handoff.md`: optional Dynamic Workflow launch adapter for ready plans
+- `runs/<run_id>/*`: `pge-exec` run artifacts
+- `workflow-result.md`: Dynamic Workflow evidence backflow
+- `review.md` / `challenge.md`: bounded review or prove-it feedback when invoked
+
+Do not create a second canonical plan, derived workflow graph, task DAG, dependency JSON, task tree, subagent topology, or runtime state file from `workflow-handoff.md`.
+
+## Execution Principle
+
+- PGE is a do-my-best execution system under explicit goal and verification, not a prove-everything-before-execution system.
+- `READY_FOR_EXECUTE` means the current contract is good enough to start, not that no clarification will ever be needed.
+- Issues are the best current executable slices, not perfect closed-world objects.
+- Validation is the strongest economical signal available now, not exhaustive proof.
+- Exec should keep moving inside the contract and clarify only when continuing would change goal, scope, validation, boundaries, or authority.
+
+## Missing Detail Policy
+
+Classify missing information before asking:
+
+- **requirement gap**: affects goal, scope, acceptance, or safety -> ask the user
+- **design choice**: multiple valid options -> recommend a default and proceed
+- **implementation detail**: resolve by repo convention or leave to execution freedom
+
+Ask only for true requirement gaps that block a fair contract.
+
+## Workflow Contract Changes
+
+When editing skills, agents, handoffs, templates, route/state/verdict vocabulary, artifact schemas, final response formats, README/CLAUDE resident rules, or workflow docs, read `docs/adr/0001-pge-contract-authority-and-planning.md` and run its contract gap check before finalizing.
+
+Before adding or changing any protocol action, distinguish the desired effect from the implementation mechanism:
+
+- Desired effect: what quality, efficiency, safety, or alignment outcome should improve.
+- Protocol action: who must do what differently, at which stage, using which artifact or field.
+- Necessity: why existing fields, instructions, checks, or review surfaces cannot already achieve the effect.
+- Consumer value: which downstream consumer, validator, or evidence consumer becomes more capable because of the change.
+- Failure mode: what concrete failure this prevents or exposes earlier.
+
+Do not encode an effect as a constraint and assume the target will happen. For example, "improve execution quality" is a goal; it is not by itself a valid new field, route, checklist, or template section. Add protocol only when the action is concrete, consumed, validated, and cheaper than leaving the behavior to existing contract surfaces.
+
+Fix in-scope mismatches in the same change. If the mismatch requires broader redesign, stop and surface it as a blocker or follow-up.
+
+## Workflow Tool Authorization
+
+For PGE contract maintenance only, you may use Claude Code Workflow for audit or verification fan-out without re-asking.
+
+Use it for multi-file producer/consumer/validator checks, adversarial contract review, or route/status consistency review.
+
+Prefer direct edits for small bounded changes. This authorization does not apply to target-repo product work, destructive actions, or non-PGE contract work.
+
+## Work Discipline
 
 - Understand before changing.
 - Do not present guesses as facts.
 - Keep changes minimal and relevant.
-- Prefer bounded, verifiable slices.
-- Work one bounded round at a time.
-- Only fix the current P0 blocker for the active round.
-- Record P1 as follow-up, P2 as parked. Do not expand them in the active round.
-- Prefer the smallest change that unblocks progress.
-- Stop after the blocker is removed.
-- Do not expand PGE into a generic agent OS.
-- Do not add resident agents unless current mainline explicitly requires it.
-- Every meaningful change should improve either task delivery or future AI-operability.
+- Preserve the newest user correction over older strategy text.
+- Do not expand PGE into a generic autonomous agent OS.
+- Do not add resident agents unless explicitly required by the current mainline.
+- Every meaningful change should improve task delivery or future AI-operability.
 
-## Workflow contract change review
-
-This is a resident repo-maintenance rule, separate from the PGE Review stage.
-
-When modifying PGE workflow contracts — skills, agents, handoffs, references, templates, route/state/verdict vocabulary, artifact schemas, final response formats, or workflow docs — run a protocol consistency review before finalizing the change. Do not wait for the user to ask.
-
-The review must identify and compare:
-- producer: what writes or defines the contract
-- consumer: what reads or executes it
-- validator: what accepts or rejects it
-- state/artifact writer: what persists it
-- final response or repair route: what exposes the result downstream
-
-Verify that required fields, enum values, route/status/verdict vocabulary, stage ownership, artifact paths, and repair semantics agree across `CLAUDE.md`, `README.md`, active skills, handoffs, references, templates, examples/evals, and agents touched by the change.
-
-Fix in-scope protocol mismatches in the same change. If the mismatch would require a broader workflow redesign, stop and surface it as a blocker or follow-up instead of silently leaving drift.
-
-## Workflow tool authorization (PGE contract maintenance)
-
-This authorizes the `Workflow` multi-agent orchestration tool for one bounded class of work; it is a standing opt-in, not a general one.
-
-When the active task is **PGE contract maintenance** — editing skills, agents, handoffs, references, templates, route/state/verdict vocabulary, artifact schemas, or running the cross-stage protocol consistency review above — you may author and run a `Workflow` for audit/verification fan-out (e.g. parallel producer/consumer/validator checks across many files) without re-asking, because this repo's primary work *is* evolving these contracts. Prefer direct edits for small bounded changes; reach for `Workflow` only when the change genuinely fans out across many files or needs independent adversarial verification.
-
-This authorization does not extend to target-repo product work, destructive actions, or anything outside PGE contract maintenance. For those, the normal opt-in rule applies: the user must request orchestration.
-
-## Core invariant
-
-Every stage must preserve semantic alignment with the original user intent. Artifacts exist to expose and verify that alignment, not to satisfy a fixed document shape.
-
-PGE is a harness, not a substitute for model capability. The harness constrains stage ownership, context boundaries, forbidden scope, and verification feedback loops. It must not decompose ordinary model execution into large required field sets, audit tables, or checklist packets by default. As model capability improves, prefer fewer required fields, stronger natural-language intent, and concrete verification over heavier protocol machinery. Add detailed protocol fields only for risk-triggered surfaces such as security, public APIs, schema/artifact contracts, persistence/migration, route/state vocabulary, performance-sensitive code, or DEEP cross-module work.
-
-PGE requires contract discipline, not template bureaucracy:
-- Research must produce a bounded `research.v3` problem-discovery contract: goal, success shape, scope, non-goals, constraints, task-relevant context, direction, open questions, and route.
-- Plan must translate that intent into executable issue contracts without scope drift.
-- Exec must prove code changes satisfy the plan contract.
-- Review must judge whether the diff still aligns with the original intent through the plan.
-- Every stage must consume its explicit invocation input plus relevant current context, including recent user corrections, observed failures, and fresh artifacts. If context changes the goal, scope, or fix target, confirm the interpretation before producing the next contract.
-- Research owns bounded problem discovery: goal, success shape, scope, constraints, task-relevant context, ambiguity resolution, and route. Implementation Friction and Progressive Feasibility are conditional only. Plan owns executable solution design: approach selection, Plan Engineering Review, acceptance, verification topology, evidence requirements, and plan-changing clarification. Exec consumes a ready contract; if many goal/scope/acceptance questions remain at exec time, route back because research or plan did not finish its job.
-
-Templates are scaffolds. Required field semantics are binding; prose shape and optional sections should scale with task complexity.
-
-## Workflow authority
-
-- PGE follows the common arc: Research → Plan → Execute → Review → Ship.
-- `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-learn` are the active workflow surfaces.
-- `pge-exec` owns route, state, gates, and execution-window decisions for the default Execute stage, including bounded reruns from task-artifact review/challenge feedback only after provenance validation against the referenced run, canonical plan identity, and reviewed diff.
-- `pge-plan` also writes `.pge/tasks-<slug>/workflow-handoff.md` for ready plans as an optional Dynamic Workflow launch adapter. The adapter points to canonical `plan.md`, must not become a second plan, graph, task DAG, or dependency JSON, and must not define reusable workflow orchestration.
-- `pge-research` owns bounded `research.v3` problem discovery: goal, success shape, scope, constraints, task-relevant context, optional problem-side experience notes, conditional Implementation Friction / Progressive Feasibility, and route.
-- `pge-review` owns the `/pge-review` surface when that review stage is explicitly invoked. It must return `BLOCK_SHIP`, `NEEDS_FIX`, `READY_FOR_CHALLENGE`, or `READY_TO_SHIP`; findings alone are not enough. When a task directory exists, review feedback is written there in a provenance-bearing exec-facing repair format.
-- `pge-challenge` owns the manual prove-it gate inside the Review stage before PR/ship. When a task directory exists, challenge feedback is written there in a provenance-bearing exec-facing repair format. It is normally reached from `pge-review` route `READY_FOR_CHALLENGE`, not directly from `pge-exec`.
-- `pge-ai-native-refactor` owns pre-PGE shaping for one human-selected AI-friction direction. It must not execute implementation or invoke PGE automatically.
-- `pge-handoff` owns temporary Matt-style task handoff only; it must not extract durable knowledge.
-- `pge-learn` owns learning and quality evaluation for context friction, memory/code summaries, and run artifact candidates before any durable repo knowledge is promoted. `learn` is a command/user shorthand inside `pge-learn`, not a separate PGE authority.
-- Planning outputs, optional workflow handoff/result artifacts, run artifacts, and review/challenge feedback under `.pge/tasks-<slug>/` are the handoff seams.
-- Semantically sufficient plans from outside PGE may be adopted into repo management by `pge-plan` fast-adopt into `.pge/tasks-<slug>/plan.md`; the source does not need canonical headings. After adoption, `.pge/` artifacts are authoritative; the external plan remains source evidence, not a parallel runtime contract. Dynamic Workflow may execute through `.pge/tasks-<slug>/workflow-handoff.md` and must return `.pge/tasks-<slug>/workflow-result.md` with provenance and issue/acceptance evidence for the next selected review, replan, ship, or handoff step; `pge-exec` does not consume that result as a repair artifact unless a future explicit contract adds it.
-- Subagents/workers are bounded helpers, not workflow authorities.
-- Do not silently restore a Planner / Generator / Evaluator Claude Code Agent Teams orchestrator.
-- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by pge-exec Exec QA Gate.
-
-## Missing detail policy
-
-Do not treat every unresolved implementation detail as a blocking question.
-
-Classify missing information:
-
-- **requirement gap**: affects goal / scope / acceptance / safety → ask the user
-- **design choice**: multiple valid options → generate options, recommend a default, proceed
-- **implementation detail**: resolve by repo convention or leave to Generator freedom
-
-Only ask the user for true requirement gaps that block a fair contract.
-
-## Current non-goals
-
-- no generic autonomous agent OS
-- no GitHub issue/backlog workflow unless explicitly planned
-- no default heavy thinking (parallel reasoning) unless task warrants it
-- no default grill-style questioning for every input
-- no broad rewrite without run evidence
-- no runtime prompt changes without current mainline or failure evidence
-
-## Validation commands
+## Validation Commands
 
 ```bash
-./bin/pge-progress-report.sh <progress.jsonl-or-task-dir>  # Generate progress report
-./bin/pge-local-install.sh          # Install plugin to ~/.claude
+./bin/pge-progress-report.sh <progress.jsonl-or-task-dir>
+./bin/pge-local-install.sh
 ```
 
-## Key gotchas
+## Gotchas
 
-- Plugin source and marketplace source are the same repo. Installed layout differs from source layout.
-- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents. Other legacy agent/skill files have been removed.
+- Plugin source and marketplace source are the same repo; installed layout differs from source layout.
+- `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are active review agents spawned by `pge-exec`.
+- `docs/exec-plans/` files are design notes unless fast-adopted into `.pge/tasks-<slug>/plan.md`.
