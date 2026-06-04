@@ -21,11 +21,11 @@ allowed-tools:
 
 # PGE Plan
 
-Produce one bounded, executable PGE plan contract under `.pge/tasks-<slug>/`: a stable `.pge/tasks-<slug>/plan.md` plus issue-local execution contracts under `.pge/tasks-<slug>/issues/Ixxx.md`.
+Produce one bounded, executable PGE plan contract under `.pge/tasks-<slug>/`: a stable `.pge/tasks-<slug>/plan.md` plus issue-local execution contracts under `.pge/tasks-<slug>/issues/Ixxx.md`. When the plan gate passes with execution allowed, also generate `.pge/tasks-<slug>/workflow-handoff.md` as an optional Dynamic Workflow launch adapter.
 
 Run `pge-plan` in the current main reasoning context. Do not hand core planning, phase/scope interpretation, or semantic ownership decisions to an automatically selected lower-capability planning model. Agents may help with bounded evidence gathering or outside voice review, but main owns the plan contract and final decisions.
 
-This is a planning skill. It does not execute code, edit implementation files, produce implementation pseudocode, publish GitHub issues, or invoke `pge-exec`.
+This is a planning skill. It does not execute code, edit implementation files, produce implementation pseudocode, publish GitHub issues, invoke `pge-exec`, or launch Dynamic Workflow.
 
 Plan is responsible for **executable solution design**:
 
@@ -841,7 +841,7 @@ When issues are compile-coupled or share a verification surface, `Dependencies`,
 
 The stable plan artifact MUST be written to `.pge/tasks-<slug>/plan.md`, and full issue contracts MUST be written to `.pge/tasks-<slug>/issues/Ixxx.md`. This `.pge/` task directory is canonical. Notes outside `.pge/` are non-authoritative and must not replace the required pipeline artifacts. ID format: `YYYYMMDD-HHMM-<slug>`.
 
-Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Required semantics are binding; optional sections should appear only when they help `pge-exec` execute or help review detect scope drift.
+Use `templates/plan.md` as a contract scaffold, not a fixed prose shape. Required semantics are binding; optional sections should appear only when they help `pge-exec` execute, help Dynamic Workflow interpret the same plan, or help review detect scope drift.
 
 **Task directory:** pge-research creates `.pge/tasks-<slug>/`. pge-plan writes into it. If research was skipped, pge-plan creates the task directory and then writes `plan.md` there:
 
@@ -850,6 +850,27 @@ mkdir -p .pge/tasks-<slug>/
 mkdir -p .pge/tasks-<slug>/issues/
 ```
 
+### Write Workflow Handoff Adapter
+
+When the final route is `READY_FOR_EXECUTE` or `READY_FOR_EXECUTE_WITH_ASSUMPTIONS`, the Final Plan Gate verdict is `PASS`, and `exec_allowed: yes`, render `templates/workflow-handoff.md` to `.pge/tasks-<slug>/workflow-handoff.md` by replacing only `<slug>`.
+
+Do not parse issues, copy acceptance criteria, generate a workflow graph, create a task tree, define subagent roles, or create workflow runtime state. `workflow-handoff.md` is a launch adapter for Dynamic Workflow, not a second plan or execution contract. It must reference `.pge/tasks-<slug>/plan.md` as the source of truth and name `.pge/tasks-<slug>/workflow-result.md` as evidence backflow.
+
+Do not generate `workflow-handoff.md` when the plan route is `RETURN_TO_RESEARCH`, `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN`, when the Final Plan Gate did not pass, when `exec_allowed: no`, or when no issue files were written.
+
+After rendering, perform a lightweight adapter check:
+- `.pge/tasks-<slug>/workflow-handoff.md` exists.
+- It contains `@.pge/tasks-<slug>/plan.md`.
+- It contains `.pge/tasks-<slug>/workflow-result.md`.
+- It does not copy issue details, acceptance criteria, or verification details from the plan.
+- It does not define a reusable workflow graph, phase graph, task DAG, dependency JSON, task tree, or subagent topology.
+- Its result requirements include `Provenance`.
+- Its result requirements include `Adversarial review`.
+- Its status mapping does not introduce new PGE route vocabulary.
+- It contains `Pattern / Budget Hints`.
+- It does not default to recurring `/loop` behavior for one-shot implementation plans.
+- Any native code-review mention is optional supporting evidence only and explicitly does not create a shipping route or required dependency.
+
 ### Final Sanity Pass
 
 Read `references/self-review.md` for the focused sanity pass. Summary:
@@ -857,6 +878,7 @@ Read `references/self-review.md` for the focused sanity pass. Summary:
 - Confirm coverage: current prompt constraints, upstream decisions, non-goals, target areas, and forbidden areas are not silently dropped.
 - Confirm verification and evidence: every acceptance criterion has a proving check or required evidence, and weak proof is repaired before Final Plan Gate.
 - Confirm exec readiness: issue contracts are concrete enough for `pge-exec` to start without guessing.
+- Confirm workflow handoff readiness for executable plans: the adapter exists only for ready plans, points to the canonical plan, and does not become a second plan.
 
 Fix failures inline once and rerun only the failed sanity area. If a failure would change goal, scope, success shape, or user authority, route `NEEDS_INFO` or `RETURN_TO_RESEARCH` instead of turning the sanity pass into another planning loop.
 
@@ -893,10 +915,11 @@ Plan Engineering Review results (Phase 2 internal decision-hardening):
 
 ### Completion gate
 
-Do NOT declare the plan complete, summarize completion, or change routes until BOTH are true:
+Do NOT declare the plan complete, summarize completion, or change routes until ALL are true:
 
 1. The plan artifact exists at `.pge/tasks-<slug>/plan.md` and satisfies the required plan contract semantics
-2. You are about to output the Final Response block exactly once
+2. For ready routes, the workflow handoff adapter has been rendered and checked
+3. You are about to output the Final Response block exactly once
 
 If the user redirects to execution or implementation mid-run, close the stage first by writing the best available plan artifact with route `NEEDS_INFO`, `BLOCKED`, or `NEEDS_HUMAN` instead of silently exiting.
 
@@ -906,9 +929,11 @@ If the user redirects to execution or implementation mid-run, close the stage fi
 
 `pge-exec <task-slug>` or `pge-exec .pge/tasks-<slug>/plan.md` reads the plan index + `.pge/config/*`, builds a shared plan context packet, then lazy-loads selected `issues/Ixxx.md` files to construct compact per-issue execution packs. Handoff tells exec: issue order, issue file paths, eligible issues, AFK vs HITL, goal, plan context, change, target areas, recommended approach, forbidden boundaries, validation, upstream decisions to preserve, and assumptions to preserve. Risk notes and detailed checklists are added only when the issue surface needs them. Do not require exec to reread broad research logs when the plan already records the necessary conclusion and evidence.
 
+Optional Dynamic Workflow backend: `workflow-handoff.md` lets Claude Code Dynamic Workflow read the same canonical plan and own orchestration, parallelism, bounded local repair, verification, and result production. The launch prompt should only point at `.pge/tasks-<slug>/workflow-handoff.md`; the adapter contains the interpretation rules. Dynamic Workflow must write `.pge/tasks-<slug>/workflow-result.md` with provenance and issue/acceptance evidence for the next selected review, replan, ship, or handoff step. `workflow-result.md` is not a `pge-exec` repair artifact unless a future explicit plan adds that contract.
+
 ## Guardrails
 
-Do not: write business code, write implementation pseudocode or function bodies, execute the plan, invoke pge-exec, create run artifacts under `.pge/tasks-*/runs/`, ask non-blocking questions, publish GitHub Issues, use forbidden states.
+Do not: write business code, write implementation pseudocode or function bodies, execute the plan, invoke pge-exec, launch Dynamic Workflow, create run artifacts under `.pge/tasks-*/runs/`, create workflow result artifacts, ask non-blocking questions, publish GitHub Issues, use forbidden states.
 
 ## Final Response
 
@@ -916,6 +941,7 @@ Do not: write business code, write implementation pseudocode or function bodies,
 ## PGE Plan Result
 - plan_path: .pge/tasks-<slug>/plan.md
 - issue_files: .pge/tasks-<slug>/issues/Ixxx.md count=<n>
+- workflow_handoff_path: .pge/tasks-<slug>/workflow-handoff.md | not_generated
 - plan_route: READY_FOR_EXECUTE | READY_FOR_EXECUTE_WITH_ASSUMPTIONS | RETURN_TO_RESEARCH | NEEDS_INFO | BLOCKED | NEEDS_HUMAN
 - ready_issues: <ids or None>
 - blocked_issues: <ids or None>
@@ -924,5 +950,5 @@ Do not: write business code, write implementation pseudocode or function bodies,
 - plan_engineering_review: completed (result: PASS|REWORK_PLAN|RETURN_TO_RESEARCH|NEEDS_INFO) | compact | not_applicable — reason
 - plan_gate: PASS | REVISE | ESCALATE | REJECT
 - exec_allowed: yes | no
-- next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | pge-research <task-slug> (if RETURN_TO_RESEARCH) | pge-plan (after clarification)
+- next_skill: pge-exec <task-slug> | pge-exec .pge/tasks-<slug>/plan.md | Dynamic Workflow @.pge/tasks-<slug>/workflow-handoff.md | pge-research <task-slug> (if RETURN_TO_RESEARCH) | pge-plan (after clarification)
 ```

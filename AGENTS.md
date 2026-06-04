@@ -21,10 +21,10 @@ This repo uses `CLAUDE.md` as the primary resident agent entry point.
 ## Key invariants
 
 - `pge-research`, `pge-plan`, `pge-exec`, `pge-review`, `pge-challenge`, `pge-ai-native-refactor`, `pge-handoff`, and `pge-learn` are the active workflow surfaces.
-- Active flow aligns to Research -> Plan -> Execute -> Review -> Ship. Explicit external plans enter through `pge-plan` fast-adopt.
+- Active flow aligns to Research -> Plan -> Execute -> Review -> Ship. Explicit external plans enter through `pge-plan` fast-adopt. `pge-exec` remains the default Execute surface; ready plans may also expose `.pge/tasks-<slug>/workflow-handoff.md` for optional Dynamic Workflow execution.
 - `main` owns route, state, and gate decisions.
 - Subagents are bounded helpers, not workflow authorities.
-- Active flow is artifact-first: `.pge/tasks-<slug>/research.md` -> `.pge/tasks-<slug>/plan.md` -> `.pge/tasks-<slug>/runs/<run_id>/*`, with `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md` as bounded repair / prove-it handoff artifacts.
+- Active flow is artifact-first: `.pge/tasks-<slug>/research.md` -> `.pge/tasks-<slug>/plan.md` -> `.pge/tasks-<slug>/runs/<run_id>/*` for `pge-exec`, or `.pge/tasks-<slug>/workflow-result.md` for optional Dynamic Workflow execution, with `.pge/tasks-<slug>/review.md` and `.pge/tasks-<slug>/challenge.md` as bounded repair / prove-it handoff artifacts.
 - `agents/pge-code-reviewer.md` and `agents/pge-code-simplifier.md` are spawned by pge-exec Exec QA Gate.
 
 Do not maintain separate agent rules in this file. All resident rules live in `CLAUDE.md`.

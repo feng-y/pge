@@ -28,7 +28,7 @@ PGE 执行原则：
 - Exec 应在合约内持续推进；只有继续执行会改变目标、范围、验证、边界或权限时才澄清。
 
 - 研究必须暴露 `schema_version: research.v3`、目标、成功形态、范围、非目标、约束、任务相关上下文、最简单方向、开放问题和路由。Implementation Friction 与 Progressive Feasibility 只在触发时出现。
-- 计划必须暴露 `schema_version`、`source_contract_check`、`selected_approach`、`rejected_approaches`、`goal`、`non_goals`、`necessary_context`、`issues`、`target_areas`、`forbidden_areas`、`acceptance`、`verification`、`evidence_required`、`terminal_conditions`、`plan_gate`、`stop_conditions` 和 `route`。推荐方案只在有助于执行且不会限制有用实现选择时出现。新的可执行计划中，`plan.md ## issues` 是紧凑执行索引；完整 issue 合约写入 `.pge/tasks-<slug>/issues/Ixxx.md`。
+- 计划必须暴露 `schema_version`、`source_contract_check`、`selected_approach`、`rejected_approaches`、`goal`、`non_goals`、`necessary_context`、`issues`、`target_areas`、`forbidden_areas`、`acceptance`、`verification`、`evidence_required`、`terminal_conditions`、`plan_gate`、`stop_conditions` 和 `route`。推荐方案只在有助于执行且不会限制有用实现选择时出现。新的可执行计划中，`plan.md ## issues` 是紧凑执行索引；完整 issue 合约写入 `.pge/tasks-<slug>/issues/Ixxx.md`。Ready plan 还会包含 `.pge/tasks-<slug>/workflow-handoff.md`，作为可选 Dynamic Workflow 启动适配器；它只指回 `plan.md`，不是第二份计划。
 - 执行必须暴露每个变更实现了哪个议题、验收是否通过、运行了什么验证、任何计划偏差、卡住 lane 的恢复，以及不清楚或重复开发失败的 Diagnostic Recovery 记录。
 - 审查必须根据计划和原始用户意图检查差异，包括范围漂移和证据缺口，并在存在 PGE 任务目录时写入面向执行修复的发现。
 - 每个阶段必须消费其明确输入加上相关的当前上下文。当上下文改变意图、范围或修复目标时，该阶段必须在产生下一个合约前进行澄清。
@@ -54,16 +54,16 @@ pge-research → pge-plan → pge-exec → pge-review → pge-challenge → ship
 
 每个技能产生一个产物或门控结果供下一步消费。你可以从任何点进入——如果你已经了解全局就跳过研究，如果你已经有计划文件就跳过计划，或者在 PGE 流水线之外对普通差异运行审查/挑战。
 
-PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、`docs/exec-plans/` 文档或外部工作流计划，只要其语义足以让 `pge-plan` 确认目标、可观察的成功/停止条件、有界范围、已固定的决策与所有权边界、允许/禁止区域、验证/证据期望，以及足够的有序工作结构来切出可执行议题，而不发明 scope 或重做架构决策，就可以 fast-adopt。源内容可以是 prose、表格、issue list、review comments 或其他结构化笔记；不需要 canonical 标题。Fast-adopt 会把这些语义 materialize 成 canonical `.pge/tasks-<slug>/plan.md` 的 `plan.v2` 字段和引用的 `.pge/tasks-<slug>/issues/Ixxx.md` issue 合约，并在允许执行前运行 Final Plan Gate。采纳后，`pge-exec` 在 `plan_gate` 通过时消费 canonical plan index 和选中的 issue files。
+PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、`docs/exec-plans/` 文档或外部工作流计划，只要其语义足以让 `pge-plan` 确认目标、可观察的成功/停止条件、有界范围、已固定的决策与所有权边界、允许/禁止区域、验证/证据期望，以及足够的有序工作结构来切出可执行议题，而不发明 scope 或重做架构决策，就可以 fast-adopt。源内容可以是 prose、表格、issue list、review comments 或其他结构化笔记；不需要 canonical 标题。Fast-adopt 会把这些语义 materialize 成 canonical `.pge/tasks-<slug>/plan.md` 的 `plan.v2` 字段和引用的 `.pge/tasks-<slug>/issues/Ixxx.md` issue 合约，并在允许执行前运行 Final Plan Gate。采纳后，`pge-exec` 可以在 `plan_gate` 通过时消费 canonical plan index 和选中的 issue files；ready plan 也会暴露 `.pge/tasks-<slug>/workflow-handoff.md` 作为可选 Dynamic Workflow 启动适配器，workflow 执行必须写入带 provenance 与 issue/acceptance evidence 的 `.pge/tasks-<slug>/workflow-result.md`，供后续被选择的 review、replan、ship 或 handoff 步骤消费。
 
 ### 工作流映射
 
 | 阶段 | PGE 界面 | 产物 / 门控 |
 |---|---|---|
 | 研究 | `pge-research` | `.pge/tasks-<slug>/research.md` 带有有界 `research.v3` 问题发现合约 |
-| 计划 | `pge-plan` | `.pge/tasks-<slug>/plan.md` 带有 issue 执行索引，`.pge/tasks-<slug>/issues/Ixxx.md` 带有完整 issue 合约，并通过 Final Plan Gate |
+| 计划 | `pge-plan` | `.pge/tasks-<slug>/plan.md` 带有 issue 执行索引，`.pge/tasks-<slug>/issues/Ixxx.md` 带有完整 issue 合约，可选 `.pge/tasks-<slug>/workflow-handoff.md`，并通过 Final Plan Gate |
 | 计划（外部） | `pge-plan` fast-adopt | 从语义充分的外部计划 materialize 而来的 canonical `.pge/tasks-<slug>/plan.md`，通过 Final Plan Gate 后可执行 |
-| 执行 | `pge-exec` | `.pge/tasks-<slug>/runs/<run_id>/*` |
+| 执行 | `pge-exec` 或可选 Dynamic Workflow 后端 | `pge-exec`: `.pge/tasks-<slug>/runs/<run_id>/*`；Dynamic Workflow: `.pge/tasks-<slug>/workflow-result.md` |
 | 审查 | `pge-review` + 可选 `pge-challenge` | `.pge/tasks-<slug>/review.md` 和 `.pge/tasks-<slug>/challenge.md`；反馈只在 provenance 校验通过后回流 `pge-exec` 做有界修复，`pge-challenge` 通常从 review 阶段的 `READY_FOR_CHALLENGE` 路由进入 |
 | 交付 | 外部 git/PR/部署工作流 | commit、PR、merge、deploy 或交接 |
 
@@ -77,11 +77,11 @@ PGE 也可以采纳其他工作流产生的计划。Claude 计划模式输出、
 
 - **[`/pge-research`](./skills/pge-research/SKILL.md)** — 在计划前产生有界 `research.v3` 问题发现 brief。当目标、成功形态、范围、约束或仓库现实不足以公平计划时使用。区分原始目标 A 和实现假设 B，记录任务相关上下文，只在需要时触发 Implementation Friction 或 Progressive Feasibility，并以明确路由停止。
 
-- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — 在 `.pge/tasks-<slug>/` 下产生有界的可执行方案设计合约：稳定 `plan.md` 保存 issue 执行索引，`issues/Ixxx.md` 保存完整 issue 合约、验收标准、本地验证、证据要求、禁止区域、按深度缩放的 Plan Engineering Review、仓库现实检查和 Final Plan Gate；Final Plan Gate 通过前不能进入 `pge-exec`。也支持从语义充分的外部计划 fast-adopt 成 canonical 合约。
+- **[`/pge-plan`](./skills/pge-plan/SKILL.md)** — 在 `.pge/tasks-<slug>/` 下产生有界的可执行方案设计合约：稳定 `plan.md` 保存 issue 执行索引，`issues/Ixxx.md` 保存完整 issue 合约、验收标准、本地验证、证据要求、禁止区域、按深度缩放的 Plan Engineering Review、仓库现实检查和 Final Plan Gate；Final Plan Gate 通过前不能执行。Ready plan 还会生成 `workflow-handoff.md` 供可选 Dynamic Workflow 执行。也支持从语义充分的外部计划 fast-adopt 成 canonical 合约。
 
 - **[`/pge-exec`](./skills/pge-exec/SKILL.md)** — 以轻量协调、紧凑且有界的 Generator lanes、分阶段验证和最终 Evaluator 压力执行计划议题。消费计划文件，允许在计划合约内通过 `implementation-notes.md` 记录实现适配，在有用时使用可选只读 prep hints，并验证 composed run，而不是强制每个议题都经过 Evaluator 批准。记录证据，报告计划偏差，用 Progress Watchdog 恢复停滞 lanes，并把不清晰的开发失败升级为 Diagnostic Recovery，而不是试错式修补。
 
-- **[`/pge-review`](./skills/pge-review/SKILL.md)** — 自固定点以来变更的审查阶段门控。在路由到修复、挑战或交付前，检查标准、与计划/原始意图的语义对齐、简洁性和验证故事。
+- **[`/pge-review`](./skills/pge-review/SKILL.md)** — 自固定点以来变更的审查界面。检查标准、与计划/原始意图的语义对齐、简洁性和验证故事，并在被调用时返回有界 review verdict。
 
 - **[`/pge-challenge`](./skills/pge-challenge/SKILL.md)** — PR/交付前的手动证明门控。解释差异，在存在当前提示约束时证明，证明执行满足计划/开发要求，用证据挑战每个有意义的变更。
 

@@ -100,7 +100,7 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 ### Validation Reality
 
 - Cheap feedback: <checks useful during implementation>
-- Trust gates: <checks/evidence required before review can trust completion>
+- Trust gates: <checks/evidence required before downstream review/ship can trust completion>
 - Unavailable checks: <checks that cannot run now, with fallback evidence or terminal handling>
 
 ## terminal_conditions
@@ -150,6 +150,7 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - source_type: research.v3 | current_prompt | external_plan | claude_plan_mode | docs_exec_plan | mixed
 - source_fidelity: PASS | REVISE | ESCALATE | REJECT | SKIP_NOT_APPLICABLE
 - task_dir: .pge/tasks-<slug>/
+- workflow_handoff_path: .pge/tasks-<slug>/workflow-handoff.md | not_generated
 
 ## Handoff To Execute
 
@@ -164,6 +165,14 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
 - Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>
 - Optional risk-triggered checks: <security / public API / schema / performance / none>
+
+### Optional Dynamic Workflow Backend
+
+- Workflow handoff: .pge/tasks-<slug>/workflow-handoff.md | not_generated
+- Launch prompt: 创建一个 Dynamic Workflow 执行 @.pge/tasks-<slug>/workflow-handoff.md
+- Result artifact: .pge/tasks-<slug>/workflow-result.md
+- Result consumer: downstream review/replan/ship/handoff step uses `plan.md` as the alignment source and `workflow-result.md` as execution evidence
+- Boundary: `workflow-handoff.md` is a launch adapter, not a second plan, workflow graph, task DAG, or dependency JSON
 
 ## Optional When Useful
 

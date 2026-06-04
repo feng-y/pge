@@ -76,7 +76,7 @@
     {
       "id": 13,
       "prompt": "Create a plan for a clear MEDIUM protocol migration with five execution issues. The source explicitly says full issue bodies must not live in plan.md and issue files should be lazy-loaded by exec.",
-      "expected_output": "Produces .pge/tasks-<slug>/plan.md with ## issues as a compact Execution Index containing ID, File, Title, State, Depends On, Verification Coupling, Execution Type, and Security. Writes full issue contracts to .pge/tasks-<slug>/issues/I001.md etc. Does not embed full issue bodies under plan.md ## issues. Final response reports plan_path and issue file count.",
+      "expected_output": "Produces .pge/tasks-<slug>/plan.md with ## issues as a compact Execution Index containing ID, File, Title, State, Depends On, Verification Coupling, Execution Type, and Security. Writes full issue contracts to .pge/tasks-<slug>/issues/I001.md etc. For a ready route, writes .pge/tasks-<slug>/workflow-handoff.md as an optional Dynamic Workflow launch adapter. Does not embed full issue bodies under plan.md ## issues. Final response reports plan_path, issue file count, and workflow_handoff_path.",
       "dimensions": ["issue_file_plan_output", "progressive_disclosure", "producer_contract"]
     },
     {
