@@ -10,7 +10,7 @@ It is not a replacement for the plan.
 
 Read first:
 
-@.pge/tasks-<slug>/plan.md
+@bin/fixtures/pge-plan-artifacts/current-plan-v2/plan.md
 
 Use `plan.md` as the source of truth for:
 - goal
@@ -95,7 +95,7 @@ Keep the workflow shape lightweight when a normal Claude Code session could safe
 
 During execution, maintain:
 
-.pge/tasks-<slug>/implementation-notes.md
+bin/fixtures/pge-plan-artifacts/current-plan-v2/implementation-notes.md
 
 Use it to capture anything the user should know about how the implementation interprets or diverges from the canonical plan:
 
@@ -112,8 +112,8 @@ If this workflow is resumed by Claude Code runtime, continue from the runtime st
 
 If restarted from artifacts, read existing:
 
-- .pge/tasks-<slug>/implementation-notes.md
-- .pge/tasks-<slug>/workflow-result.md
+- bin/fixtures/pge-plan-artifacts/current-plan-v2/implementation-notes.md
+- bin/fixtures/pge-plan-artifacts/current-plan-v2/workflow-result.md
 
 Rules:
 - If `workflow-result.md` is `PASS` or `LOCAL_REPAIRED`, do not rerun unless explicitly requested.
@@ -126,7 +126,7 @@ Rules:
 
 Write the final result to:
 
-.pge/tasks-<slug>/workflow-result.md
+bin/fixtures/pge-plan-artifacts/current-plan-v2/workflow-result.md
 
 Include:
 - status
@@ -167,10 +167,10 @@ PASS | LOCAL_REPAIRED | BLOCKED | CONFLICT | VERIFICATION_BLOCKED | CONTRACT_BRO
 Minimum provenance fields:
 
 ```text
-source_plan_path: .pge/tasks-<slug>/plan.md
+source_plan_path: bin/fixtures/pge-plan-artifacts/current-plan-v2/plan.md
 source_plan_id: <plan Metadata plan_id, or "not_recorded">
 source_plan_fingerprint: <sha256 of plan.md at workflow start>
-workflow_handoff_path: .pge/tasks-<slug>/workflow-handoff.md
+workflow_handoff_path: bin/fixtures/pge-plan-artifacts/current-plan-v2/workflow-handoff.md
 workflow_handoff_fingerprint: <sha256 of workflow-handoff.md at workflow start>
 workflow_run_id: <runtime id, timestamp id, or "not_available">
 base_ref: <git ref before workflow changes, or "not_available">

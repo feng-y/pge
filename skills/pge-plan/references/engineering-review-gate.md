@@ -5,6 +5,7 @@ Plan-owned decision-hardening mechanism. Runs during solution design after candi
 ## Purpose
 
 Reduce `pge-exec` friction by checking scope discipline, existing-code reuse, selected-approach rationale, issue slicing, architecture fit when applicable, test/verification topology, failure preparedness, and execution ergonomics. It is not an independent execution authorization gate; the Final Plan Gate remains the hard validator for `READY_FOR_EXECUTE`.
+Its proof role is adequacy: pressure-test whether issue-local validation and plan-level verification are sufficient, without replacing either or issuing the final execution verdict.
 
 ## Trigger Conditions
 
@@ -88,9 +89,11 @@ Check:
 For issue-file plans, verify:
 
 - `plan.md ## issues` is a compact schedulable index with ID, File, State, Depends On, Verification Coupling, and Execution Type.
+- Issue numbering expresses the baseline recommended execution order, while `Depends On` records only stricter hard dependencies.
 - Full issue execution contracts live in `issues/Ixxx.md`, not inside `plan.md`.
 - Each ready issue file has enough goal, semantic plan context, change, target areas, recommended approach, forbidden boundaries, and validation for Generator to start without guessing.
 - Dependencies and verification coupling reflect hidden coupling from shared files, runtime paths, fixtures, generated artifacts, or trust-gate commands.
+- Every non-independent issue names the first trustworthy verification point and safe execution strategy.
 - Issue files do not redefine plan goal, non-goals, forbidden areas, or global verification strategy.
 
 For LIGHT plans, a short verification story is enough when the prompt and acceptance criteria are obvious. The gate still must record why the verification is sufficient.
@@ -107,7 +110,7 @@ Rules:
 - `keep` only when the issue can be executed from its issue file plus shared plan context and can prove its result through `validation`.
 - `split` when one issue hides multiple outcomes, unrelated target areas, or failure modes that cannot be repaired as one bounded unit.
 - `merge` when an issue is only setup, a placeholder, a field addition, a rename, or a check without a verifiable issue-local outcome.
-- `rework` when validation is vague, target areas are too broad, hidden coupling is not reflected in dependencies / verification coupling, or the first trustworthy verification point is missing.
+- `rework` when validation is vague, target areas are too broad, baseline execution order is unclear, `Depends On` is being used as a loose preference instead of a hard dependency, hidden coupling is not reflected in dependencies / verification coupling, or the first trustworthy verification point is missing.
 
 Any `split`, `merge`, or `rework` action must be applied before Final Plan Gate. Do not route `READY_FOR_EXECUTE` with unresolved slicing actions.
 
@@ -158,7 +161,7 @@ Plan Engineering Review records exactly one overall result:
 | `PASS` | Selected approach, slicing, verification, and risk handling are strong enough for synthesis | Proceed to synthesis and Final Plan Gate |
 | `REWORK_PLAN` | Fixable issues found in approach, scope, slicing, acceptance, verification, or coverage | Fix findings inline, re-run affected checks |
 | `RETURN_TO_RESEARCH` | The inherited problem contract must change or cannot be operationalized safely | Route back to `pge-research` |
-| `NEEDS_INFO` | Specific user-authority decision blocks fair planning | Ask one question, then re-run affected checks |
+| `NEEDS_INFO` | Specific user-authority decision blocks fair planning | Ask the minimum question set needed for a fair plan, then re-run affected checks |
 
 **When to use each:**
 

@@ -70,13 +70,27 @@
       "scenario": "Issue-file protocol migration preserves producer / validator / consumer alignment",
       "research_input": "Research or an external adopted plan says PGE must move from embedded issue bodies in plan.md to a compact issue index plus issues/Ixxx.md, with exec lazy-loading issue files and Evaluator remaining run-level.",
       "research_expected": "READY_FOR_PLAN or semantically sufficient source with goal, scope, non-goals, verification expectation, and protocol boundary: plan.md stays stable, issues/Ixxx.md is issue-local, exec lazy-loads selected issue files, evaluator judges plan outcome.",
-      "plan_expected": "Produces plan.md with ## issues as Execution Index, writes issues/Ixxx.md issue files, updates Final Plan Gate to validate index/file consistency and reject embedded issue-body execution input, updates pge-exec to require issue-file plans and use plan_context_packet, and preserves run-level evaluator/review boundary.",
+      "plan_expected": "Produces plan.md with ## issues as Execution Index, writes issues/Ixxx.md issue files, preserves issue numbering as the baseline recommended execution order, keeps Depends On and Verification Coupling as hard execution semantics, updates Final Plan Gate to validate index/file consistency and reject embedded issue-body execution input, updates pge-exec to require issue-file plans and use plan_context_packet, and preserves run-level evaluator/review boundary.",
       "joint_check": [
         "Producer writes compact issue index and issue files",
         "Validator checks missing issue files, embedded issue bodies, dependencies, and index/file consistency",
         "Consumer rejects non_canonical_plan_shape before run creation and lazy-loads selected issue files",
         "Evaluator and review treat issue files as supporting evidence, not final proof",
-        "Run state remains under runs/<run_id>/ with no task-level exec/progress.md or exec/decision-log.md"
+        "Run state remains under runs/<run_id>/ with no task-level exec/progress.md or exec/decision-log.md",
+        "Plan preserves baseline issue-number order while keeping Depends On / Verification Coupling as stricter execution semantics"
+      ]
+    },
+    {
+      "id": "joint-7",
+      "scenario": "Research handoff plus repo contradiction requires explicit override logging",
+      "research_input": "Research.v3 is READY_FOR_PLAN for a bounded pge-plan contract cleanup and current user constraints imply SKILL.md-first scope, but repo evidence shows templates/plan.md must also change to keep the canonical plan contract coherent.",
+      "research_expected": "research.v3 brief with route: READY_FOR_PLAN, goal/success_shape/scope/non_goals/constraints, and no selected implementation approach.",
+      "plan_expected": "Consumes the research brief plus the current user constraint, keeps scope bounded, records the contradiction in Plan Grill Log, records any justified scope exception in Decision Overrides, and does not silently broaden work or drop the user constraint.",
+      "joint_check": [
+        "Plan preserves the research goal and current user constraint together",
+        "Plan Grill Log records the contradiction and resolution explicitly",
+        "Decision Overrides records any justified scope exception instead of silently expanding scope",
+        "Plan remains bounded and executable rather than broadening into unrelated cleanup"
       ]
     }
   ]
