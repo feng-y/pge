@@ -97,15 +97,15 @@ REQUIRED_WORKFLOW_HEADINGS = [
     "## Result",
 ]
 
-REQUIRED_WORKFLOW_PHRASES = [
-    "It is not a replacement for the plan.",
-    "Use `plan.md` as the source of truth for:",
-    "Issue numbering is the baseline recommended execution order from the canonical plan.",
-    "Do not derive a reusable workflow graph, task DAG, or dependency JSON from this handoff.",
-    "preserve baseline issue-number order unless `Depends On`, `Verification Coupling`, or stronger evidence justifies equivalent safe regrouping;",
-    "preserve hard dependencies, first trustworthy verification points, and serial / isolated-worktree safety rules when regrouping runtime tasks;",
-    "`workflow-result.md` status is not a `pge-exec` route or a `pge-review` route.",
-]
+WORKFLOW_SEMANTIC_REQUIREMENTS = {
+    "not_replacement": "It is not a replacement for the plan.",
+    "canonical_source_truth": "Use `plan.md` as the source of truth for:",
+    "issue_order_baseline": "Issue numbering is the baseline recommended execution order from the canonical plan.",
+    "no_dag_derivation": "Do not derive a reusable workflow graph, task DAG, or dependency JSON from this handoff.",
+    "preserve_issue_order": "preserve baseline issue-number order unless `Depends On`, `Verification Coupling`, or stronger evidence justifies equivalent safe regrouping;",
+    "preserve_dependency_and_safety": "preserve hard dependencies, first trustworthy verification points, and serial / isolated-worktree safety rules when regrouping runtime tasks;",
+    "result_status_boundary": "`workflow-result.md` status is not a `pge-exec` route or a `pge-review` route.",
+}
 
 EMBEDDED_ISSUE_PATTERNS = [
     r"^###\s+Issue\b",
@@ -440,6 +440,14 @@ def validate_issues_section(lines: list[str], task_dir: Path, errors: list[str],
     validate_issue_rows(rows, task_dir, errors, result)
 
 
+def validate_workflow_semantics(workflow_text: str, errors: list[str]) -> None:
+    for requirement_name, phrase in WORKFLOW_SEMANTIC_REQUIREMENTS.items():
+        if phrase not in workflow_text:
+            errors.append(
+                f"Workflow handoff is missing semantic requirement '{requirement_name}': {phrase}"
+            )
+
+
 def validate_workflow_handoff(workflow_handoff_path: Path, errors: list[str]) -> None:
     try:
         workflow_text = read_text(workflow_handoff_path)
@@ -454,11 +462,7 @@ def validate_workflow_handoff(workflow_handoff_path: Path, errors: list[str]) ->
                 f"Workflow handoff {workflow_handoff_path} is missing required heading: {heading}"
             )
 
-    for phrase in REQUIRED_WORKFLOW_PHRASES:
-        if phrase not in workflow_text:
-            errors.append(
-                f"Workflow handoff {workflow_handoff_path} is missing adapter-boundary phrase: {phrase}"
-            )
+    validate_workflow_semantics(workflow_text, errors)
 
 
 def validate_plan_artifacts(plan_path: str, workflow_handoff_path: str | None = None) -> dict:

@@ -168,7 +168,17 @@ def main():
         )
         plan_path, workflow_path = write_fixture(task_dir, workflow_text=broken_workflow)
         result = module.validate_plan_artifacts(str(plan_path), str(workflow_path))
-        assert_invalid_contains(result, "missing adapter-boundary phrase")
+        assert_invalid_contains(result, "semantic requirement 'no_dag_derivation'")
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        task_dir = Path(tmp_dir) / "task"
+        broken_workflow = CANONICAL_WORKFLOW.replace(
+            "- preserve baseline issue-number order unless `Depends On`, `Verification Coupling`, or stronger evidence justifies equivalent safe regrouping;\n",
+            "- regroup runtime tasks when useful.\n",
+        )
+        plan_path, workflow_path = write_fixture(task_dir, workflow_text=broken_workflow)
+        result = module.validate_plan_artifacts(str(plan_path), str(workflow_path))
+        assert_invalid_contains(result, "semantic requirement 'preserve_issue_order'")
 
     print("validate-pge-plan-artifacts regression tests passed")
 
