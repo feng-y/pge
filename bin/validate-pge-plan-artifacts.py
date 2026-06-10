@@ -102,8 +102,6 @@ WORKFLOW_SEMANTIC_REQUIREMENTS = {
     "canonical_source_truth": "Use `plan.md` as the source of truth for:",
     "issue_order_baseline": "Issue numbering is the baseline recommended execution order from the canonical plan.",
     "no_dag_derivation": "Do not derive a reusable workflow graph, task DAG, or dependency JSON from this handoff.",
-    "preserve_issue_order": "preserve baseline issue-number order unless `Depends On`, `Verification Coupling`, or stronger evidence justifies equivalent safe regrouping;",
-    "preserve_dependency_and_safety": "preserve hard dependencies, first trustworthy verification points, and serial / isolated-worktree safety rules when regrouping runtime tasks;",
     "result_status_boundary": "`workflow-result.md` status is not a `pge-exec` route or a `pge-review` route.",
 }
 
@@ -440,12 +438,89 @@ def validate_issues_section(lines: list[str], task_dir: Path, errors: list[str],
     validate_issue_rows(rows, task_dir, errors, result)
 
 
+def validate_workflow_sections(
+    workflow_lines: list[str], errors: list[str]
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    canonical_source = extract_section(workflow_lines, "## Canonical Source")
+    execution_interpretation = extract_section(workflow_lines, "## Execution Interpretation")
+    workflow_autonomy = extract_section(workflow_lines, "## Workflow Autonomy")
+    result_section = extract_section(workflow_lines, "## Result")
+
+    if not canonical_source:
+        errors.append("Workflow handoff is missing the ## Canonical Source section content")
+    if not execution_interpretation:
+        errors.append("Workflow handoff is missing the ## Execution Interpretation section content")
+    if not workflow_autonomy:
+        errors.append("Workflow handoff is missing the ## Workflow Autonomy section content")
+    if not result_section:
+        errors.append("Workflow handoff is missing the ## Result section content")
+
+    return canonical_source, execution_interpretation, workflow_autonomy, result_section
+
+
 def validate_workflow_semantics(workflow_text: str, errors: list[str]) -> None:
     for requirement_name, phrase in WORKFLOW_SEMANTIC_REQUIREMENTS.items():
         if phrase not in workflow_text:
             errors.append(
                 f"Workflow handoff is missing semantic requirement '{requirement_name}': {phrase}"
             )
+
+
+def validate_workflow_section_semantics(
+    canonical_source: list[str],
+    execution_interpretation: list[str],
+    workflow_autonomy: list[str],
+    result_section: list[str],
+    errors: list[str],
+) -> None:
+    canonical_text = "\n".join(canonical_source)
+    execution_text = "\n".join(execution_interpretation)
+    autonomy_text = "\n".join(workflow_autonomy)
+    result_text = "\n".join(result_section)
+
+    if "@" not in canonical_text or "plan.md" not in canonical_text:
+        errors.append(
+            "Workflow handoff Canonical Source section must point to canonical plan.md"
+        )
+    if "Use `plan.md` as the source of truth for:" not in canonical_text:
+        errors.append(
+            "Workflow handoff Canonical Source section must declare plan.md as the source of truth"
+        )
+
+    if "Issue numbering is the baseline recommended execution order" not in execution_text:
+        errors.append(
+            "Workflow handoff Execution Interpretation section must preserve issue-number baseline semantics"
+        )
+    if "`Depends On` is a hard dependency" not in execution_text:
+        errors.append(
+            "Workflow handoff Execution Interpretation section must preserve hard dependency semantics"
+        )
+    if "`Verification Coupling` must be preserved" not in execution_text:
+        errors.append(
+            "Workflow handoff Execution Interpretation section must preserve verification coupling semantics"
+        )
+
+    if "preserve baseline issue-number order unless `Depends On`, `Verification Coupling`, or stronger evidence justifies equivalent safe regrouping;" not in autonomy_text:
+        errors.append(
+            "Workflow handoff Workflow Autonomy section must preserve issue-order regrouping boundary"
+        )
+    if "preserve hard dependencies, first trustworthy verification points, and serial / isolated-worktree safety rules when regrouping runtime tasks;" not in autonomy_text:
+        errors.append(
+            "Workflow handoff Workflow Autonomy section must preserve dependency and safety regrouping boundary"
+        )
+    if "stop instead of forcing implementation" not in autonomy_text:
+        errors.append(
+            "Workflow handoff Workflow Autonomy section must preserve stop-on-broken-assumptions boundary"
+        )
+
+    if "workflow-result.md" not in result_text:
+        errors.append(
+            "Workflow handoff Result section must name workflow-result.md output"
+        )
+    if "`workflow-result.md` status is not a `pge-exec` route or a `pge-review` route." not in result_text:
+        errors.append(
+            "Workflow handoff Result section must preserve workflow-result route boundary"
+        )
 
 
 def validate_workflow_handoff(workflow_handoff_path: Path, errors: list[str]) -> None:
@@ -462,7 +537,17 @@ def validate_workflow_handoff(workflow_handoff_path: Path, errors: list[str]) ->
                 f"Workflow handoff {workflow_handoff_path} is missing required heading: {heading}"
             )
 
+    canonical_source, execution_interpretation, workflow_autonomy, result_section = (
+        validate_workflow_sections(workflow_lines, errors)
+    )
     validate_workflow_semantics(workflow_text, errors)
+    validate_workflow_section_semantics(
+        canonical_source,
+        execution_interpretation,
+        workflow_autonomy,
+        result_section,
+        errors,
+    )
 
 
 def validate_plan_artifacts(plan_path: str, workflow_handoff_path: str | None = None) -> dict:

@@ -178,7 +178,17 @@ def main():
         )
         plan_path, workflow_path = write_fixture(task_dir, workflow_text=broken_workflow)
         result = module.validate_plan_artifacts(str(plan_path), str(workflow_path))
-        assert_invalid_contains(result, "semantic requirement 'preserve_issue_order'")
+        assert_invalid_contains(result, "Workflow handoff Workflow Autonomy section must preserve issue-order regrouping boundary")
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        task_dir = Path(tmp_dir) / "task"
+        broken_workflow = CANONICAL_WORKFLOW.replace(
+            "@.pge/tasks-<slug>/plan.md\n",
+            "plan.md\n",
+        )
+        plan_path, workflow_path = write_fixture(task_dir, workflow_text=broken_workflow)
+        result = module.validate_plan_artifacts(str(plan_path), str(workflow_path))
+        assert_invalid_contains(result, "Canonical Source section must point to canonical plan.md")
 
     print("validate-pge-plan-artifacts regression tests passed")
 
