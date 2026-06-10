@@ -3,6 +3,7 @@
 This is the `pge-plan` reference for the Plan Gate v3 transition layer.
 
 `references/plan-gate.md` remains the authoritative Final Plan Gate. This file defines the optional-to-required structured inputs that make the gate easier to audit and later automate.
+These structured inputs support final authorization and boundary checking only; they do not create a second proof ceremony or replace issue-local / plan-level evidence.
 
 For the longer rationale and future validator shape, see `docs/pge/plan-gate-v3.md`.
 

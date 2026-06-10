@@ -5,6 +5,7 @@ Loaded by pge-plan Phase 4. This is a focused final sanity pass before the Final
 ## Purpose
 
 Confirm that the synthesized plan is still aligned, covered, verifiable, and executable after solution design. Do not reopen broad option generation, repeat Plan Engineering Review, or run an adversarial pressure-test loop by default.
+Sanity role only: confirm fit, coverage, verification readiness, and exec readiness after synthesis. Do not replace issue-local validation, Plan Engineering Review, or Final Plan Gate.
 
 ## Depth Scaling
 

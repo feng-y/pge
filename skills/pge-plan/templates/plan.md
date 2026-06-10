@@ -55,6 +55,12 @@ Validate the upstream research/input before planning proceeds.
 
 Required index fields: `ID`, `File`, `Title`, `State`, `Depends On`, `Verification Coupling`, `Execution Type`, and `Security`.
 
+Execution semantics:
+- Issue numbering is the baseline recommended execution order.
+- `Depends On` encodes hard prerequisites that may require stricter sequencing than issue-ID order.
+- Every non-independent `Verification Coupling` entry must name the coupled issues or verification surface, the first trustworthy verification point, and the safe execution strategy (`serial verification required`, `isolated worktrees required`, or equivalent).
+- `Parallel Hint` may summarize safe concurrency, but it must not contradict issue numbering, `Depends On`, or `Verification Coupling`.
+
 Do not embed full executable issue bodies in `plan.md`. If a selected source has embedded issue bodies, fast-adopt upgrades them into `issues/Ixxx.md` before Final Plan Gate can pass.
 
 ## acceptance
@@ -71,11 +77,11 @@ For LIGHT plans with 1-2 obvious criteria from a clear prompt, replace the table
 
 ## verification
 
-<How to verify the plan as a whole is complete after all issues execute — commands, checks, or manual proof>
+<How to verify the plan as a whole is complete after all issues execute — commands, checks, or manual proof. This is plan-level proof after issue execution, not repeated issue-local validation from `issues/Ixxx.md`.>
 
 ## evidence_required
 
-- <what exec must show for review to confirm done>
+- <what exec must show for review to confirm done; this is the review-facing plan-level proof package, not repeated issue-local validation or gate authorization state>
 
 ## plan_gate_inputs
 
@@ -154,7 +160,7 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 
 ## Handoff To Execute
 
-- Process issues by number starting from Issue 1
+- Baseline execution order: process ready issues by issue number starting from Issue 1 unless `Depends On` or `Verification Coupling` requires stricter sequencing
 - Eligible issues: <list>
 - AFK issues: <list>
 - HITL issues: <list>
@@ -162,7 +168,7 @@ This section is required for MEDIUM/DEEP Architecture Delta Contracts, workflow-
 - Forbidden areas: <list>
 - Necessary context: <short list, or "see ## necessary_context">
 - Recommended approach: <summary or "none">
-- Compile-coupled / shared-verification groups: <issue groups and safe strategy, or "none">
+- Compile-coupled / shared-verification groups: <issue groups, first trustworthy verification point, and safe strategy, or "none">
 - Parallel safety: <same working tree allowed | isolated worktrees required | serial verification required>
 - Optional risk-triggered checks: <security / public API / schema / performance / none>
 
@@ -199,7 +205,25 @@ Authoritative upstream decisions that planning must inherit.
 | U1 | <requirement from upstream> | Issue N | covered |
 | U2 | <requirement from upstream> | — | gap (reason) |
 
+### Decision Overrides
+
+Use when repo evidence, current user constraints, or execution reality requires overriding an upstream/source decision, preserving less than current behavior, or asking for confirmation before treating a behavior as intentional. Omit when there are no overrides or confirmation-bound deviations.
+
+| Decision | Source | Why override or confirmation is needed | Confirmation Needed |
+|----------|--------|----------------------------------------|---------------------|
+| <decision or boundary> | <upstream path / prompt / repo evidence> | <why inherited handling is insufficient> | yes / no |
+
+### Plan Grill Log
+
+Use to record contradiction pressure from Plan Engineering Review or final sanity. Omit when the relevant review path is trivial and no grill findings occurred.
+
+| Check | Finding | Resolution | Source / Evidence |
+|-------|---------|------------|-------------------|
+| <grill check> | <contradiction or risk> | <repair / assumption / escalation> | <file:line / source> |
+
 ### Plan Engineering Review
+
+Proof role: pressure-test adequacy of slicing, ordering, coupling, failure handling, and verification sufficiency before authorization. Do not use this section as the final execution verdict.
 
 Record when the plan risk/depth needs an explicit record. LIGHT plans may use a compact paragraph, short bullet list, or omit entirely if trivial. MEDIUM/DEEP plans should include this section.
 

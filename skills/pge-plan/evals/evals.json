@@ -5,103 +5,223 @@
       "id": 1,
       "prompt": "Create a plan for adding a dark mode toggle. Research brief exists at .pge/tasks-dark-mode/research.md with schema_version: research.v3, route: READY_FOR_PLAN, goal, success_shape, scope/non_goals, constraints to use existing CSS custom properties, relevant repo context naming 3 affected files, and no blocking questions.",
       "expected_output": "Runs Source Contract Check (CONTINUE_TO_PLAN), maps v3 goal/success_shape/scope/constraints into the plan, treats candidate_direction as an approach candidate only, and selects approach through Plan Engineering Review. Plan Engineering Review is optional for LIGHT but if present is compact. Produces 1-3 issues. Does not ask the user any questions. Plan route is READY_FOR_EXECUTE.",
-      "dimensions": ["input_adaptation", "research_v3_adapter", "plan_engineering_review_trigger_conditions", "issue_decomposition"]
+      "dimensions": [
+        "input_adaptation",
+        "research_v3_adapter",
+        "plan_engineering_review_trigger_conditions",
+        "issue_decomposition"
+      ]
     },
     {
       "id": 2,
       "prompt": "Create a plan for migrating the database layer from raw SQL to an ORM. Research.v3 brief has route: READY_FOR_PLAN, candidate_direction: evaluate Prisma/Drizzle/query-builder, rejected_framings: big-bang rewrite without compatibility layer, no selected approach, affected context spans 12 files across 4 modules, and one non-blocking open question about test fixtures.",
       "expected_output": "Source Contract Check → CONTINUE_TO_PLAN. Plan treats candidate_direction as candidate input, not selected approach. Plan Engineering Review is mandatory for MEDIUM/DEEP and selects the approach. Plan Engineering Review is substantive: scope challenge asks whether all 12 files need to change at once or if migration can be incremental. Architecture assessment covers data flow changes and failure modes during partial migration. Complexity gate triggers. Existing solutions check looks for prior art. Non-blocking question is carried to risks/open questions. Plan Engineering Review findings are consumed into selected approach, issues, acceptance, verification before Final Plan Gate.",
-      "dimensions": ["research_v3_adapter", "plan_engineering_review_mandatory_for_medium_deep", "complexity_gate", "scope_challenge", "findings_consumption"]
+      "dimensions": [
+        "research_v3_adapter",
+        "plan_engineering_review_mandatory_for_medium_deep",
+        "complexity_gate",
+        "scope_challenge",
+        "findings_consumption"
+      ]
     },
     {
       "id": 3,
       "prompt": "Create a plan for adding user authentication, session management, role-based access control, audit logging, and SSO integration to a simple CRUD app that currently has no auth.",
       "expected_output": "Plan Engineering Review scope challenge flags this as over-scoped for a single plan. Should either decompose into multiple plans or propose a phased approach where only core auth ships first. Should NOT produce 15+ issues covering everything. Complexity gate definitely triggers. Plan may route to NEEDS_HUMAN if scope decision is needed.",
-      "dimensions": ["scope_challenge", "anti_pattern_detection", "complexity_gate"]
+      "dimensions": [
+        "scope_challenge",
+        "anti_pattern_detection",
+        "complexity_gate"
+      ]
     },
     {
       "id": 4,
       "prompt": "Create a plan from a research.v3 brief with Conditional: Implementation Friction. Research says active Plan surfaces still contain old Research compatibility seams, and required_plan_adjustment says the upgrade must remove those seams rather than preserving downgraded old-protocol inputs.",
       "expected_output": "Plan continues only if route is READY_FOR_PLAN, consumes required_plan_adjustment, and reflects it in constraints/issues/rejected approaches. It removes old Research compatibility behavior from the active Plan upgrade scope, does not revive obsolete Research field handling, and does not add unrelated cleanup scope unless explicitly authorized.",
-      "dimensions": ["research_v3_adapter", "implementation_friction_consumption", "no_legacy_research_seam"]
+      "dimensions": [
+        "research_v3_adapter",
+        "implementation_friction_consumption",
+        "no_legacy_research_seam"
+      ]
     },
     {
       "id": 5,
       "prompt": "Create a plan from a research.v3 brief with Conditional: Progressive Feasibility. direct_goal is full Research/Plan/Exec/Review redesign; first_plannable_objective is optimize pge-plan responsibility boundaries around executable solution design; deferred_goal_parts include Exec redesign and broad historical cleanup.",
       "expected_output": "Plan scopes to first_plannable_objective, records direct_goal/deferred_goal_parts as context and non-goals, and does not plan the full redesign. Issues target pge-plan responsibility boundaries, Plan Engineering Review, canonical plan output, and protocol consistency only.",
-      "dimensions": ["research_v3_adapter", "progressive_feasibility_consumption", "scope_control"]
+      "dimensions": [
+        "research_v3_adapter",
+        "progressive_feasibility_consumption",
+        "scope_control"
+      ]
     },
     {
       "id": 6,
       "prompt": "Create a plan from a research.v3 brief with route: NEEDS_USER and one blocking question about whether the goal is API compatibility or UI simplification.",
       "expected_output": "Plan does not produce a ready execution plan. It stops with NEEDS_INFO and directs the user to answer the research blocking question, then rerun pge-research. It does not ask and consume the research blocker itself, invent the goal, or plan around both possibilities.",
-      "dimensions": ["research_v3_route_gate", "clarification_boundary"]
+      "dimensions": [
+        "research_v3_route_gate",
+        "clarification_boundary"
+      ]
     },
     {
       "id": 7,
       "prompt": "Fast-adopt a Claude plan mode output that has no goal/non_goals/target_areas headings, but prose and issue bullets clearly define the target outcome, stop condition, current phase boundary, fixed implementation decisions, excluded areas, verification expectations, and ordered work.",
       "expected_output": "Treats adoption readiness as a semantic contract check, not a fixed-heading check. It fast-adopts only if it can derive executable issues without inventing scope or re-deciding architecture. Validates that the external plan semantically provides goal, bounded scope/phase, approach or fixed decisions, ordered work, acceptance/verification meaning, and evidence expectations. Missing canonical fields may be materialized; missing required semantics must route NEEDS_INFO or leave Fast Adopt for normal planning when current user intent allows. Runs Plan Engineering Review (mandatory for MEDIUM/DEEP plans). Materializes the source semantics into canonical plan.v2 fields including forbidden_areas, source refs, source_fidelity, and plan_gate. Does not silently replan.",
-      "dimensions": ["fast_adopt", "semantic_source_check", "source_fidelity", "canonical_output_materialization"]
+      "dimensions": [
+        "fast_adopt",
+        "semantic_source_check",
+        "source_fidelity",
+        "canonical_output_materialization"
+      ]
     },
     {
       "id": 8,
       "prompt": "Create a plan for a protocol surface change that modifies route vocabulary in pge-plan SKILL.md. Research.v3 brief has route: READY_FOR_PLAN, goal to add NEEDS_CLARIFICATION route, scope includes SKILL.md and plan-gate.md, constraints say pge-exec must also be checked for consistency.",
       "expected_output": "Plan Engineering Review includes protocol coherence check. Issues include acceptance criteria or verification that checks producer (pge-plan writes routes), consumer (pge-exec reads routes), validator (plan-gate validates routes), and evidence (grep + semantic check that all three agree). Grep alone is not sufficient proof; plan must verify semantic contract consistency across producer/consumer/validator.",
-      "dimensions": ["protocol_coherence", "producer_consumer_validator_evidence"]
+      "dimensions": [
+        "protocol_coherence",
+        "producer_consumer_validator_evidence"
+      ]
     },
     {
       "id": 9,
       "prompt": "Create a plan for adding a user profile page. Research.v3 brief has route: READY_FOR_PLAN, goal, success_shape, scope, and Optional: Design/Experience Note describing audience (end users), experience success shape (clear, accessible, matches design system), and what would disappoint (generic layout, missing accessibility).",
       "expected_output": "Experience Context Check is applied (optional, not mandatory). Check validates that plan consumes experience context in acceptance/verification/evidence. If task were purely internal/protocol work, check would SKIP_NOT_APPLICABLE. Does not block plan for internal work where experience quality is not part of acceptance criteria.",
-      "dimensions": ["experience_context_check_optional", "human_facing_context_consumption"]
+      "dimensions": [
+        "experience_context_check_optional",
+        "human_facing_context_consumption"
+      ]
     },
     {
       "id": 10,
       "prompt": "Create a plan for refactoring internal module boundaries. No human-facing or artifact-facing experience context. Research.v3 brief has route: READY_FOR_PLAN, goal, success_shape, scope, constraints, but no Design/Experience Note.",
       "expected_output": "Experience Context Check returns SKIP_NOT_APPLICABLE with reason that task is purely internal/protocol work. Check does not block the plan. Plan proceeds to synthesis and Final Plan Gate.",
-      "dimensions": ["experience_context_check_skip", "internal_work_no_experience_gate"]
+      "dimensions": [
+        "experience_context_check_skip",
+        "internal_work_no_experience_gate"
+      ]
     },
     {
       "id": 11,
       "prompt": "Create a plan for adding pagination to a list endpoint. Research.v3 brief has route: READY_FOR_PLAN. Plan creates 3 issues that share the same test suite and compile unit.",
-      "expected_output": "Plan classifies verification coupling: issues are compile-coupled or shared verification. Verification Coupling field in each issue records the coupling (e.g., 'compile-coupled with Issue 1, 2, 3' or 'shared verification with Issue 1, 2, 3'). Plan identifies first trustworthy verification point and safe execution strategy (serial verification required, or isolated worktrees required for parallel authoring). Does not rely on non-overlapping Target Areas alone as proof of parallel safety.",
-      "dimensions": ["verification_coupling_classification", "parallel_safety_explicit"]
+      "expected_output": "Plan classifies verification coupling: issues are compile-coupled or shared verification. Issue numbering remains the baseline recommended execution order, while Depends On stays a hard dependency constraint. Verification Coupling field in each issue records the coupling (e.g., 'compile-coupled with Issue 1, 2, 3' or 'shared verification with Issue 1, 2, 3'). Plan identifies first trustworthy verification point and safe execution strategy (serial verification required, or isolated worktrees required for parallel authoring). Does not rely on non-overlapping Target Areas alone as proof of parallel safety.",
+      "dimensions": [
+        "verification_coupling_classification",
+        "parallel_safety_explicit"
+      ]
     },
     {
       "id": 12,
       "prompt": "Create a plan from a legacy Research-shaped document that uses obsolete Research-era field names and has no research.v3 fields. User explicitly selected this document as the source.",
       "expected_output": "Plan does not treat it as a supported Research contract. It either plans from current semantics that stand on their own as a non-Research source, or routes RETURN_TO_RESEARCH / NEEDS_INFO instead of carrying obsolete Research fields forward. It does not upgrade obsolete fields into current Research truth or preserve a legacy Research adapter.",
-      "dimensions": ["obsolete_field_rejection", "current_semantics_only", "no_legacy_research_adapter"]
+      "dimensions": [
+        "obsolete_field_rejection",
+        "current_semantics_only",
+        "no_legacy_research_adapter"
+      ]
     },
     {
       "id": 13,
       "prompt": "Create a plan for a clear MEDIUM protocol migration with five execution issues. The source explicitly says full issue bodies must not live in plan.md and issue files should be lazy-loaded by exec.",
-      "expected_output": "Produces .pge/tasks-<slug>/plan.md with ## issues as a compact Execution Index containing ID, File, Title, State, Depends On, Verification Coupling, Execution Type, and Security. Writes full issue contracts to .pge/tasks-<slug>/issues/I001.md etc. For a ready route, writes .pge/tasks-<slug>/workflow-handoff.md as an optional Dynamic Workflow launch adapter. Does not embed full issue bodies under plan.md ## issues. Final response reports plan_path, issue file count, and workflow_handoff_path.",
-      "dimensions": ["issue_file_plan_output", "progressive_disclosure", "producer_contract"]
+      "expected_output": "Produces .pge/tasks-<slug>/plan.md with ## issues as a compact Execution Index containing ID, File, Title, State, Depends On, Verification Coupling, Execution Type, and Security. Issue numbering is the baseline recommended execution order; Depends On and Verification Coupling encode stricter dependency/coupling constraints. Writes full issue contracts to .pge/tasks-<slug>/issues/I001.md etc. For a ready route, writes .pge/tasks-<slug>/workflow-handoff.md as an optional Dynamic Workflow launch adapter. Does not embed full issue bodies under plan.md ## issues. Final response reports plan_path, issue file count, and workflow_handoff_path.",
+      "dimensions": [
+        "issue_file_plan_output",
+        "progressive_disclosure",
+        "producer_contract"
+      ]
     },
     {
       "id": 14,
       "prompt": "Run Final Plan Gate on a plan whose ## issues index references issues/I001.md but the file is missing.",
       "expected_output": "Final Plan Gate returns REVISE with Exec Allowed: no. It records missing issue file as a Contract Completeness or Execution Readiness failure and does not route READY_FOR_EXECUTE.",
-      "dimensions": ["final_plan_gate", "issue_file_completeness", "missing_file_blocks_exec"]
+      "dimensions": [
+        "final_plan_gate",
+        "issue_file_completeness",
+        "missing_file_blocks_exec"
+      ]
     },
     {
       "id": 15,
       "prompt": "Fast-adopt an external plan that has full executable issue bodies under ## issues but no issue files.",
       "expected_output": "Treats the source as upgrade input, not executable output. Materializes canonical plan.md with a compact issue index and writes issues/Ixxx.md files. If it cannot write issue files or preserve source semantics, it routes REVISE/NEEDS_INFO rather than allowing pge-exec to execute embedded issue bodies.",
-      "dimensions": ["embedded_issue_upgrade", "fast_adopt", "non_canonical_plan_shape"]
+      "dimensions": [
+        "embedded_issue_upgrade",
+        "fast_adopt",
+        "non_canonical_plan_shape"
+      ]
     },
     {
       "id": 16,
       "prompt": "Create a plan where one issue has a slightly stale repo hint but the goal, target area, acceptance, and verification are clear.",
       "expected_output": "Plan allows pge-exec to adapt issue-local repo hints and record implementation-notes.md, while preserving plan goal, scope, acceptance, verification, non-goals, and forbidden areas. It does not route back for issue-local imperfections and does not allow plan mutation during exec.",
-      "dimensions": ["exec_local_adaptation", "implementation_notes_boundary", "plan_boundary_preservation"]
+      "dimensions": [
+        "exec_local_adaptation",
+        "implementation_notes_boundary",
+        "plan_boundary_preservation"
+      ]
     },
     {
       "id": 17,
       "prompt": "Create a MEDIUM plan whose draft issue list has micro-tasks: one issue adds a config field, one issue renames a helper, one issue updates docs, and only the final issue has observable behavior and tests.",
       "expected_output": "Plan Engineering Review performs closed-loop issue slicing review as part of the review, not as a separate issue-review stage. It rejects non-verifiable micro-task issues as ready execution units, then merges or rewrites them into vertical slices with issue-local goal, bounded change, target areas, forbidden boundaries, validation Expected/Check/Evidence, and explicit verification coupling when needed. Final Plan Gate cannot pass while split/merge/rework actions remain unresolved.",
-      "dimensions": ["plan_engineering_review_issue_slicing", "closed_loop_execution_unit", "micro_task_rejection", "verification_coupling_classification"]
+      "dimensions": [
+        "plan_engineering_review_issue_slicing",
+        "closed_loop_execution_unit",
+        "micro_task_rejection",
+        "verification_coupling_classification"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Create a plan for a protocol cleanup where the current prompt says: only change pge-plan unless the contract cannot stay coherent without touching the plan template too. Repo reality may require both SKILL.md and templates/plan.md, and the ambiguity affects both scope and correctness.",
+      "expected_output": "Plan uses the normalized clarification policy: ask the minimum question set needed for a fair plan instead of enforcing a hard one-question cap. For a simple direct prompt it should default to one question, but when scope and correctness are coupled it may ask the smallest coupled question set rather than inventing a broader fix or silently broadening scope.",
+      "dimensions": [
+        "clarification_policy_normalization",
+        "minimum_question_set",
+        "scope_control"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Fast-adopt a docs/exec-plans document that says only skills/pge-plan/SKILL.md should change, but bounded repo evidence shows templates/plan.md must also change to preserve the canonical contract shape.",
+      "expected_output": "Plan does not silently expand scope. It records the contradiction and repair path in Plan Grill Log, records the justified exception in Decision Overrides, and keeps the change bounded to the minimum additional contract surface required for coherence.",
+      "dimensions": [
+        "decision_overrides",
+        "plan_grill_log",
+        "source_fidelity",
+        "scope_exception_recording"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Create a ready plan with three issues where Issue 2 depends on Issue 1, Issue 3 is verification-coupled to the first two, and workflow-handoff.md must be generated.",
+      "expected_output": "The canonical plan treats issue numbering as the baseline recommended execution order, keeps Depends On as hard dependency semantics, and records the first trustworthy verification point plus safe execution strategy for the non-independent issue. workflow-handoff.md preserves those order/dependency/coupling/safety semantics without turning them into a DAG, task tree, copied issue bodies, or scheduler spec.",
+      "dimensions": [
+        "ordered_execution_contract",
+        "workflow_handoff_adapter_purity",
+        "verification_coupling_classification"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Create a plan for a contract change where an upstream note suggests new route labels like READY_TO_EXECUTE_SOON and NEEDS_CLARIFICATION_NOW.",
+      "expected_output": "Plan keeps the existing route and gate vocabulary unchanged. It treats the suggested new labels as a coherence risk, uses route_vocabulary boundary checks when relevant, and does not emit non-canonical route/status/verdict values in the plan artifact or handoff.",
+      "dimensions": [
+        "route_vocabulary_stability",
+        "gate_vocabulary_stability",
+        "protocol_coherence"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "Create a ready MEDIUM plan for a bounded contract migration with two executable issues and no user blockers. The task changes a plan contract surface but should keep proof responsibilities clean across issue files, plan.md, Plan Engineering Review, and Final Plan Gate.",
+      "expected_output": "Issue files keep issue-local proof in validation only. plan.md keeps plan-level proof in acceptance, verification, and evidence_required. Plan Engineering Review pressure-tests adequacy of slicing, ordering, coupling, and verification without becoming the final execution verdict. Final Plan Gate remains the only final authorization and completeness decision. The plan does not duplicate the same proof obligation across all four layers.",
+      "dimensions": [
+        "proof_role_deduplication",
+        "issue_local_validation_boundary",
+        "plan_level_verification_boundary",
+        "final_authorization_boundary"
+      ]
     }
   ]
 }

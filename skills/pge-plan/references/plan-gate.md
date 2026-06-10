@@ -3,6 +3,7 @@
 Plan-owned execution-contract gate. Runs after the draft `plan.md`, issue index, referenced issue files, acceptance, verification, evidence requirements, and final sanity pass are written.
 
 Plan Engineering Review is a gstack-style decision-hardening layer inside `pge-plan`. It catches selected-approach, issue-slicing, architecture, data-flow, edge-case, test-coverage, performance, and implementation-friction weaknesses before the plan is frozen. The Final Plan Gate is the hard authorization validator: it decides whether the plan is executable, verifiable, repo-grounded, and safe to hand to `pge-exec`.
+Its proof role is final authorization and completeness: consume issue-local validation, plan-level verification/evidence, and Plan Engineering Review findings, then decide whether the contract is ready. Do not turn this gate into a second design review or duplicate issue-local proof unless evidence is missing or contradictory.
 
 No `PASS`, no `pge-exec`.
 
@@ -122,8 +123,10 @@ Checks:
 
 - Slices are small enough for bounded worker execution.
 - The issue index is schedulable without opening every issue file.
+- Issue numbering yields the baseline recommended execution order, while `Depends On` captures only stricter hard dependencies.
 - Selected issue files are complete enough for `pge-exec` to build a Generator brief from the issue file plus shared plan context.
 - Each ready slice has a closed loop: issue-local goal, bounded change, concrete validation, and either independent verification or explicit verification coupling with a safe strategy.
+- Every non-independent issue names the first trustworthy verification point and safe execution strategy.
 - Retry/block/escalate routing is clear for likely mismatch types.
 - HITL work is explicit: `HITL:verify`, `HITL:decision`, or `HITL:action`.
 - Exec context pack is sufficient: issue order, eligible issues, goal, semantic plan context, change, target areas, recommended approach, forbidden boundaries, and validation.
@@ -149,7 +152,7 @@ Checks:
 Planning does not treat unresolved conditions as runtime exceptions. They are confirmation, clarification, or stop triggers. Resolve them in this order:
 
 1. Self-resolve from repo evidence, upstream artifacts, or current user text when the answer is mechanical.
-2. If the answer changes goal, scope, acceptance, safety, or human judgment, clarify until the execution target is clear enough to plan fairly. Prefer the smallest question set that restores clarity, but do not artificially limit clarification to one question when multiple coupled facts are required.
+2. If the answer changes goal, scope, acceptance, safety, or human judgment, ask the minimum question set needed for a fair plan. Do not artificially limit clarification to one question when multiple coupled facts are required.
 3. If the condition cannot be resolved in this planning turn, map it to one gate verdict plus one plan route and record it in `## terminal_conditions`.
 
 | Condition / terminal item | Gate Verdict | Plan Route | Exec Allowed | Handling |

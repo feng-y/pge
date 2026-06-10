@@ -2,6 +2,8 @@
 
 Loaded by pge-plan Phase 2. Scale to depth: LIGHT = compact scope/reuse/verification sanity, MEDIUM = approach tradeoffs + slicing + architecture + test coverage, DEEP = full execution-topology/protocol/migration assessment with optional outside voice.
 
+Proof role: test whether the selected approach, issue slicing, ordering, coupling, failure handling, and verification story are adequate. Do not turn this review into final execution authorization or a duplicate of plan-level / issue-local proof.
+
 ## Fix-First Principle
 
 This review is not a report. Every finding must be resolved before proceeding:
@@ -94,6 +96,39 @@ If 8+ files touched OR 2+ new classes/services/abstractions:
 For each viable approach, ask whether it covers the inherited success shape, non-goals, execution boundary, failure modes, and verification evidence. Prefer the approach that satisfies the contract with the smallest blast radius and clearest proof.
 
 If the selected approach knowingly defers part of the requested success shape, the plan must route `NEEDS_INFO` / `NEEDS_HUMAN` / `RETURN_TO_RESEARCH` or mark the deferred part as an explicit non-goal authorized by the source. Do not hide incompleteness behind numeric scores.
+
+## Experience Context Check (Optional)
+
+Apply this only when experience quality directly affects acceptance criteria. If research or the current source already specifies audience, experience success shape, disappointment risks, or relevant conventions, planning must preserve that context in acceptance, verification, or evidence instead of silently dropping it.
+
+Outcomes:
+- `PASS` — relevant experience context is preserved clearly
+- `SKIP_NOT_APPLICABLE` — internal/protocol task or no meaningful experience surface
+- `REWORK_PLAN` — experience context is clear but the plan failed to consume it
+- `RETURN_TO_RESEARCH` — audience or experience success shape is unclear enough to change the problem contract
+- `NEEDS_INFO` — one human answer is still required and neither repo evidence nor source text can resolve it
+
+## Inconsistency Grill
+
+As part of Plan Engineering Review or final sanity, actively grill the plan input against the emerging plan. This is not a separate route authority and not permission to re-decide upstream scope. Its job is to find contradictions early and repair the plan before Final Plan Gate.
+
+Ask these checks in order:
+- Does the proposed approach preserve every authoritative phase/scope decision, especially from `docs/exec-plans/`?
+- Does any issue introduce helpers, flags, cleanup, validation expansion, broad refactors, or abstractions that the source did not authorize?
+- Does the issue split move semantic ownership away from the module or phase named by the source?
+- Do acceptance and verification prove the requested behavior, or only prove that tasks were completed?
+- Is any inferred requirement being treated as stated fact?
+- Is any current user constraint missing from `Plan Constraints`, `Non-goals`, `Target Areas`, issue scope, or `Verification`?
+- **[P1] Naming coherence:** When the plan references config blocks, message fields, metric names, or artifact schemas, does the same entity use exactly one name throughout, or are multiple names used inconsistently? If multiple names exist, are they explicitly merged/aliased, or is it accidental drift?
+
+Resolve each inconsistency before synthesis:
+- If code/docs answer it, self-answer with evidence.
+- If it is only an implementation detail, choose the repo-conventional default and record the assumption.
+- If it changes goal, phase, scope, semantic ownership, acceptance, or safety, ask the minimum question set needed for a fair plan or route `NEEDS_INFO`.
+- If the inconsistency comes from unrequested expansion, remove the expansion.
+- **[P1] For naming drift, pick one canonical name and note the choice in `Plan Constraints` or issue scope.**
+
+Record the result in `Plan Grill Log`: `check`, `finding`, `resolution`, and `source/evidence`. Use `Decision Overrides` when the resolution intentionally overrides authoritative upstream scope, semantics, or allowed-file boundaries. Empty `Plan Grill Log` sections are suspicious for MEDIUM/DEEP plans and for plans sourced from `docs/exec-plans/`.
 
 ## Outside Voice (MEDIUM + DEEP)
 
